@@ -368,28 +368,29 @@ async def pairs_summary(limit: int = 50):
 
 # Simple in-memory cache for the top-50 list (refresh every 5 min)
 _TOP_CACHE = {"ts": 0.0, "data": None}
-_STABLE_SYMBOLS = {"USDT", "USDC", "DAI", "TUSD", "BUSD", "FDUSD", "PYUSD", "USDD"}
+_STABLE_SYMBOLS = {"USDT", "USDC", "DAI", "TUSD", "BUSD", "FDUSD", "PYUSD", "USDD", "USDS"}
 
 
 @api.get("/market/top")
-async def top_market(limit: int = 50):
+async def top_market(limit: int = 50, force: bool = False):
     """Top-N coins by market cap (CoinGecko) intersected with Binance-listed USDT pairs.
     Returns rank, name, symbol, image (from CoinGecko) + live price/change (from Binance).
-    Cached for 5 minutes to respect CoinGecko rate limits."""
+    Cached for 5 minutes. Pass ?force=1 to bypass cache."""
     import time as _t
     now = _t.time()
-    if _TOP_CACHE["data"] and (now - _TOP_CACHE["ts"] < 300):
+    if not force and _TOP_CACHE["data"] and _TOP_CACHE["data"].get("count", 0) >= limit and (now - _TOP_CACHE["ts"] < 300):
         return _TOP_CACHE["data"]
 
     async with httpx.AsyncClient(timeout=12) as c:
-        # 1) fetch top coins by market cap
+        # 1) fetch top coins by market cap — over-fetch (top 250) so we still get
+        #    the requested `limit` after filtering out stables + non-Binance coins.
         try:
             cg = await c.get(
                 "https://api.coingecko.com/api/v3/coins/markets",
                 params={
                     "vs_currency": "usd",
                     "order": "market_cap_desc",
-                    "per_page": 100,   # over-fetch so we still get 50 after filtering stables
+                    "per_page": 250,
                     "page": 1,
                     "sparkline": "false",
                     "price_change_percentage": "24h",
@@ -399,7 +400,10 @@ async def top_market(limit: int = 50):
             coins = cg.json()
         except Exception as e:
             logger.warning(f"top_market CoinGecko failed: {e}")
-            return {"coins": [], "error": "coingecko_unreachable"}
+            # Serve stale cache if we have one; otherwise empty.
+            if _TOP_CACHE["data"]:
+                return _TOP_CACHE["data"]
+            return {"coins": [], "count": 0, "error": "coingecko_unreachable"}
 
         # 2) fetch all Binance USDT pairs (from ticker)
         try:
@@ -413,6 +417,12 @@ async def top_market(limit: int = 50):
     for coin in coins:
         sym = coin.get("symbol", "").upper()
         if not sym or sym in _STABLE_SYMBOLS:
+            continue
+        # Heuristic: any coin whose name contains "USD" (case-insensitive) is likely
+        # a stablecoin variant — skip. Also skip if price ≈ $1 within 1% (safety net).
+        name_upper = (coin.get("name") or "").upper()
+        current = float(coin.get("current_price") or 0)
+        if "USD" in name_upper or (0.985 <= current <= 1.015 and current > 0):
             continue
         pair = f"{sym}USDT"
         # Some coins on Binance use special aliases (e.g., IOTA -> IOTAUSDT is fine).
