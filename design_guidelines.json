@@ -1,0 +1,122 @@
+{
+  "theme_and_archetype": {
+    "theme": "dark",
+    "archetype": "7 (Electric & Neon - Crypto Luxury Variant)",
+    "description": "A high-end crypto trading bot interface. It balances futuristic neon energy (Archetype 7) with the sleek, reliable structure of luxury dark mode. Replaces generic 'SaaS purple' with a highly distinctive Electric Cyan and Hot Magenta pairing over deep obsidian/navy. Emphasizes liquid glass textures and neon circuit vibes."
+  },
+  "typography": {
+    "font_families": {
+      "headings": "'Unbounded', sans-serif",
+      "body": "'Outfit', sans-serif"
+    },
+    "hierarchy": {
+      "h1_hero": "text-4xl sm:text-5xl font-black tracking-tighter leading-tight",
+      "h2_section": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3_card": "text-xl font-semibold tracking-tight",
+      "body_main": "text-base font-normal leading-relaxed",
+      "body_small": "text-sm font-medium",
+      "overline_label": "text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em]"
+    },
+    "implementation_notes": "Avoid Inter/Roboto completely. Use Unbounded for all numbers (prices, percentages, balances) to give them a premium 'ticker' feel. Ensure tabular-nums utility is used for live data."
+  },
+  "color_palette": {
+    "backgrounds": {
+      "base": "#050914",
+      "surface": "#0F1524",
+      "surface_glass": "rgba(15, 21, 36, 0.65)"
+    },
+    "brand": {
+      "primary": "#00F0FF",
+      "primary_glow": "rgba(0, 240, 255, 0.5)",
+      "secondary": "#FF007A",
+      "secondary_glow": "rgba(255, 0, 122, 0.5)"
+    },
+    "status": {
+      "success": "#39FF14",
+      "danger": "#FF007A",
+      "warning_gold": "#FFD700"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#8B9BB4",
+      "inverse": "#050914"
+    },
+    "borders": {
+      "subtle": "rgba(255, 255, 255, 0.08)",
+      "focus": "#00F0FF"
+    }
+  },
+  "spacing_and_layout": {
+    "app_container": "max-w-[480px] mx-auto min-h-screen bg-[#050914] text-white relative shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-x-hidden pb-24",
+    "section_spacing": "py-6 px-4 md:px-6",
+    "bento_grid": "grid grid-cols-4 gap-3 md:gap-4",
+    "list_spacing": "flex flex-col gap-3",
+    "safe_areas": "Ensure content doesn't collide with the fixed bottom navigation (pb-24)."
+  },
+  "components": {
+    "cards_glassmorphism": {
+      "base_classes": "bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.2)]",
+      "hover_classes": "transition-all duration-300 hover:border-[#00F0FF]/30 hover:bg-[#0F1524]/80 hover:shadow-[0_0_20px_rgba(0,240,255,0.1)]"
+    },
+    "buttons": {
+      "primary": "bg-[#00F0FF] text-[#050914] font-bold rounded-xl px-6 py-3 hover:bg-white transition-colors hover:shadow-[0_0_15px_rgba(0,240,255,0.6)]",
+      "secondary": "bg-white/10 text-white font-semibold border border-white/10 rounded-xl px-6 py-3 hover:bg-white/20",
+      "danger": "bg-[#FF007A] text-white font-bold rounded-xl px-6 py-3 hover:bg-[#FF007A]/80 hover:shadow-[0_0_15px_rgba(255,0,122,0.6)]"
+    },
+    "bottom_navigation": {
+      "container": "fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-20 bg-[#050914]/80 backdrop-blur-2xl border-t border-white/10 z-50 flex justify-around items-center px-2",
+      "item_active": "text-[#00F0FF] flex flex-col items-center gap-1",
+      "item_inactive": "text-[#8B9BB4] flex flex-col items-center gap-1 hover:text-white transition-colors"
+    },
+    "inputs": {
+      "base": "bg-[#050914] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00F0FF] focus:ring-1 focus:ring-[#00F0FF] transition-all placeholder:text-[#8B9BB4]"
+    },
+    "hero_banner": {
+      "classes": "relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00F0FF]/20 to-[#FF007A]/20 border border-white/10 p-6 flex flex-col justify-end min-h-[160px]"
+    }
+  },
+  "motion_and_interactions": {
+    "list_stagger": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "transition": { "staggerChildren": 0.1 }
+    },
+    "page_transition": {
+      "initial": { "opacity": 0, "filter": "blur(10px)" },
+      "animate": { "opacity": 1, "filter": "blur(0px)" },
+      "exit": { "opacity": 0, "filter": "blur(10px)" }
+    },
+    "live_indicator": {
+      "classes": "w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"
+    },
+    "testing_requirements": "All interactive elements (buttons, inputs, nav items, tabs) MUST include descriptive data-testid attributes (e.g., data-testid='start-bot-btn')."
+  },
+  "media": {
+    "hero_background": {
+      "url": "https://images.pexels.com/photos/9404662/pexels-photo-9404662.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Dynamic neon lines. Use as an absolute background image inside the promotional hero banner 'NEW ERA OF CRYPTO' with mix-blend-screen and opacity-40."
+    },
+    "rewards_icon": {
+      "url": "https://images.unsplash.com/photo-1669951584605-4deba095a87f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGNyeXB0byUyMHRva2VuJTIwZmxvYXRpbmclMjAzZHxlbnwwfHx8fDE3ODIwNzk5MjR8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Gold coins falling. Use this for the Rewards / Referral section header or banner to emphasize premium earnings."
+    },
+    "texture_overlay": {
+      "url": "https://images.unsplash.com/photo-1683447551794-1c287cd42675?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwzfHxkYXJrJTIwZnV0dXJpc3RpYyUyMG5ldHdvcmslMjBub2Rlc3xlbnwwfHx8fDE3ODI5MTI2MzN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Network nodes. Use as a fixed background overlay on the entire app container with opacity-5 and mix-blend-overlay to add a cyber-texture."
+    }
+  },
+  "icons": {
+    "library": "lucide-react",
+    "stroke_width": "1.5",
+    "instruction": "Use lucide-react. For active states or bot indicators, add a drop-shadow glow to the SVG."
+  },
+  "instructions_to_main_agent": [
+    "DO NOT use generic Shadcn components out-of-the-box. Customize their classes to match the 'cards_glassmorphism' and 'inputs' guidelines above.",
+    "The app MUST look like a mobile application. Enforce the max-w-[480px] container horizontally centered on larger screens with a dark background outside.",
+    "Implement the strategy configuration form densely but legibly, utilizing the 'overline_label' for input labels to save vertical space.",
+    "Add Framer Motion for staggered list rendering on the Trading Pairs feed and Transaction history.",
+    "Use 'Unbounded' for all metrics/numbers and 'Outfit' for readable text/descriptions.",
+    "CRITICAL: Include data-testid attributes on every interactive element (e.g., Buy, Sell, One-Shot, Settings, Nav links) to pass strict testing.",
+    "All backgrounds must be dark. Do not use white backgrounds for any surface."
+  ]
+}
