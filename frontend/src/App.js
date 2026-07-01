@@ -19,6 +19,7 @@ import Rewards from "@/pages/Rewards";
 import News from "@/pages/News";
 import Guide from "@/pages/Guide";
 import Profile from "@/pages/Profile";
+import Market from "@/pages/Market";
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
             }
           >
             <Route path="/" element={<Dashboard />} />
+            <Route path="/market" element={<Market />} />
             <Route path="/bind-api" element={<BindAPI />} />
             <Route path="/pair/:symbol" element={<TradingPair />} />
             <Route path="/wallet" element={<Wallet />} />

@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
-import { Home, TrendingUp, Wallet, Users, User } from "lucide-react";
+import { Home, LineChart, Wallet, Users, User } from "lucide-react";
 
 const items = [
   { to: "/", icon: Home, label: "Home", testid: "nav-home" },
-  { to: "/transactions", icon: TrendingUp, label: "Trades", testid: "nav-trades" },
+  { to: "/market", icon: LineChart, label: "Market", testid: "nav-market" },
   { to: "/wallet", icon: Wallet, label: "Assets", testid: "nav-wallet" },
   { to: "/referral", icon: Users, label: "Team", testid: "nav-referral" },
   { to: "/profile", icon: User, label: "Profile", testid: "nav-profile" },

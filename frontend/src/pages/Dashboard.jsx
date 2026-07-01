@@ -240,21 +240,26 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Active Trading Pairs */}
+      {/* Top Market Movers preview → link to full Market tab */}
       <div className="mt-6 px-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <div className="font-display font-bold text-lg">Trading Pairs</div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Live · Binance data</div>
+            <div className="font-display font-bold text-lg">Top Movers</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+              Live · Tap to view full market
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-[#39FF14] font-bold">LIVE</span>
-          </div>
+          <Link
+            to="/market"
+            data-testid="see-market-link"
+            className="text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold border border-[#00F0FF]/40 rounded-full px-3 py-1.5 hover:bg-[#00F0FF]/10"
+          >
+            See Market →
+          </Link>
         </div>
 
-        <div className="space-y-3" data-testid="pairs-list">
-          {pairs.map((p, i) => (
+        <div className="grid grid-cols-2 gap-2" data-testid="top-movers-grid">
+          {pairs.slice(0, 4).map((p, i) => (
             <motion.div
               key={p.symbol}
               initial={{ opacity: 0, y: 15 }}
@@ -263,26 +268,19 @@ export default function Dashboard() {
             >
               <Link
                 to={`/pair/${p.symbol}`}
-                data-testid={`pair-${p.symbol}`}
-                className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 hover:border-[#00F0FF]/30 hover:bg-[#0F1524]/80 transition-all"
+                data-testid={`mover-${p.symbol}`}
+                className="flex items-center gap-2.5 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 hover:border-[#00F0FF]/40 transition-all"
               >
-                <div className="flex items-center gap-3">
-                  <CoinIcon symbol={p.symbol} size={44} />
-                  <div>
-                    <div className="font-display font-bold text-sm">
-                      {shortSymbol(p.symbol)}<span className="text-[#8B9BB4]">/USDT</span>
-                    </div>
-                    <div className="text-[10px] text-[#8B9BB4] uppercase tracking-wider mt-0.5">
-                      Vol {(p.volume / 1_000_000).toFixed(1)}M
-                    </div>
+                <CoinIcon symbol={p.symbol} size={32} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-display font-bold text-xs truncate">
+                    {shortSymbol(p.symbol)}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-display font-bold tabular-nums text-sm">
-                    {fmtUSD(p.last_price, p.last_price > 100 ? 2 : 4)}
+                  <div className="font-display font-bold text-[11px] tabular-nums">
+                    {fmtUSD(p.last_price, p.last_price > 100 ? 0 : 2)}
                   </div>
                   <div
-                    className={`text-xs font-bold tabular-nums mt-0.5 ${
+                    className={`text-[10px] font-bold tabular-nums ${
                       p.change_pct >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
                     }`}
                   >
