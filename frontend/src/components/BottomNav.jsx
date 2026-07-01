@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, LineChart, Wallet, Users, User } from "lucide-react";
+import { Home, LineChart, ArrowRightLeft, Wallet, UserCircle2 } from "lucide-react";
 
 const items = [
   { to: "/", icon: Home, label: "Home", testid: "nav-home" },
   { to: "/market", icon: LineChart, label: "Market", testid: "nav-market" },
-  { to: "/wallet", icon: Wallet, label: "Assets", testid: "nav-wallet" },
-  { to: "/referral", icon: Users, label: "Team", testid: "nav-referral" },
-  { to: "/profile", icon: User, label: "Profile", testid: "nav-profile" },
+  { to: "/transactions", icon: ArrowRightLeft, label: "Trade", testid: "nav-trade" },
+  { to: "/wallet", icon: Wallet, label: "Asset", testid: "nav-wallet" },
+  { to: "/profile", icon: UserCircle2, label: "Mine", testid: "nav-profile" },
 ];
 
 export default function BottomNav() {
