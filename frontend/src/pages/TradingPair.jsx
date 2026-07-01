@@ -178,6 +178,25 @@ export default function TradingPair() {
     setPosEditOpen(true);
   };
 
+  const importFromBinance = () => {
+    if (!live) {
+      toast.error("Live balances not loaded");
+      return;
+    }
+    const base = live.balances.find((b) => b.asset === shortSymbol(sym));
+    if (!base || base.free <= 0) {
+      toast.error(`No ${shortSymbol(sym)} balance found on Binance`);
+      return;
+    }
+    setPosEdit((prev) => ({
+      ...prev,
+      position_qty: String(base.free),
+      // If user hasn't set avg yet, prefill with the current market price so they can adjust
+      avg_price: prev.avg_price && parseFloat(prev.avg_price) > 0 ? prev.avg_price : String(price || 0),
+    }));
+    toast.success(`Imported ${base.free} ${shortSymbol(sym)} from Binance`);
+  };
+
   const submitPosEdit = async () => {
     try {
       await api.post(`/bots/${sym}/position`, {
@@ -272,38 +291,79 @@ export default function TradingPair() {
       {live && (bind?.mode === "real" || bind?.mode === "testnet") && (() => {
         const usdt = live.balances.find((b) => b.asset === "USDT");
         const base = live.balances.find((b) => b.asset === shortSymbol(sym));
+        const baseFree = base?.free || 0;
+        const shortfall = bot.position_qty > baseFree ? bot.position_qty - baseFree : 0;
         return (
-          <div className="px-4 mt-3">
-            <div
-              className={`rounded-2xl border p-3 flex items-center justify-between ${
-                bind.mode === "real"
-                  ? "border-[#FF007A]/30 bg-[#FF007A]/5"
-                  : "border-[#FFD700]/30 bg-[#FFD700]/5"
-              }`}
-              data-testid="pair-live-fund"
-            >
-              <div>
-                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
-                  Real Fund on Binance ·{" "}
-                  <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>
-                    {bind.mode}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-3 mt-0.5">
-                  <div>
-                    <div className="font-display font-black text-base tabular-nums">
-                      {fmtNum(usdt?.free || 0, 2)} <span className="text-[10px] text-[#8B9BB4] font-normal">USDT</span>
-                    </div>
+          <>
+            <div className="px-4 mt-3">
+              <div
+                className={`rounded-2xl border p-3 flex items-center justify-between ${
+                  bind.mode === "real"
+                    ? "border-[#FF007A]/30 bg-[#FF007A]/5"
+                    : "border-[#FFD700]/30 bg-[#FFD700]/5"
+                }`}
+                data-testid="pair-live-fund"
+              >
+                <div>
+                  <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                    Real Fund on Binance ·{" "}
+                    <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>
+                      {bind.mode}
+                    </span>
                   </div>
-                  <div>
-                    <div className="font-display font-bold text-sm tabular-nums text-[#00F0FF]">
-                      {fmtNum(base?.free || 0, 6)} <span className="text-[10px] text-[#8B9BB4] font-normal">{shortSymbol(sym)}</span>
+                  <div className="flex items-baseline gap-3 mt-0.5">
+                    <div>
+                      <div className="font-display font-black text-base tabular-nums">
+                        {fmtNum(usdt?.free || 0, 2)} <span className="text-[10px] text-[#8B9BB4] font-normal">USDT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-display font-bold text-sm tabular-nums text-[#00F0FF]">
+                        {fmtNum(baseFree, 6)} <span className="text-[10px] text-[#8B9BB4] font-normal">{shortSymbol(sym)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+
+            {shortfall > 0 && bot.position_qty > 0 && (
+              <div className="px-4 mt-3">
+                <div
+                  className="bg-[#FF007A]/10 border border-[#FF007A]/40 rounded-2xl p-3 flex items-start gap-3"
+                  data-testid="sell-warning"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#FF007A]/20 flex items-center justify-center flex-shrink-0">
+                    <span className="font-display font-black text-[14px] text-[#FF007A]">!</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-display font-bold text-sm text-[#FF007A]">
+                      Auto-Sell will fail
+                    </div>
+                    <div className="text-[11px] text-white/85 mt-0.5 leading-relaxed">
+                      Bot tracks{" "}
+                      <span className="font-bold tabular-nums">{fmtNum(bot.position_qty, 6)}</span>{" "}
+                      {shortSymbol(sym)}, but Binance only holds{" "}
+                      <span className="font-bold tabular-nums">{fmtNum(baseFree, 6)}</span>. Shortfall:{" "}
+                      <span className="font-bold tabular-nums text-[#FF007A]">{fmtNum(shortfall, 6)} {shortSymbol(sym)}</span>.
+                    </div>
+                    <div className="text-[10px] text-[#8B9BB4] mt-1">
+                      Either{" "}
+                      <button
+                        type="button"
+                        onClick={openPosEdit}
+                        className="underline text-[#00F0FF] font-bold"
+                        data-testid="warn-adjust"
+                      >
+                        adjust the tracked position
+                      </button>{" "}
+                      to match Binance, or deposit the missing amount before the next TP/Close.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         );
       })()}
 
@@ -793,15 +853,27 @@ export default function TradingPair() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
-                  Position Quantity ({shortSymbol(sym)})
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+                    Position Quantity ({shortSymbol(sym)})
+                  </label>
+                  {live && (bind?.mode === "real" || bind?.mode === "testnet") && (
+                    <button
+                      type="button"
+                      onClick={importFromBinance}
+                      data-testid="pos-import-btn"
+                      className="text-[9px] uppercase tracking-widest font-bold text-[#00F0FF] border border-[#00F0FF]/40 rounded-full px-2 py-0.5 hover:bg-[#00F0FF]/10"
+                    >
+                      ↓ Import from Binance
+                    </button>
+                  )}
+                </div>
                 <input
                   type="number"
                   step="0.000001"
                   value={posEdit.position_qty}
                   onChange={(e) => setPosEdit({ ...posEdit, position_qty: e.target.value })}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
                   data-testid="pos-qty-input"
                 />
               </div>
