@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import LiveTicker from "@/components/LiveTicker";
+import TopProfileBadge from "@/components/TopProfileBadge";
 
 export default function AppShell() {
   return (
@@ -11,6 +12,7 @@ export default function AppShell() {
         data-testid="app-shell"
       >
         <LiveTicker />
+        <TopProfileBadge />
         <Outlet />
         <BottomNav />
       </div>

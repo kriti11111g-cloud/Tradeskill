@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Key, ArrowRightLeft, TrendingUp, Users, Gift, Trophy, BookOpen, Newspaper, Bell, Zap } from "lucide-react";
+import { Key, ArrowRightLeft, TrendingUp, Users, Gift, Trophy, BookOpen, Newspaper, Zap } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum, shortSymbol } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
@@ -79,14 +79,6 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <Link
-          to="/news"
-          className="w-10 h-10 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center relative"
-          data-testid="notif-btn"
-        >
-          <Bell size={18} />
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF007A] animate-tgx-pulse" />
-        </Link>
       </div>
 
       {/* Hero Banner */}
