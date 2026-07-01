@@ -360,9 +360,39 @@ async def list_bots(user: dict = Depends(get_current_user)):
 async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     row = await db.bots.find_one({"user_id": user["id"], "symbol": symbol.upper()}, {"_id": 0})
     if not row:
-        return {**DEFAULT_BOT_CFG, "symbol": symbol.upper(), "user_id": user["id"]}
-    # Fill missing defaults for older docs
-    merged = {**DEFAULT_BOT_CFG, **row}
+        merged = {**DEFAULT_BOT_CFG, "symbol": symbol.upper(), "user_id": user["id"]}
+    else:
+        # Fill missing defaults for older docs
+        merged = {**DEFAULT_BOT_CFG, **row}
+
+    # Compute derived triggers so UI can show "Operation Reminder"
+    avg_price = float(merged.get("avg_price", 0) or 0)
+    position_qty = float(merged.get("position_qty", 0) or 0)
+    tp_ratio = float(merged.get("whole_take_profit_ratio", 0) or 0)
+    buy_cb = float(merged.get("buy_in_callback", 0) or 0)
+    mc_count = int(merged.get("margin_call_count", 0) or 0)
+    mc_limit = int(merged.get("margin_call_limit", 0) or 0)
+    peak = float(merged.get("peak_price", 0) or 0)
+    tp_callback = float(merged.get("whole_take_profit_callback", 0) or 0)
+
+    tp_trigger = avg_price * (1 + tp_ratio / 100.0) if avg_price > 0 else 0.0
+    next_buy = float(merged.get("next_buy_price", 0) or 0)
+    if next_buy == 0 and avg_price > 0 and buy_cb > 0:
+        next_buy = avg_price * (1 - buy_cb / 100.0)
+
+    # Trigger state for the UI
+    if position_qty == 0:
+        trigger_state = "start_pending" if merged.get("status") == "running" else "idle"
+    elif peak > 0:
+        trigger_state = "tp_armed"
+    else:
+        trigger_state = "waiting"
+
+    merged["take_profit_trigger_price"] = round(tp_trigger, 6) if tp_trigger else 0
+    merged["margin_call_trigger_price"] = round(next_buy, 6) if next_buy else 0
+    merged["tp_pullback_trigger_price"] = round(peak * (1 - tp_callback / 100.0), 6) if peak > 0 else 0
+    merged["margin_call_remaining"] = max(0, mc_limit - mc_count)
+    merged["trigger_state"] = trigger_state
     return merged
 
 

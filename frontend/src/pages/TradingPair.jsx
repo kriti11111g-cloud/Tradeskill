@@ -234,6 +234,133 @@ export default function TradingPair() {
         ))}
       </div>
 
+      {/* Operation Reminder — auto-trigger prices */}
+      <div className="px-4 mt-4">
+        <div
+          className="rounded-2xl border border-white/10 p-4 relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(0,240,255,0.08), rgba(255,215,0,0.06)), #0F1524",
+          }}
+          data-testid="operation-reminder"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  bot.status === "running" ? "bg-[#39FF14] animate-tgx-pulse" : "bg-[#8B9BB4]"
+                }`}
+              />
+              <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
+                Operation Reminder
+              </div>
+            </div>
+            <div
+              className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
+                bot.trigger_state === "tp_armed"
+                  ? "text-[#39FF14] border-[#39FF14]/40 bg-[#39FF14]/10"
+                  : bot.trigger_state === "waiting"
+                  ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/10"
+                  : bot.trigger_state === "start_pending"
+                  ? "text-[#FFD700] border-[#FFD700]/40 bg-[#FFD700]/10"
+                  : "text-[#8B9BB4] border-white/10 bg-white/5"
+              }`}
+              data-testid="trigger-state"
+            >
+              {bot.trigger_state === "tp_armed"
+                ? "TP Armed"
+                : bot.trigger_state === "waiting"
+                ? "Waiting for trigger"
+                : bot.trigger_state === "start_pending"
+                ? "First buy pending"
+                : "Idle"}
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* Margin call trigger */}
+            <div className="flex items-center justify-between" data-testid="mc-trigger-row">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/15 flex items-center justify-center">
+                  <span className="font-display font-black text-[10px] text-[#FFD700]">MC</span>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                    Margin call trigger price
+                  </div>
+                  <div className="text-[9px] text-[#8B9BB4]">
+                    Auto-BUY when price ≤ trigger · {bot.margin_call_remaining} rounds left
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-display font-black text-sm tabular-nums text-[#FFD700]">
+                  {bot.margin_call_trigger_price > 0
+                    ? `≤ ${fmtNum(bot.margin_call_trigger_price, 4)}`
+                    : "—"}
+                </div>
+                {bot.margin_call_trigger_price > 0 && price > 0 && (
+                  <div className="text-[9px] tabular-nums text-[#8B9BB4]">
+                    {((price - bot.margin_call_trigger_price) / bot.margin_call_trigger_price * 100).toFixed(2)}% above
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Take profit trigger */}
+            <div className="flex items-center justify-between" data-testid="tp-trigger-row">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#39FF14]/15 flex items-center justify-center">
+                  <span className="font-display font-black text-[10px] text-[#39FF14]">TP</span>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                    Take profit trigger price
+                  </div>
+                  <div className="text-[9px] text-[#8B9BB4]">
+                    Arms peak-tracker · {bot.whole_take_profit_ratio}% profit
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-display font-black text-sm tabular-nums text-[#39FF14]">
+                  {bot.take_profit_trigger_price > 0
+                    ? `≥ ${fmtNum(bot.take_profit_trigger_price, 4)}`
+                    : "—"}
+                </div>
+                {bot.take_profit_trigger_price > 0 && price > 0 && (
+                  <div className="text-[9px] tabular-nums text-[#8B9BB4]">
+                    {((bot.take_profit_trigger_price - price) / price * 100).toFixed(2)}% to go
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* TP pullback trigger (only shown once armed) */}
+            {bot.tp_pullback_trigger_price > 0 && (
+              <div className="flex items-center justify-between border-t border-white/5 pt-2.5" data-testid="tp-exit-row">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#FF007A]/15 flex items-center justify-center">
+                    <span className="font-display font-black text-[10px] text-[#FF007A]">EX</span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                      Auto-exit price
+                    </div>
+                    <div className="text-[9px] text-[#8B9BB4]">
+                      SELL all when price ≤ this (peak {fmtNum(bot.peak_price, 4)})
+                    </div>
+                  </div>
+                </div>
+                <div className="font-display font-black text-sm tabular-nums text-[#FF007A]">
+                  ≤ {fmtNum(bot.tp_pullback_trigger_price, 4)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="grid grid-cols-4 gap-2 px-4 mt-4">
         {[
