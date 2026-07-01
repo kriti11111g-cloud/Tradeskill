@@ -28,26 +28,42 @@ export default function TradingPair() {
   const [tradeQty, setTradeQty] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
   const [bind, setBind] = useState(null);
+  const [events, setEvents] = useState([]);
 
   const loadAll = async () => {
-    const [b, s, bd] = await Promise.all([
+    const [b, s, bd, ev] = await Promise.all([
       api.get(`/bots/${sym}`).then((r) => r.data),
       api.get(`/market/stats/${sym}`).then((r) => r.data).catch(() => null),
       api.get(`/binance/bind`).then((r) => r.data).catch(() => null),
+      api.get(`/bots/${sym}/events`).then((r) => r.data).catch(() => []),
     ]);
     setBot(b);
     setStats(s);
     setBind(bd);
+    setEvents(ev);
     if (s) setPrice(parseFloat(s.lastPrice));
     setBuyAmt(b.first_buy_amount);
   };
 
   useEffect(() => {
     loadAll();
-    const id = setInterval(() => {
+    const priceId = setInterval(() => {
       api.get(`/market/ticker/${sym}`).then(({ data }) => setPrice(parseFloat(data.price))).catch(() => {});
     }, 6000);
-    return () => clearInterval(id);
+    // Poll bot state + events every 8s so the user sees auto-trades in near-real-time
+    const stateId = setInterval(() => {
+      Promise.all([
+        api.get(`/bots/${sym}`).then((r) => r.data).catch(() => null),
+        api.get(`/bots/${sym}/events`).then((r) => r.data).catch(() => []),
+      ]).then(([b, ev]) => {
+        if (b) setBot(b);
+        setEvents(ev);
+      });
+    }, 8000);
+    return () => {
+      clearInterval(priceId);
+      clearInterval(stateId);
+    };
   }, [sym]);
 
   if (!bot) {
@@ -360,7 +376,76 @@ export default function TradingPair() {
             <Play size={20} fill="#050914" /> START BOT
           </button>
         )}
+        {bot.status === "running" && (
+          <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-[#39FF14] font-bold">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse align-middle mr-1.5" />
+            Auto-Trading Active · Engine ticks every 10s
+          </div>
+        )}
+        {bot.stop_reason && bot.status !== "running" && (
+          <div className="mt-2 text-center text-[10px] text-[#FF007A]" data-testid="stop-reason">
+            ⚠️ {bot.stop_reason}
+          </div>
+        )}
       </div>
+
+      {/* Auto-trade timeline */}
+      {events.length > 0 && (
+        <div className="px-4 mt-5" data-testid="bot-events">
+          <div className="font-display font-bold text-sm mb-2 flex items-center gap-2">
+            <span>Bot Activity</span>
+            <span className="text-[10px] uppercase tracking-widest text-[#8B9BB4]">Rounds</span>
+          </div>
+          <div className="space-y-2">
+            {events.slice(0, 8).map((e) => (
+              <div
+                key={e.id}
+                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-xl p-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-[10px] ${
+                      e.kind === "take_profit"
+                        ? "bg-[#39FF14]/15 text-[#39FF14]"
+                        : e.kind === "margin_call"
+                        ? "bg-[#FFD700]/15 text-[#FFD700]"
+                        : "bg-[#00F0FF]/15 text-[#00F0FF]"
+                    }`}
+                  >
+                    R{e.round}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold capitalize">
+                      {e.kind === "take_profit"
+                        ? "Take Profit"
+                        : e.kind === "margin_call"
+                        ? "Margin Call"
+                        : "First Buy"}
+                    </div>
+                    <div className="text-[10px] text-[#8B9BB4] mt-0.5">
+                      {new Date(e.created_at).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  {e.amount != null && (
+                    <div className="font-display font-bold text-sm tabular-nums">
+                      {fmtUSD(e.amount)}
+                    </div>
+                  )}
+                  <div className="text-[10px] tabular-nums text-[#8B9BB4]">
+                    @ {fmtNum(e.price, 4)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

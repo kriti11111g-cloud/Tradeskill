@@ -5,6 +5,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 import os
 import uuid
+import asyncio
 import logging
 import secrets as pysecrets
 from datetime import datetime, timezone, timedelta
@@ -310,7 +311,6 @@ async def klines(symbol: str, interval: str = "1h", limit: int = 48):
 @api.get("/market/pairs")
 async def pairs_summary():
     """Fetch 24hr stats for all allowed symbols in parallel."""
-    import asyncio
     async def one(c, sym):
         try:
             r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr", params={"symbol": sym})
@@ -496,145 +496,172 @@ async def binance_account(user: dict = Depends(get_current_user)):
 @api.post("/trade/order")
 async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
     """
-    Places a market order.
-    - real/testnet mode: places actual Binance order via python-binance
-    - demo mode: simulates against live Binance price
-    Wallet + position in DB are updated in either case (for a unified P&L view).
+    Places a market order (called manually from UI).
+    Delegates to _execute_trade which routes to live Binance or demo simulation
+    based on the user's bound mode.
     """
     symbol = body.symbol.upper()
     if symbol not in ALLOWED_SYMBOLS:
         raise HTTPException(400, "Symbol not supported")
+    try:
+        txn = await _execute_trade(
+            user_id=user["id"],
+            symbol=symbol,
+            side=body.side,
+            usdt_amount=body.usdt_amount,
+            quantity=body.quantity,
+            source="manual",
+        )
+    except _TradeError as e:
+        raise HTTPException(e.status, e.msg)
+    return txn
 
-    client, mode = await get_user_binance(user["id"])
+
+# ---------- Shared trade execution engine ----------
+class _TradeError(Exception):
+    def __init__(self, status_code: int, msg: str):
+        self.status = status_code
+        self.msg = msg
+        super().__init__(msg)
+
+
+async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual"):
+    """Shared trade executor used by both the /trade/order endpoint and the bot engine.
+    Returns the transaction dict. Raises _TradeError on failure."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise _TradeError(404, "User not found")
+
+    client, mode = await get_user_binance(user_id)
     wallet = user.get("wallet_usdt", 0.0)
-    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}) or {
+    bot = await db.bots.find_one({"user_id": user_id, "symbol": symbol}) or {
         "position_amount": 0.0, "position_qty": 0.0, "avg_price": 0.0, "margin_call_count": 0,
     }
 
-    # ---------- LIVE (real / testnet) ORDER PATH ----------
+    # ----- LIVE (real / testnet) -----
     if client and mode in ("real", "testnet"):
         try:
-            if body.side == "BUY":
-                amount = body.usdt_amount or 0
+            if side == "BUY":
+                amount = usdt_amount or 0
                 if amount <= 0:
-                    raise HTTPException(400, "usdt_amount required for BUY")
+                    raise _TradeError(400, "usdt_amount required for BUY")
                 order = await run_in_threadpool(
-                    client.order_market_buy,
-                    symbol=symbol,
-                    quoteOrderQty=round(amount, 2),
+                    client.order_market_buy, symbol=symbol, quoteOrderQty=round(amount, 2),
                 )
             else:
-                qty = body.quantity or bot.get("position_qty", 0.0)
+                qty = quantity or bot.get("position_qty", 0.0)
                 if qty <= 0:
-                    raise HTTPException(400, "No position to sell")
-                # Round quantity to a safe precision (6 decimals; production should use exchangeInfo stepSize)
+                    raise _TradeError(400, "No position to sell")
                 order = await run_in_threadpool(
-                    client.order_market_sell,
-                    symbol=symbol,
-                    quantity=float(f"{qty:.6f}"),
+                    client.order_market_sell, symbol=symbol, quantity=float(f"{qty:.6f}"),
                 )
-        except HTTPException:
+        except _TradeError:
             raise
         except (BinanceAPIException, BinanceRequestException) as e:
             msg = getattr(e, "message", str(e)) or str(e)
             if "restricted location" in msg.lower():
-                raise HTTPException(
-                    503,
-                    "Binance is not reachable from this server (geographic restriction). Deploy to a region where Binance is available, or switch to Demo mode.",
-                )
-            raise HTTPException(400, f"Binance rejected order: {msg}")
+                raise _TradeError(503, "Binance not reachable (geographic restriction). Deploy to a supported region, or switch to Demo.")
+            raise _TradeError(400, f"Binance rejected order: {msg}")
         except Exception as e:
-            raise HTTPException(400, f"Order failed: {e}")
+            raise _TradeError(400, f"Order failed: {e}")
 
         filled_qty, quote_spent, avg_price = _parse_fill(order)
-
-        if body.side == "BUY":
+        if side == "BUY":
             new_qty = bot.get("position_qty", 0.0) + filled_qty
             new_amt = bot.get("position_amount", 0.0) + quote_spent
             new_avg = new_amt / new_qty if new_qty > 0 else 0.0
-            new_wallet = max(0.0, wallet - quote_spent)  # mirror in demo wallet for consistency
+            new_wallet = max(0.0, wallet - quote_spent)
+            next_buy_price = avg_price * (1 - float(bot.get("buy_in_callback", 1.0)) / 100.0)
             await db.bots.update_one(
-                {"user_id": user["id"], "symbol": symbol},
+                {"user_id": user_id, "symbol": symbol},
                 {"$set": {
                     "position_amount": new_amt,
                     "position_qty": new_qty,
                     "avg_price": new_avg,
+                    "last_buy_price": avg_price,
+                    "next_buy_price": next_buy_price,
+                    "peak_price": 0.0,
                     "margin_call_count": bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0),
                 }},
                 upsert=True,
             )
-            await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
+            await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
             profit = 0.0
-            resp_qty = filled_qty
-            resp_amount = quote_spent
         else:
             cost = filled_qty * bot.get("avg_price", 0.0)
             profit = quote_spent - cost
             remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
             remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
             new_wallet = wallet + quote_spent
-            await db.bots.update_one(
-                {"user_id": user["id"], "symbol": symbol},
-                {"$set": {
-                    "position_qty": remaining_qty,
-                    "position_amount": remaining_amt,
-                    "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
-                    "margin_call_count": 0 if remaining_qty == 0 else bot.get("margin_call_count", 0),
-                }},
-            )
-            await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
-            resp_qty = filled_qty
-            resp_amount = quote_spent
+            reset = remaining_qty == 0
+            update_set = {
+                "position_qty": remaining_qty,
+                "position_amount": remaining_amt,
+                "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
+            }
+            if reset:
+                update_set.update({
+                    "margin_call_count": 0,
+                    "last_buy_price": 0.0,
+                    "next_buy_price": 0.0,
+                    "peak_price": 0.0,
+                    "cycles_completed": bot.get("cycles_completed", 0) + 1,
+                })
+                if bot.get("trade_method") != "Cycle":
+                    update_set["status"] = "stopped"
+            await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
+            await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
 
         txn = {
-            "id": str(uuid.uuid4()),
-            "user_id": user["id"],
-            "symbol": symbol,
-            "side": body.side,
-            "price": avg_price,
-            "quantity": resp_qty,
-            "amount": resp_amount,
-            "profit": profit,
-            "mode": mode,
-            "binance_order_id": order.get("orderId"),
-            "binance_status": order.get("status"),
+            "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol, "side": side,
+            "price": avg_price, "quantity": filled_qty, "amount": quote_spent,
+            "profit": profit, "mode": mode, "source": source,
+            "binance_order_id": order.get("orderId"), "binance_status": order.get("status"),
             "created_at": iso(now_utc()),
         }
         await db.transactions.insert_one(txn)
         txn.pop("_id", None)
         return txn
 
-    # ---------- DEMO / SIMULATION PATH ----------
-    price = await fetch_price(symbol)
+    # ----- DEMO SIMULATION -----
+    try:
+        price = await fetch_price(symbol)
+    except Exception as e:
+        raise _TradeError(400, f"Price fetch failed: {e}")
 
-    if body.side == "BUY":
-        amount = body.usdt_amount or 0
+    if side == "BUY":
+        amount = usdt_amount or 0
         if amount <= 0:
-            raise HTTPException(400, "usdt_amount required for BUY")
+            raise _TradeError(400, "usdt_amount required for BUY")
         if amount > wallet:
-            raise HTTPException(400, "Insufficient USDT balance")
+            raise _TradeError(400, "Insufficient USDT balance")
         qty = amount / price
         new_qty = bot.get("position_qty", 0.0) + qty
         new_amt = bot.get("position_amount", 0.0) + amount
         new_avg = new_amt / new_qty if new_qty else 0.0
         new_wallet = wallet - amount
-
+        next_buy_price = price * (1 - float(bot.get("buy_in_callback", 1.0)) / 100.0)
         await db.bots.update_one(
-            {"user_id": user["id"], "symbol": symbol},
+            {"user_id": user_id, "symbol": symbol},
             {"$set": {
                 "position_amount": new_amt,
                 "position_qty": new_qty,
                 "avg_price": new_avg,
+                "last_buy_price": price,
+                "next_buy_price": next_buy_price,
+                "peak_price": 0.0,
                 "margin_call_count": bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0),
             }},
             upsert=True,
         )
-        await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
         profit = 0.0
+        resp_qty = qty
+        resp_amount = amount
     else:
-        qty = body.quantity or bot.get("position_qty", 0.0)
+        qty = quantity or bot.get("position_qty", 0.0)
         if qty <= 0:
-            raise HTTPException(400, "No position to sell")
+            raise _TradeError(400, "No position to sell")
         qty = min(qty, bot.get("position_qty", 0.0))
         proceeds = qty * price
         cost = qty * bot.get("avg_price", 0.0)
@@ -642,32 +669,160 @@ async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
         remaining_qty = bot.get("position_qty", 0.0) - qty
         remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
         new_wallet = wallet + proceeds
-        await db.bots.update_one(
-            {"user_id": user["id"], "symbol": symbol},
-            {"$set": {
-                "position_qty": remaining_qty,
-                "position_amount": remaining_amt,
-                "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
-                "margin_call_count": 0 if remaining_qty == 0 else bot.get("margin_call_count", 0),
-            }},
-        )
-        await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
+        reset = remaining_qty == 0
+        update_set = {
+            "position_qty": remaining_qty,
+            "position_amount": remaining_amt,
+            "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
+        }
+        if reset:
+            update_set.update({
+                "margin_call_count": 0,
+                "last_buy_price": 0.0,
+                "next_buy_price": 0.0,
+                "peak_price": 0.0,
+                "cycles_completed": bot.get("cycles_completed", 0) + 1,
+            })
+            if bot.get("trade_method") != "Cycle":
+                update_set["status"] = "stopped"
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+        resp_qty = qty
+        resp_amount = qty * price
 
     txn = {
-        "id": str(uuid.uuid4()),
-        "user_id": user["id"],
-        "symbol": symbol,
-        "side": body.side,
-        "price": price,
-        "quantity": (body.usdt_amount / price) if body.side == "BUY" else qty,
-        "amount": body.usdt_amount if body.side == "BUY" else (qty * price),
-        "profit": profit,
-        "mode": "demo",
+        "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol, "side": side,
+        "price": price, "quantity": resp_qty, "amount": resp_amount,
+        "profit": profit, "mode": "demo", "source": source,
         "created_at": iso(now_utc()),
     }
     await db.transactions.insert_one(txn)
     txn.pop("_id", None)
     return txn
+
+
+# ---------- Bot Engine (background trader) ----------
+async def _bot_tick(bot: dict):
+    """Evaluate a single running bot: place first buy, DCA (margin call),
+    or take-profit sell based on the strategy. Records events in bot_events."""
+    user_id = bot["user_id"]
+    symbol = bot["symbol"]
+
+    try:
+        price = await fetch_price(symbol)
+    except Exception as e:
+        logger.warning(f"bot {symbol}: price fetch failed: {e}")
+        return
+
+    position_qty = float(bot.get("position_qty", 0.0) or 0)
+    avg_price = float(bot.get("avg_price", 0.0) or 0)
+    first_buy = float(bot.get("first_buy_amount", 20.0) or 20.0)
+    mc_count = int(bot.get("margin_call_count", 0) or 0)
+    mc_limit = int(bot.get("margin_call_limit", 10) or 10)
+    tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
+    tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
+    double = bool(bot.get("open_position_double", True))
+    next_buy = float(bot.get("next_buy_price", 0.0) or 0)
+    peak = float(bot.get("peak_price", 0.0) or 0)
+
+    # === FIRST BUY ===
+    if position_qty == 0:
+        try:
+            await _execute_trade(
+                user_id=user_id, symbol=symbol, side="BUY",
+                usdt_amount=first_buy, source="bot",
+            )
+            await db.bot_events.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                "kind": "first_buy", "round": 1, "amount": first_buy, "price": price,
+                "created_at": iso(now_utc()),
+            })
+            logger.info(f"bot {symbol}: first buy ${first_buy} at ~{price}")
+        except _TradeError as e:
+            logger.warning(f"bot {symbol}: first buy failed: {e.msg}")
+            # Auto-stop on insufficient balance to prevent tight loop
+            if e.status == 400 and "Insufficient" in e.msg:
+                await db.bots.update_one(
+                    {"user_id": user_id, "symbol": symbol},
+                    {"$set": {"status": "stopped", "stop_reason": e.msg}},
+                )
+        return
+
+    # === TAKE PROFIT ===
+    tp_trigger = avg_price * (1 + tp_ratio / 100.0)
+    if price >= tp_trigger:
+        new_peak = max(peak, price)
+        # Arm callback: once we've peaked, wait for pullback of tp_callback%
+        if new_peak != peak:
+            await db.bots.update_one(
+                {"user_id": user_id, "symbol": symbol},
+                {"$set": {"peak_price": new_peak}},
+            )
+            peak = new_peak
+        pullback_trigger = peak * (1 - tp_callback / 100.0)
+        if price <= pullback_trigger:
+            try:
+                round_num = mc_count + 1
+                await _execute_trade(
+                    user_id=user_id, symbol=symbol, side="SELL",
+                    quantity=position_qty, source="bot",
+                )
+                await db.bot_events.insert_one({
+                    "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                    "kind": "take_profit", "round": round_num, "price": price,
+                    "peak": peak, "created_at": iso(now_utc()),
+                })
+                logger.info(f"bot {symbol}: TAKE PROFIT sold at {price} (peak {peak})")
+            except _TradeError as e:
+                logger.warning(f"bot {symbol}: TP sell failed: {e.msg}")
+        return
+
+    # === DCA / MARGIN CALL BUY ===
+    if next_buy > 0 and price <= next_buy and mc_count < mc_limit:
+        mult = (2 ** mc_count) if double else 1
+        amount = first_buy * mult
+        try:
+            await _execute_trade(
+                user_id=user_id, symbol=symbol, side="BUY",
+                usdt_amount=amount, source="bot",
+            )
+            await db.bot_events.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                "kind": "margin_call", "round": mc_count + 2, "amount": amount, "price": price,
+                "created_at": iso(now_utc()),
+            })
+            logger.info(f"bot {symbol}: DCA round {mc_count + 2}, ${amount} at ~{price}")
+        except _TradeError as e:
+            logger.warning(f"bot {symbol}: DCA buy failed: {e.msg}")
+            if e.status == 400 and "Insufficient" in e.msg:
+                await db.bots.update_one(
+                    {"user_id": user_id, "symbol": symbol},
+                    {"$set": {"stop_reason": "Insufficient balance for DCA — please deposit or Close position."}},
+                )
+
+
+_engine_task = None
+
+
+async def bot_engine_loop():
+    logger.info("bot engine started")
+    while True:
+        try:
+            running = await db.bots.find({"status": "running"}, {"_id": 0}).to_list(500)
+            if running:
+                await asyncio.gather(*[_bot_tick(b) for b in running], return_exceptions=True)
+        except Exception as e:
+            logger.error(f"engine loop error: {e}")
+        await asyncio.sleep(10)
+
+
+@api.get("/bots/{symbol}/events")
+async def bot_events(symbol: str, user: dict = Depends(get_current_user), limit: int = 30):
+    rows = await db.bot_events.find(
+        {"user_id": user["id"], "symbol": symbol.upper()},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(limit)
+    return rows
 
 
 # ==== Transactions ====
@@ -888,6 +1043,11 @@ async def startup():
 
     logger.info("TGX BOT startup complete")
 
+    # Launch the background bot engine
+    global _engine_task
+    if _engine_task is None or _engine_task.done():
+        _engine_task = asyncio.create_task(bot_engine_loop())
+
 
 # ==== CORS + Include ====
 app.include_router(api)
@@ -902,4 +1062,7 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown():
+    global _engine_task
+    if _engine_task and not _engine_task.done():
+        _engine_task.cancel()
     client.close()
