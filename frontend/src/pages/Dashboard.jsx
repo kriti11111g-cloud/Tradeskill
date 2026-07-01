@@ -21,11 +21,36 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [pairs, setPairs] = useState([]);
   const [wallet, setWallet] = useState(null);
+  const [bind, setBind] = useState(null);
+  const [live, setLive] = useState(null);
+  const [liveErr, setLiveErr] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+
+  const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
+
+  const loadLive = async () => {
+    setLiveLoading(true);
+    setLiveErr(null);
+    try {
+      const { data } = await api.get("/binance/account");
+      setLive(data);
+    } catch (err) {
+      setLiveErr(err?.response?.data?.detail || err?.message || "Unable to load");
+      setLive(null);
+    } finally {
+      setLiveLoading(false);
+    }
+  };
 
   useEffect(() => {
     api.get("/market/pairs").then(({ data }) => setPairs(data.pairs || []));
     api.get("/wallet/summary").then(({ data }) => setWallet(data));
+    api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (isLiveMode) loadLive();
+  }, [isLiveMode]);
 
   return (
     <div className="pb-4">
@@ -86,7 +111,9 @@ export default function Dashboard() {
       {/* Wallet Snapshot */}
       <div className="mx-4 mt-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Total Assets (USDT)</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+            {isLiveMode ? "Demo Balance (USDT)" : "Total Assets (USDT)"}
+          </div>
           <div className="font-display font-black text-2xl tabular-nums mt-1" data-testid="total-assets">
             {fmtNum(wallet?.total_usdt || user?.wallet_usdt || 0, 2)}
           </div>
@@ -99,6 +126,86 @@ export default function Dashboard() {
           View →
         </Link>
       </div>
+
+      {/* Real Binance Balance (live/testnet only) */}
+      {isLiveMode && (
+        <div className="mx-4 mt-3" data-testid="dash-live-balance">
+          <div
+            className={`rounded-2xl border p-4 relative overflow-hidden ${
+              bind.mode === "real"
+                ? "border-[#FF007A]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
+                : "border-[#FFD700]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Zap
+                  size={14}
+                  className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}
+                />
+                <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
+                  Real Binance Fund ·{" "}
+                  <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>
+                    {bind.mode}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={loadLive}
+                disabled={liveLoading}
+                data-testid="dash-live-refresh"
+                className="text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold hover:opacity-80 disabled:opacity-40"
+              >
+                {liveLoading ? "..." : "↻"}
+              </button>
+            </div>
+
+            {liveErr && !live && (
+              <div className="text-[11px] text-white/70" data-testid="dash-live-err">
+                <span className="text-[#FF007A] font-bold">Unable to load · </span>
+                {liveErr}
+              </div>
+            )}
+
+            {live && (
+              <div>
+                {(() => {
+                  const usdt = live.balances.find((b) => b.asset === "USDT");
+                  return (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                        Available USDT on Binance
+                      </div>
+                      <div className="font-display font-black text-2xl tabular-nums mt-0.5">
+                        {fmtNum(usdt?.free || 0, 2)}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {live.balances.filter((b) => b.asset !== "USDT" && b.free > 0).length > 0 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {live.balances
+                      .filter((b) => b.asset !== "USDT" && b.free > 0)
+                      .slice(0, 6)
+                      .map((b) => (
+                        <div
+                          key={b.asset}
+                          className="flex-shrink-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 min-w-[80px]"
+                          data-testid={`dash-asset-${b.asset}`}
+                        >
+                          <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">{b.asset}</div>
+                          <div className="font-display font-bold text-xs tabular-nums">
+                            {fmtNum(b.free, 4)}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action Grid */}
       <div className="grid grid-cols-4 gap-3 px-4 mt-5" data-testid="action-grid">

@@ -31,6 +31,7 @@ export default function TradingPair() {
   const [events, setEvents] = useState([]);
   const [posEditOpen, setPosEditOpen] = useState(false);
   const [posEdit, setPosEdit] = useState({ position_qty: "", avg_price: "", margin_call_count: "" });
+  const [live, setLive] = useState(null);
 
   const loadAll = async () => {
     const [b, s, bd, ev] = await Promise.all([
@@ -45,6 +46,17 @@ export default function TradingPair() {
     setEvents(ev);
     if (s) setPrice(parseFloat(s.lastPrice));
     setBuyAmt(b.first_buy_amount);
+    // If real/testnet, fetch live Binance balances
+    if (bd?.mode === "real" || bd?.mode === "testnet") {
+      try {
+        const { data } = await api.get("/binance/account");
+        setLive(data);
+      } catch {
+        setLive(null);
+      }
+    } else {
+      setLive(null);
+    }
   };
 
   useEffect(() => {
@@ -237,8 +249,7 @@ export default function TradingPair() {
 
       {/* Price header */}
       <div className="px-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
-          <div className="flex items-end justify-between">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">          <div className="flex items-end justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Current Price</div>
               <div className="font-display font-black text-3xl tabular-nums mt-1" data-testid="current-price">
@@ -256,6 +267,45 @@ export default function TradingPair() {
           </div>
         </div>
       </div>
+
+      {/* Real Binance Fund strip (live/testnet only) */}
+      {live && (bind?.mode === "real" || bind?.mode === "testnet") && (() => {
+        const usdt = live.balances.find((b) => b.asset === "USDT");
+        const base = live.balances.find((b) => b.asset === shortSymbol(sym));
+        return (
+          <div className="px-4 mt-3">
+            <div
+              className={`rounded-2xl border p-3 flex items-center justify-between ${
+                bind.mode === "real"
+                  ? "border-[#FF007A]/30 bg-[#FF007A]/5"
+                  : "border-[#FFD700]/30 bg-[#FFD700]/5"
+              }`}
+              data-testid="pair-live-fund"
+            >
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                  Real Fund on Binance ·{" "}
+                  <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>
+                    {bind.mode}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-3 mt-0.5">
+                  <div>
+                    <div className="font-display font-black text-base tabular-nums">
+                      {fmtNum(usdt?.free || 0, 2)} <span className="text-[10px] text-[#8B9BB4] font-normal">USDT</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-display font-bold text-sm tabular-nums text-[#00F0FF]">
+                      {fmtNum(base?.free || 0, 6)} <span className="text-[10px] text-[#8B9BB4] font-normal">{shortSymbol(sym)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Position Stats grid */}
       <div className="px-4 mt-3">
