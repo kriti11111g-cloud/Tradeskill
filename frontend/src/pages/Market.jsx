@@ -5,33 +5,37 @@ import { Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
 import api from "@/lib/api";
-import { fmtUSD, fmtPct, shortSymbol } from "@/lib/format";
+import { fmtUSD, fmtPct } from "@/lib/format";
 
 export default function Market() {
-  const [pairs, setPairs] = useState([]);
+  const [coins, setCoins] = useState([]);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("volume");
+  const [sort, setSort] = useState("rank");
 
   const load = () =>
-    api.get("/market/pairs?limit=200").then(({ data }) => setPairs(data.pairs || []));
+    api.get("/market/top?limit=50").then(({ data }) => setCoins(data.coins || []));
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 30000);
     return () => clearInterval(id);
   }, []);
 
   const q = search.trim().toLowerCase();
-  const filtered = pairs
-    .filter((p) => (q ? p.symbol.toLowerCase().includes(q) : true))
+  const filtered = coins
+    .filter((c) =>
+      q ? c.symbol.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q) : true,
+    )
     .sort((a, b) => {
       if (sort === "gainers") return b.change_pct - a.change_pct;
       if (sort === "losers") return a.change_pct - b.change_pct;
-      return b.volume - a.volume;
+      if (sort === "volume") return b.volume - a.volume;
+      return (a.rank || 999) - (b.rank || 999);
     });
 
   const sorts = [
-    { id: "volume", label: "Top Volume" },
+    { id: "rank", label: "Market Cap" },
+    { id: "volume", label: "Volume" },
     { id: "gainers", label: "Gainers" },
     { id: "losers", label: "Losers" },
   ];
@@ -40,7 +44,7 @@ export default function Market() {
     <div className="pb-4">
       <PageHeader
         title="Market"
-        subtitle="Live · Binance data"
+        subtitle="Top 50 · Binance-listed"
         showBack={false}
         right={
           <div className="flex items-center gap-1.5">
@@ -56,7 +60,7 @@ export default function Market() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search coin (BTC, ETH, SOL, ...)"
+            placeholder="Search coin (BTC, ETH, Solana, ...)"
             className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
             data-testid="market-search"
           />
@@ -80,9 +84,9 @@ export default function Market() {
         ))}
       </div>
 
-      <div className="px-4 mt-3 flex items-center justify-between">
+      <div className="px-4 mt-3">
         <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
-          {filtered.length} pairs · Tap to trade
+          {filtered.length} of {coins.length} coins · Tap to trade
         </div>
       </div>
 
@@ -100,17 +104,30 @@ export default function Market() {
               className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 hover:border-[#00F0FF]/50 hover:bg-[#0F1524]/80 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div className="w-6 text-[10px] tabular-nums text-[#8B9BB4] font-bold text-right">
-                  #{i + 1}
+                <div className="w-7 text-[10px] tabular-nums text-[#8B9BB4] font-bold text-right">
+                  #{p.rank}
                 </div>
-                <CoinIcon symbol={p.symbol} size={38} />
+                {p.image ? (
+                  <img
+                    src={p.image}
+                    alt={p.asset}
+                    width={36}
+                    height={36}
+                    className="rounded-full bg-white/5"
+                    onError={(e) => {
+                      e.currentTarget.outerHTML = "";
+                    }}
+                  />
+                ) : (
+                  <CoinIcon symbol={p.asset} size={36} />
+                )}
                 <div>
                   <div className="font-display font-bold text-sm">
-                    {shortSymbol(p.symbol)}
+                    {p.asset}
                     <span className="text-[#8B9BB4]">/USDT</span>
                   </div>
-                  <div className="text-[10px] text-[#8B9BB4] uppercase tracking-wider mt-0.5">
-                    Vol {(p.volume / 1_000_000).toFixed(1)}M
+                  <div className="text-[10px] text-[#8B9BB4] mt-0.5 truncate max-w-[140px]">
+                    {p.name}
                   </div>
                 </div>
               </div>
@@ -132,7 +149,7 @@ export default function Market() {
 
         {filtered.length === 0 && (
           <div className="text-center text-sm text-[#8B9BB4] py-16" data-testid="market-empty">
-            {pairs.length === 0 ? "Loading market data..." : `No match for "${search}"`}
+            {coins.length === 0 ? "Loading top 50..." : `No match for "${search}"`}
           </div>
         )}
       </div>

@@ -47,20 +47,18 @@ db = client[DB_NAME]
 fernet = Fernet(MASTER_KEY.encode())
 
 BINANCE_PUBLIC = "https://data-api.binance.vision"
-ALLOWED_SYMBOLS = [
+ALLOWED_SYMBOLS = {
+    # Fallback set if Binance exchangeInfo isn't reachable at startup — overridden at boot.
     # Top majors
     "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT",
     "TRXUSDT", "AVAXUSDT", "DOTUSDT", "MATICUSDT", "LINKUSDT", "TONUSDT", "SHIBUSDT",
     "LTCUSDT", "BCHUSDT", "UNIUSDT", "ATOMUSDT", "XLMUSDT", "NEARUSDT",
-    # DeFi / L1 / L2
     "APTUSDT", "ARBUSDT", "OPUSDT", "SUIUSDT", "SEIUSDT", "INJUSDT", "FILUSDT",
     "ETCUSDT", "HBARUSDT", "VETUSDT", "ICPUSDT", "IMXUSDT", "STXUSDT", "AAVEUSDT",
     "MKRUSDT", "GRTUSDT", "RUNEUSDT", "ALGOUSDT", "SANDUSDT", "MANAUSDT",
-    # Meme / trending
     "PEPEUSDT", "FLOKIUSDT", "WIFUSDT", "BONKUSDT", "ORDIUSDT",
-    # Layer-2 / rollups
     "STRKUSDT", "LDOUSDT", "RENDERUSDT", "TIAUSDT", "JUPUSDT",
-]
+}
 
 app = FastAPI(title="TGX BOT API")
 api = APIRouter(prefix="/api")
@@ -366,6 +364,81 @@ async def pairs_summary(limit: int = 50):
     # Sort by 24h quote volume (most liquid first) and cap
     out.sort(key=lambda x: x["volume"], reverse=True)
     return {"pairs": out[:limit]}
+
+
+# Simple in-memory cache for the top-50 list (refresh every 5 min)
+_TOP_CACHE = {"ts": 0.0, "data": None}
+_STABLE_SYMBOLS = {"USDT", "USDC", "DAI", "TUSD", "BUSD", "FDUSD", "PYUSD", "USDD"}
+
+
+@api.get("/market/top")
+async def top_market(limit: int = 50):
+    """Top-N coins by market cap (CoinGecko) intersected with Binance-listed USDT pairs.
+    Returns rank, name, symbol, image (from CoinGecko) + live price/change (from Binance).
+    Cached for 5 minutes to respect CoinGecko rate limits."""
+    import time as _t
+    now = _t.time()
+    if _TOP_CACHE["data"] and (now - _TOP_CACHE["ts"] < 300):
+        return _TOP_CACHE["data"]
+
+    async with httpx.AsyncClient(timeout=12) as c:
+        # 1) fetch top coins by market cap
+        try:
+            cg = await c.get(
+                "https://api.coingecko.com/api/v3/coins/markets",
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_desc",
+                    "per_page": 100,   # over-fetch so we still get 50 after filtering stables
+                    "page": 1,
+                    "sparkline": "false",
+                    "price_change_percentage": "24h",
+                },
+            )
+            cg.raise_for_status()
+            coins = cg.json()
+        except Exception as e:
+            logger.warning(f"top_market CoinGecko failed: {e}")
+            return {"coins": [], "error": "coingecko_unreachable"}
+
+        # 2) fetch all Binance USDT pairs (from ticker)
+        try:
+            bn = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
+            bn.raise_for_status()
+            binance = {d["symbol"]: d for d in bn.json()}
+        except Exception:
+            binance = {}
+
+    out = []
+    for coin in coins:
+        sym = coin.get("symbol", "").upper()
+        if not sym or sym in _STABLE_SYMBOLS:
+            continue
+        pair = f"{sym}USDT"
+        # Some coins on Binance use special aliases (e.g., IOTA -> IOTAUSDT is fine).
+        binance_row = binance.get(pair)
+        if not binance_row:
+            continue
+        out.append({
+            "rank": coin.get("market_cap_rank"),
+            "symbol": pair,
+            "asset": sym,
+            "name": coin.get("name"),
+            "image": coin.get("image"),
+            "market_cap": coin.get("market_cap"),
+            "last_price": float(binance_row.get("lastPrice", 0)),
+            "change_pct": float(binance_row.get("priceChangePercent", 0)),
+            "volume": float(binance_row.get("quoteVolume", 0)),
+            "high": float(binance_row.get("highPrice", 0)),
+            "low": float(binance_row.get("lowPrice", 0)),
+        })
+        if len(out) >= limit:
+            break
+
+    result = {"coins": out, "count": len(out), "cached_at": iso(now_utc())}
+    _TOP_CACHE["ts"] = now
+    _TOP_CACHE["data"] = result
+    return result
 
 
 # ==== Bot Config ====
@@ -1193,6 +1266,25 @@ async def startup():
         await db.guide.insert_many(guide_items)
 
     logger.info("TGX BOT startup complete")
+
+    # Populate ALLOWED_SYMBOLS from Binance's live USDT pair list (fallback to the hardcoded set)
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/exchangeInfo")
+            r.raise_for_status()
+            info = r.json()
+            usdt_pairs = {
+                s["symbol"] for s in info.get("symbols", [])
+                if s.get("quoteAsset") == "USDT"
+                and s.get("status") == "TRADING"
+                and "SPOT" in s.get("permissions", [])
+            }
+            if usdt_pairs:
+                ALLOWED_SYMBOLS.clear()
+                ALLOWED_SYMBOLS.update(usdt_pairs)
+                logger.info(f"Loaded {len(ALLOWED_SYMBOLS)} tradable USDT pairs from Binance")
+    except Exception as e:
+        logger.warning(f"Could not load Binance exchangeInfo at startup: {e}. Using fallback list.")
 
     # Launch the background bot engine
     global _engine_task

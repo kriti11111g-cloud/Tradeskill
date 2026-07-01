@@ -44,7 +44,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    api.get("/market/pairs").then(({ data }) => setPairs(data.pairs || []));
+    api.get("/market/top?limit=8").then(({ data }) => {
+      const list = (data.coins || []).map((c) => ({
+        symbol: c.symbol,
+        asset: c.asset,
+        rank: c.rank,
+        last_price: c.last_price,
+        change_pct: c.change_pct,
+        volume: c.volume,
+        image: c.image,
+      }));
+      setPairs(list);
+    });
     api.get("/wallet/summary").then(({ data }) => setWallet(data));
     api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
   }, []);
