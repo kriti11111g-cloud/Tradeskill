@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime } from "@/lib/format";
@@ -18,14 +18,42 @@ export default function Wallet() {
   const [history, setHistory] = useState([]);
   const [modal, setModal] = useState(null);
   const [amount, setAmount] = useState("");
+  const [bind, setBind] = useState(null);
+  const [live, setLive] = useState(null);
+  const [liveErr, setLiveErr] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+
+  const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
+
+  const loadLive = async () => {
+    setLiveLoading(true);
+    setLiveErr(null);
+    try {
+      const { data } = await api.get("/binance/account");
+      setLive(data);
+    } catch (err) {
+      setLiveErr(formatApiError(err));
+      setLive(null);
+    } finally {
+      setLiveLoading(false);
+    }
+  };
 
   const load = async () => {
-    const [s, h] = await Promise.all([
+    const [s, h, bd] = await Promise.all([
       api.get("/wallet/summary").then((r) => r.data),
       api.get("/wallet/history").then((r) => r.data),
+      api.get("/binance/bind").then((r) => r.data).catch(() => null),
     ]);
     setSummary(s);
     setHistory(h);
+    setBind(bd);
+    if (bd?.mode === "real" || bd?.mode === "testnet") {
+      loadLive();
+    } else {
+      setLive(null);
+      setLiveErr(null);
+    }
   };
   useEffect(() => {
     load();
@@ -57,7 +85,23 @@ export default function Wallet() {
             background: "linear-gradient(135deg, rgba(0,240,255,0.12), rgba(255,215,0,0.08)), #0F1524",
           }}
         >
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">Total Assets (USDT)</div>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">
+              {isLiveMode ? "Demo (Simulation) Balance" : "Total Assets (USDT)"}
+            </div>
+            {isLiveMode && (
+              <div
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
+                  bind.mode === "real"
+                    ? "bg-[#FF007A]/15 text-[#FF007A] border-[#FF007A]/40"
+                    : "bg-[#FFD700]/15 text-[#FFD700] border-[#FFD700]/40"
+                }`}
+                data-testid="wallet-mode-badge"
+              >
+                {bind.mode}
+              </div>
+            )}
+          </div>
           <div className="font-display font-black text-4xl tabular-nums mt-2" data-testid="wallet-total">
             {fmtNum(summary?.total_usdt || 0, 2)}
           </div>
@@ -77,6 +121,89 @@ export default function Wallet() {
           </div>
         </div>
       </div>
+
+      {/* Live Binance Balances (real/testnet) */}
+      {isLiveMode && (
+        <div className="px-4 mt-4">
+          <div
+            className={`rounded-3xl border p-5 relative overflow-hidden ${
+              bind.mode === "real"
+                ? "border-[#FF007A]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
+                : "border-[#FFD700]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
+            }`}
+            data-testid="live-balances-card"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap
+                  size={16}
+                  className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}
+                />
+                <div className="text-[10px] uppercase tracking-[0.3em] font-bold">
+                  Live Binance · <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>{bind.mode}</span>
+                </div>
+              </div>
+              <button
+                onClick={loadLive}
+                disabled={liveLoading}
+                data-testid="live-refresh"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={liveLoading ? "animate-spin" : ""} />
+              </button>
+            </div>
+
+            {liveLoading && !live && (
+              <div className="text-center text-xs text-[#8B9BB4] py-4" data-testid="live-loading">
+                Fetching balances from Binance...
+              </div>
+            )}
+
+            {liveErr && (
+              <div className="bg-[#FF007A]/10 border border-[#FF007A]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
+                <div className="font-bold text-[#FF007A] mb-1">Unable to load balances</div>
+                {liveErr}
+              </div>
+            )}
+
+            {live && live.balances && live.balances.length > 0 && (
+              <div className="space-y-2" data-testid="live-balances-list">
+                {live.balances.slice(0, 8).map((b) => (
+                  <div
+                    key={b.asset}
+                    className="flex items-center justify-between py-1.5"
+                    data-testid={`live-balance-${b.asset}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-display font-black text-[10px]">
+                        {b.asset.slice(0, 3)}
+                      </div>
+                      <div className="font-display font-bold text-sm">{b.asset}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display font-bold tabular-nums text-sm">{fmtNum(b.free, 6)}</div>
+                      {b.locked > 0 && (
+                        <div className="text-[10px] text-[#8B9BB4] tabular-nums">Locked: {fmtNum(b.locked, 6)}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {live.canTrade === false && (
+                  <div className="text-[10px] text-[#FF007A] mt-2">
+                    ⚠️ This API key does not have trade permission.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {live && live.balances && live.balances.length === 0 && (
+              <div className="text-center text-xs text-[#8B9BB4] py-4" data-testid="live-empty">
+                No balances found on Binance account.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="grid grid-cols-3 gap-3 px-4 mt-4">
