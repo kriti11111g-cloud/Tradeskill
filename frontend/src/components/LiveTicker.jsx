@@ -63,10 +63,10 @@ export default function LiveTicker() {
 
   return (
     <div
-      className="w-full h-9 border-b border-white/20 bg-[#0F1524]/60 backdrop-blur-xl overflow-hidden relative"
+      className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-9 border-b border-white/20 bg-[#050914]/95 backdrop-blur-2xl overflow-hidden z-40"
       data-testid="live-ticker"
     >
-      <div className="flex gap-8 whitespace-nowrap animate-tgx-marquee items-center h-full">
+      <div className="flex gap-8 whitespace-nowrap animate-tgx-marquee items-center h-full pr-12">
         {loop.map((p, i) => (
           <div key={i} className="flex items-center gap-2 text-xs font-body">
             <span className="text-[#8B9BB4] font-semibold">{p.symbol.replace("USDT", "/USDT")}</span>
