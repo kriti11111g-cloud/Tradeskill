@@ -40,17 +40,26 @@ User asked to build an app similar to "HiTechBot" (crypto trading bot shown in r
 - ✅ Wallet with deposit/withdraw/transfer modal + open positions
 - ✅ Transactions filter, Revenue chart, Referral share, Rewards claim
 - ✅ Admin seed + Welcome bonus reward
+- ✅ Background bot engine (DCA, margin calls, take-profit with callback pullback)
+- ✅ Per-round margin config UI + manual position adjustment
+- ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
+- ✅ Binance WebSockets for zero-lag price on Market + TradingPair
+
+## Implemented (2026-07-01, later)
+- ✅ **News**: live crypto feed from Cointelegraph RSS (30 items, images, external links)
+- ✅ **Referral commissions**: auto-credit referrer 10% of every profitable SELL (bot + manual) as claimable reward
+- ✅ Referral page shows pending commission + commission log
+- ✅ Bottom Nav order finalised: Home → Market → Trade → Asset → Profile
 
 ## Deferred / P1 Backlog
-- WebSocket real-time price updates on TradingPair (currently polls every 6s)
-- Actual live Binance order placement in "Real" mode (currently keys stored encrypted; orders still simulated for safety)
+- Actual live Binance order placement in "Real" mode (geo-blocked in preview environment)
 - Two-factor auth & password reset flow
 - Push notifications & in-app inbox
 - Advanced technical analysis chart on the TradingPair page (indicators)
-- Team commission distribution on team-member trades (currently manual only)
 - Multi-language i18n (Hindi/English)
+- **Refactor**: split `server.py` (1300+ lines) into `routers/` and `services/`
 
 ## Next Action Items
-1. Take user feedback on visual design and flows.
-2. If real trading needed, integrate live order placement (python-binance is installed) & add IP whitelist warnings.
-3. Add referral commission trigger on each team-member SELL.
+1. User verification of News + Referral commission flows.
+2. Optional: add trading-volume milestone rewards ($10 traded → $1 bonus, etc.).
+3. When real Binance trading is needed, deploy to a supported region.

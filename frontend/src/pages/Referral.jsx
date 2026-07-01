@@ -73,18 +73,56 @@ export default function Referral() {
             <Users size={16} className="text-[#00F0FF]" />
             <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Team Size</div>
           </div>
-          <div className="font-display font-bold text-2xl tabular-nums mt-1">{data?.team_size || 0}</div>
+          <div className="font-display font-bold text-2xl tabular-nums mt-1" data-testid="team-size">{data?.team_size || 0}</div>
         </div>
         <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <Gift size={16} className="text-[#FFD700]" />
             <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Earned</div>
           </div>
-          <div className="font-display font-bold text-2xl tabular-nums mt-1 text-[#FFD700]">
+          <div className="font-display font-bold text-2xl tabular-nums mt-1 text-[#FFD700]" data-testid="ref-earned">
             {fmtUSD(data?.total_earned || 0)}
           </div>
+          {(data?.pending || 0) > 0 && (
+            <div className="text-[10px] text-[#39FF14] font-bold mt-1" data-testid="ref-pending">
+              +{fmtUSD(data.pending)} pending · claim in Rewards
+            </div>
+          )}
         </div>
       </div>
+
+      {data?.earnings?.length > 0 && (
+        <div className="px-4 mt-5">
+          <div className="font-display font-bold text-lg mb-3">Commission Log</div>
+          <div className="space-y-2" data-testid="commission-log">
+            {data.earnings.slice(0, 10).map((e) => (
+              <div
+                key={e.id}
+                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="font-display font-bold text-sm truncate">
+                    {e.symbol ? e.symbol.replace("USDT", "/USDT") : "Referral"}
+                  </div>
+                  <div className="text-[10px] text-[#8B9BB4] mt-0.5 truncate">
+                    {e.note || fmtTime(e.created_at)}
+                  </div>
+                </div>
+                <div className="text-right pl-3">
+                  <div className="font-display font-bold tabular-nums text-[#39FF14] text-sm">
+                    +{fmtUSD(e.amount)}
+                  </div>
+                  <div className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
+                    e.status === "claimed" ? "text-[#8B9BB4]" : "text-[#00F0FF]"
+                  }`}>
+                    {e.status}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="px-4 mt-5">
         <div className="font-display font-bold text-lg mb-3">Your Team</div>

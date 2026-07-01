@@ -741,6 +741,34 @@ async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
     return txn
 
 
+async def _credit_referral_commission(user_id: str, profit: float, symbol: str):
+    """When a user with a referrer books a profitable SELL, credit 10% of the profit
+    to the referrer as a claimable 'referral' reward. Silently no-op on any error."""
+    if profit <= 0:
+        return
+    try:
+        u = await db.users.find_one({"id": user_id}, {"_id": 0, "referred_by": 1, "name": 1, "email": 1})
+        ref_id = u and u.get("referred_by")
+        if not ref_id:
+            return
+        commission = round(profit * 0.10, 4)
+        if commission <= 0:
+            return
+        await db.rewards.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": ref_id,
+            "type": "referral",
+            "amount": commission,
+            "status": "claimable",
+            "note": f"10% from {u.get('name') or u.get('email','team')} · {symbol}",
+            "from_user_id": user_id,
+            "symbol": symbol,
+            "created_at": iso(now_utc()),
+        })
+    except Exception as e:
+        logger.warning(f"referral commission failed: {e}")
+
+
 # ---------- Shared trade execution engine ----------
 class _TradeError(Exception):
     def __init__(self, status_code: int, msg: str):
@@ -847,6 +875,8 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
             "created_at": iso(now_utc()),
         }
         await db.transactions.insert_one(txn)
+        if side == "SELL":
+            await _credit_referral_commission(user_id, profit, symbol)
         txn.pop("_id", None)
         return txn
 
@@ -926,6 +956,8 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         "created_at": iso(now_utc()),
     }
     await db.transactions.insert_one(txn)
+    if side == "SELL":
+        await _credit_referral_commission(user_id, profit, symbol)
     txn.pop("_id", None)
     return txn
 
@@ -1173,13 +1205,15 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
 @api.get("/referral")
 async def referral(user: dict = Depends(get_current_user)):
     team = await db.users.find({"referred_by": user["id"]}, {"_id": 0, "email": 1, "name": 1, "rank": 1, "created_at": 1}).to_list(500)
-    earnings = await db.rewards.find({"user_id": user["id"], "type": "referral"}, {"_id": 0}).to_list(500)
+    earnings = await db.rewards.find({"user_id": user["id"], "type": "referral"}, {"_id": 0}).sort("created_at", -1).to_list(500)
     total_earned = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimed")
+    pending = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimable")
     return {
         "referral_code": user.get("referral_code"),
         "team_size": len(team),
         "team": team,
         "total_earned": round(total_earned, 4),
+        "pending": round(pending, 4),
         "earnings": earnings,
     }
 
@@ -1205,8 +1239,94 @@ async def claim_reward(reward_id: str, user: dict = Depends(get_current_user)):
 
 
 # ==== News ====
+_news_cache = {"at": 0.0, "items": []}
+
+async def _fetch_live_news():
+    """Fetch live crypto news from Cointelegraph RSS (free, no API key)."""
+    import xml.etree.ElementTree as ET
+    import re
+    from email.utils import parsedate_to_datetime
+
+    def _strip_html(s: str) -> str:
+        s = re.sub(r"<[^>]+>", "", s or "")
+        return re.sub(r"\s+", " ", s).strip()
+
+    def _extract_img(content: str) -> Optional[str]:
+        if not content:
+            return None
+        m = re.search(r'<img[^>]+src="([^"]+)"', content)
+        return m.group(1) if m else None
+
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True,
+                                     headers={"User-Agent": "Mozilla/5.0 TGXBot"}) as c:
+            r = await c.get("https://cointelegraph.com/rss")
+            r.raise_for_status()
+        root = ET.fromstring(r.text)
+        items = []
+        for it in root.iter("item"):
+            title = (it.findtext("title") or "").strip()
+            link = (it.findtext("link") or "").strip()
+            desc = it.findtext("description") or ""
+            # media:content or content:encoded may hold images
+            image = None
+            for child in it:
+                tag = child.tag.split("}")[-1]
+                if tag in ("content", "encoded") and child.text:
+                    image = image or _extract_img(child.text)
+                if tag == "thumbnail" and child.attrib.get("url"):
+                    image = image or child.attrib["url"]
+                if tag == "content" and child.attrib.get("url") and (child.attrib.get("medium") == "image" or child.attrib.get("url").endswith((".jpg", ".png", ".webp"))):
+                    image = image or child.attrib["url"]
+            if not image:
+                image = _extract_img(desc)
+            summary = _strip_html(desc)[:220]
+            if len(_strip_html(desc)) > 220:
+                summary += "..."
+            pub = it.findtext("pubDate") or ""
+            try:
+                dt = parsedate_to_datetime(pub).astimezone(timezone.utc)
+                created = iso(dt)
+            except Exception:
+                created = iso(now_utc())
+            # Categories: pick the first <category>
+            cat = None
+            for cat_el in it.findall("category"):
+                if cat_el.text:
+                    cat = cat_el.text.strip()
+                    break
+            items.append({
+                "id": link or str(uuid.uuid4()),
+                "title": title,
+                "summary": summary,
+                "category": cat or "Cointelegraph",
+                "url": link or None,
+                "image": image,
+                "created_at": created,
+            })
+            if len(items) >= 30:
+                break
+        return items
+    except Exception as e:
+        logger.warning(f"news fetch failed: {e}")
+        return []
+
+
 @api.get("/news")
 async def list_news():
+    # Serve fresh cache within 5 minutes
+    import time
+    now_ts = time.time()
+    if _news_cache["items"] and (now_ts - _news_cache["at"]) < 300:
+        return _news_cache["items"]
+
+    live = await _fetch_live_news()
+    if live:
+        _news_cache["at"] = now_ts
+        _news_cache["items"] = live
+        return live
+
+    # Fallback: seeded news
     rows = await db.news.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
     return rows
 
