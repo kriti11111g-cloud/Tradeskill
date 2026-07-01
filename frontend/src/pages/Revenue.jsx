@@ -16,7 +16,7 @@ export default function Revenue() {
       <PageHeader title="Revenue" subtitle="Profit & Loss" />
 
       <div className="px-4">
-        <div className="rounded-3xl border border-white/10 p-6 bg-[#0F1524]/60 backdrop-blur-xl">
+        <div className="rounded-3xl border border-white/25 p-6 bg-[#0F1524]/60 backdrop-blur-xl">
           <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">Total Profit</div>
           <div
             className={`font-display font-black text-4xl tabular-nums mt-2 ${
@@ -42,7 +42,7 @@ export default function Revenue() {
 
       {data?.daily?.length > 0 && (
         <div className="px-4 mt-4">
-          <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+          <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
             <div className="font-display font-bold text-sm mb-2">Daily Profit (Last 14d)</div>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={data.daily}>
@@ -71,7 +71,7 @@ export default function Revenue() {
             {data.by_symbol.map((s) => (
               <div
                 key={s.symbol}
-                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between"
+                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
               >
                 <div className="font-display font-bold text-sm">{s.symbol.replace("USDT", "/USDT")}</div>
                 <div className={`font-display font-bold tabular-nums text-sm ${s.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}>

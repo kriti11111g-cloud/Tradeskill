@@ -26,7 +26,7 @@ export default function LiveTicker() {
 
   return (
     <div
-      className="w-full h-9 border-b border-white/5 bg-[#0F1524]/60 backdrop-blur-xl overflow-hidden relative"
+      className="w-full h-9 border-b border-white/20 bg-[#0F1524]/60 backdrop-blur-xl overflow-hidden relative"
       data-testid="live-ticker"
     >
       <div className="flex gap-8 whitespace-nowrap animate-tgx-marquee items-center h-full">

@@ -81,7 +81,7 @@ export default function BindAPI() {
           </div>
         )}
 
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold mb-3">Trading Mode</div>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -100,7 +100,7 @@ export default function BindAPI() {
                       : m.id === "testnet"
                       ? "bg-[#FFD700] text-[#050914]"
                       : "bg-[#FF007A] text-white glow-magenta"
-                    : "bg-white/5 text-[#8B9BB4] border border-white/10"
+                    : "bg-white/5 text-[#8B9BB4] border border-white/25"
                 }`}
               >
                 <div>{m.label}</div>
@@ -118,7 +118,7 @@ export default function BindAPI() {
           </div>
         </div>
 
-        <form onSubmit={save} className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 space-y-4">
+        <form onSubmit={save} className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2">
             <KeyRound size={18} className="text-[#00F0FF]" />
             <div className="font-display font-bold text-sm">API Credentials</div>
@@ -130,7 +130,7 @@ export default function BindAPI() {
               onChange={(e) => setApiKey(e.target.value)}
               required
               placeholder="Paste your Binance API key"
-              className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] transition-all placeholder:text-[#8B9BB4] font-mono text-sm"
+              className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] transition-all placeholder:text-[#8B9BB4] font-mono text-sm"
               data-testid="input-apikey"
             />
           </div>
@@ -142,7 +142,7 @@ export default function BindAPI() {
               onChange={(e) => setApiSecret(e.target.value)}
               required
               placeholder="Paste your Binance secret"
-              className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] transition-all placeholder:text-[#8B9BB4] font-mono text-sm"
+              className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] transition-all placeholder:text-[#8B9BB4] font-mono text-sm"
               data-testid="input-secret"
             />
           </div>
@@ -214,7 +214,7 @@ export default function BindAPI() {
                   setAck(false);
                 }}
                 disabled={loading}
-                className="py-3 rounded-xl bg-white/5 border border-white/10 font-display font-bold text-sm hover:bg-white/10 transition disabled:opacity-60"
+                className="py-3 rounded-xl bg-white/5 border border-white/25 font-display font-bold text-sm hover:bg-white/10 transition disabled:opacity-60"
                 data-testid="confirm-cancel"
               >
                 Cancel

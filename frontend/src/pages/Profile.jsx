@@ -46,7 +46,7 @@ export default function Profile() {
       <PageHeader title="Profile" subtitle="Account · Settings" showBack={false} />
 
       <div className="px-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/10 rounded-3xl p-5 flex items-center gap-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/25 rounded-3xl p-5 flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00F0FF] to-[#FF007A] flex items-center justify-center font-display font-black text-2xl">
             {(user?.name || user?.email || "?")[0]?.toUpperCase()}
           </div>
@@ -68,7 +68,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Wallet</div>
             <div className="font-display font-bold text-xl tabular-nums mt-0.5">
@@ -83,7 +83,7 @@ export default function Profile() {
           </Link>
         </div>
 
-        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl divide-y divide-white/5">
+        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl divide-y divide-white/15">
           {items.map((it) => (
             <Link
               key={it.label}
@@ -91,7 +91,7 @@ export default function Profile() {
               data-testid={it.testid}
               className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition"
             >
-              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center">
                 <it.icon size={16} className="text-[#00F0FF]" strokeWidth={1.7} />
               </div>
               <div className="flex-1 font-body text-sm font-medium">{it.label}</div>

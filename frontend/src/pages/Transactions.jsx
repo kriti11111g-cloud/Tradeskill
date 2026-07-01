@@ -29,7 +29,7 @@ export default function Transactions() {
             className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               f === x
                 ? "bg-[#00F0FF] text-[#050914] border-[#00F0FF]"
-                : "bg-white/5 text-[#8B9BB4] border-white/10 hover:bg-white/10"
+                : "bg-white/5 text-[#8B9BB4] border-white/25 hover:bg-white/10"
             }`}
           >
             {x}
@@ -47,7 +47,7 @@ export default function Transactions() {
           {filtered.map((t) => (
             <div
               key={t.id}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/30 transition"
+              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/30 transition"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">

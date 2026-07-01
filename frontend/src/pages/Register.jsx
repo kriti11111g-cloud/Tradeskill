@@ -48,7 +48,7 @@ export default function Register() {
           <div className="text-[10px] uppercase tracking-[0.35em] text-[#8B9BB4]">Join the new era of crypto</div>
         </div>
 
-        <div className="bg-[#0F1524]/70 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
+        <div className="bg-[#0F1524]/70 backdrop-blur-xl border border-white/25 rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
           <h1 className="font-display font-bold text-2xl mb-1">Create account</h1>
           <p className="text-sm text-[#8B9BB4] mb-6">Get a $1,000 demo balance instantly</p>
 
@@ -66,7 +66,7 @@ export default function Register() {
                   required={f.required}
                   value={form[f.key]}
                   onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] focus:ring-1 focus:ring-[#00F0FF] transition-all placeholder:text-[#8B9BB4]"
+                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] focus:ring-1 focus:ring-[#00F0FF] transition-all placeholder:text-[#8B9BB4]"
                   placeholder={f.placeholder}
                   data-testid={f.testid}
                 />

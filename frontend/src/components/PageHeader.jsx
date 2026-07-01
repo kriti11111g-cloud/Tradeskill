@@ -8,7 +8,7 @@ export default function PageHeader({ title, subtitle, right, showBack = true }) 
       {showBack && (
         <button
           onClick={() => nav(-1)}
-          className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
+          className="w-9 h-9 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
           data-testid="back-btn"
         >
           <ChevronLeft size={18} />

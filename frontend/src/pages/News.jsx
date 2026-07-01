@@ -16,7 +16,7 @@ export default function News() {
         {rows.map((n) => (
           <div
             key={n.id}
-            className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 hover:border-[#00F0FF]/30 transition"
+            className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 hover:border-[#00F0FF]/30 transition"
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30">

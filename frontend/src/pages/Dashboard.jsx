@@ -70,7 +70,7 @@ export default function Dashboard() {
         </div>
         <Link
           to="/news"
-          className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative"
+          className="w-10 h-10 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center relative"
           data-testid="notif-btn"
         >
           <Bell size={18} />
@@ -82,7 +82,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-4 mt-5 relative overflow-hidden rounded-3xl border border-white/10 p-6 min-h-[170px] flex flex-col justify-end"
+        className="mx-4 mt-5 relative overflow-hidden rounded-3xl border border-white/25 p-6 min-h-[170px] flex flex-col justify-end"
         style={{
           background:
             "linear-gradient(135deg, rgba(0,240,255,0.20) 0%, rgba(255,0,122,0.20) 100%), url('https://images.pexels.com/photos/9404662/pexels-photo-9404662.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')",
@@ -110,7 +110,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Wallet Snapshot */}
-      <div className="mx-4 mt-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+      <div className="mx-4 mt-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 flex items-center justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
             {isLiveMode ? "Demo Balance (USDT)" : "Total Assets (USDT)"}
@@ -191,7 +191,7 @@ export default function Dashboard() {
                       .map((b) => (
                         <div
                           key={b.asset}
-                          className="flex-shrink-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 min-w-[80px] flex items-center gap-2"
+                          className="flex-shrink-0 bg-white/5 border border-white/25 rounded-lg px-2.5 py-1.5 min-w-[80px] flex items-center gap-2"
                           data-testid={`dash-asset-${b.asset}`}
                         >
                           <CoinIcon symbol={b.asset} size={20} />
@@ -226,7 +226,7 @@ export default function Dashboard() {
               className="flex flex-col items-center gap-2 py-3 hover:opacity-80 transition"
             >
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/20"
                 style={{
                   background: `linear-gradient(135deg, ${a.color}22, transparent)`,
                   boxShadow: `inset 0 0 20px ${a.color}22`,
@@ -264,7 +264,7 @@ export default function Dashboard() {
               <Link
                 to={`/pair/${p.symbol}`}
                 data-testid={`pair-${p.symbol}`}
-                className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 hover:border-[#00F0FF]/30 hover:bg-[#0F1524]/80 transition-all"
+                className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 hover:border-[#00F0FF]/30 hover:bg-[#0F1524]/80 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <CoinIcon symbol={p.symbol} size={44} />

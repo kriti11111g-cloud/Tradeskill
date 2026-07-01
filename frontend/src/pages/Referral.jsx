@@ -32,7 +32,7 @@ export default function Referral() {
 
       <div className="px-4">
         <div
-          className="rounded-3xl border border-white/10 p-6 relative overflow-hidden"
+          className="rounded-3xl border border-white/25 p-6 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,0,122,0.10)), url('https://images.unsplash.com/photo-1669951584605-4deba095a87f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGNyeXB0byUyMHRva2VuJTIwZmxvYXRpbmclMjAzZHxlbnwwfHx8fDE3ODIwNzk5MjR8MA&ixlib=rb-4.1.0&q=85')",
@@ -68,14 +68,14 @@ export default function Referral() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 mt-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-[#00F0FF]" />
             <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Team Size</div>
           </div>
           <div className="font-display font-bold text-2xl tabular-nums mt-1">{data?.team_size || 0}</div>
         </div>
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <Gift size={16} className="text-[#FFD700]" />
             <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Earned</div>
@@ -97,7 +97,7 @@ export default function Referral() {
           {data?.team?.map((t) => (
             <div
               key={t.email}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between"
+              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
             >
               <div>
                 <div className="font-display font-bold text-sm">{t.name || t.email}</div>

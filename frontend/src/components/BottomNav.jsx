@@ -12,7 +12,7 @@ const items = [
 export default function BottomNav() {
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-20 bg-[#050914]/85 backdrop-blur-2xl border-t border-white/10 z-50 flex justify-around items-center px-2 no-select"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-20 bg-[#050914]/85 backdrop-blur-2xl border-t border-white/25 z-50 flex justify-around items-center px-2 no-select"
       data-testid="bottom-nav"
     >
       {items.map(({ to, icon: Icon, label, testid }) => (

@@ -257,7 +257,7 @@ export default function TradingPair() {
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 bot.status === "running"
                   ? "bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40"
-                  : "bg-white/5 text-[#8B9BB4] border border-white/10"
+                  : "bg-white/5 text-[#8B9BB4] border border-white/25"
               }`}
               data-testid="bot-status"
             >
@@ -269,7 +269,7 @@ export default function TradingPair() {
 
       {/* Price header */}
       <div className="px-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
           <div className="flex items-end justify-between">
             <div className="flex items-center gap-3">
               <CoinIcon symbol={sym} size={40} />
@@ -399,7 +399,7 @@ export default function TradingPair() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3"
+            className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3"
           >
             <div className="text-[9px] uppercase tracking-[0.18em] text-[#8B9BB4] font-bold leading-tight">
               {s.label}
@@ -418,7 +418,7 @@ export default function TradingPair() {
       {/* Operation Reminder — auto-trigger prices */}
       <div className="px-4 mt-4">
         <div
-          className="rounded-2xl border border-white/10 p-4 relative overflow-hidden"
+          className="rounded-2xl border border-white/25 p-4 relative overflow-hidden"
           style={{
             background:
               "linear-gradient(135deg, rgba(0,240,255,0.08), rgba(255,215,0,0.06)), #0F1524",
@@ -444,7 +444,7 @@ export default function TradingPair() {
                   ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/10"
                   : bot.trigger_state === "start_pending"
                   ? "text-[#FFD700] border-[#FFD700]/40 bg-[#FFD700]/10"
-                  : "text-[#8B9BB4] border-white/10 bg-white/5"
+                  : "text-[#8B9BB4] border-white/25 bg-white/5"
               }`}
               data-testid="trigger-state"
             >
@@ -519,7 +519,7 @@ export default function TradingPair() {
 
             {/* TP pullback trigger (only shown once armed) */}
             {bot.tp_pullback_trigger_price > 0 && (
-              <div className="flex items-center justify-between border-t border-white/5 pt-2.5" data-testid="tp-exit-row">
+              <div className="flex items-center justify-between border-t border-white/20 pt-2.5" data-testid="tp-exit-row">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-[#FF007A]/15 flex items-center justify-center">
                     <span className="font-display font-black text-[10px] text-[#FF007A]">EX</span>
@@ -554,7 +554,7 @@ export default function TradingPair() {
             key={b.label}
             onClick={b.onClick}
             data-testid={b.testid}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
+            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white/5 border border-white/25 hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
           >
             <b.icon size={20} strokeWidth={1.7} className={b.color || ""} />
             <span className="text-[10px] uppercase tracking-widest font-bold">{b.label}</span>
@@ -564,7 +564,7 @@ export default function TradingPair() {
 
       {/* Manual trade input */}
       <div className="px-4 mt-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold mb-2">Manual Trade</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -573,7 +573,7 @@ export default function TradingPair() {
                 type="number"
                 value={buyAmt}
                 onChange={(e) => setBuyAmt(e.target.value)}
-                className="w-full mt-1 bg-[#050914] border border-white/10 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                className="w-full mt-1 bg-[#050914] border border-white/25 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
                 data-testid="input-buyamt"
               />
             </div>
@@ -584,7 +584,7 @@ export default function TradingPair() {
                 value={tradeQty}
                 onChange={(e) => setTradeQty(e.target.value)}
                 placeholder={String(bot.position_qty || 0)}
-                className="w-full mt-1 bg-[#050914] border border-white/10 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                className="w-full mt-1 bg-[#050914] border border-white/25 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
                 data-testid="input-sellqty"
               />
             </div>
@@ -594,7 +594,7 @@ export default function TradingPair() {
 
       {/* Strategy Config */}
       <div className="px-4 mt-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="font-display font-bold">Strategy Configuration</div>
             <button
@@ -617,7 +617,7 @@ export default function TradingPair() {
                   step={f.step}
                   value={bot[f.key]}
                   onChange={(e) => setBot({ ...bot, [f.key]: parseFloat(e.target.value) })}
-                  className="w-full mt-1 bg-[#050914] border border-white/10 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full mt-1 bg-[#050914] border border-white/25 rounded-lg px-3 py-2 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
                   data-testid={`cfg-${f.key}`}
                 />
               </div>
@@ -646,7 +646,7 @@ export default function TradingPair() {
                 className={`py-2 rounded-lg font-display font-bold text-sm uppercase tracking-widest ${
                   bot.trade_method === m
                     ? "bg-[#00F0FF] text-[#050914]"
-                    : "bg-white/5 text-[#8B9BB4] border border-white/10"
+                    : "bg-white/5 text-[#8B9BB4] border border-white/25"
                 }`}
               >
                 <Repeat size={12} className="inline mr-1" />
@@ -657,7 +657,7 @@ export default function TradingPair() {
 
           <button
             onClick={saveConfig}
-            className="w-full mt-4 bg-white/10 hover:bg-white/15 border border-white/10 py-3 rounded-xl font-display font-bold text-sm"
+            className="w-full mt-4 bg-white/10 hover:bg-white/15 border border-white/25 py-3 rounded-xl font-display font-bold text-sm"
             data-testid="save-config"
           >
             Update Strategy
@@ -667,7 +667,7 @@ export default function TradingPair() {
 
       {/* Margin Configuration Table (per-round drop % and multiplier) */}
       <div className="px-4 mt-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5" data-testid="margin-config">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-5" data-testid="margin-config">
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="font-display font-bold text-sm">Margin Configuration</div>
@@ -699,7 +699,7 @@ export default function TradingPair() {
                 className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center"
                 data-testid={`mc-row-${i}`}
               >
-                <div className="w-10 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-display font-bold text-xs">
+                <div className="w-10 h-9 rounded-lg bg-white/5 border border-white/25 flex items-center justify-center font-display font-bold text-xs">
                   {i + 1}
                 </div>
                 <div className="relative">
@@ -708,7 +708,7 @@ export default function TradingPair() {
                     step="0.1"
                     value={row.drop}
                     onChange={(e) => updateMarginRow(i, "drop", e.target.value)}
-                    className="w-full h-9 bg-[#050914] border border-white/10 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                    className="w-full h-9 bg-[#050914] border border-white/25 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
                     data-testid={`mc-drop-${i}`}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B9BB4] font-bold">%</span>
@@ -719,7 +719,7 @@ export default function TradingPair() {
                     step="0.5"
                     value={row.multiplier}
                     onChange={(e) => updateMarginRow(i, "multiplier", e.target.value)}
-                    className="w-full h-9 bg-[#050914] border border-white/10 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                    className="w-full h-9 bg-[#050914] border border-white/25 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
                     data-testid={`mc-mult-${i}`}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B9BB4] font-bold">×</span>
@@ -785,7 +785,7 @@ export default function TradingPair() {
             {events.slice(0, 8).map((e) => (
               <div
                 key={e.id}
-                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-xl p-3 flex items-center justify-between"
+                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-xl p-3 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2.5">
                   <div
@@ -878,7 +878,7 @@ export default function TradingPair() {
                   step="0.000001"
                   value={posEdit.position_qty}
                   onChange={(e) => setPosEdit({ ...posEdit, position_qty: e.target.value })}
-                  className="w-full bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full bg-[#050914] border border-white/25 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
                   data-testid="pos-qty-input"
                 />
               </div>
@@ -891,7 +891,7 @@ export default function TradingPair() {
                   step="0.0001"
                   value={posEdit.avg_price}
                   onChange={(e) => setPosEdit({ ...posEdit, avg_price: e.target.value })}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
                   data-testid="pos-avg-input"
                 />
               </div>
@@ -905,7 +905,7 @@ export default function TradingPair() {
                   min="0"
                   value={posEdit.margin_call_count}
                   onChange={(e) => setPosEdit({ ...posEdit, margin_call_count: e.target.value })}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
                   data-testid="pos-mc-input"
                 />
               </div>
@@ -920,7 +920,7 @@ export default function TradingPair() {
             <div className="grid grid-cols-2 gap-2 mt-5">
               <button
                 onClick={() => setPosEditOpen(false)}
-                className="py-3 rounded-xl bg-white/5 border border-white/10 font-display font-bold text-sm"
+                className="py-3 rounded-xl bg-white/5 border border-white/25 font-display font-bold text-sm"
                 data-testid="pos-cancel"
               >
                 Cancel

@@ -93,7 +93,7 @@ export default function Wallet() {
       {/* Balance card */}
       <div className="px-4">
         <div
-          className="relative overflow-hidden rounded-3xl border border-white/10 p-6"
+          className="relative overflow-hidden rounded-3xl border border-white/25 p-6"
           style={{
             background: "linear-gradient(135deg, rgba(0,240,255,0.12), rgba(255,215,0,0.08)), #0F1524",
           }}
@@ -160,7 +160,7 @@ export default function Wallet() {
                 onClick={loadLive}
                 disabled={liveLoading}
                 data-testid="live-refresh"
-                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/25 flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
               >
                 <RefreshCw size={14} className={liveLoading ? "animate-spin" : ""} />
               </button>
@@ -191,7 +191,7 @@ export default function Wallet() {
                 .sort((a, b) => b.usdt_value - a.usdt_value);
               return (
                 <div data-testid="live-balances-list">
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/20">
                     <div>
                       <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Est. Total Value</div>
                       <div className="font-display font-black text-2xl tabular-nums mt-0.5">
@@ -212,7 +212,7 @@ export default function Wallet() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search coin..."
-                      className="w-full bg-[#050914] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
+                      className="w-full bg-[#050914] border border-white/25 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
                       data-testid="live-search"
                     />
                   </div>
@@ -274,7 +274,7 @@ export default function Wallet() {
             key={a.type}
             onClick={() => setModal(a.type)}
             data-testid={a.testid}
-            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl hover:border-[#00F0FF]/30 transition"
+            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl hover:border-[#00F0FF]/30 transition"
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -295,7 +295,7 @@ export default function Wallet() {
             {summary.positions.map((p) => (
               <div
                 key={p.symbol}
-                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between"
+                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
                 data-testid={`position-${p.symbol}`}
               >
                 <div>
@@ -329,7 +329,7 @@ export default function Wallet() {
           {history.map((h) => (
             <div
               key={h.id}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between"
+              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
             >
               <div>
                 <div className="font-display font-bold text-sm capitalize">{h.type}</div>
@@ -358,7 +358,7 @@ export default function Wallet() {
           onClick={() => setModal(null)}
         >
           <div
-            className="w-full max-w-md bg-[#0F1524] border border-white/10 rounded-t-3xl sm:rounded-3xl p-6"
+            className="w-full max-w-md bg-[#0F1524] border border-white/25 rounded-t-3xl sm:rounded-3xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="font-display font-bold text-xl capitalize mb-4">{modal}</div>
@@ -372,7 +372,7 @@ export default function Wallet() {
                   autoFocus
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold text-xl tabular-nums focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 font-display font-bold text-xl tabular-nums focus:outline-none focus:border-[#00F0FF]"
                   data-testid="wallet-amount-input"
                 />
               </div>
@@ -380,7 +380,7 @@ export default function Wallet() {
                 <button
                   type="button"
                   onClick={() => setModal(null)}
-                  className="py-3 rounded-xl bg-white/5 border border-white/10 font-bold"
+                  className="py-3 rounded-xl bg-white/5 border border-white/25 font-bold"
                 >
                   Cancel
                 </button>
