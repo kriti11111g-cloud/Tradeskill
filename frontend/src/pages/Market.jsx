@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
@@ -11,15 +11,59 @@ export default function Market() {
   const [coins, setCoins] = useState([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("rank");
+  const wsRef = useRef(null);
 
   const load = () =>
     api.get("/market/top?limit=50").then(({ data }) => setCoins(data.coins || []));
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 30000);
+    const id = setInterval(load, 60000); // refresh coingecko meta every 60s
     return () => clearInterval(id);
   }, []);
+
+  // Subscribe to Binance's official combined ticker stream once we know the symbols.
+  useEffect(() => {
+    if (!coins.length) return;
+    const streams = coins.map((c) => `${c.symbol.toLowerCase()}@ticker`).join("/");
+    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+    let ws;
+    try {
+      ws = new WebSocket(url);
+      wsRef.current = ws;
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          const t = msg.data;
+          if (!t || !t.s) return;
+          setCoins((prev) =>
+            prev.map((c) =>
+              c.symbol === t.s
+                ? {
+                    ...c,
+                    last_price: parseFloat(t.c),
+                    change_pct: parseFloat(t.P),
+                    volume: parseFloat(t.q),
+                    high: parseFloat(t.h),
+                    low: parseFloat(t.l),
+                  }
+                : c,
+            ),
+          );
+        } catch {}
+      };
+    } catch {}
+    return () => {
+      if (ws) {
+        try {
+          ws.onmessage = null;
+          ws.close();
+        } catch {}
+      }
+    };
+    // Re-subscribe only when the list of symbols actually changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coins.map((c) => c.symbol).join(",")]);
 
   const q = search.trim().toLowerCase();
   const filtered = coins

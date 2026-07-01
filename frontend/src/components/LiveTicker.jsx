@@ -1,23 +1,60 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "@/lib/api";
 import { fmtPct } from "@/lib/format";
 
+// Use a compact top-set of major pairs for the marquee stream (no need to stream all 50)
+const MARQUEE_PAIRS = ["btcusdt", "ethusdt", "solusdt", "bnbusdt", "xrpusdt", "dogeusdt"];
+
 export default function LiveTicker() {
   const [pairs, setPairs] = useState([]);
+  const wsRef = useRef(null);
 
   useEffect(() => {
+    // Seed with a single REST call so the bar shows something immediately
     let mounted = true;
-    const load = async () => {
-      try {
-        const { data } = await api.get("/market/pairs");
+    api
+      .get("/market/pairs?limit=8")
+      .then(({ data }) => {
         if (mounted) setPairs(data.pairs || []);
-      } catch {}
-    };
-    load();
-    const id = setInterval(load, 20000);
+      })
+      .catch(() => {});
     return () => {
       mounted = false;
-      clearInterval(id);
+    };
+  }, []);
+
+  // Real-time via Binance WebSocket
+  useEffect(() => {
+    const streams = MARQUEE_PAIRS.map((s) => `${s}@ticker`).join("/");
+    let ws;
+    try {
+      ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      wsRef.current = ws;
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          const t = msg.data;
+          if (!t || !t.s) return;
+          setPairs((prev) => {
+            const map = new Map(prev.map((p) => [p.symbol, p]));
+            map.set(t.s, {
+              symbol: t.s,
+              last_price: parseFloat(t.c),
+              change_pct: parseFloat(t.P),
+            });
+            // Preserve MARQUEE order
+            return MARQUEE_PAIRS.map((s) => map.get(s.toUpperCase())).filter(Boolean);
+          });
+        } catch {}
+      };
+    } catch {}
+    return () => {
+      if (ws) {
+        try {
+          ws.onmessage = null;
+          ws.close();
+        } catch {}
+      }
     };
   }, []);
 

@@ -8,6 +8,7 @@ import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtPct, shortSymbol } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
+import useBinanceStream from "@/hooks/useBinanceStream";
 
 const fields = [
   { key: "first_buy_amount", label: "First Buy In Amount (USDT)", step: 0.5, type: "number" },
@@ -25,7 +26,6 @@ export default function TradingPair() {
 
   const [bot, setBot] = useState(null);
   const [stats, setStats] = useState(null);
-  const [price, setPrice] = useState(0);
   const [tradeQty, setTradeQty] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
   const [bind, setBind] = useState(null);
@@ -33,6 +33,12 @@ export default function TradingPair() {
   const [posEditOpen, setPosEditOpen] = useState(false);
   const [posEdit, setPosEdit] = useState({ position_qty: "", avg_price: "", margin_call_count: "" });
   const [live, setLive] = useState(null);
+
+  // ★ Real-time price via Binance's OFFICIAL public WebSocket — exactly the price
+  // shown on binance.com. Sub-second updates; no discrepancy vs the exchange.
+  const stream = useBinanceStream(sym);
+  const price = stream.price > 0 ? stream.price : (stats ? parseFloat(stats.lastPrice) : 0);
+  const change24 = stream.price > 0 ? stream.change : (stats ? parseFloat(stats.priceChangePercent) : 0);
 
   const loadAll = async () => {
     const [b, s, bd, ev] = await Promise.all([
@@ -45,7 +51,6 @@ export default function TradingPair() {
     setStats(s);
     setBind(bd);
     setEvents(ev);
-    if (s) setPrice(parseFloat(s.lastPrice));
     setBuyAmt(b.first_buy_amount);
     // If real/testnet, fetch live Binance balances
     if (bd?.mode === "real" || bd?.mode === "testnet") {
@@ -62,9 +67,6 @@ export default function TradingPair() {
 
   useEffect(() => {
     loadAll();
-    const priceId = setInterval(() => {
-      api.get(`/market/ticker/${sym}`).then(({ data }) => setPrice(parseFloat(data.price))).catch(() => {});
-    }, 6000);
     // Poll bot state + events every 8s so the user sees auto-trades in near-real-time
     const stateId = setInterval(() => {
       Promise.all([
@@ -76,7 +78,6 @@ export default function TradingPair() {
       });
     }, 8000);
     return () => {
-      clearInterval(priceId);
       clearInterval(stateId);
     };
   }, [sym]);
@@ -274,16 +275,35 @@ export default function TradingPair() {
             <div className="flex items-center gap-3">
               <CoinIcon symbol={sym} size={40} />
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Current Price</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Current Price</div>
+                  {stream.connected ? (
+                    <span
+                      className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-[#39FF14]"
+                      data-testid="ws-live"
+                      title="Real-time via Binance WebSocket · same price as binance.com"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse" />
+                      LIVE
+                    </span>
+                  ) : (
+                    <span
+                      className="text-[9px] uppercase tracking-widest font-bold text-[#8B9BB4]"
+                      data-testid="ws-connecting"
+                    >
+                      Connecting…
+                    </span>
+                  )}
+                </div>
                 <div className="font-display font-black text-3xl tabular-nums mt-0.5" data-testid="current-price">
                   {fmtUSD(price, price > 100 ? 2 : 4)}
                 </div>
               </div>
             </div>
-            {stats && (
+            {(stats || stream.price > 0) && (
               <div className="text-right">
-                <div className={`font-display font-bold text-lg tabular-nums ${parseFloat(stats.priceChangePercent) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}>
-                  {fmtPct(parseFloat(stats.priceChangePercent))}
+                <div className={`font-display font-bold text-lg tabular-nums ${change24 >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}>
+                  {fmtPct(change24)}
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mt-1">24H Change</div>
               </div>
