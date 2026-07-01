@@ -1,0 +1,46 @@
+{
+  "summary": "Full backend + frontend E2E testing of TGX BOT MVP. 30/30 pytest tests pass across auth, market, bind, bots, trade, wallet, transactions, revenue, referral, rewards, news, guide. Frontend flows verified: admin login -> dashboard ($10k wallet), pair page (BTCUSDT) manual BUY updated position + wallet + toast, Update Strategy, START BOT toggle, Bind API mode selectors, Wallet page with Deposit/Withdraw/Transfer + open position row, Transactions with filter chips, Revenue, Referral (code/copy/share/team), Rewards claim UI, News (4 items), Guide (5 steps), Profile w/ Logout -> /login, Register creates $1,000 wallet + welcome toast + redirects to /.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "CORS", "issue": "CORS_ORIGINS=\"*\" combined with allow_credentials=True is spec-invalid; browsers will reject cookie flows if hit cross-origin. Works today only because frontend and API share the same domain via ingress."},
+      {"endpoint": "startup", "issue": "Uses deprecated @app.on_event('startup'|'shutdown'); should migrate to FastAPI lifespan."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard", "issues": ["Header shows 'Admin' with no rank/avatar chip parity with Profile; minor visual consistency"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tgx_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(FIXED by testing agent) POST /api/auth/register was returning 500 because motor added ObjectId `_id` to the doc dict in-place and it was returned in the response. Fixed by excluding `_id` from the returned user dict.",
+    "Optional: expose data-testid `mode-cycle` and `mode-oneshot` on TradingPair strategy trade-method buttons (spec mentions them, currently only `act-oneshot` is exposed for the action button).",
+    "Optional: tighten CORS by setting explicit origin(s) instead of '*' when using credentials.",
+    "Optional: migrate FastAPI startup handlers to lifespan context manager."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~730 lines; consider splitting into routers/ (auth, market, bots, trade, wallet, referral, rewards, content) for maintainability.",
+    "Response returned dict from `insert_one` mutated with _id — always project or drop `_id` before returning.",
+    "In /trade/order SELL branch, `margin_call_count` reset uses `bot.get('margin_call_count',0)` but earlier BUY branch increments it whenever prior position_amount > 0 which double-counts on first buy. Recommend explicit initialization when position was empty.",
+    "wallet_summary fetches live price per position sequentially inside a loop; parallelize with asyncio.gather for perf if many symbols.",
+    "referral commission on team-member trades is documented as deferred but no rewards row is generated for team SELLs; ensure UI copy in Referral does not promise 10% until implemented.",
+    "MASTER_KEY, JWT_SECRET committed to backend/.env — acceptable for preview but rotate for prod."
+  ],
+  "updated_files": [
+    "/app/backend/server.py (fixed ObjectId leak in /auth/register response)",
+    "/app/backend/tests/test_tgx_backend.py (new comprehensive regression suite)"
+  ],
+  "success_rate": {"backend": "100% (30/30)", "frontend": "100% of critical flows"},
+  "test_credentials": "Admin admin@tgxbot.com / Admin@12345 (seeded). New users can register directly; get $1000 demo wallet + claimable welcome reward.",
+  "seed_data_creation": "Session creates a fresh user per pytest session via /auth/register. Admin balance may drift between runs since tests place demo trades and deposits; assertions relaxed accordingly.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend register 500 bug was fixed here — verify still healthy. All key data-testid IDs exist: pair-<SYMBOL>, act-buy/act-sell/act-close/act-oneshot, input-buyamt, save-config, suggest-btn, start-bot, mode-demo, mode-real. Pair page takes ~3-4s to load (fetches ticker/stats/bot). Toaster overlay can briefly cover clicks — prefer using data-testid selectors with force=True. Frontend URL is https://tgx-api-gateway.preview.emergentagent.com; backend prefix /api.",
+  "rca of the issue": "Register 500 root cause: `await db.users.insert_one(doc)` mutates `doc` in-place adding `_id` (bson ObjectId). The endpoint then returned `doc` items filtering only `password_hash`, leaving `_id`. FastAPI's jsonable_encoder cannot serialize ObjectId -> ValueError. Fix: also exclude `_id` when building the user response. Reproduction: POST /api/auth/register with any new email. Mitigation applied in server.py."
+}

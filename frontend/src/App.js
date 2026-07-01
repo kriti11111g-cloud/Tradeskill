@@ -1,56 +1,64 @@
-import { useEffect } from "react";
-import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
-import { HOME } from "@/constants/testIds";
+import { Toaster } from "sonner";
+import "@/App.css";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import AppShell from "@/components/AppShell";
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Dashboard from "@/pages/Dashboard";
+import BindAPI from "@/pages/BindAPI";
+import TradingPair from "@/pages/TradingPair";
+import Wallet from "@/pages/Wallet";
+import Transactions from "@/pages/Transactions";
+import Revenue from "@/pages/Revenue";
+import Referral from "@/pages/Referral";
+import Rewards from "@/pages/Rewards";
+import News from "@/pages/News";
+import Guide from "@/pages/Guide";
+import Profile from "@/pages/Profile";
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
+export default function App() {
   return (
-    <div>
-      <header className="App-header">
-        <a
-          data-testid={HOME.emergentLink}
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
+    <AuthProvider>
       <BrowserRouter>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: "#0F1524",
+              color: "#fff",
+              border: "1px solid rgba(0,240,255,0.2)",
+              fontFamily: "Outfit, sans-serif",
+            },
+          }}
+        />
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/bind-api" element={<BindAPI />} />
+            <Route path="/pair/:symbol" element={<TradingPair />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/revenue" element={<Revenue />} />
+            <Route path="/referral" element={<Referral />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/guide" element={<Guide />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
       </BrowserRouter>
-    </div>
+    </AuthProvider>
   );
 }
-
-export default App;
