@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Play, Square, TrendingUp, TrendingDown, Repeat, Target, XCircle } from "lucide-react";
+import { Play, Square, TrendingUp, TrendingDown, Repeat, Target, XCircle, Pencil } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtPct, shortSymbol } from "@/lib/format";
@@ -29,6 +29,8 @@ export default function TradingPair() {
   const [buyAmt, setBuyAmt] = useState("");
   const [bind, setBind] = useState(null);
   const [events, setEvents] = useState([]);
+  const [posEditOpen, setPosEditOpen] = useState(false);
+  const [posEdit, setPosEdit] = useState({ position_qty: "", avg_price: "", margin_call_count: "" });
 
   const loadAll = async () => {
     const [b, s, bd, ev] = await Promise.all([
@@ -155,6 +157,32 @@ export default function TradingPair() {
     toast.info("Suggested strategy loaded");
   };
 
+  const openPosEdit = () => {
+    setPosEdit({
+      position_qty: String(bot.position_qty || 0),
+      avg_price: String(bot.avg_price || 0),
+      margin_call_count: String(bot.margin_call_count || 0),
+    });
+    setPosEditOpen(true);
+  };
+
+  const submitPosEdit = async () => {
+    try {
+      await api.post(`/bots/${sym}/position`, {
+        position_qty: parseFloat(posEdit.position_qty) || 0,
+        avg_price: parseFloat(posEdit.avg_price) || 0,
+        margin_call_count: parseInt(posEdit.margin_call_count, 10) || 0,
+        reset_peak: true,
+      });
+      toast.success("Position updated");
+      setPosEditOpen(false);
+      loadAll();
+      refresh();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
   const updateMarginRow = (idx, key, value) => {
     const cfg = [...(bot.margin_config || [])];
     cfg[idx] = { ...cfg[idx], [key]: parseFloat(value) };
@@ -230,7 +258,19 @@ export default function TradingPair() {
       </div>
 
       {/* Position Stats grid */}
-      <div className="grid grid-cols-2 gap-3 px-4 mt-3">
+      <div className="px-4 mt-3">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">Position</div>
+          <button
+            onClick={openPosEdit}
+            data-testid="edit-position-btn"
+            className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold border border-[#00F0FF]/40 rounded-full px-2.5 py-1 hover:bg-[#00F0FF]/10"
+          >
+            <Pencil size={11} /> Edit
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 px-4">
         {[
           { label: "Position Amount (USDT)", value: fmtNum(bot.position_amount, 2) },
           { label: "Avg Price", value: fmtNum(bot.avg_price, 4) },
@@ -673,6 +713,99 @@ export default function TradingPair() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Position Edit modal */}
+      {posEditOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center px-4"
+          onClick={() => setPosEditOpen(false)}
+          data-testid="pos-edit-modal"
+        >
+          <div
+            className="w-full max-w-md bg-[#0F1524] border border-[#00F0FF]/30 rounded-t-3xl sm:rounded-3xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-11 h-11 rounded-2xl bg-[#00F0FF]/15 flex items-center justify-center">
+                <Pencil size={20} className="text-[#00F0FF]" />
+              </div>
+              <div>
+                <div className="font-display font-black text-lg tracking-tight">Adjust Position</div>
+                <div className="text-xs text-[#8B9BB4]">Manually sync {shortSymbol(sym)}/USDT</div>
+              </div>
+            </div>
+            <div className="text-[11px] text-[#8B9BB4] mb-4 leading-relaxed">
+              Use this if you executed trades outside the bot on Binance and want to sync the tracked quantity & average price. The bot will resume from this state.
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+                  Position Quantity ({shortSymbol(sym)})
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  value={posEdit.position_qty}
+                  onChange={(e) => setPosEdit({ ...posEdit, position_qty: e.target.value })}
+                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  data-testid="pos-qty-input"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+                  Average Price (USDT)
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={posEdit.avg_price}
+                  onChange={(e) => setPosEdit({ ...posEdit, avg_price: e.target.value })}
+                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  data-testid="pos-avg-input"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">
+                  Margin Call Count (0-based rounds already done)
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={posEdit.margin_call_count}
+                  onChange={(e) => setPosEdit({ ...posEdit, margin_call_count: e.target.value })}
+                  className="w-full mt-1.5 bg-[#050914] border border-white/10 rounded-xl px-4 py-3 font-display font-bold tabular-nums text-lg focus:outline-none focus:border-[#00F0FF]"
+                  data-testid="pos-mc-input"
+                />
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-[11px] text-[#8B9BB4]">
+                Notional value:{" "}
+                <span className="font-display font-bold text-white tabular-nums">
+                  {fmtUSD((parseFloat(posEdit.position_qty) || 0) * (parseFloat(posEdit.avg_price) || 0))}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mt-5">
+              <button
+                onClick={() => setPosEditOpen(false)}
+                className="py-3 rounded-xl bg-white/5 border border-white/10 font-display font-bold text-sm"
+                data-testid="pos-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPosEdit}
+                className="py-3 rounded-xl bg-[#00F0FF] text-[#050914] font-display font-bold text-sm hover:brightness-110"
+                data-testid="pos-save"
+              >
+                Save Position
+              </button>
+            </div>
           </div>
         </div>
       )}

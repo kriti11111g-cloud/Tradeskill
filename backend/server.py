@@ -178,6 +178,13 @@ class WalletTxnIn(BaseModel):
     note: Optional[str] = None
 
 
+class PositionOverrideIn(BaseModel):
+    position_qty: float = Field(ge=0)
+    avg_price: float = Field(ge=0)
+    margin_call_count: Optional[int] = Field(default=None, ge=0)
+    reset_peak: bool = True
+
+
 # ==== Auth Routes ====
 @api.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
@@ -457,6 +464,54 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
             "created_at": iso(now_utc()),
         })
     await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": doc}, upsert=True)
+    row = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    return row
+
+
+@api.post("/bots/{symbol}/position")
+async def override_position(symbol: str, body: PositionOverrideIn, user: dict = Depends(get_current_user)):
+    """Manually override the bot's tracked position. Useful when the user has
+    executed trades outside the bot on Binance and wants to sync."""
+    symbol = symbol.upper()
+    existing = await db.bots.find_one({"user_id": user["id"], "symbol": symbol})
+    if not existing:
+        # Create fresh bot doc with defaults + this position
+        doc = {**DEFAULT_BOT_CFG, "id": str(uuid.uuid4()), "user_id": user["id"],
+               "symbol": symbol, "created_at": iso(now_utc())}
+        await db.bots.insert_one(doc)
+        existing = doc
+
+    new_qty = float(body.position_qty)
+    new_avg = float(body.avg_price)
+    new_amt = new_qty * new_avg
+    mc_count = body.margin_call_count if body.margin_call_count is not None else existing.get("margin_call_count", 0)
+
+    # Recompute next_buy_price using the appropriate margin rule
+    next_rule = _get_margin_rule(existing, mc_count)
+    next_buy_price = new_avg * (1 - next_rule["drop"] / 100.0) if new_avg > 0 else 0.0
+
+    update_set = {
+        "position_qty": new_qty,
+        "avg_price": new_avg,
+        "position_amount": new_amt,
+        "margin_call_count": mc_count,
+        "last_buy_price": new_avg,
+        "next_buy_price": next_buy_price,
+        "manually_adjusted_at": iso(now_utc()),
+    }
+    if body.reset_peak:
+        update_set["peak_price"] = 0.0
+
+    await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": update_set})
+
+    # Log the adjustment as a bot event so history is auditable
+    await db.bot_events.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+        "kind": "manual_adjust", "round": mc_count + 1,
+        "amount": new_amt, "price": new_avg,
+        "created_at": iso(now_utc()),
+    })
+
     row = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     return row
 
