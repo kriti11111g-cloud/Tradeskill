@@ -47,7 +47,20 @@ db = client[DB_NAME]
 fernet = Fernet(MASTER_KEY.encode())
 
 BINANCE_PUBLIC = "https://data-api.binance.vision"
-ALLOWED_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT", "MATICUSDT"]
+ALLOWED_SYMBOLS = [
+    # Top majors
+    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT",
+    "TRXUSDT", "AVAXUSDT", "DOTUSDT", "MATICUSDT", "LINKUSDT", "TONUSDT", "SHIBUSDT",
+    "LTCUSDT", "BCHUSDT", "UNIUSDT", "ATOMUSDT", "XLMUSDT", "NEARUSDT",
+    # DeFi / L1 / L2
+    "APTUSDT", "ARBUSDT", "OPUSDT", "SUIUSDT", "SEIUSDT", "INJUSDT", "FILUSDT",
+    "ETCUSDT", "HBARUSDT", "VETUSDT", "ICPUSDT", "IMXUSDT", "STXUSDT", "AAVEUSDT",
+    "MKRUSDT", "GRTUSDT", "RUNEUSDT", "ALGOUSDT", "SANDUSDT", "MANAUSDT",
+    # Meme / trending
+    "PEPEUSDT", "FLOKIUSDT", "WIFUSDT", "BONKUSDT", "ORDIUSDT",
+    # Layer-2 / rollups
+    "STRKUSDT", "LDOUSDT", "RENDERUSDT", "TIAUSDT", "JUPUSDT",
+]
 
 app = FastAPI(title="TGX BOT API")
 api = APIRouter(prefix="/api")
@@ -322,27 +335,37 @@ async def klines(symbol: str, interval: str = "1h", limit: int = 48):
 
 
 @api.get("/market/pairs")
-async def pairs_summary():
-    """Fetch 24hr stats for all allowed symbols in parallel."""
-    async def one(c, sym):
+async def pairs_summary(limit: int = 50):
+    """Fetch 24hr stats for all allowed symbols in ONE Binance batch call, filter and sort by volume."""
+    allow = set(ALLOWED_SYMBOLS)
+    async with httpx.AsyncClient(timeout=10) as c:
         try:
-            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr", params={"symbol": sym})
-            if r.status_code == 200:
-                d = r.json()
-                return {
-                    "symbol": sym,
-                    "last_price": float(d.get("lastPrice", 0)),
-                    "change_pct": float(d.get("priceChangePercent", 0)),
-                    "volume": float(d.get("quoteVolume", 0)),
-                    "high": float(d.get("highPrice", 0)),
-                    "low": float(d.get("lowPrice", 0)),
-                }
+            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
+            r.raise_for_status()
         except Exception as e:
-            logger.warning(f"pairs {sym}: {e}")
-        return None
-    async with httpx.AsyncClient(timeout=8) as c:
-        results = await asyncio.gather(*[one(c, s) for s in ALLOWED_SYMBOLS])
-        return {"pairs": [r for r in results if r]}
+            logger.warning(f"pairs_summary batch failed: {e}")
+            return {"pairs": []}
+        data = r.json()
+
+    out = []
+    for d in data:
+        sym = d.get("symbol")
+        if sym not in allow:
+            continue
+        try:
+            out.append({
+                "symbol": sym,
+                "last_price": float(d.get("lastPrice", 0)),
+                "change_pct": float(d.get("priceChangePercent", 0)),
+                "volume": float(d.get("quoteVolume", 0)),
+                "high": float(d.get("highPrice", 0)),
+                "low": float(d.get("lowPrice", 0)),
+            })
+        except Exception:
+            continue
+    # Sort by 24h quote volume (most liquid first) and cap
+    out.sort(key=lambda x: x["volume"], reverse=True)
+    return {"pairs": out[:limit]}
 
 
 # ==== Bot Config ====

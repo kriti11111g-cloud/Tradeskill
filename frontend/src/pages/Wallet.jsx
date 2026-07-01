@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
+import CoinIcon from "@/components/CoinIcon";
 
 const actions = [
   { type: "deposit", label: "Deposit", icon: ArrowDownToLine, color: "#39FF14", testid: "wallet-deposit" },
@@ -22,6 +23,8 @@ export default function Wallet() {
   const [live, setLive] = useState(null);
   const [liveErr, setLiveErr] = useState(null);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [prices, setPrices] = useState({});
+  const [search, setSearch] = useState("");
 
   const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
 
@@ -31,6 +34,16 @@ export default function Wallet() {
     try {
       const { data } = await api.get("/binance/account");
       setLive(data);
+      // Fetch a batch of USDT prices so we can value each asset in USDT
+      try {
+        const { data: pairs } = await api.get("/market/pairs?limit=200");
+        const map = {};
+        (pairs.pairs || []).forEach((p) => {
+          map[p.symbol.replace("USDT", "")] = p.last_price;
+        });
+        map.USDT = 1;
+        setPrices(map);
+      } catch {}
     } catch (err) {
       setLiveErr(formatApiError(err));
       setLive(null);
@@ -166,35 +179,84 @@ export default function Wallet() {
               </div>
             )}
 
-            {live && live.balances && live.balances.length > 0 && (
-              <div className="space-y-2" data-testid="live-balances-list">
-                {live.balances.slice(0, 8).map((b) => (
-                  <div
-                    key={b.asset}
-                    className="flex items-center justify-between py-1.5"
-                    data-testid={`live-balance-${b.asset}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-display font-black text-[10px]">
-                        {b.asset.slice(0, 3)}
+            {live && live.balances && live.balances.length > 0 && (() => {
+              const withValue = live.balances.map((b) => {
+                const val = (b.free + b.locked) * (prices[b.asset] ?? (b.asset === "USDT" ? 1 : 0));
+                return { ...b, usdt_value: val };
+              });
+              const total = withValue.reduce((a, b) => a + b.usdt_value, 0);
+              const q = search.trim().toLowerCase();
+              const filtered = withValue
+                .filter((b) => (q ? b.asset.toLowerCase().includes(q) : true))
+                .sort((a, b) => b.usdt_value - a.usdt_value);
+              return (
+                <div data-testid="live-balances-list">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                    <div>
+                      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Est. Total Value</div>
+                      <div className="font-display font-black text-2xl tabular-nums mt-0.5">
+                        {fmtUSD(total)}
                       </div>
-                      <div className="font-display font-bold text-sm">{b.asset}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-display font-bold tabular-nums text-sm">{fmtNum(b.free, 6)}</div>
-                      {b.locked > 0 && (
-                        <div className="text-[10px] text-[#8B9BB4] tabular-nums">Locked: {fmtNum(b.locked, 6)}</div>
-                      )}
+                      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Assets</div>
+                      <div className="font-display font-bold text-lg tabular-nums mt-0.5" data-testid="live-count">
+                        {live.balances.length}
+                      </div>
                     </div>
                   </div>
-                ))}
-                {live.canTrade === false && (
-                  <div className="text-[10px] text-[#FF007A] mt-2">
-                    ⚠️ This API key does not have trade permission.
+
+                  <div className="relative mb-2">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B9BB4]" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search coin..."
+                      className="w-full bg-[#050914] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
+                      data-testid="live-search"
+                    />
                   </div>
-                )}
-              </div>
-            )}
+
+                  <div className="space-y-1 max-h-[360px] overflow-y-auto">
+                    {filtered.map((b) => (
+                      <div
+                        key={b.asset}
+                        className="flex items-center justify-between py-1.5 px-1"
+                        data-testid={`live-balance-${b.asset}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <CoinIcon symbol={b.asset} size={30} />
+                          <div>
+                            <div className="font-display font-bold text-sm">{b.asset}</div>
+                            {b.locked > 0 && (
+                              <div className="text-[9px] text-[#8B9BB4] tabular-nums">
+                                Locked: {fmtNum(b.locked, 6)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-display font-bold tabular-nums text-sm">{fmtNum(b.free, 6)}</div>
+                          <div className="text-[10px] text-[#8B9BB4] tabular-nums">
+                            ≈ {fmtUSD(b.usdt_value)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {filtered.length === 0 && (
+                      <div className="text-center text-xs text-[#8B9BB4] py-4">
+                        No coin matches &quot;{search}&quot;.
+                      </div>
+                    )}
+                  </div>
+                  {live.canTrade === false && (
+                    <div className="text-[10px] text-[#FF007A] mt-2">
+                      ⚠️ This API key does not have trade permission.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {live && live.balances && live.balances.length === 0 && (
               <div className="text-center text-xs text-[#8B9BB4] py-4" data-testid="live-empty">

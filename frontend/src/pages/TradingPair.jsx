@@ -7,6 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtPct, shortSymbol } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
+import CoinIcon from "@/components/CoinIcon";
 
 const fields = [
   { key: "first_buy_amount", label: "First Buy In Amount (USDT)", step: 0.5, type: "number" },
@@ -268,11 +269,15 @@ export default function TradingPair() {
 
       {/* Price header */}
       <div className="px-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">          <div className="flex items-end justify-between">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Current Price</div>
-              <div className="font-display font-black text-3xl tabular-nums mt-1" data-testid="current-price">
-                {fmtUSD(price, price > 100 ? 2 : 4)}
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4">
+          <div className="flex items-end justify-between">
+            <div className="flex items-center gap-3">
+              <CoinIcon symbol={sym} size={40} />
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Current Price</div>
+                <div className="font-display font-black text-3xl tabular-nums mt-0.5" data-testid="current-price">
+                  {fmtUSD(price, price > 100 ? 2 : 4)}
+                </div>
               </div>
             </div>
             {stats && (

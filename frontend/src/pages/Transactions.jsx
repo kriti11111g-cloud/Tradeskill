@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime, shortSymbol } from "@/lib/format";
+import CoinIcon from "@/components/CoinIcon";
 
 const filters = ["ALL", "BUY", "SELL"];
 
@@ -49,14 +50,17 @@ export default function Transactions() {
               className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/30 transition"
             >
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center font-display font-black text-sm ${
-                    t.side === "BUY"
-                      ? "bg-[#39FF14]/10 text-[#39FF14]"
-                      : "bg-[#FF007A]/10 text-[#FF007A]"
-                  }`}
-                >
-                  {t.side === "BUY" ? "B" : "S"}
+                <div className="relative">
+                  <CoinIcon symbol={t.symbol} size={40} />
+                  <div
+                    className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[#050914] flex items-center justify-center font-display font-black text-[8px] ${
+                      t.side === "BUY"
+                        ? "bg-[#39FF14] text-[#050914]"
+                        : "bg-[#FF007A] text-white"
+                    }`}
+                  >
+                    {t.side === "BUY" ? "B" : "S"}
+                  </div>
                 </div>
                 <div>
                   <div className="font-display font-bold text-sm">

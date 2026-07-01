@@ -5,6 +5,7 @@ import { Key, ArrowRightLeft, TrendingUp, Users, Gift, Trophy, BookOpen, Newspap
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum, shortSymbol } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
+import CoinIcon from "@/components/CoinIcon";
 
 const actions = [
   { to: "/bind-api", icon: Key, label: "Bind API", color: "#00F0FF", testid: "action-bind" },
@@ -190,12 +191,15 @@ export default function Dashboard() {
                       .map((b) => (
                         <div
                           key={b.asset}
-                          className="flex-shrink-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 min-w-[80px]"
+                          className="flex-shrink-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 min-w-[80px] flex items-center gap-2"
                           data-testid={`dash-asset-${b.asset}`}
                         >
-                          <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">{b.asset}</div>
-                          <div className="font-display font-bold text-xs tabular-nums">
-                            {fmtNum(b.free, 4)}
+                          <CoinIcon symbol={b.asset} size={20} />
+                          <div>
+                            <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">{b.asset}</div>
+                            <div className="font-display font-bold text-xs tabular-nums">
+                              {fmtNum(b.free, 4)}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -263,15 +267,7 @@ export default function Dashboard() {
                 className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 hover:border-[#00F0FF]/30 hover:bg-[#0F1524]/80 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center font-display font-black text-sm"
-                    style={{
-                      background: "linear-gradient(135deg, #00F0FF33, #FF007A33)",
-                      color: "#fff",
-                    }}
-                  >
-                    {shortSymbol(p.symbol).slice(0, 3)}
-                  </div>
+                  <CoinIcon symbol={p.symbol} size={44} />
                   <div>
                     <div className="font-display font-bold text-sm">
                       {shortSymbol(p.symbol)}<span className="text-[#8B9BB4]">/USDT</span>
