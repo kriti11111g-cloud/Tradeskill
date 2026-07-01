@@ -146,16 +146,22 @@ class BindAPIIn(BaseModel):
     mode: Literal["real", "demo", "testnet"] = "demo"
 
 
+class MarginRule(BaseModel):
+    drop: float = 2.0        # % below last buy price
+    multiplier: float = 2.0  # multiplier of first_buy_amount for this round
+
+
 class BotConfigIn(BaseModel):
     symbol: str
     first_buy_amount: float = 20.0
     open_position_double: bool = True
-    margin_call_limit: int = 10
+    margin_call_limit: int = 5
     whole_take_profit_ratio: float = 1.5
     whole_take_profit_callback: float = 0.3
     buy_in_callback: float = 1.0
     trade_method: Literal["Cycle", "One-Shot"] = "Cycle"
     sub_take_profit_callback: float = 0.5
+    margin_config: Optional[List[MarginRule]] = None
 
 
 class OrderIn(BaseModel):
@@ -333,21 +339,44 @@ async def pairs_summary():
 
 
 # ==== Bot Config ====
+DEFAULT_MARGIN_CONFIG = [
+    {"drop": 2.0, "multiplier": 2.0},
+    {"drop": 3.0, "multiplier": 2.0},
+    {"drop": 4.0, "multiplier": 2.0},
+    {"drop": 6.0, "multiplier": 2.0},
+    {"drop": 10.0, "multiplier": 2.0},
+]
+
 DEFAULT_BOT_CFG = {
     "first_buy_amount": 20.0,
     "open_position_double": True,
-    "margin_call_limit": 10,
+    "margin_call_limit": 5,
     "whole_take_profit_ratio": 1.5,
     "whole_take_profit_callback": 0.3,
     "buy_in_callback": 1.0,
     "trade_method": "Cycle",
     "sub_take_profit_callback": 0.5,
+    "margin_config": DEFAULT_MARGIN_CONFIG,
     "status": "stopped",
     "position_amount": 0.0,
     "position_qty": 0.0,
     "avg_price": 0.0,
     "margin_call_count": 0,
 }
+
+
+def _get_margin_rule(bot: dict, round_idx: int) -> dict:
+    """Return the {drop, multiplier} rule for the given DCA round (0-indexed).
+    Falls back to the last rule if round_idx exceeds the config length."""
+    cfg = bot.get("margin_config") or DEFAULT_MARGIN_CONFIG
+    if not cfg:
+        return {"drop": float(bot.get("buy_in_callback", 1.0) or 1.0), "multiplier": 1.0}
+    idx = min(round_idx, len(cfg) - 1)
+    r = cfg[idx]
+    return {
+        "drop": float(r.get("drop", 2.0) or 2.0),
+        "multiplier": float(r.get("multiplier", 2.0) or 2.0),
+    }
 
 
 @api.get("/bots")
@@ -399,6 +428,9 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
 @api.post("/bots/{symbol}")
 async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()
+    # Serialize margin_config (list of MarginRule pydantic objects) to plain dicts
+    mc = cfg.margin_config
+    mc_docs = [r.model_dump() for r in mc] if mc else DEFAULT_MARGIN_CONFIG
     doc = {
         "user_id": user["id"],
         "symbol": symbol,
@@ -410,6 +442,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
         "buy_in_callback": cfg.buy_in_callback,
         "trade_method": cfg.trade_method,
         "sub_take_profit_callback": cfg.sub_take_profit_callback,
+        "margin_config": mc_docs,
         "updated_at": iso(now_utc()),
     }
     existing = await db.bots.find_one({"user_id": user["id"], "symbol": symbol})
@@ -601,7 +634,10 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
             new_amt = bot.get("position_amount", 0.0) + quote_spent
             new_avg = new_amt / new_qty if new_qty > 0 else 0.0
             new_wallet = max(0.0, wallet - quote_spent)
-            next_buy_price = avg_price * (1 - float(bot.get("buy_in_callback", 1.0)) / 100.0)
+            new_mc_count = bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0)
+            # Compute next-DCA trigger using per-round margin_config drop%
+            next_rule = _get_margin_rule(bot, new_mc_count)
+            next_buy_price = avg_price * (1 - next_rule["drop"] / 100.0)
             await db.bots.update_one(
                 {"user_id": user_id, "symbol": symbol},
                 {"$set": {
@@ -611,7 +647,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "last_buy_price": avg_price,
                     "next_buy_price": next_buy_price,
                     "peak_price": 0.0,
-                    "margin_call_count": bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0),
+                    "margin_call_count": new_mc_count,
                 }},
                 upsert=True,
             )
@@ -670,7 +706,9 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         new_amt = bot.get("position_amount", 0.0) + amount
         new_avg = new_amt / new_qty if new_qty else 0.0
         new_wallet = wallet - amount
-        next_buy_price = price * (1 - float(bot.get("buy_in_callback", 1.0)) / 100.0)
+        new_mc_count = bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0)
+        next_rule = _get_margin_rule(bot, new_mc_count)
+        next_buy_price = price * (1 - next_rule["drop"] / 100.0)
         await db.bots.update_one(
             {"user_id": user_id, "symbol": symbol},
             {"$set": {
@@ -680,7 +718,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "last_buy_price": price,
                 "next_buy_price": next_buy_price,
                 "peak_price": 0.0,
-                "margin_call_count": bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0),
+                "margin_call_count": new_mc_count,
             }},
             upsert=True,
         )
@@ -751,7 +789,6 @@ async def _bot_tick(bot: dict):
     mc_limit = int(bot.get("margin_call_limit", 10) or 10)
     tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
     tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
-    double = bool(bot.get("open_position_double", True))
     next_buy = float(bot.get("next_buy_price", 0.0) or 0)
     peak = float(bot.get("peak_price", 0.0) or 0)
 
@@ -809,8 +846,9 @@ async def _bot_tick(bot: dict):
 
     # === DCA / MARGIN CALL BUY ===
     if next_buy > 0 and price <= next_buy and mc_count < mc_limit:
-        mult = (2 ** mc_count) if double else 1
-        amount = first_buy * mult
+        # Look up this round's rule (0-indexed): mc_count = 0 → first DCA (1st call), etc.
+        rule = _get_margin_rule(bot, mc_count)
+        amount = first_buy * rule["multiplier"]
         try:
             await _execute_trade(
                 user_id=user_id, symbol=symbol, side="BUY",
@@ -818,10 +856,15 @@ async def _bot_tick(bot: dict):
             )
             await db.bot_events.insert_one({
                 "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
-                "kind": "margin_call", "round": mc_count + 2, "amount": amount, "price": price,
+                "kind": "margin_call", "round": mc_count + 2,
+                "amount": amount, "price": price,
+                "drop_pct": rule["drop"], "multiplier": rule["multiplier"],
                 "created_at": iso(now_utc()),
             })
-            logger.info(f"bot {symbol}: DCA round {mc_count + 2}, ${amount} at ~{price}")
+            logger.info(
+                f"bot {symbol}: DCA round {mc_count + 2}, ${amount} (x{rule['multiplier']}) at ~{price} "
+                f"(drop {rule['drop']}%)"
+            )
         except _TradeError as e:
             logger.warning(f"bot {symbol}: DCA buy failed: {e.msg}")
             if e.status == 400 and "Insufficient" in e.msg:

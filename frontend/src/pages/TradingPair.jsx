@@ -137,15 +137,41 @@ export default function TradingPair() {
   const suggest = () => {
     setBot({
       ...bot,
-      first_buy_amount: 20,
-      margin_call_limit: 10,
-      whole_take_profit_ratio: 1.5,
-      whole_take_profit_callback: 0.3,
-      buy_in_callback: 1.2,
-      sub_take_profit_callback: 0.5,
+      first_buy_amount: 10,
+      margin_call_limit: 5,
+      whole_take_profit_ratio: 1.6,
+      whole_take_profit_callback: 0.2,
+      buy_in_callback: 0.2,
+      sub_take_profit_callback: 0.2,
       trade_method: "Cycle",
+      margin_config: [
+        { drop: 2, multiplier: 2 },
+        { drop: 3, multiplier: 2 },
+        { drop: 4, multiplier: 2 },
+        { drop: 6, multiplier: 2 },
+        { drop: 10, multiplier: 2 },
+      ],
     });
     toast.info("Suggested strategy loaded");
+  };
+
+  const updateMarginRow = (idx, key, value) => {
+    const cfg = [...(bot.margin_config || [])];
+    cfg[idx] = { ...cfg[idx], [key]: parseFloat(value) };
+    setBot({ ...bot, margin_config: cfg });
+  };
+
+  const addMarginRow = () => {
+    const cfg = [...(bot.margin_config || [])];
+    const last = cfg[cfg.length - 1] || { drop: 2, multiplier: 2 };
+    cfg.push({ drop: last.drop, multiplier: last.multiplier });
+    setBot({ ...bot, margin_config: cfg, margin_call_limit: cfg.length });
+  };
+
+  const removeMarginRow = (idx) => {
+    const cfg = [...(bot.margin_config || [])];
+    cfg.splice(idx, 1);
+    setBot({ ...bot, margin_config: cfg, margin_call_limit: cfg.length });
   };
 
   return (
@@ -481,6 +507,83 @@ export default function TradingPair() {
           >
             Update Strategy
           </button>
+        </div>
+      </div>
+
+      {/* Margin Configuration Table (per-round drop % and multiplier) */}
+      <div className="px-4 mt-4">
+        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5" data-testid="margin-config">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="font-display font-bold text-sm">Margin Configuration</div>
+              <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold mt-0.5">
+                Per-round drop % & multiplier
+              </div>
+            </div>
+            <button
+              onClick={addMarginRow}
+              disabled={(bot.margin_config || []).length >= 10}
+              className="text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold border border-[#00F0FF]/40 rounded-full px-3 py-1 hover:bg-[#00F0FF]/10 disabled:opacity-40"
+              data-testid="add-margin-row"
+            >
+              + Add Row
+            </button>
+          </div>
+
+          <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold mb-1 px-1">
+            <div className="w-10">Round</div>
+            <div>Margin Drop %</div>
+            <div>Buy-in Ratio</div>
+            <div className="w-6" />
+          </div>
+
+          <div className="space-y-1.5">
+            {(bot.margin_config || []).map((row, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center"
+                data-testid={`mc-row-${i}`}
+              >
+                <div className="w-10 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-display font-bold text-xs">
+                  {i + 1}
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={row.drop}
+                    onChange={(e) => updateMarginRow(i, "drop", e.target.value)}
+                    className="w-full h-9 bg-[#050914] border border-white/10 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                    data-testid={`mc-drop-${i}`}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B9BB4] font-bold">%</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={row.multiplier}
+                    onChange={(e) => updateMarginRow(i, "multiplier", e.target.value)}
+                    className="w-full h-9 bg-[#050914] border border-white/10 rounded-lg px-2.5 pr-6 font-display font-medium tabular-nums text-sm focus:outline-none focus:border-[#00F0FF]"
+                    data-testid={`mc-mult-${i}`}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B9BB4] font-bold">×</span>
+                </div>
+                <button
+                  onClick={() => removeMarginRow(i)}
+                  disabled={(bot.margin_config || []).length <= 1}
+                  className="w-9 h-9 rounded-lg bg-[#FF007A]/10 border border-[#FF007A]/30 text-[#FF007A] font-bold hover:bg-[#FF007A]/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  data-testid={`mc-remove-${i}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-[10px] text-[#8B9BB4] mt-3 leading-relaxed">
+            <span className="text-white font-bold">Round N</span> fires when price drops by that N-th <span className="text-[#FFD700]">Margin Drop %</span> from the previous buy, and spends <span className="text-[#00F0FF]">First Buy × Ratio</span> USDT.
+          </div>
         </div>
       </div>
 
