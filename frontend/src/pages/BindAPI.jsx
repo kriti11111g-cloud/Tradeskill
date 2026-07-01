@@ -71,28 +71,38 @@ export default function BindAPI() {
 
         <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold mb-3">Trading Mode</div>
-          <div className="grid grid-cols-2 gap-2">
-            {["demo", "real"].map((m) => (
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: "demo", label: "Demo", desc: "Simulated" },
+              { id: "testnet", label: "Testnet", desc: "Binance Testnet" },
+              { id: "real", label: "Real", desc: "Live Trading" },
+            ].map((m) => (
               <button
-                key={m}
-                onClick={() => setMode(m)}
-                data-testid={`mode-${m}`}
-                className={`py-3 rounded-xl font-display font-bold text-sm uppercase tracking-widest transition-all ${
-                  mode === m
-                    ? m === "demo"
-                      ? "bg-[#39FF14] text-[#050914] glow-cyan"
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                data-testid={`mode-${m.id}`}
+                className={`py-3 px-2 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all ${
+                  mode === m.id
+                    ? m.id === "demo"
+                      ? "bg-[#39FF14] text-[#050914]"
+                      : m.id === "testnet"
+                      ? "bg-[#FFD700] text-[#050914]"
                       : "bg-[#FF007A] text-white glow-magenta"
                     : "bg-white/5 text-[#8B9BB4] border border-white/10"
                 }`}
               >
-                {m}
+                <div>{m.label}</div>
+                <div className="text-[8px] font-normal opacity-70 mt-0.5">{m.desc}</div>
               </button>
             ))}
           </div>
           <div className="text-xs text-[#8B9BB4] mt-3 leading-relaxed">
-            {mode === "demo"
-              ? "Demo mode uses live Binance prices with a virtual $1,000 balance. No real funds at risk."
-              : "Real mode places live orders on Binance. Only enable TRADE permission; keep IP whitelist ON."}
+            {mode === "demo" &&
+              "Demo mode uses live Binance prices with a virtual $1,000 balance. No real funds at risk. No Binance account required."}
+            {mode === "testnet" &&
+              "Testnet mode places REAL orders on Binance's Spot Testnet (fake funds). Get keys at testnet.binance.vision. Perfect to test the strategy live risk-free."}
+            {mode === "real" &&
+              "⚠️ Real mode places LIVE orders on Binance with your funds. Enable only Read Info + Spot Trading. Use IP whitelist. Not reversible."}
           </div>
         </div>
 

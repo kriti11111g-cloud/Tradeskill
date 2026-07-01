@@ -27,14 +27,17 @@ export default function TradingPair() {
   const [price, setPrice] = useState(0);
   const [tradeQty, setTradeQty] = useState("");
   const [buyAmt, setBuyAmt] = useState("");
+  const [bind, setBind] = useState(null);
 
   const loadAll = async () => {
-    const [b, s] = await Promise.all([
+    const [b, s, bd] = await Promise.all([
       api.get(`/bots/${sym}`).then((r) => r.data),
       api.get(`/market/stats/${sym}`).then((r) => r.data).catch(() => null),
+      api.get(`/binance/bind`).then((r) => r.data).catch(() => null),
     ]);
     setBot(b);
     setStats(s);
+    setBind(bd);
     if (s) setPrice(parseFloat(s.lastPrice));
     setBuyAmt(b.first_buy_amount);
   };
@@ -135,15 +138,29 @@ export default function TradingPair() {
         title={`${shortSymbol(sym)}/USDT`}
         subtitle={bot.trade_method + " · " + (bot.status || "stopped").toUpperCase()}
         right={
-          <div
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-              bot.status === "running"
-                ? "bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40"
-                : "bg-white/5 text-[#8B9BB4] border border-white/10"
-            }`}
-            data-testid="bot-status"
-          >
-            {bot.status === "running" ? "● Running" : "Stopped"}
+          <div className="flex items-center gap-1.5">
+            {bind?.mode && bind.mode !== "demo" && (
+              <div
+                className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
+                  bind.mode === "real"
+                    ? "bg-[#FF007A]/15 text-[#FF007A] border-[#FF007A]/40"
+                    : "bg-[#FFD700]/15 text-[#FFD700] border-[#FFD700]/40"
+                }`}
+                data-testid="mode-badge"
+              >
+                {bind.mode}
+              </div>
+            )}
+            <div
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                bot.status === "running"
+                  ? "bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40"
+                  : "bg-white/5 text-[#8B9BB4] border border-white/10"
+              }`}
+              data-testid="bot-status"
+            >
+              {bot.status === "running" ? "● Running" : "Stopped"}
+            </div>
           </div>
         }
       />

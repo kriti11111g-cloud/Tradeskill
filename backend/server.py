@@ -20,6 +20,19 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from starlette.concurrency import run_in_threadpool
+from binance.client import Client as BinanceClient
+from binance.exceptions import BinanceAPIException, BinanceRequestException
+
+
+class _SafeBinanceClient(BinanceClient):
+    """Skip the auto-ping in the parent Client __init__ so a geo-restricted
+    or unreachable Binance server does not blow up client construction.
+    Errors will surface when an actual order/account call is made."""
+    def ping(self):
+        try:
+            return super().ping()
+        except Exception:
+            return None
 
 # ==== Setup ====
 MONGO_URL = os.environ['MONGO_URL']
@@ -129,7 +142,7 @@ class LoginIn(BaseModel):
 class BindAPIIn(BaseModel):
     api_key: str
     api_secret: str
-    mode: Literal["real", "demo"] = "demo"
+    mode: Literal["real", "demo", "testnet"] = "demo"
 
 
 class BotConfigIn(BaseModel):
@@ -406,7 +419,7 @@ async def stop_bot(symbol: str, user: dict = Depends(get_current_user)):
     return {"status": "stopped", "symbol": symbol}
 
 
-# ==== Trading (Demo simulation using real Binance price) ====
+# ==== Trading (Real Binance orders when bound in real/testnet; Demo simulation otherwise) ====
 async def fetch_price(symbol: str) -> float:
     async with httpx.AsyncClient(timeout=8) as c:
         r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/price", params={"symbol": symbol})
@@ -414,21 +427,185 @@ async def fetch_price(symbol: str) -> float:
         return float(r.json()["price"])
 
 
+async def get_user_binance(user_id: str):
+    """Return (client, mode) if user has real/testnet keys, else (None, 'demo' or actual mode)."""
+    row = await db.binance_keys.find_one({"user_id": user_id})
+    if not row:
+        return None, "demo"
+    mode = row.get("mode", "demo")
+    if mode == "demo":
+        return None, "demo"
+    try:
+        api_key = decrypt_text(row["api_key_enc"])
+        api_secret = decrypt_text(row["api_secret_enc"])
+    except Exception as e:
+        logger.error(f"decrypt keys failed: {e}")
+        raise HTTPException(500, "Failed to load API credentials")
+    testnet = (mode == "testnet")
+    client = _SafeBinanceClient(api_key, api_secret, testnet=testnet)
+    return client, mode
+
+
+def _parse_fill(order: dict) -> tuple[float, float, float]:
+    """Return (filled_qty, quote_spent, avg_price) from a Binance order response."""
+    fills = order.get("fills") or []
+    if fills:
+        qty = sum(float(f["qty"]) for f in fills)
+        quote = sum(float(f["qty"]) * float(f["price"]) for f in fills)
+        avg = quote / qty if qty > 0 else 0.0
+        return qty, quote, avg
+    # Fallback to top-level fields
+    exec_qty = float(order.get("executedQty", 0) or 0)
+    cum_quote = float(order.get("cummulativeQuoteQty", 0) or 0)
+    avg = cum_quote / exec_qty if exec_qty > 0 else 0.0
+    return exec_qty, cum_quote, avg
+
+
+@api.get("/binance/account")
+async def binance_account(user: dict = Depends(get_current_user)):
+    """Return live Binance account balances (real or testnet)."""
+    client, mode = await get_user_binance(user["id"])
+    if not client:
+        raise HTTPException(400, "No live API keys bound. Bind API in real or testnet mode first.")
+    try:
+        data = await run_in_threadpool(client.get_account)
+    except (BinanceAPIException, BinanceRequestException) as e:
+        msg = getattr(e, "message", str(e)) or str(e)
+        if "restricted location" in msg.lower():
+            raise HTTPException(
+                503,
+                "Binance is not reachable from this server (geographic restriction). Deploy to a supported region, or switch to Demo mode.",
+            )
+        raise HTTPException(400, f"Binance error: {msg}")
+    except Exception as e:
+        raise HTTPException(400, f"Binance unreachable: {e}")
+    # Filter non-zero balances
+    balances = [
+        {"asset": b["asset"], "free": float(b["free"]), "locked": float(b["locked"])}
+        for b in data.get("balances", [])
+        if float(b.get("free", 0)) > 0 or float(b.get("locked", 0)) > 0
+    ]
+    return {
+        "mode": mode,
+        "canTrade": data.get("canTrade"),
+        "accountType": data.get("accountType"),
+        "balances": balances,
+    }
+
+
 @api.post("/trade/order")
 async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
     """
-    Simulated market order using live Binance price.
-    In demo mode: updates user's wallet_usdt and bot position.
+    Places a market order.
+    - real/testnet mode: places actual Binance order via python-binance
+    - demo mode: simulates against live Binance price
+    Wallet + position in DB are updated in either case (for a unified P&L view).
     """
     symbol = body.symbol.upper()
     if symbol not in ALLOWED_SYMBOLS:
         raise HTTPException(400, "Symbol not supported")
 
-    price = await fetch_price(symbol)
+    client, mode = await get_user_binance(user["id"])
     wallet = user.get("wallet_usdt", 0.0)
     bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}) or {
         "position_amount": 0.0, "position_qty": 0.0, "avg_price": 0.0, "margin_call_count": 0,
     }
+
+    # ---------- LIVE (real / testnet) ORDER PATH ----------
+    if client and mode in ("real", "testnet"):
+        try:
+            if body.side == "BUY":
+                amount = body.usdt_amount or 0
+                if amount <= 0:
+                    raise HTTPException(400, "usdt_amount required for BUY")
+                order = await run_in_threadpool(
+                    client.order_market_buy,
+                    symbol=symbol,
+                    quoteOrderQty=round(amount, 2),
+                )
+            else:
+                qty = body.quantity or bot.get("position_qty", 0.0)
+                if qty <= 0:
+                    raise HTTPException(400, "No position to sell")
+                # Round quantity to a safe precision (6 decimals; production should use exchangeInfo stepSize)
+                order = await run_in_threadpool(
+                    client.order_market_sell,
+                    symbol=symbol,
+                    quantity=float(f"{qty:.6f}"),
+                )
+        except HTTPException:
+            raise
+        except (BinanceAPIException, BinanceRequestException) as e:
+            msg = getattr(e, "message", str(e)) or str(e)
+            if "restricted location" in msg.lower():
+                raise HTTPException(
+                    503,
+                    "Binance is not reachable from this server (geographic restriction). Deploy to a region where Binance is available, or switch to Demo mode.",
+                )
+            raise HTTPException(400, f"Binance rejected order: {msg}")
+        except Exception as e:
+            raise HTTPException(400, f"Order failed: {e}")
+
+        filled_qty, quote_spent, avg_price = _parse_fill(order)
+
+        if body.side == "BUY":
+            new_qty = bot.get("position_qty", 0.0) + filled_qty
+            new_amt = bot.get("position_amount", 0.0) + quote_spent
+            new_avg = new_amt / new_qty if new_qty > 0 else 0.0
+            new_wallet = max(0.0, wallet - quote_spent)  # mirror in demo wallet for consistency
+            await db.bots.update_one(
+                {"user_id": user["id"], "symbol": symbol},
+                {"$set": {
+                    "position_amount": new_amt,
+                    "position_qty": new_qty,
+                    "avg_price": new_avg,
+                    "margin_call_count": bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0),
+                }},
+                upsert=True,
+            )
+            await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
+            profit = 0.0
+            resp_qty = filled_qty
+            resp_amount = quote_spent
+        else:
+            cost = filled_qty * bot.get("avg_price", 0.0)
+            profit = quote_spent - cost
+            remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
+            remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
+            new_wallet = wallet + quote_spent
+            await db.bots.update_one(
+                {"user_id": user["id"], "symbol": symbol},
+                {"$set": {
+                    "position_qty": remaining_qty,
+                    "position_amount": remaining_amt,
+                    "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
+                    "margin_call_count": 0 if remaining_qty == 0 else bot.get("margin_call_count", 0),
+                }},
+            )
+            await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
+            resp_qty = filled_qty
+            resp_amount = quote_spent
+
+        txn = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "symbol": symbol,
+            "side": body.side,
+            "price": avg_price,
+            "quantity": resp_qty,
+            "amount": resp_amount,
+            "profit": profit,
+            "mode": mode,
+            "binance_order_id": order.get("orderId"),
+            "binance_status": order.get("status"),
+            "created_at": iso(now_utc()),
+        }
+        await db.transactions.insert_one(txn)
+        txn.pop("_id", None)
+        return txn
+
+    # ---------- DEMO / SIMULATION PATH ----------
+    price = await fetch_price(symbol)
 
     if body.side == "BUY":
         amount = body.usdt_amount or 0
@@ -454,7 +631,7 @@ async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
         )
         await db.users.update_one({"id": user["id"]}, {"$set": {"wallet_usdt": new_wallet}})
         profit = 0.0
-    else:  # SELL
+    else:
         qty = body.quantity or bot.get("position_qty", 0.0)
         if qty <= 0:
             raise HTTPException(400, "No position to sell")
