@@ -1135,7 +1135,7 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
         if d == today_str:
             today_profit += r.get("profit", 0.0)
             today_trades += 1
-    days = sorted(by_day.keys())[-14:]
+    days = sorted(by_day.keys())
     daily = [{"date": d, "profit": round(by_day[d], 4)} for d in days]
 
     # by_date list (most recent first) for the drill-down list

@@ -128,23 +128,46 @@ export default function Revenue() {
       </div>
 
       {data?.daily?.length > 0 && (
-        <div className="px-4 mt-4">
-          <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
-            <div className="font-display font-bold text-sm mb-2">Daily Profit (Last 14d)</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={data.daily}>
-                <CartesianGrid stroke="#ffffff10" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#8B9BB4", fontSize: 10 }} />
-                <YAxis tick={{ fill: "#8B9BB4", fontSize: 10 }} />
+        <div className="px-4 mt-2.5">
+          <div className="bg-[#0F1524]/50 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5">
+            <div className="flex items-center justify-between mb-1 px-1">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+                Daily Profit
+              </div>
+              <div className="text-[9px] text-[#8B9BB4] tabular-nums">
+                All-Time · {data.daily.length}d
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={110}>
+              <LineChart data={data.daily} margin={{ top: 4, right: 6, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke="#ffffff08" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#8B9BB4", fontSize: 8 }}
+                  tickFormatter={(v) => v.slice(5)}
+                  interval="preserveStartEnd"
+                  minTickGap={20}
+                />
+                <YAxis tick={{ fill: "#8B9BB4", fontSize: 8 }} width={30} />
                 <Tooltip
                   contentStyle={{
                     background: "#0F1524",
                     border: "1px solid rgba(0,240,255,0.3)",
-                    borderRadius: 12,
+                    borderRadius: 8,
                     color: "#fff",
+                    fontSize: 11,
+                    padding: "6px 8px",
                   }}
+                  labelStyle={{ color: "#8B9BB4", fontSize: 10 }}
                 />
-                <Line type="monotone" dataKey="profit" stroke="#00F0FF" strokeWidth={2} dot={{ fill: "#00F0FF", r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="profit"
+                  stroke="#00F0FF"
+                  strokeWidth={1.5}
+                  dot={{ fill: "#00F0FF", r: 2 }}
+                  activeDot={{ r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
