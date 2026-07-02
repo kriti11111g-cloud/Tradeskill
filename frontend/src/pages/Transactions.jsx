@@ -215,7 +215,7 @@ export default function Transactions() {
                         className="text-[9px] text-[#8B9BB4] mt-0.5 truncate leading-none"
                         style={monoNum}
                       >
-                        {fmtTimeUTC(t.created_at)} UTC · {fmtNum(t.quantity, 6)} @ {fmtNum(t.price, 4)}
+                        {fmtTimeUTC(t.created_at)} UTC · {fmtNum(t.quantity, 6)} · ${fmtNum(t.price, 4)}
                       </div>
                     </div>
                   </div>
@@ -243,27 +243,62 @@ export default function Transactions() {
                 {/* Expanded details card */}
                 {isOpen && (
                   <div
-                    className="px-3 pb-3 pt-1 border-t border-white/10 bg-[#050914]/40"
+                    className="px-3 pb-3 pt-2 border-t border-white/10 bg-[#050914]/40"
                     data-testid={`tx-detail-${t.id}`}
                   >
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-2" style={monoNum}>
-                      <Row label="Date" value={fmtDateUTC(t.created_at)} />
-                      <Row label="Time" value={`${fmtTimeUTC(t.created_at)} UTC`} />
-                      <Row label="Side" value={t.side} valueColor={sideColor} />
-                      <Row label="Mode" value={(t.mode || "demo").toUpperCase()} />
-                      <Row label="Symbol" value={t.symbol} />
-                      <Row label="Source" value={(t.source || "manual").toUpperCase()} />
-                      <Row label="Price" value={fmtNum(t.price, 6)} />
+                    {/* Coin identity strip */}
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10">
+                      <CoinIcon symbol={t.symbol} size={36} />
+                      <div className="min-w-0">
+                        <div className="font-display font-bold text-[15px] leading-none">
+                          {shortSymbol(t.symbol)}/USDT
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span
+                            className="text-[8px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded leading-none"
+                            style={{
+                              background: `${sideColor}22`,
+                              border: `1px solid ${sideColor}66`,
+                              color: sideColor,
+                            }}
+                          >
+                            {t.side}
+                          </span>
+                          <span
+                            className="text-[8px] uppercase tracking-widest font-bold text-[#8B9BB4]"
+                            style={monoNum}
+                          >
+                            {(t.mode || "demo").toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-auto text-right shrink-0">
+                        {t.side === "SELL" ? (
+                          <div
+                            className={`font-mono font-extrabold text-[15px] leading-none ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                            style={monoNum}
+                          >
+                            {profitPositive ? "+" : ""}
+                            {fmtUSD(t.profit || 0)}
+                          </div>
+                        ) : (
+                          <div className="font-mono font-extrabold text-[15px] leading-none" style={monoNum}>
+                            {fmtUSD(t.amount)}
+                          </div>
+                        )}
+                        <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold mt-1">
+                          {t.side === "SELL" ? "Profit" : "Amount"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3" style={monoNum}>
+                      <Row label="Date (UTC)" value={fmtDateUTC(t.created_at)} />
+                      <Row label="Time (UTC)" value={fmtTimeUTC(t.created_at)} />
+                      <Row label="Price" value={`$${fmtNum(t.price, 6)}`} />
                       <Row label="Quantity" value={fmtNum(t.quantity, 8)} />
-                      <Row label="Amount" value={fmtUSD(t.amount)} full />
-                      {t.side === "SELL" && (
-                        <Row
-                          label="Profit"
-                          value={`${profitPositive ? "+" : ""}${fmtUSD(t.profit || 0)}`}
-                          valueColor={profitPositive ? "#39FF14" : "#FF007A"}
-                          full
-                        />
-                      )}
+                      <Row label="Amount" value={fmtUSD(t.amount)} />
+                      <Row label="Source" value={(t.source || "manual").toUpperCase()} />
                       {t.binance_order_id && (
                         <Row label="Order ID" value={String(t.binance_order_id)} full mono />
                       )}
