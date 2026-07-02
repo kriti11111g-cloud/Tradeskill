@@ -82,68 +82,47 @@ export default function Revenue() {
         </div>
       </div>
 
-      {/* CARD 2: Today + Cumulative Profit */}
-      <div className="px-4 mt-3">
-        <div className="rounded-3xl border border-white/25 p-6 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl relative overflow-hidden">
+      {/* CARDS 2 & 3: Today's Profit | Cumulative Profit — thin twin cards */}
+      <div className="px-4 mt-2.5 grid grid-cols-2 gap-2.5">
+        <div
+          className="rounded-2xl border border-white/15 p-3 bg-[#0F1524]/50 backdrop-blur-xl"
+          data-testid="today-profit-card"
+        >
+          <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+            Today&apos;s Profit
+          </div>
           <div
-            className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-30"
-            style={{
-              background:
-                today >= 0
-                  ? "radial-gradient(circle, #39FF14 0%, transparent 70%)"
-                  : "radial-gradient(circle, #FF007A 0%, transparent 70%)",
-            }}
-          />
-          <div className="relative">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">
-              Today&apos;s Profit
-            </div>
-            <div
-              className={`font-display font-black text-4xl tabular-nums mt-2 ${
-                today >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-              }`}
-              data-testid="today-profit"
-            >
-              {today >= 0 ? "+" : ""}
-              {fmtUSD(today)}
-            </div>
-            <div className="text-[10px] text-[#8B9BB4] mt-1">
-              {data?.today_trades || 0} sells today
-            </div>
+            className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
+              today >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+            }`}
+            data-testid="today-profit"
+          >
+            {today >= 0 ? "+" : ""}
+            {fmtUSD(today)}
+          </div>
+          <div className="text-[9px] text-[#8B9BB4] mt-1.5 leading-none">
+            {data?.today_trades || 0} sells today
+          </div>
+        </div>
 
-            <div className="h-px w-full bg-white/10 my-4" />
-
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">
-              Cumulative Profit
-            </div>
-            <div
-              className={`font-display font-black text-3xl tabular-nums mt-2 ${
-                total >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-              }`}
-              data-testid="total-profit"
-            >
-              {total >= 0 ? "+" : ""}
-              {fmtUSD(total)}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div>
-                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
-                  Total Sells
-                </div>
-                <div className="font-display font-bold text-lg tabular-nums mt-0.5">
-                  {data?.total_trades || 0}
-                </div>
-              </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
-                  Symbols
-                </div>
-                <div className="font-display font-bold text-lg tabular-nums mt-0.5">
-                  {data?.by_symbol?.length || 0}
-                </div>
-              </div>
-            </div>
+        <div
+          className="rounded-2xl border border-white/15 p-3 bg-[#0F1524]/50 backdrop-blur-xl"
+          data-testid="cumulative-profit-card"
+        >
+          <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+            Cumulative Profit
+          </div>
+          <div
+            className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
+              total >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+            }`}
+            data-testid="total-profit"
+          >
+            {total >= 0 ? "+" : ""}
+            {fmtUSD(total)}
+          </div>
+          <div className="text-[9px] text-[#8B9BB4] mt-1.5 leading-none">
+            {data?.total_trades || 0} sells · {data?.by_symbol?.length || 0} symbols
           </div>
         </div>
       </div>
