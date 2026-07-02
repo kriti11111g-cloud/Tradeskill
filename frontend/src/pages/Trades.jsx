@@ -27,17 +27,17 @@ function BotCard({ bot }) {
     <button
       onClick={() => navigate(`/pair/${bot.symbol}`)}
       data-testid={`bot-card-${bot.symbol}`}
-      className="w-full text-left bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 hover:border-[#00F0FF]/40 active:scale-[0.995] transition"
+      className="w-full text-left bg-[#0F1524]/60 backdrop-blur-xl border border-white/15 rounded-xl p-2.5 hover:border-[#00F0FF]/40 active:scale-[0.995] transition"
     >
       {/* Top row: coin, pair, mode, running dot */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <CoinIcon symbol={bot.symbol} size={30} />
+          <CoinIcon symbol={bot.symbol} size={24} />
           <div>
-            <div className="font-display font-bold text-[14px] leading-none">
+            <div className="font-bold text-[12px] leading-none">
               {shortSymbol(bot.symbol)}/USDT
             </div>
-            <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] mt-1 leading-none">
+            <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] mt-1 leading-none">
               {(bot.trade_method || "Cycle")} · {isRunning ? "Running" : "Idle"}
             </div>
           </div>
@@ -47,7 +47,7 @@ function BotCard({ bot }) {
             className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[#39FF14] shadow-[0_0_6px_#39FF14]" : "bg-[#8B9BB4]"}`}
           />
           <span
-            className="text-[9px] uppercase tracking-widest font-bold"
+            className="text-[8px] uppercase tracking-widest font-bold"
             style={{ color: isRunning ? "#39FF14" : "#8B9BB4" }}
           >
             {isRunning ? "Live" : "Off"}
@@ -56,45 +56,45 @@ function BotCard({ bot }) {
       </div>
 
       {/* Middle: price + floating */}
-      <div className="flex items-end justify-between mt-2.5 gap-2">
+      <div className="flex items-end justify-between mt-2 gap-2">
         <div>
-          <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] leading-none">
+          <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] leading-none">
             Live Price
           </div>
           <div
-            className="font-mono font-bold text-[15px] tabular-nums mt-1 leading-none"
+            className="font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none"
             style={{ fontVariantNumeric: "tabular-nums" }}
           >
             {livePrice > 0 ? `$${fmtNum(livePrice, livePrice < 1 ? 4 : 2)}` : "—"}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] leading-none">
+          <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] leading-none">
             {hasPosition ? "Floating P&L" : "Position"}
           </div>
           {hasPosition ? (
             hasLivePrice ? (
               <div
-                className={`font-mono font-bold text-[15px] tabular-nums mt-1 leading-none ${floating >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                className={`font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none ${floating >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
                 data-testid={`bot-floating-${bot.symbol}`}
               >
                 {floating >= 0 ? "+" : ""}${fmtNum(floating, 2)}
-                <span className="text-[9px] ml-1 opacity-80">
+                <span className="text-[8px] ml-1 opacity-80">
                   ({floating >= 0 ? "+" : ""}
                   {floatingPct.toFixed(2)}%)
                 </span>
               </div>
             ) : (
-              <div className="text-[10px] text-[#8B9BB4] mt-1">Connecting…</div>
+              <div className="text-[9px] text-[#8B9BB4] mt-0.5">Connecting…</div>
             )
           ) : (
-            <div className="text-[10px] text-[#8B9BB4] mt-1">No open position</div>
+            <div className="text-[9px] text-[#8B9BB4] mt-0.5">No open position</div>
           )}
         </div>
       </div>
 
       {/* Bottom counter row (HiTechBot style) */}
-      <div className="mt-3 pt-2.5 border-t border-white/10 grid grid-cols-4 gap-1.5">
+      <div className="mt-2 pt-2 border-t border-white/10 grid grid-cols-4 gap-1.5">
         <Counter label="Buys" value={bot.buy_count || 0} color="#39FF14" testid={`bot-buys-${bot.symbol}`} />
         <Counter label="Sells" value={bot.sell_count || 0} color="#FF007A" testid={`bot-sells-${bot.symbol}`} />
         <Counter
@@ -118,11 +118,11 @@ function BotCard({ bot }) {
 function Counter({ label, value, color, small, testid }) {
   return (
     <div className="text-center" data-testid={testid}>
-      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+      <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
         {label}
       </div>
       <div
-        className={`font-mono font-extrabold tabular-nums mt-1 leading-none ${small ? "text-[11px]" : "text-[14px]"}`}
+        className={`font-mono font-extrabold tabular-nums mt-0.5 leading-none ${small ? "text-[10px]" : "text-[12px]"}`}
         style={{ color }}
       >
         {value}
@@ -186,7 +186,7 @@ export default function Trades() {
       </div>
 
       {/* Bot cards list */}
-      <div className="px-4 mt-3 space-y-2.5" data-testid="bots-list">
+      <div className="px-4 mt-3 space-y-1.5" data-testid="bots-list">
         {loading && (
           <div className="text-center text-sm text-[#8B9BB4] py-12">Loading bots…</div>
         )}
