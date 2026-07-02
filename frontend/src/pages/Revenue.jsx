@@ -4,6 +4,7 @@ import { ChevronRight, Wallet } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
+import CoinIcon from "@/components/CoinIcon";
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 // Piecewise Y-axis scale: fixed positive ticks $0, $10, $50, $500, $1k
@@ -72,7 +73,6 @@ function ProfitBarTooltip({ active, payload, trades }) {
           {meta.symbols.map((s) => s.replace("USDT", "")).join(" · ")}
         </div>
       )}
-      <div className="text-[8px] text-[#00F0FF] mt-1 leading-none">Tap bar to view trades ↗</div>
     </div>
   );
 }
@@ -80,6 +80,7 @@ function ProfitBarTooltip({ active, payload, trades }) {
 export default function Revenue() {
   const [data, setData] = useState(null);
   const [wallet, setWallet] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -241,14 +242,94 @@ export default function Revenue() {
                   radius={[3, 3, 0, 0]}
                   maxBarSize={22}
                   cursor="pointer"
-                  onClick={(entry) => entry?.date && navigate(`/transactions?date=${entry.date}`)}
+                  onClick={(entry) => entry?.date && setSelectedDay(entry.date)}
                 >
                   {scaledDaily.map((d) => (
-                    <Cell key={d.date} fill={d.profit >= 0 ? "#39FF14" : "#FF007A"} />
+                    <Cell
+                      key={d.date}
+                      fill={d.profit >= 0 ? "#39FF14" : "#FF007A"}
+                      opacity={selectedDay && selectedDay !== d.date ? 0.35 : 1}
+                    />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+
+            {selectedDay && (() => {
+              const sel = scaledDaily.find((x) => x.date === selectedDay);
+              const meta = (data.by_date || []).find((x) => x.date === selectedDay);
+              if (!sel) return null;
+              const pos = sel.profit >= 0;
+              const dt = new Date(selectedDay + "T00:00:00Z");
+              const label = dt.toLocaleDateString(undefined, {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+                timeZone: "UTC",
+              });
+              return (
+                <div
+                  className="mt-2 rounded-xl border p-2.5 bg-[#050914]/70 backdrop-blur-xl"
+                  style={{
+                    borderColor: pos ? "rgba(57,255,20,0.35)" : "rgba(255,0,122,0.35)",
+                  }}
+                  data-testid="bar-detail-panel"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div
+                        className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {label} · UTC
+                      </div>
+                      <div
+                        className={`font-mono font-black text-[20px] leading-none mt-1 ${pos ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {pos ? "+" : ""}${(sel.profit || 0).toFixed(2)}
+                      </div>
+                      {meta && (
+                        <div className="text-[9px] text-[#8B9BB4] mt-1">
+                          {meta.trades} sells · {meta.symbols.length} coin
+                          {meta.symbols.length === 1 ? "" : "s"}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setSelectedDay(null)}
+                      data-testid="bar-detail-close"
+                      className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0"
+                      aria-label="Close"
+                    >
+                      <span className="text-[10px]">✕</span>
+                    </button>
+                  </div>
+                  {meta?.symbols?.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {meta.symbols.map((s) => (
+                        <div
+                          key={s}
+                          className="flex items-center gap-1 rounded-full bg-white/5 border border-white/15 pl-1 pr-2 py-0.5"
+                        >
+                          <CoinIcon symbol={s} size={14} />
+                          <span className="text-[9px] font-bold uppercase tracking-widest">
+                            {s.replace("USDT", "")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => navigate(`/transactions?date=${selectedDay}`)}
+                    data-testid="bar-detail-view-trades"
+                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 transition"
+                  >
+                    View all trades of this day →
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
