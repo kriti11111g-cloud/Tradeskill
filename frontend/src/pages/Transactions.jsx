@@ -248,6 +248,13 @@ export default function Transactions() {
                   <div className="text-[9px] text-[#8B9BB4] mt-0.5 leading-none">
                     Average {t.side} in price USDT
                   </div>
+                  {/* Date + Time UTC */}
+                  <div
+                    className="text-[9px] text-[#8B9BB4] mt-1 leading-none"
+                    style={monoNum}
+                  >
+                    {fmtDateUTC(t.created_at)} · {fmtTimeUTC(t.created_at).slice(0, 5)} UTC
+                  </div>
                 </div>
 
                 {/* Right-side profit / amount block */}
