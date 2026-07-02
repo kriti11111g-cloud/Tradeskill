@@ -6,6 +6,25 @@ import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
+// Piecewise Y-axis scale: fixed ticks $0, $10, $20, $50, $100, $1k
+const PROFIT_BUCKETS = [0, 10, 20, 50, 100, 1000];
+const PROFIT_LABELS = ["$0", "$10", "$20", "$50", "$100", "$1k"];
+
+function scaleProfit(p) {
+  if (p == null || Number.isNaN(p)) return 0;
+  const sign = p < 0 ? -1 : 1;
+  const abs = Math.abs(p);
+  for (let i = 0; i < PROFIT_BUCKETS.length - 1; i++) {
+    const lo = PROFIT_BUCKETS[i];
+    const hi = PROFIT_BUCKETS[i + 1];
+    if (abs <= hi) {
+      const t = hi === lo ? 0 : (abs - lo) / (hi - lo);
+      return sign * (i + t);
+    }
+  }
+  return sign * (PROFIT_BUCKETS.length - 1);
+}
+
 const BinanceLogo = ({ size = 14 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
     <path fill="#F0B90B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
@@ -76,6 +95,21 @@ export default function Revenue() {
 
   const today = data?.today_profit || 0;
   const total = data?.total_profit || 0;
+
+  const scaledDaily = (data?.daily || []).map((d) => ({
+    ...d,
+    scaled: scaleProfit(d.profit),
+  }));
+  const hasNegative = scaledDaily.some((d) => d.scaled < 0);
+  const yDomain = hasNegative ? [-5, 5] : [0, 5];
+  const yTicks = hasNegative
+    ? [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
+    : [0, 1, 2, 3, 4, 5];
+  const yTickFormatter = (v) => {
+    const i = Math.abs(v);
+    if (!Number.isInteger(i) || i > 5) return "";
+    return (v < 0 ? "-" : "") + PROFIT_LABELS[i];
+  };
 
   return (
     <div className="pb-24">
@@ -182,10 +216,10 @@ export default function Revenue() {
                 All-Time · {data.daily.length}d
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={110}>
+            <ResponsiveContainer width="100%" height={130}>
               <BarChart
-                data={data.daily}
-                margin={{ top: 4, right: 6, left: -18, bottom: 0 }}
+                data={scaledDaily}
+                margin={{ top: 4, right: 6, left: -8, bottom: 0 }}
                 barCategoryGap="20%"
               >
                 <CartesianGrid stroke="#ffffff08" vertical={false} />
@@ -196,20 +230,26 @@ export default function Revenue() {
                   interval="preserveStartEnd"
                   minTickGap={20}
                 />
-                <YAxis tick={{ fill: "#8B9BB4", fontSize: 8 }} width={30} />
+                <YAxis
+                  ticks={yTicks}
+                  domain={yDomain}
+                  tick={{ fill: "#8B9BB4", fontSize: 8 }}
+                  tickFormatter={yTickFormatter}
+                  width={32}
+                />
                 <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
                 <Tooltip
                   cursor={{ fill: "#00F0FF0F" }}
                   content={<ProfitBarTooltip trades={data.by_date} />}
                 />
                 <Bar
-                  dataKey="profit"
+                  dataKey="scaled"
                   radius={[3, 3, 0, 0]}
                   maxBarSize={22}
                   cursor="pointer"
                   onClick={(entry) => entry?.date && navigate(`/transactions?date=${entry.date}`)}
                 >
-                  {data.daily.map((d) => (
+                  {scaledDaily.map((d) => (
                     <Cell key={d.date} fill={d.profit >= 0 ? "#39FF14" : "#FF007A"} />
                   ))}
                 </Bar>
