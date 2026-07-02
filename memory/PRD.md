@@ -45,6 +45,16 @@ User asked to build an app similar to "HiTechBot" (crypto trading bot shown in r
 - ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
 - ✅ Binance WebSockets for zero-lag price on Market + TradingPair
 
+## Implemented (2026-07-02, Trade tab redesign)
+- ✅ **New `/trades` page** (bot list view — HiTechBot parity):
+  - Summary strip: Active Bots · Total Bots · Total Profit
+  - Per-bot cards: coin icon, pair, mode, running dot, Live Price (Binance WS), Floating P&L, 4-counter row (Buys · Sells · Round · Profit)
+  - Tap card → `/pair/<SYMBOL>` drill-down
+  - Floating "+" FAB → `/market` to start new bot
+- ✅ Backend `/api/bots` now aggregates `buy_count`, `sell_count`, `cumulative_profit` per bot from transactions
+- ✅ Bottom nav "Trade" tab redirected to `/trades` (was `/transactions`)
+- ✅ Transactions page still reachable via Revenue drill-down (`/transactions?date=` or `?symbol=`)
+
 ## Implemented (2026-07-02, By Date drill-down)
 - ✅ Revenue page's 'By Symbol' section replaced by **'Daily History'** (by_date list): each row shows day tile (UTC), full date label, `N sells · M coins`, day's total profit, "Today" badge, chevron. Tap → `/transactions?date=YYYY-MM-DD`
 - ✅ Backend `/api/revenue/summary` now returns `by_date` [{date, profit, trades, symbols[]}] sorted desc
