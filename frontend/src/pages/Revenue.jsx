@@ -128,6 +128,7 @@ export default function Revenue() {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
+                timeZone: "UTC",
               });
               const todayStr = new Date().toISOString().slice(0, 10);
               const isToday = d.date === todayStr;
@@ -141,7 +142,7 @@ export default function Revenue() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-11 h-11 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex flex-col items-center justify-center shrink-0">
                       <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
-                        {dt.toLocaleDateString(undefined, { month: "short" })}
+                        {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
                       <div className="font-display font-black text-base leading-none mt-0.5 text-[#00F0FF] tabular-nums">
                         {dt.getUTCDate()}

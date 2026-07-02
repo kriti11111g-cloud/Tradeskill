@@ -44,6 +44,7 @@ export default function Transactions() {
         month: "short",
         day: "numeric",
         year: "numeric",
+        timeZone: "UTC",
       })
     : "";
 

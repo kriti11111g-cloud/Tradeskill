@@ -45,6 +45,13 @@ User asked to build an app similar to "HiTechBot" (crypto trading bot shown in r
 - ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
 - ✅ Binance WebSockets for zero-lag price on Market + TradingPair
 
+## Implemented (2026-07-02, By Date drill-down)
+- ✅ Revenue page's 'By Symbol' section replaced by **'Daily History'** (by_date list): each row shows day tile (UTC), full date label, `N sells · M coins`, day's total profit, "Today" badge, chevron. Tap → `/transactions?date=YYYY-MM-DD`
+- ✅ Backend `/api/revenue/summary` now returns `by_date` [{date, profit, trades, symbols[]}] sorted desc
+- ✅ Backend `/api/transactions` accepts `?date=YYYY-MM-DD` (regex-anchored prefix on created_at)
+- ✅ Symbol + Date filter chips coexist on Transactions page with independent X-clear
+- ✅ UTC-consistent date labels across day-tile, chip label, and 'Today' badge
+
 ## Implemented (2026-07-02, drill-down)
 - ✅ **Revenue → Transactions drill-down**: Tap any symbol row on /revenue → opens /transactions?symbol=XXX filtered view. Dismissible chip with coin icon + X-clear + back-to-revenue. Deep-linkable URL. BUY/SELL filter pills further narrow within the symbol. Fully e2e tested (10/10 pytest + 11/11 Playwright).
 
