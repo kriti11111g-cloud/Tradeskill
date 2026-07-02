@@ -21,7 +21,9 @@ export default function Revenue() {
   useEffect(() => {
     const load = () => {
       api.get("/revenue/summary").then(({ data }) => setData(data));
-      api.get("/wallet/spot").then(({ data }) => setWallet(data)).catch(() => setWallet(null));
+      api.get("/wallet/spot").then(({ data }) => setWallet(data)).catch(() => {
+        /* keep previous wallet value on transient failure */
+      });
     };
     load();
     const t = setInterval(load, 15000);
@@ -70,7 +72,7 @@ export default function Revenue() {
                 style={{ fontVariantNumeric: "tabular-nums" }}
                 data-testid="wallet-usdt-balance"
               >
-                {fmtUSD(wallet?.usdt_balance || 0)}
+                {wallet == null ? "—" : fmtUSD(wallet.usdt_balance ?? 0)}
               </div>
               <div className="text-[9px] text-[#8B9BB4] mt-1">
                 Available USDT · {wallet?.connected ? "Fetched from Binance API" : "Bind API keys for live balance"}

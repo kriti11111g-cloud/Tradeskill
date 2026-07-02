@@ -1265,7 +1265,7 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
     result = {
         "mode": "demo",
         "connected": False,
-        "usdt_balance": float(user.get("wallet_usdt", 0.0)),
+        "usdt_balance": round(float(user.get("wallet_usdt", 0.0)), 4),
     }
     client, mode = await get_user_binance(user["id"])
     if not client:
@@ -1275,11 +1275,11 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
         usdt = 0.0
         for b in data.get("balances", []):
             if b.get("asset") == "USDT":
-                usdt = float(b.get("free", 0)) + float(b.get("locked", 0))
+                usdt = float(b.get("free", 0))
                 break
         result.update({"mode": mode, "connected": True, "usdt_balance": round(usdt, 4)})
-    except Exception:
-        # Binance unreachable (geo/rate). Keep mode metadata so the client can show it.
+    except Exception as e:
+        logger.warning(f"wallet/spot binance fetch failed for {user['id']}: {e}")
         result.update({"mode": mode, "connected": False})
     return result
 
