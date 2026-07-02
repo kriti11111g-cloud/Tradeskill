@@ -6,23 +6,24 @@ import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
-// Piecewise Y-axis scale: fixed ticks $0, $10, $20, $50, $100, $1k
-const PROFIT_BUCKETS = [0, 10, 20, 50, 100, 1000];
-const PROFIT_LABELS = ["$0", "$10", "$20", "$50", "$100", "$1k"];
+// Piecewise Y-axis scale: fixed positive ticks $0, $10, $50, $500, $1k
+const PROFIT_BUCKETS = [0, 10, 50, 500, 1000];
+const PROFIT_LABELS = ["$0", "$10", "$50", "$500", "$1k"];
+const MAX_TICK_INDEX = PROFIT_BUCKETS.length - 1; // 4
 
 function scaleProfit(p) {
   if (p == null || Number.isNaN(p)) return 0;
-  const sign = p < 0 ? -1 : 1;
-  const abs = Math.abs(p);
-  for (let i = 0; i < PROFIT_BUCKETS.length - 1; i++) {
+  // Loss days render as a tiny red marker (0.12) so they're visible for tap
+  if (p < 0) return 0.12;
+  for (let i = 0; i < MAX_TICK_INDEX; i++) {
     const lo = PROFIT_BUCKETS[i];
     const hi = PROFIT_BUCKETS[i + 1];
-    if (abs <= hi) {
-      const t = hi === lo ? 0 : (abs - lo) / (hi - lo);
-      return sign * (i + t);
+    if (p <= hi) {
+      const t = hi === lo ? 0 : (p - lo) / (hi - lo);
+      return i + t;
     }
   }
-  return sign * (PROFIT_BUCKETS.length - 1);
+  return MAX_TICK_INDEX;
 }
 
 const BinanceLogo = ({ size = 14 }) => (
@@ -100,16 +101,9 @@ export default function Revenue() {
     ...d,
     scaled: scaleProfit(d.profit),
   }));
-  const hasNegative = scaledDaily.some((d) => d.scaled < 0);
-  const yDomain = hasNegative ? [-5, 5] : [0, 5];
-  const yTicks = hasNegative
-    ? [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
-    : [0, 1, 2, 3, 4, 5];
-  const yTickFormatter = (v) => {
-    const i = Math.abs(v);
-    if (!Number.isInteger(i) || i > 5) return "";
-    return (v < 0 ? "-" : "") + PROFIT_LABELS[i];
-  };
+  const yDomain = [0, MAX_TICK_INDEX];
+  const yTicks = [0, 1, 2, 3, 4];
+  const yTickFormatter = (v) => PROFIT_LABELS[v] || "";
 
   return (
     <div className="pb-24">
@@ -216,7 +210,7 @@ export default function Revenue() {
                 All-Time · {data.daily.length}d
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={130}>
+            <ResponsiveContainer width="100%" height={115}>
               <BarChart
                 data={scaledDaily}
                 margin={{ top: 4, right: 6, left: -8, bottom: 0 }}
