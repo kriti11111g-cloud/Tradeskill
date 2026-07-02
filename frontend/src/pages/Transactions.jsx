@@ -41,7 +41,7 @@ export default function Transactions() {
   const dateLabel = dateFilter
     ? new Date(dateFilter + "T00:00:00Z").toLocaleDateString(undefined, {
         month: "short",
-        day: "numeric",
+        day: "2-digit",
         year: "numeric",
         timeZone: "UTC",
       })

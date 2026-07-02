@@ -125,7 +125,7 @@ export default function Revenue() {
               const dt = new Date(d.date + "T00:00:00Z");
               const label = dt.toLocaleDateString(undefined, {
                 month: "short",
-                day: "numeric",
+                day: "2-digit",
                 year: "numeric",
                 timeZone: "UTC",
               });
@@ -144,7 +144,7 @@ export default function Revenue() {
                         {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
                       <div className="font-display font-black text-[11px] leading-none mt-px text-[#00F0FF] tabular-nums">
-                        {dt.getUTCDate()}
+                        {String(dt.getUTCDate()).padStart(2, "0")}
                       </div>
                     </div>
                     <div className="min-w-0">
