@@ -124,7 +124,6 @@ export default function Revenue() {
             {data.by_date.map((d) => {
               const dt = new Date(d.date + "T00:00:00Z");
               const label = dt.toLocaleDateString(undefined, {
-                weekday: "short",
                 month: "short",
                 day: "numeric",
                 year: "numeric",
