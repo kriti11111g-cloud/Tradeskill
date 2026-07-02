@@ -1,0 +1,37 @@
+{
+  "summary": "Visual density tightening of Revenue 'Daily History' verified on 420x900 mobile viewport. All 7 seeded date rows render, each row is exactly 42px tall (well under the <=46px threshold; previously 51px — a visible ~18% slimmer row). Content remains fully legible (day tile, weekday+month+day+year label, 'Today' badge, sells+coins subline, profit value, chevron). Hero card, chart, and drill-down navigation continue to work. Symbol regression (BTCUSDT) intact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/revenue - Daily History bottom rows",
+        "issues": [
+          "Revenue.jsx root uses only `pb-4` (16px), while the fixed bottom nav bar (`data-testid=nav-trade`) is ~76-90px tall. On 420x900, the last two date rows (06-30 and 06-29 in this seed) sit at y=836 and y=858; their centers fall behind the fixed nav bar unless the user scrolls the entire list. Consider `pb-24` (or a spacer div matching nav height) so the last rows remain fully tappable without extra scrolling. Reproduced deterministically via Playwright: clicking the geometric center of revenue-date-2026-06-29 lands on nav-trade instead. Tapping the top portion (or after scrolling to bottom) works correctly."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_3.json (reference)"
+  ],
+  "action_items": [
+    "OPTIONAL/LOW: Increase bottom padding on Revenue.jsx root (pb-4 -> pb-24) to keep the last Daily History rows above the fixed bottom navigation on tall lists. Same likely applies to any other page with a scrollable list ending near the viewport bottom."
+  ],
+  "critical_code_review_comments": [
+    "Revenue.jsx L124: `dt.toLocaleDateString(undefined, {month:'short', timeZone:'UTC'})` now correctly passes timeZone UTC for the tile month — matches previous review comment fix. Good.",
+    "Revenue.jsx L133 uses `new Date().toISOString().slice(0,10)` for todayStr. Correct UTC comparison. OK.",
+    "Revenue.jsx root `pb-4` should be `pb-24` to clear the fixed BottomNav on mobile — see design_issues.",
+    "The row `active:scale-[0.99]` transition may cause the click point to move slightly at press-time; not a blocker but consider removing it for tighter tap targets on already-slim (42px) rows.",
+    "Icons/svg lucide (ChevronRight) at size 12 with color #8B9BB4 has good contrast; passes."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only run)", "frontend": "100% (all 10 review scenarios PASS)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (verified working)",
+  "seed_data_creation": "Not created by this agent — the review request mentions 6 backdated SELLs pre-seeded. Verified present via UI: Total Sells=15, Symbols=4, 7 distinct date rows (2026-07-02 today, 2026-07-01, 06-30, 06-29, 06-28, 06-27, 06-26).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "REVENUE Daily History rows are 42px on 420-wide viewport. Note the fixed bottom-nav overlap: when writing Playwright clicks against rows near list bottom, either (a) scroll to page bottom first, or (b) click near the top-left of the row (offset y=+10) instead of center, or (c) use JS .click() via ElementHandle. Direct URL navigation to /transactions?date=YYYY-MM-DD is unaffected. Verified seed dates and their profits: 07-02 today +$412.80 (9 sells, 3 coins), 07-01 +$42.35 BTC, 06-30 +$18.90 ETH, 06-29 -$6.42 SOL, 06-28 +$5.15 XRP, 06-27 +$24.80 BTC, 06-26 +$33.60 ETH. BTCUSDT symbol filter still shows 17 trades / +$443.39 profit.",
+  "rca of the issue": "No blocking bug found. The initially-observed 'loss day click doesn't apply date filter' turned out to be a Playwright artifact: after scroll_into_view_if_needed the row's bounding-box center for revenue-date-2026-06-29 (y=858) was underneath the fixed bottom-nav (nav-trade) so force-click hit the nav instead. Verified by (i) direct URL /transactions?date=2026-06-29 → correct 1 SELL SOL -$6.42 and chip 'MON, JUN 29, 2026', (ii) scrolling to page bottom then clicking top of the row → correct navigation and chip. Underlying UX consideration: Revenue.jsx wrapper only has pb-4 which is insufficient bottom padding relative to the fixed nav height — recommended fix pb-24."
+}
