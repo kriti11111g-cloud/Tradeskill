@@ -1,13 +1,13 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function PageHeader({ title, subtitle, right, showBack = true }) {
+export default function PageHeader({ title, subtitle, right, showBack = true, onBack }) {
   const nav = useNavigate();
   return (
     <div className="flex items-center gap-3 px-4 pt-5 pb-3" data-testid="page-header">
       {showBack && (
         <button
-          onClick={() => nav(-1)}
+          onClick={() => (onBack ? onBack() : nav(-1))}
           className="w-9 h-9 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
           data-testid="back-btn"
         >

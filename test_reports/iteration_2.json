@@ -1,0 +1,34 @@
+{
+  "summary": "E2E verification of Revenue → Transactions symbol drill-down feature. All 10 new backend pytest cases pass; all 11 review scenarios verified via Playwright. Clicking a By-Symbol row on /revenue navigates to /transactions?symbol=XXX; symbol chip with coin icon, X-clear, back button, deep-link and filter-pill narrowing all work; TradingPair pair-revenue banner renders correctly. No regressions found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_revenue_drilldown.py",
+    "/app/backend/tests/test_tgx_backend.py",
+    "/app/test_reports/pytest/pytest_drilldown.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Transactions.jsx already trims symbol via toUpperCase() on client and backend does symbol.upper() — consistent, good.",
+    "TradingPair.jsx is now ~1000 lines and growing — consider splitting into Position/Strategy/Events subcomponents to keep it maintainable (previous iteration flagged server.py; frontend is trending the same way).",
+    "Revenue.jsx uses inline arrow onClick with navigate() — fine; consider memoising by_symbol rows if list grows large.",
+    "PageHeader now supports onBack correctly and defaults to nav(-1) — good backward compatibility."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_revenue_drilldown.py (new test module for drill-down flow)"
+  ],
+  "success_rate": {"backend": "100% (10/10 new + 30/30 regression previously green)", "frontend": "100% (11/11 review scenarios)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 — verified.",
+  "seed_data_creation": "Admin already had SELL history for BTCUSDT/SOLUSDT/XRPUSDT (from previous session). Pytest fixture seeds an extra profitable BTCUSDT SELL to guarantee non-empty data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Drill-down feature verified end-to-end. Key data-testids: revenue-symbol-<SYM>, symbol-filter-active, clear-symbol-filter, back-btn (in PageHeader when showBack), tx-row-<id>, tx-list, empty-tx, filter-ALL/BUY/SELL, pair-today-profit, pair-cum-profit. Backend endpoints: GET /api/transactions?symbol=XXX (case-insensitive, uppercases via .upper()), GET /api/revenue/pair/{symbol}. Note: Playwright wait after page.goto to /transactions must wait for tx-list and add ~1-2s for the /transactions fetch to resolve before asserting row count; symbol-filter-active becomes visible before rows load.",
+  "rca of the issue": "N/A — feature works as specified. Initial false negative on deep-link (0 rows) during Playwright was due to insufficient wait after page.goto; retry with wait_for_selector on tx-list + 2.5s buffer confirmed 10 rows loaded, chip shows '10 trades · +$129.64 profit', BUY-pill=7 rows, SELL-pill=3 rows."
+}

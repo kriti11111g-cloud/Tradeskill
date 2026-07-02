@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime, shortSymbol } from "@/lib/format";
@@ -9,16 +11,67 @@ const filters = ["ALL", "BUY", "SELL"];
 export default function Transactions() {
   const [rows, setRows] = useState([]);
   const [f, setF] = useState("ALL");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const symbolFilter = (searchParams.get("symbol") || "").toUpperCase();
 
   useEffect(() => {
-    api.get("/transactions").then(({ data }) => setRows(data));
-  }, []);
+    const url = symbolFilter ? `/transactions?symbol=${symbolFilter}` : "/transactions";
+    api.get(url).then(({ data }) => setRows(data));
+  }, [symbolFilter]);
 
   const filtered = rows.filter((r) => (f === "ALL" ? true : r.side === f));
 
+  const clearSymbol = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("symbol");
+    setSearchParams(next);
+  };
+
+  const totalProfit = filtered
+    .filter((r) => r.side === "SELL")
+    .reduce((s, r) => s + (r.profit || 0), 0);
+
   return (
     <div className="pb-4">
-      <PageHeader title="Transactions" subtitle="Trade History" showBack={false} />
+      <PageHeader
+        title="Transactions"
+        subtitle={symbolFilter ? `${shortSymbol(symbolFilter)} · Trade History` : "Trade History"}
+        showBack={!!symbolFilter}
+        onBack={() => navigate("/revenue")}
+      />
+
+      {/* Symbol filter chip */}
+      {symbolFilter && (
+        <div className="px-4 mb-3" data-testid="symbol-filter-active">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs">
+              <CoinIcon symbol={symbolFilter} size={18} />
+              <span className="font-bold uppercase tracking-widest text-[#00F0FF]">
+                {shortSymbol(symbolFilter)}
+              </span>
+              <button
+                onClick={clearSymbol}
+                data-testid="clear-symbol-filter"
+                className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                aria-label="Clear symbol filter"
+              >
+                <X size={11} />
+              </button>
+            </div>
+            {rows.length > 0 && (
+              <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                <span className="text-white">{rows.length}</span> trades ·
+                <span className={totalProfit >= 0 ? "text-[#39FF14] ml-1" : "text-[#FF007A] ml-1"}>
+                  {totalProfit >= 0 ? "+" : ""}
+                  {fmtUSD(totalProfit)}
+                </span>{" "}
+                profit
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="px-4 flex gap-2 mb-3">
         {filters.map((x) => (
@@ -48,6 +101,7 @@ export default function Transactions() {
             <div
               key={t.id}
               className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/30 transition"
+              data-testid={`tx-row-${t.id}`}
             >
               <div className="flex items-center gap-3">
                 <div className="relative">

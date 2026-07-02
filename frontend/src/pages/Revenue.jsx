@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
+import CoinIcon from "@/components/CoinIcon";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function Revenue() {
   const [data, setData] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = () => api.get("/revenue/summary").then(({ data }) => setData(data));
@@ -114,29 +118,40 @@ export default function Revenue() {
       {data?.by_symbol?.length > 0 && (
         <div className="px-4 mt-4">
           <div className="font-display font-bold text-lg mb-3">By Symbol</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mb-2">
+            Tap a row to view its trade history
+          </div>
           <div className="space-y-2" data-testid="by-symbol-list">
             {data.by_symbol.map((s) => (
-              <div
+              <button
                 key={s.symbol}
-                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
+                onClick={() => navigate(`/transactions?symbol=${s.symbol}`)}
+                data-testid={`revenue-symbol-${s.symbol}`}
+                className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
               >
-                <div>
-                  <div className="font-display font-bold text-sm">
-                    {s.symbol.replace("USDT", "/USDT")}
-                  </div>
-                  <div className="text-[10px] text-[#8B9BB4] mt-0.5">
-                    {s.trades} sells
+                <div className="flex items-center gap-3">
+                  <CoinIcon symbol={s.symbol} size={36} />
+                  <div>
+                    <div className="font-display font-bold text-sm">
+                      {s.symbol.replace("USDT", "/USDT")}
+                    </div>
+                    <div className="text-[10px] text-[#8B9BB4] mt-0.5">
+                      {s.trades} sells
+                    </div>
                   </div>
                 </div>
-                <div
-                  className={`font-display font-bold tabular-nums text-sm ${
-                    s.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-                  }`}
-                >
-                  {s.profit >= 0 ? "+" : ""}
-                  {fmtUSD(s.profit)}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`font-display font-bold tabular-nums text-sm ${
+                      s.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                    }`}
+                  >
+                    {s.profit >= 0 ? "+" : ""}
+                    {fmtUSD(s.profit)}
+                  </div>
+                  <ChevronRight size={16} className="text-[#8B9BB4]" />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
