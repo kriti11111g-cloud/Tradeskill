@@ -291,17 +291,24 @@ export default function Transactions() {
                         }
                         valueClass="text-[#F0B90B]"
                       />
-                      <KV
-                        label="Order No."
-                        value={t.binance_order_id ? String(t.binance_order_id) : t.id.slice(0, 8) + "…" + t.id.slice(-4)}
-                        mono
-                        copyable
-                      />
-                      <KV label="Price (USDT)" value={`$${fmtNum(t.price, 6)}`} valueClass={t.side === "SELL" ? "text-[#FF007A]" : "text-[#39FF14]"} />
-                      {t.side === "SELL" && t.quantity > 0 && (
+                      <KV label="Order No." value={t.binance_order_id ? String(t.binance_order_id) : t.id.slice(0, 8) + "…" + t.id.slice(-4)} mono copyable />
+                      {t.side === "SELL" ? (
+                        <>
+                          <KV
+                            label="Buy Price (USDT)"
+                            value={t.quantity > 0 ? `$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}` : "—"}
+                            valueClass="text-[#39FF14]"
+                          />
+                          <KV
+                            label="Sell Price (USDT)"
+                            value={`$${fmtNum(t.price, 6)}`}
+                            valueClass="text-[#FF007A]"
+                          />
+                        </>
+                      ) : (
                         <KV
-                          label="Avg Buy Price (USDT)"
-                          value={`$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`}
+                          label="Buy Price (USDT)"
+                          value={`$${fmtNum(t.price, 6)}`}
                           valueClass="text-[#39FF14]"
                         />
                       )}
@@ -316,9 +323,9 @@ export default function Transactions() {
                           />
                           {t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
                             <KV
-                              label="ROI"
+                              label="Profit %"
                               value={`${profitPositive ? "+" : ""}${(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%`}
-                              valueClass={profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}
+                              valueClass={profitPositive ? "text-[#39FF14] font-black" : "text-[#FF007A] font-black"}
                             />
                           )}
                         </>
