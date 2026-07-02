@@ -143,12 +143,18 @@ export default function Revenue() {
                       <div className="text-[6px] uppercase tracking-wider text-[#8B9BB4] font-bold leading-none">
                         {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
-                      <div className="font-display font-black text-[11px] leading-none mt-px text-[#00F0FF] tabular-nums">
+                      <div
+                        className="font-mono font-extrabold text-[11px] leading-none mt-px text-[#00F0FF]"
+                        style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}
+                      >
                         {String(dt.getUTCDate()).padStart(2, "0")}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <div className="font-display font-bold text-[12px] flex items-center gap-1.5 leading-tight">
+                      <div
+                        className="font-bold text-[12px] flex items-center gap-1.5 leading-tight"
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
                         {label}
                         {isToday && (
                           <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40 leading-none">
