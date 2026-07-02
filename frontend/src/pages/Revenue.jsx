@@ -4,7 +4,7 @@ import { ChevronRight, Wallet } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 const BinanceLogo = ({ size = 14 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
@@ -12,6 +12,50 @@ const BinanceLogo = ({ size = 14 }) => (
     <path fill="#F0B90B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
   </svg>
 );
+
+function ProfitBarTooltip({ active, payload, trades }) {
+  if (!active || !payload || !payload.length) return null;
+  const d = payload[0].payload;
+  const meta = (trades || []).find((x) => x.date === d.date);
+  const positive = d.profit >= 0;
+  const dt = new Date(d.date + "T00:00:00Z");
+  const dateLabel = dt.toLocaleDateString(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return (
+    <div
+      className="bg-[#0F1524] border rounded-lg px-2.5 py-2 shadow-xl"
+      style={{
+        borderColor: positive ? "rgba(57,255,20,0.4)" : "rgba(255,0,122,0.4)",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+        {dateLabel}
+      </div>
+      <div
+        className={`font-mono font-black text-[14px] leading-none mt-1 ${positive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+      >
+        {positive ? "+" : ""}${(d.profit || 0).toFixed(2)}
+      </div>
+      {meta && (
+        <div className="text-[9px] text-[#8B9BB4] mt-1 leading-tight">
+          {meta.trades} sells · {meta.symbols.length} coin
+          {meta.symbols.length === 1 ? "" : "s"}
+        </div>
+      )}
+      {meta?.symbols?.length > 0 && (
+        <div className="text-[9px] text-white/80 mt-0.5 leading-tight truncate max-w-[160px]">
+          {meta.symbols.map((s) => s.replace("USDT", "")).join(" · ")}
+        </div>
+      )}
+      <div className="text-[8px] text-[#00F0FF] mt-1 leading-none">Tap bar to view trades ↗</div>
+    </div>
+  );
+}
 
 export default function Revenue() {
   const [data, setData] = useState(null);
@@ -139,7 +183,11 @@ export default function Revenue() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={110}>
-              <LineChart data={data.daily} margin={{ top: 4, right: 6, left: -18, bottom: 0 }}>
+              <BarChart
+                data={data.daily}
+                margin={{ top: 4, right: 6, left: -18, bottom: 0 }}
+                barCategoryGap="20%"
+              >
                 <CartesianGrid stroke="#ffffff08" vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -149,26 +197,23 @@ export default function Revenue() {
                   minTickGap={20}
                 />
                 <YAxis tick={{ fill: "#8B9BB4", fontSize: 8 }} width={30} />
+                <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
                 <Tooltip
-                  contentStyle={{
-                    background: "#0F1524",
-                    border: "1px solid rgba(0,240,255,0.3)",
-                    borderRadius: 8,
-                    color: "#fff",
-                    fontSize: 11,
-                    padding: "6px 8px",
-                  }}
-                  labelStyle={{ color: "#8B9BB4", fontSize: 10 }}
+                  cursor={{ fill: "#00F0FF0F" }}
+                  content={<ProfitBarTooltip trades={data.by_date} />}
                 />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="profit"
-                  stroke="#00F0FF"
-                  strokeWidth={1.5}
-                  dot={{ fill: "#00F0FF", r: 2 }}
-                  activeDot={{ r: 3 }}
-                />
-              </LineChart>
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={22}
+                  cursor="pointer"
+                  onClick={(entry) => entry?.date && navigate(`/transactions?date=${entry.date}`)}
+                >
+                  {data.daily.map((d) => (
+                    <Cell key={d.date} fill={d.profit >= 0 ? "#39FF14" : "#FF007A"} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
