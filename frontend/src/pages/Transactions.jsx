@@ -242,99 +242,79 @@ export default function Transactions() {
                 {/* Expanded details card */}
                 {isOpen && (
                   <div
-                    className="px-3 pb-3 pt-2 border-t border-white/10 bg-[#050914]/40"
+                    className="px-3 pb-3 pt-2.5 border-t border-white/10 bg-[#050914]/40"
                     data-testid={`tx-detail-${t.id}`}
                   >
-                    {/* Coin identity strip */}
-                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10">
-                      <CoinIcon symbol={t.symbol} size={36} />
-                      <div className="min-w-0">
-                        <div className="font-display font-bold text-[15px] leading-none">
-                          {shortSymbol(t.symbol)}/USDT
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span
-                            className="text-[8px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded leading-none"
-                            style={{
-                              background: `${sideColor}22`,
-                              border: `1px solid ${sideColor}66`,
-                              color: sideColor,
-                            }}
-                          >
-                            {t.side}
-                          </span>
-                          <span
-                            className="text-[8px] uppercase tracking-widest font-bold text-[#8B9BB4]"
-                            style={monoNum}
-                          >
-                            {(t.mode || "demo").toUpperCase()}
-                          </span>
+                    {/* Top strip: icon + pair + side pill (left) · date/time (right) */}
+                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/10">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CoinIcon symbol={t.symbol} size={32} />
+                        <div className="min-w-0">
+                          <div className="font-display font-bold text-[14px] leading-none">
+                            {shortSymbol(t.symbol)}/USDT
+                          </div>
+                          <div className="mt-1.5">
+                            <span
+                              className="text-[8px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded leading-none"
+                              style={{
+                                background: sideColor,
+                                color: t.side === "SELL" ? "#fff" : "#050914",
+                              }}
+                            >
+                              {t.side}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="ml-auto text-right shrink-0">
-                        {t.side === "SELL" ? (
-                          <div
-                            className={`font-mono font-extrabold text-[15px] leading-none ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
-                            style={monoNum}
-                          >
-                            {profitPositive ? "+" : ""}
-                            {fmtUSD(t.profit || 0)}
-                          </div>
-                        ) : (
-                          <div className="font-mono font-extrabold text-[15px] leading-none" style={monoNum}>
-                            {fmtUSD(t.amount)}
-                          </div>
-                        )}
-                        <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold mt-1">
-                          {t.side === "SELL" ? "Profit" : "Amount"}
+                      <div className="text-right shrink-0" style={monoNum}>
+                        <div className="text-[10px] text-[#8B9BB4] leading-none">
+                          {fmtDateUTC(t.created_at)}
+                        </div>
+                        <div className="text-[11px] font-mono font-bold text-white mt-1 leading-none">
+                          {fmtTimeUTC(t.created_at)} UTC
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3" style={monoNum}>
-                      <Row label="Date (UTC)" value={fmtDateUTC(t.created_at)} />
-                      <Row label="Time (UTC)" value={fmtTimeUTC(t.created_at)} />
-                      {t.side === "SELL" ? (
-                        <>
-                          <Row
-                            label="Avg Buy Price"
-                            value={
-                              t.quantity > 0
-                                ? `$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`
-                                : "—"
-                            }
-                            valueColor="#39FF14"
-                          />
-                          <Row
-                            label="Sell Price"
-                            value={`$${fmtNum(t.price, 6)}`}
-                            valueColor="#FF007A"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <Row label="Buy Price" value={`$${fmtNum(t.price, 6)}`} valueColor="#39FF14" />
-                          <Row label="Quantity" value={fmtNum(t.quantity, 8)} />
-                        </>
-                      )}
-                      <Row label="Amount" value={fmtUSD(t.amount)} />
-                      {t.side === "SELL" && <Row label="Quantity" value={fmtNum(t.quantity, 8)} />}
-                      {t.side === "SELL" && t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
-                        <Row
-                          label="ROI"
-                          value={`${(t.profit || 0) >= 0 ? "+" : ""}${(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%`}
-                          valueColor={(t.profit || 0) >= 0 ? "#39FF14" : "#FF007A"}
+                    {/* Label · Value list */}
+                    <div className="mt-2.5 space-y-2" style={monoNum}>
+                      <KV label="Exchange" value="Binance" valueClass="text-[#F0B90B]" />
+                      <KV
+                        label="Order No."
+                        value={t.binance_order_id ? String(t.binance_order_id) : t.id.slice(0, 8) + "…" + t.id.slice(-4)}
+                        mono
+                        copyable
+                      />
+                      <KV label="Price (USDT)" value={`$${fmtNum(t.price, 6)}`} valueClass={t.side === "SELL" ? "text-[#FF007A]" : "text-[#39FF14]"} />
+                      {t.side === "SELL" && t.quantity > 0 && (
+                        <KV
+                          label="Avg Buy Price (USDT)"
+                          value={`$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`}
+                          valueClass="text-[#39FF14]"
                         />
                       )}
-                      <Row label="Source" value={(t.source || "manual").toUpperCase()} full={t.side === "BUY"} />
-                      {t.binance_order_id && (
-                        <Row label="Order ID" value={String(t.binance_order_id)} full mono />
+                      <KV label={`Filled (${shortSymbol(t.symbol)})`} value={fmtNum(t.quantity, 8)} />
+                      <KV label="Amount (USDT)" value={fmtUSD(t.amount)} />
+                      {t.side === "SELL" && (
+                        <>
+                          <KV
+                            label="Profit (USDT)"
+                            value={`${profitPositive ? "+" : ""}${fmtUSD(t.profit || 0)}`}
+                            valueClass={profitPositive ? "text-[#39FF14] font-black" : "text-[#FF007A] font-black"}
+                          />
+                          {t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
+                            <KV
+                              label="ROI"
+                              value={`${profitPositive ? "+" : ""}${(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%`}
+                              valueClass={profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}
+                            />
+                          )}
+                        </>
                       )}
-                      {!t.binance_order_id && (
-                        <Row label="Order ID" value={t.id.slice(0, 8) + "…" + t.id.slice(-4)} full mono />
-                      )}
-                      {t.binance_status && <Row label="Status" value={t.binance_status} full />}
-                      <Row label="Timestamp" value={fmtFullUTC(t.created_at)} full mono />
+                      <KV label="Role" value="Taker" />
+                      <KV label="Mode" value={(t.mode || "demo").toUpperCase()} />
+                      <KV label="Source" value={(t.source || "manual").toUpperCase()} />
+                      {t.binance_status && <KV label="Status" value={t.binance_status} />}
                     </div>
                   </div>
                 )}
@@ -347,17 +327,43 @@ export default function Transactions() {
   );
 }
 
-function Row({ label, value, valueColor, full, mono }) {
+function KV({ label, value, valueClass, mono, copyable }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(String(value));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* ignore */
+    }
+  };
   return (
-    <div className={full ? "col-span-2" : ""}>
-      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold shrink-0">
         {label}
       </div>
-      <div
-        className={`text-[11px] font-bold mt-0.5 break-all leading-tight ${mono ? "font-mono" : ""}`}
-        style={{ color: valueColor || "#fff" }}
-      >
-        {value}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <div
+          className={`text-[12px] font-bold text-white text-right truncate ${mono ? "font-mono" : ""} ${valueClass || ""}`}
+        >
+          {value}
+        </div>
+        {copyable && (
+          <button
+            onClick={onCopy}
+            data-testid="copy-order-id"
+            className="w-5 h-5 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0"
+            aria-label="Copy"
+          >
+            {copied ? (
+              <span className="text-[8px] font-black text-[#39FF14]">✓</span>
+            ) : (
+              <span className="text-[9px] text-[#8B9BB4]">⧉</span>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
