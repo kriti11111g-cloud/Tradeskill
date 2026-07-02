@@ -137,19 +137,19 @@ export default function Revenue() {
                   key={d.date}
                   onClick={() => navigate(`/transactions?date=${d.date}`)}
                   data-testid={`revenue-date-${d.date}`}
-                  className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
+                  className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-xl py-2 px-3 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex flex-col items-center justify-center shrink-0">
-                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex flex-col items-center justify-center shrink-0">
+                      <div className="text-[7px] uppercase tracking-wider text-[#8B9BB4] font-bold leading-none">
                         {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
-                      <div className="font-display font-black text-base leading-none mt-0.5 text-[#00F0FF] tabular-nums">
+                      <div className="font-display font-black text-[13px] leading-none mt-0.5 text-[#00F0FF] tabular-nums">
                         {dt.getUTCDate()}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <div className="font-display font-bold text-sm flex items-center gap-2">
+                      <div className="font-display font-bold text-[13px] flex items-center gap-1.5 leading-tight">
                         {label}
                         {isToday && (
                           <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40">
@@ -162,16 +162,16 @@ export default function Revenue() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 pl-2">
+                  <div className="flex items-center gap-1.5 shrink-0 pl-2">
                     <div
-                      className={`font-display font-bold tabular-nums text-sm ${
+                      className={`font-display font-bold tabular-nums text-[13px] ${
                         d.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
                       }`}
                     >
                       {d.profit >= 0 ? "+" : ""}
                       {fmtUSD(d.profit)}
                     </div>
-                    <ChevronRight size={16} className="text-[#8B9BB4]" />
+                    <ChevronRight size={14} className="text-[#8B9BB4]" />
                   </div>
                 </button>
               );
