@@ -130,12 +130,17 @@ export default function Transactions() {
             )}
             {rows.length > 0 && (
               <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
-                <span className="text-white">{rows.length}</span> trades ·
-                <span className={totalProfit >= 0 ? "text-[#39FF14] ml-1" : "text-[#FF007A] ml-1"}>
-                  {totalProfit >= 0 ? "+" : ""}
-                  {fmtUSD(totalProfit)}
-                </span>{" "}
-                profit
+                <span className="text-white">{rows.length}</span> trades
+                {f === "SELL" && (
+                  <>
+                    {" "}·
+                    <span className={totalProfit >= 0 ? "text-[#39FF14] ml-1" : "text-[#FF007A] ml-1"}>
+                      {totalProfit >= 0 ? "+" : ""}
+                      {fmtUSD(totalProfit)}
+                    </span>{" "}
+                    profit
+                  </>
+                )}
               </div>
             )}
           </div>
