@@ -9,7 +9,7 @@ import CoinIcon from "@/components/CoinIcon";
 
 const actions = [
   { to: "/bind-api", icon: Key, label: "Bind API", color: "#00F0FF", testid: "action-bind" },
-  { to: "/transactions", icon: ArrowRightLeft, label: "Trades", color: "#FF007A", testid: "action-trades" },
+  { to: "/trades", icon: ArrowRightLeft, label: "Trades", color: "#FF007A", testid: "action-trades" },
   { to: "/revenue", icon: TrendingUp, label: "Revenue", color: "#39FF14", testid: "action-revenue" },
   { to: "/referral", icon: Users, label: "Referral", color: "#FFD700", testid: "action-referral" },
   { to: "/rewards", icon: Gift, label: "Rewards", color: "#00F0FF", testid: "action-rewards" },
