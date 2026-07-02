@@ -45,6 +45,9 @@ User asked to build an app similar to "HiTechBot" (crypto trading bot shown in r
 - ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
 - ✅ Binance WebSockets for zero-lag price on Market + TradingPair
 
+## Implemented (2026-07-02, drill-down)
+- ✅ **Revenue → Transactions drill-down**: Tap any symbol row on /revenue → opens /transactions?symbol=XXX filtered view. Dismissible chip with coin icon + X-clear + back-to-revenue. Deep-linkable URL. BUY/SELL filter pills further narrow within the symbol. Fully e2e tested (10/10 pytest + 11/11 Playwright).
+
 ## Implemented (2026-07-02, later)
 - ✅ **Revenue page overhaul** (HiTechBot-style): prominent Today's Profit + Cumulative Profit, auto-refresh 15s, "By Symbol" now shows sell counts, radial glow that flips red on drawdown
 - ✅ **Per-pair profit banner** on TradingPair page (Today's + Cumulative + sells count) — updates every 8s alongside bot state
