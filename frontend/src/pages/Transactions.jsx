@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime, shortSymbol } from "@/lib/format";
@@ -14,17 +14,23 @@ export default function Transactions() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const symbolFilter = (searchParams.get("symbol") || "").toUpperCase();
+  const dateFilter = searchParams.get("date") || "";
+  const hasFilter = !!(symbolFilter || dateFilter);
 
   useEffect(() => {
-    const url = symbolFilter ? `/transactions?symbol=${symbolFilter}` : "/transactions";
+    const params = new URLSearchParams();
+    if (symbolFilter) params.set("symbol", symbolFilter);
+    if (dateFilter) params.set("date", dateFilter);
+    const qs = params.toString();
+    const url = qs ? `/transactions?${qs}` : "/transactions";
     api.get(url).then(({ data }) => setRows(data));
-  }, [symbolFilter]);
+  }, [symbolFilter, dateFilter]);
 
   const filtered = rows.filter((r) => (f === "ALL" ? true : r.side === f));
 
-  const clearSymbol = () => {
+  const clearFilter = (key) => {
     const next = new URLSearchParams(searchParams);
-    next.delete("symbol");
+    next.delete(key);
     setSearchParams(next);
   };
 
@@ -32,33 +38,72 @@ export default function Transactions() {
     .filter((r) => r.side === "SELL")
     .reduce((s, r) => s + (r.profit || 0), 0);
 
+  const dateLabel = dateFilter
+    ? new Date(dateFilter + "T00:00:00Z").toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
   return (
     <div className="pb-4">
       <PageHeader
         title="Transactions"
-        subtitle={symbolFilter ? `${shortSymbol(symbolFilter)} · Trade History` : "Trade History"}
-        showBack={!!symbolFilter}
+        subtitle={
+          dateFilter
+            ? `${dateLabel} · Trade History`
+            : symbolFilter
+              ? `${shortSymbol(symbolFilter)} · Trade History`
+              : "Trade History"
+        }
+        showBack={hasFilter}
         onBack={() => navigate("/revenue")}
       />
 
-      {/* Symbol filter chip */}
-      {symbolFilter && (
-        <div className="px-4 mb-3" data-testid="symbol-filter-active">
+      {/* Filter chips */}
+      {hasFilter && (
+        <div className="px-4 mb-3" data-testid="filter-active">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs">
-              <CoinIcon symbol={symbolFilter} size={18} />
-              <span className="font-bold uppercase tracking-widest text-[#00F0FF]">
-                {shortSymbol(symbolFilter)}
-              </span>
-              <button
-                onClick={clearSymbol}
-                data-testid="clear-symbol-filter"
-                className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
-                aria-label="Clear symbol filter"
+            {symbolFilter && (
+              <div
+                className="flex items-center gap-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs"
+                data-testid="symbol-filter-active"
               >
-                <X size={11} />
-              </button>
-            </div>
+                <CoinIcon symbol={symbolFilter} size={18} />
+                <span className="font-bold uppercase tracking-widest text-[#00F0FF]">
+                  {shortSymbol(symbolFilter)}
+                </span>
+                <button
+                  onClick={() => clearFilter("symbol")}
+                  data-testid="clear-symbol-filter"
+                  className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                  aria-label="Clear symbol filter"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            )}
+            {dateFilter && (
+              <div
+                className="flex items-center gap-2 rounded-full border border-[#FFD700]/40 bg-[#FFD700]/10 pl-2.5 pr-1 py-1 text-xs"
+                data-testid="date-filter-active"
+              >
+                <Calendar size={12} className="text-[#FFD700]" />
+                <span className="font-bold uppercase tracking-widest text-[#FFD700]">
+                  {dateLabel}
+                </span>
+                <button
+                  onClick={() => clearFilter("date")}
+                  data-testid="clear-date-filter"
+                  className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                  aria-label="Clear date filter"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            )}
             {rows.length > 0 && (
               <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
                 <span className="text-white">{rows.length}</span> trades ·

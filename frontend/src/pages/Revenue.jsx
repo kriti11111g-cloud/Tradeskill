@@ -4,7 +4,6 @@ import { ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
-import CoinIcon from "@/components/CoinIcon";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function Revenue() {
@@ -115,44 +114,67 @@ export default function Revenue() {
         </div>
       )}
 
-      {data?.by_symbol?.length > 0 && (
+      {data?.by_date?.length > 0 && (
         <div className="px-4 mt-4">
-          <div className="font-display font-bold text-lg mb-3">By Symbol</div>
-          <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mb-2">
-            Tap a row to view its trade history
+          <div className="font-display font-bold text-lg mb-1">Daily History</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mb-3">
+            Tap a date to see the trades of that day
           </div>
-          <div className="space-y-2" data-testid="by-symbol-list">
-            {data.by_symbol.map((s) => (
-              <button
-                key={s.symbol}
-                onClick={() => navigate(`/transactions?symbol=${s.symbol}`)}
-                data-testid={`revenue-symbol-${s.symbol}`}
-                className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <CoinIcon symbol={s.symbol} size={36} />
-                  <div>
-                    <div className="font-display font-bold text-sm">
-                      {s.symbol.replace("USDT", "/USDT")}
+          <div className="space-y-2" data-testid="by-date-list">
+            {data.by_date.map((d) => {
+              const dt = new Date(d.date + "T00:00:00Z");
+              const label = dt.toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+              const todayStr = new Date().toISOString().slice(0, 10);
+              const isToday = d.date === todayStr;
+              return (
+                <button
+                  key={d.date}
+                  onClick={() => navigate(`/transactions?date=${d.date}`)}
+                  data-testid={`revenue-date-${d.date}`}
+                  className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex flex-col items-center justify-center shrink-0">
+                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                        {dt.toLocaleDateString(undefined, { month: "short" })}
+                      </div>
+                      <div className="font-display font-black text-base leading-none mt-0.5 text-[#00F0FF] tabular-nums">
+                        {dt.getUTCDate()}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-[#8B9BB4] mt-0.5">
-                      {s.trades} sells
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-sm flex items-center gap-2">
+                        {label}
+                        {isToday && (
+                          <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40">
+                            Today
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#8B9BB4] mt-0.5 truncate">
+                        {d.trades} sells · {d.symbols.length} coin{d.symbols.length === 1 ? "" : "s"}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`font-display font-bold tabular-nums text-sm ${
-                      s.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-                    }`}
-                  >
-                    {s.profit >= 0 ? "+" : ""}
-                    {fmtUSD(s.profit)}
+                  <div className="flex items-center gap-2 shrink-0 pl-2">
+                    <div
+                      className={`font-display font-bold tabular-nums text-sm ${
+                        d.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                      }`}
+                    >
+                      {d.profit >= 0 ? "+" : ""}
+                      {fmtUSD(d.profit)}
+                    </div>
+                    <ChevronRight size={16} className="text-[#8B9BB4]" />
                   </div>
-                  <ChevronRight size={16} className="text-[#8B9BB4]" />
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

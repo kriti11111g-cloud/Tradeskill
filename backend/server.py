@@ -1093,10 +1093,18 @@ async def bot_events(symbol: str, user: dict = Depends(get_current_user), limit:
 
 # ==== Transactions ====
 @api.get("/transactions")
-async def list_transactions(user: dict = Depends(get_current_user), limit: int = 50, symbol: Optional[str] = None):
+async def list_transactions(
+    user: dict = Depends(get_current_user),
+    limit: int = 50,
+    symbol: Optional[str] = None,
+    date: Optional[str] = None,
+):
     q = {"user_id": user["id"]}
     if symbol:
         q["symbol"] = symbol.upper()
+    if date:
+        # Match all created_at ISO strings that start with the given YYYY-MM-DD
+        q["created_at"] = {"$regex": f"^{date}"}
     rows = await db.transactions.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return rows
 
@@ -1112,6 +1120,8 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
     # last 14 days by date + today's total
     today_str = now_utc().strftime("%Y-%m-%d")
     by_day = {}
+    by_day_count = {}
+    by_day_symbols = {}
     today_profit = 0.0
     today_trades = 0
     for r in rows:
@@ -1120,11 +1130,24 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
         except Exception:
             continue
         by_day[d] = by_day.get(d, 0) + r.get("profit", 0.0)
+        by_day_count[d] = by_day_count.get(d, 0) + 1
+        by_day_symbols.setdefault(d, set()).add(r.get("symbol", ""))
         if d == today_str:
             today_profit += r.get("profit", 0.0)
             today_trades += 1
     days = sorted(by_day.keys())[-14:]
     daily = [{"date": d, "profit": round(by_day[d], 4)} for d in days]
+
+    # by_date list (most recent first) for the drill-down list
+    by_date = [
+        {
+            "date": d,
+            "profit": round(by_day[d], 4),
+            "trades": by_day_count[d],
+            "symbols": sorted(list(by_day_symbols[d])),
+        }
+        for d in sorted(by_day.keys(), reverse=True)
+    ]
 
     # by symbol
     by_sym = {}
@@ -1144,6 +1167,7 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
         "today_trades": today_trades,
         "total_trades": len(rows),
         "daily": daily,
+        "by_date": by_date,
         "by_symbol": by_symbol,
     }
 

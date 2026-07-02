@@ -1,0 +1,28 @@
+{
+  "summary": "E2E verification of Revenue 'By Date' (Daily History) drill-down replacing 'By Symbol'. 12/12 new backend pytest cases pass and 10/10 prior symbol drill-down regression tests still pass. All 15 review scenarios verified via Playwright at 420x900 mobile viewport. By Symbol section is gone, Daily History renders with correct testids, Today badge appears on UTC-today row, tap navigates to /transactions?date=YYYY-MM-DD, date chip/X/back all work, symbol+date filters coexist, empty-date empty state works, TradingPair pair-revenue banner unchanged.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_revenue_date_drilldown.py",
+    "/app/backend/tests/test_revenue_drilldown.py",
+    "/app/test_reports/pytest/pytest_date_drilldown.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Revenue.jsx uses `dt.getUTCDate()` for the day-number tile which is correct (matches UTC-based dates), but `dt.toLocaleDateString(undefined, {month:'short'})` for the month strip relies on the client's local TZ — mismatch is possible for dates near UTC midnight. Consider passing {timeZone: 'UTC'} to toLocaleDateString for consistency, else the tile could show 'JUL 2' on a UTC date whose local rendering is 'JUL 1'.",
+    "Transactions.jsx: `symbolFilter = (searchParams.get('symbol') || '').toUpperCase()` uppercases on client, but `dateFilter` is used as-is. Consider validating the format is `\\d{4}-\\d{2}-\\d{2}` to avoid arbitrary regex escaping downstream (backend uses `$regex: ^{date}` — a caret is safe, but a user could inject regex chars via the query string). Low priority since it is server-side self-scoped by user_id.",
+    "server.py revenue_summary: `by_date` and `daily` share the same aggregation dicts (by_day, by_day_count, by_day_symbols); if the list grows beyond 1000 SELL rows the .to_list(1000) cap will silently under-count. Consider paginating or removing the cap for aggregation queries.",
+    "server.py transactions filter: `$regex: '^' + date` is anchored but not escaped. If frontend ever sends a malformed date (containing '.', '*', etc.) it could impact query perf. Since the same query is user-scoped and small, this is a note, not a bug.",
+    "PageHeader onBack contract is stable (defaults to nav(-1), custom onBack overrides) — good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_revenue_date_drilldown.py (new)"
+  ],
+  "success_rate": {"backend": "100% (12/12 new + 10/10 regression)", "frontend": "100% (15/15 review scenarios verified)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 — verified.",
+  "seed_data_creation": "Pytest fixture seeds a profitable BTCUSDT SELL each module-run (position 0.001 @ $1) to guarantee non-empty by_date and BTCUSDT rows for today (2026-07-02). Admin has 21 total transactions (13 today, 8 prior).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Feature verified end-to-end. Key testids: by-date-list, revenue-date-<YYYY-MM-DD>, date-filter-active (gold chip), clear-date-filter, symbol-filter-active (cyan chip), clear-symbol-filter, back-btn, empty-tx, filter-ALL/BUY/SELL, pair-today-profit, pair-cum-profit. Backend contract: GET /api/revenue/summary now returns by_date [{date, profit, trades, symbols[]}] sorted desc; GET /api/transactions accepts optional ?date=YYYY-MM-DD (regex-anchored prefix match on created_at) and combines with ?symbol=. Today UTC = 2026-07-02 during this run. Env var REACT_APP_BACKEND_URL is only read by shell tests — remember to `export $(grep -v '^#' /app/frontend/.env | xargs)` when running pytest locally.",
+  "rca of the issue": "N/A — feature works per spec."
+}
