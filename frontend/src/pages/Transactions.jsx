@@ -278,7 +278,22 @@ export default function Transactions() {
 
                     {/* Label · Value list */}
                     <div className="mt-2.5 space-y-2" style={monoNum}>
-                      <KV label="Exchange" value="Binance" valueClass="text-[#F0B90B]" />
+                      <KV
+                        label="Exchange"
+                        value={
+                          <span className="inline-flex items-center gap-1.5">
+                            <svg viewBox="0 0 126.61 126.61" width="14" height="14" fill="#F0B90B" aria-hidden>
+                              <polygon points="38.73,53.2 63.3,28.63 87.89,53.22 102.19,38.92 63.3,0 24.43,38.9" />
+                              <rect x="3.83" y="53.28" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -40.5568 24.9364)" width="20.22" height="20.22" />
+                              <polygon points="38.73,73.41 63.3,97.98 87.88,73.4 102.19,87.69 63.3,126.61 24.42,87.72 24.4,87.7" />
+                              <rect x="102.55" y="53.28" transform="matrix(0.7071 -0.7071 0.7071 0.7071 8.5652 89.2586)" width="20.22" height="20.22" />
+                              <polygon points="77.81,63.29 63.3,48.78 52.57,59.51 51.34,60.74 48.81,63.28 48.79,63.29 48.81,63.32 63.3,77.83 77.81,63.32 77.82,63.29" />
+                            </svg>
+                            Binance
+                          </span>
+                        }
+                        valueClass="text-[#F0B90B]"
+                      />
                       <KV
                         label="Order No."
                         value={t.binance_order_id ? String(t.binance_order_id) : t.id.slice(0, 8) + "…" + t.id.slice(-4)}
