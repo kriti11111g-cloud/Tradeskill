@@ -196,21 +196,19 @@ export default function Transactions() {
                   className="w-full py-1.5 px-2.5 flex items-center justify-between text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="relative shrink-0">
-                      <CoinIcon symbol={t.symbol} size={28} />
-                      <div
-                        className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0F1524] flex items-center justify-center font-mono font-black text-[7px] leading-none"
-                        style={{
-                          background: sideColor,
-                          color: t.side === "SELL" ? "#fff" : "#050914",
-                        }}
-                      >
-                        {t.side === "SELL" ? "S" : "B"}
-                      </div>
-                    </div>
+                    <CoinIcon symbol={t.symbol} size={28} />
                     <div className="min-w-0">
-                      <div className="font-bold text-[12px] leading-tight flex items-center gap-1.5">
-                        {shortSymbol(t.symbol)}/USDT
+                      <div className="flex items-center gap-1.5 leading-tight">
+                        <span className="font-bold text-[12px]">{shortSymbol(t.symbol)}/USDT</span>
+                        <span
+                          className="text-[8px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded leading-none"
+                          style={{
+                            background: sideColor,
+                            color: t.side === "SELL" ? "#fff" : "#050914",
+                          }}
+                        >
+                          {t.side}
+                        </span>
                       </div>
                       <div
                         className="text-[9px] text-[#8B9BB4] mt-0.5 truncate leading-none"
@@ -296,10 +294,39 @@ export default function Transactions() {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3" style={monoNum}>
                       <Row label="Date (UTC)" value={fmtDateUTC(t.created_at)} />
                       <Row label="Time (UTC)" value={fmtTimeUTC(t.created_at)} />
-                      <Row label="Price" value={`$${fmtNum(t.price, 6)}`} />
-                      <Row label="Quantity" value={fmtNum(t.quantity, 8)} />
+                      {t.side === "SELL" ? (
+                        <>
+                          <Row
+                            label="Avg Buy Price"
+                            value={
+                              t.quantity > 0
+                                ? `$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`
+                                : "—"
+                            }
+                            valueColor="#39FF14"
+                          />
+                          <Row
+                            label="Sell Price"
+                            value={`$${fmtNum(t.price, 6)}`}
+                            valueColor="#FF007A"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Row label="Buy Price" value={`$${fmtNum(t.price, 6)}`} valueColor="#39FF14" />
+                          <Row label="Quantity" value={fmtNum(t.quantity, 8)} />
+                        </>
+                      )}
                       <Row label="Amount" value={fmtUSD(t.amount)} />
-                      <Row label="Source" value={(t.source || "manual").toUpperCase()} />
+                      {t.side === "SELL" && <Row label="Quantity" value={fmtNum(t.quantity, 8)} />}
+                      {t.side === "SELL" && t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
+                        <Row
+                          label="ROI"
+                          value={`${(t.profit || 0) >= 0 ? "+" : ""}${(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%`}
+                          valueColor={(t.profit || 0) >= 0 ? "#39FF14" : "#FF007A"}
+                        />
+                      )}
+                      <Row label="Source" value={(t.source || "manual").toUpperCase()} full={t.side === "BUY"} />
                       {t.binance_order_id && (
                         <Row label="Order ID" value={String(t.binance_order_id)} full mono />
                       )}
