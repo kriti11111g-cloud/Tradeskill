@@ -1,16 +1,46 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { X, Calendar } from "lucide-react";
+import { X, Calendar, ChevronDown } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
-import { fmtUSD, fmtNum, fmtTime, shortSymbol } from "@/lib/format";
+import { fmtUSD, fmtNum, shortSymbol } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
 
-const filters = ["ALL", "BUY", "SELL"];
+const filters = ["SELL", "BUY"];
+
+const monoNum = { fontVariantNumeric: "tabular-nums" };
+
+const fmtDateUTC = (iso) => {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+};
+
+const fmtTimeUTC = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+};
+
+const fmtFullUTC = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${fmtDateUTC(iso)} · ${hh}:${mm}:${ss} UTC`;
+};
 
 export default function Transactions() {
   const [rows, setRows] = useState([]);
-  const [f, setF] = useState("ALL");
+  const [f, setF] = useState("SELL");
+  const [openId, setOpenId] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const symbolFilter = (searchParams.get("symbol") || "").toUpperCase();
@@ -24,9 +54,10 @@ export default function Transactions() {
     const qs = params.toString();
     const url = qs ? `/transactions?${qs}` : "/transactions";
     api.get(url).then(({ data }) => setRows(data));
+    setOpenId(null);
   }, [symbolFilter, dateFilter]);
 
-  const filtered = rows.filter((r) => (f === "ALL" ? true : r.side === f));
+  const filtered = rows.filter((r) => r.side === f);
 
   const clearFilter = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -38,17 +69,10 @@ export default function Transactions() {
     .filter((r) => r.side === "SELL")
     .reduce((s, r) => s + (r.profit || 0), 0);
 
-  const dateLabel = dateFilter
-    ? new Date(dateFilter + "T00:00:00Z").toLocaleDateString(undefined, {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-        timeZone: "UTC",
-      })
-    : "";
+  const dateLabel = dateFilter ? fmtDateUTC(dateFilter + "T00:00:00Z") : "";
 
   return (
-    <div className="pb-4">
+    <div className="pb-24">
       <PageHeader
         title="Transactions"
         subtitle={
@@ -91,7 +115,7 @@ export default function Transactions() {
                 data-testid="date-filter-active"
               >
                 <Calendar size={12} className="text-[#FFD700]" />
-                <span className="font-bold uppercase tracking-widest text-[#FFD700]">
+                <span className="font-bold uppercase tracking-widest text-[#FFD700]" style={monoNum}>
                   {dateLabel}
                 </span>
                 <button
@@ -118,15 +142,21 @@ export default function Transactions() {
         </div>
       )}
 
+      {/* SELL / BUY toggle */}
       <div className="px-4 flex gap-2 mb-3">
         {filters.map((x) => (
           <button
             key={x}
-            onClick={() => setF(x)}
+            onClick={() => {
+              setF(x);
+              setOpenId(null);
+            }}
             data-testid={`filter-${x}`}
             className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               f === x
-                ? "bg-[#00F0FF] text-[#050914] border-[#00F0FF]"
+                ? x === "SELL"
+                  ? "bg-[#FF007A] text-white border-[#FF007A]"
+                  : "bg-[#39FF14] text-[#050914] border-[#39FF14]"
                 : "bg-white/5 text-[#8B9BB4] border-white/25 hover:bg-white/10"
             }`}
           >
@@ -138,54 +168,128 @@ export default function Transactions() {
       <div className="px-4">
         {filtered.length === 0 && (
           <div className="text-center text-sm text-[#8B9BB4] py-16" data-testid="empty-tx">
-            No transactions yet. Place a trade to get started.
+            No {f.toLowerCase()} transactions in this view.
           </div>
         )}
-        <div className="space-y-2" data-testid="tx-list">
-          {filtered.map((t) => (
-            <div
-              key={t.id}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between hover:border-[#00F0FF]/30 transition"
-              data-testid={`tx-row-${t.id}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <CoinIcon symbol={t.symbol} size={40} />
+        <div className="space-y-1.5" data-testid="tx-list">
+          {filtered.map((t) => {
+            const isOpen = openId === t.id;
+            const sideColor = t.side === "SELL" ? "#FF007A" : "#39FF14";
+            const profitPositive = (t.profit || 0) >= 0;
+            return (
+              <div
+                key={t.id}
+                data-testid={`tx-row-${t.id}`}
+                className={`bg-[#0F1524]/60 backdrop-blur-xl border rounded-lg overflow-hidden transition ${
+                  isOpen ? "border-[#00F0FF]/50" : "border-white/20 hover:border-[#00F0FF]/30"
+                }`}
+              >
+                {/* Slim clickable row */}
+                <button
+                  onClick={() => setOpenId(isOpen ? null : t.id)}
+                  data-testid={`tx-toggle-${t.id}`}
+                  className="w-full py-1.5 px-2.5 flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-mono font-extrabold text-[10px] leading-none"
+                      style={{
+                        background: `${sideColor}22`,
+                        border: `1px solid ${sideColor}66`,
+                        color: sideColor,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {t.side === "SELL" ? "SEL" : "BUY"}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-[12px] leading-tight flex items-center gap-1.5">
+                        {shortSymbol(t.symbol)}/USDT
+                      </div>
+                      <div
+                        className="text-[9px] text-[#8B9BB4] mt-0.5 truncate leading-none"
+                        style={monoNum}
+                      >
+                        {fmtTimeUTC(t.created_at)} UTC · {fmtNum(t.quantity, 6)} @ {fmtNum(t.price, 4)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 pl-2">
+                    {t.side === "SELL" ? (
+                      <div
+                        className={`font-bold text-[12px] ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                        style={monoNum}
+                      >
+                        {profitPositive ? "+" : ""}
+                        {fmtUSD(t.profit || 0)}
+                      </div>
+                    ) : (
+                      <div className="font-bold text-[12px]" style={monoNum}>
+                        {fmtUSD(t.amount)}
+                      </div>
+                    )}
+                    <ChevronDown
+                      size={12}
+                      className={`text-[#8B9BB4] transition ${isOpen ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                </button>
+
+                {/* Expanded details card */}
+                {isOpen && (
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[#050914] flex items-center justify-center font-display font-black text-[8px] ${
-                      t.side === "BUY"
-                        ? "bg-[#39FF14] text-[#050914]"
-                        : "bg-[#FF007A] text-white"
-                    }`}
+                    className="px-3 pb-3 pt-1 border-t border-white/10 bg-[#050914]/40"
+                    data-testid={`tx-detail-${t.id}`}
                   >
-                    {t.side === "BUY" ? "B" : "S"}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-display font-bold text-sm">
-                    {t.side} {shortSymbol(t.symbol)}
-                  </div>
-                  <div className="text-[10px] text-[#8B9BB4] tabular-nums mt-0.5">
-                    {fmtNum(t.quantity, 6)} @ {fmtNum(t.price, 4)} · {fmtTime(t.created_at)}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-display font-bold tabular-nums text-sm">{fmtUSD(t.amount)}</div>
-                {t.side === "SELL" && (
-                  <div
-                    className={`text-[11px] font-bold tabular-nums mt-0.5 ${
-                      t.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-                    }`}
-                  >
-                    {t.profit >= 0 ? "+" : ""}
-                    {fmtUSD(t.profit)}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-2" style={monoNum}>
+                      <Row label="Date" value={fmtDateUTC(t.created_at)} />
+                      <Row label="Time" value={`${fmtTimeUTC(t.created_at)} UTC`} />
+                      <Row label="Side" value={t.side} valueColor={sideColor} />
+                      <Row label="Mode" value={(t.mode || "demo").toUpperCase()} />
+                      <Row label="Symbol" value={t.symbol} />
+                      <Row label="Source" value={(t.source || "manual").toUpperCase()} />
+                      <Row label="Price" value={fmtNum(t.price, 6)} />
+                      <Row label="Quantity" value={fmtNum(t.quantity, 8)} />
+                      <Row label="Amount" value={fmtUSD(t.amount)} full />
+                      {t.side === "SELL" && (
+                        <Row
+                          label="Profit"
+                          value={`${profitPositive ? "+" : ""}${fmtUSD(t.profit || 0)}`}
+                          valueColor={profitPositive ? "#39FF14" : "#FF007A"}
+                          full
+                        />
+                      )}
+                      {t.binance_order_id && (
+                        <Row label="Order ID" value={String(t.binance_order_id)} full mono />
+                      )}
+                      {!t.binance_order_id && (
+                        <Row label="Order ID" value={t.id.slice(0, 8) + "…" + t.id.slice(-4)} full mono />
+                      )}
+                      {t.binance_status && <Row label="Status" value={t.binance_status} full />}
+                      <Row label="Timestamp" value={fmtFullUTC(t.created_at)} full mono />
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, valueColor, full, mono }) {
+  return (
+    <div className={full ? "col-span-2" : ""}>
+      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+        {label}
+      </div>
+      <div
+        className={`text-[11px] font-bold mt-0.5 break-all leading-tight ${mono ? "font-mono" : ""}`}
+        style={{ color: valueColor || "#fff" }}
+      >
+        {value}
       </div>
     </div>
   );
