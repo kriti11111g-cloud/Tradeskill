@@ -495,6 +495,30 @@ def _get_margin_rule(bot: dict, round_idx: int) -> dict:
 @api.get("/bots")
 async def list_bots(user: dict = Depends(get_current_user)):
     rows = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
+    # Aggregate buy/sell counts + cumulative profit per symbol from transactions
+    pipeline = [
+        {"$match": {"user_id": user["id"]}},
+        {"$group": {
+            "_id": {"symbol": "$symbol", "side": "$side"},
+            "count": {"$sum": 1},
+            "profit_sum": {"$sum": {"$ifNull": ["$profit", 0]}},
+        }},
+    ]
+    stats_by_sym: dict = {}
+    async for a in db.transactions.aggregate(pipeline):
+        sym = a["_id"]["symbol"]
+        side = a["_id"]["side"]
+        s = stats_by_sym.setdefault(sym, {"buy_count": 0, "sell_count": 0, "cumulative_profit": 0.0})
+        if side == "BUY":
+            s["buy_count"] = a["count"]
+        elif side == "SELL":
+            s["sell_count"] = a["count"]
+            s["cumulative_profit"] = round(a["profit_sum"], 4)
+    for r in rows:
+        s = stats_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0, "cumulative_profit": 0.0})
+        r["buy_count"] = s["buy_count"]
+        r["sell_count"] = s["sell_count"]
+        r["cumulative_profit"] = s["cumulative_profit"]
     return rows
 
 

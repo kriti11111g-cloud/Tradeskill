@@ -13,6 +13,7 @@ import BindAPI from "@/pages/BindAPI";
 import TradingPair from "@/pages/TradingPair";
 import Wallet from "@/pages/Wallet";
 import Transactions from "@/pages/Transactions";
+import Trades from "@/pages/Trades";
 import Revenue from "@/pages/Revenue";
 import Referral from "@/pages/Referral";
 import Rewards from "@/pages/Rewards";
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/pair/:symbol" element={<TradingPair />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/trades" element={<Trades />} />
             <Route path="/revenue" element={<Revenue />} />
             <Route path="/referral" element={<Referral />} />
             <Route path="/rewards" element={<Rewards />} />

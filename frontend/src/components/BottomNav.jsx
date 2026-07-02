@@ -4,7 +4,7 @@ import { Home, LineChart, ArrowRightLeft, Wallet, CircleUserRound } from "lucide
 const items = [
   { to: "/", icon: Home, label: "Home", testid: "nav-home" },
   { to: "/market", icon: LineChart, label: "Market", testid: "nav-market" },
-  { to: "/transactions", icon: ArrowRightLeft, label: "Trade", testid: "nav-trade" },
+  { to: "/trades", icon: ArrowRightLeft, label: "Trade", testid: "nav-trade" },
   { to: "/wallet", icon: Wallet, label: "Asset", testid: "nav-wallet" },
   { to: "/profile", icon: CircleUserRound, label: "Profile", testid: "nav-profile" },
 ];

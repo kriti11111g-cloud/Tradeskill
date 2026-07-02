@@ -1,0 +1,30 @@
+{
+  "summary": "Full backend + frontend verification of the new Trade tab (bot list). Backend: 14/14 pytest cases pass on new /app/backend/tests/test_bots_list.py — GET /api/bots returns 4 bot docs for admin, each with new aggregate fields (buy_count, sell_count, cumulative_profit) computed from db.transactions. BTC=8/9/443.39, DOGE=1/0/0, SOL=2/2/29.17, XRP=1/2/6.12 — all match the spec exactly. Requires auth (401 unauth), no _id leak. Regressions on /revenue/summary, /transactions?date=, /transactions?symbol=, /revenue/pair/BTCUSDT all green. Frontend (420x900): nav-trade routes to /trades (was /transactions). PageHeader shows 'Trade' subtitle '4 Bots · 0 Running'. Summary strip shows Active=0, Total=4, trades-total-profit=+$478.68 (sum of individual profits). bots-list contains 4 bot-card-<SYM> cards. Each card renders CoinIcon + pair name + trade_method + Idle/Off dot; Live Price populated from Binance WS (BTC $61,675.93, DOGE $0.0731); XRP/SOL WS took longer (— then price). Counter row bot-buys/sells/round/profit-<SYM> all correct: BTC 8/9/1/+$443.39, DOGE 1/0/1/+$0, SOL 2/2/—/+$29.17, XRP 1/2/—/+$6.12. Round shows '—' for SOL/XRP (no open position) and '1' for BTC/DOGE (open position + margin_call_count 0 +1). Tapping BTC card → /pair/BTCUSDT. add-bot-fab visible bottom-right, tap → /market. Auto-refresh /api/bots verified via network intercept — 3 calls in ~10s (initial + 8s poll + StrictMode double-mount). REGRESSIONS all pass: /revenue tap Jul 02 date row → /transactions?date=2026-07-02; /transactions?symbol=BTCUSDT shows symbol chip; /pair/BTCUSDT still has pair-revenue-banner with pair-buy-count(Buys 8), pair-sell-count(Sells 9), pair-cycle-count(Round 1). NOTE: Binance WebSocket (wss://stream.binance.com) returns HTTP 451 from Playwright container's IP — normal for this preview env; user's browser is unaffected. Bot cards gracefully show 'Connecting…' for floating P&L until WS delivers a tick.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_bots_list.py",
+    "/app/test_reports/pytest/pytest_bots_list.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L495-522: /api/bots aggregation is clean and single-round-trip. However, if a symbol has ONLY BUY txns (never SELL), the loop sets buy_count but never touches cumulative_profit — it defaults to 0.0 via setdefault, which is correct. Verified with DOGEUSDT (buys=1, sells=0, profit=0). No bug, but note that a SELL with negative profit is still accumulated (as expected).",
+    "server.py L516: round(..., 4) on cumulative_profit — good precision for USDT; matches other endpoints.",
+    "Trades.jsx L20: floating P&L is computed only when hasLivePrice; falls back to 'Connecting…' — good UX. Small nit: floatingPct could show '—' instead of 0% when no live price, but current fallback branch never reaches the % render so it's fine.",
+    "Trades.jsx L211: FAB uses style={{ right: 'calc(50vw - 220px + 20px)' }} — this positions relative to the 480px max-width shell. On viewports narrower than 480px the FAB may overlap the scrollbar/edge but not observed at 420px. Acceptable for the target mobile frame.",
+    "Trades.jsx L146: setInterval(load, 8000) — no visibility check (still polls when tab is hidden). Minor; matches other pages in the app.",
+    "Trades.jsx L145: load() returns a Promise but .finally() only sets loading=false on FIRST call successfully — later polls will not re-flip loading, which is correct. However the initial useEffect swallows errors (no toast) — silent failures could confuse users if API drops.",
+    "Trades.jsx L98-105: 'Round' value is (bot.margin_call_count || 0) + 1 when hasPosition — this reflects the CURRENT DCA round (1-indexed). Consistent with the /pair page's Round counter (pair-cycle-count also shows 1). Verified match.",
+    "BottomNav.jsx L7: 'Trade' tab now correctly points to /trades. Old /transactions is still routed and reachable via Revenue drill — no dead code. Good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bots_list.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14 pytest)", "frontend": "100% (all specified scenarios pass)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 — verified working",
+  "seed_data_creation": "None. Reused existing seed transactions.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Trades page at /trades lists bots via GET /api/bots (which now includes buy_count/sell_count/cumulative_profit aggregates). Data-testids: bots-list, no-bots, bot-card-<SYM>, bot-buys-<SYM>, bot-sells-<SYM>, bot-round-<SYM>, bot-profit-<SYM>, bot-floating-<SYM>, trades-total-profit, add-bot-fab. Auto-refresh every 8s (with StrictMode double-mount, expect ~2 initial + 1 per 8s poll). Binance WS is HTTP 451 blocked from the preview container's egress IP — this is a Playwright-only artifact; production users see live prices. Handle by waiting ≥4s on /trades for BTC/DOGE prices to populate or accepting '—' as a valid placeholder. Round counter shows '—' when position_qty==0, else (margin_call_count + 1). Regression testids still working on /pair/<SYM>: pair-revenue-banner, pair-buy-count, pair-sell-count, pair-cycle-count.",
+  "rca of the issue": "No bugs found. Implementation matches spec exactly."
+}
