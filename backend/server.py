@@ -1109,29 +1109,61 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
     ).to_list(1000)
     total = sum(r.get("profit", 0.0) for r in rows)
 
-    # last 7 days by date
+    # last 14 days by date + today's total
+    today_str = now_utc().strftime("%Y-%m-%d")
     by_day = {}
+    today_profit = 0.0
+    today_trades = 0
     for r in rows:
         try:
             d = r["created_at"][:10]
         except Exception:
             continue
         by_day[d] = by_day.get(d, 0) + r.get("profit", 0.0)
+        if d == today_str:
+            today_profit += r.get("profit", 0.0)
+            today_trades += 1
     days = sorted(by_day.keys())[-14:]
     daily = [{"date": d, "profit": round(by_day[d], 4)} for d in days]
 
     # by symbol
     by_sym = {}
+    by_sym_count = {}
     for r in rows:
         s = r.get("symbol", "N/A")
         by_sym[s] = by_sym.get(s, 0) + r.get("profit", 0.0)
-    by_symbol = [{"symbol": k, "profit": round(v, 4)} for k, v in by_sym.items()]
+        by_sym_count[s] = by_sym_count.get(s, 0) + 1
+    by_symbol = [
+        {"symbol": k, "profit": round(v, 4), "trades": by_sym_count[k]}
+        for k, v in sorted(by_sym.items(), key=lambda kv: -kv[1])
+    ]
 
     return {
         "total_profit": round(total, 4),
+        "today_profit": round(today_profit, 4),
+        "today_trades": today_trades,
         "total_trades": len(rows),
         "daily": daily,
         "by_symbol": by_symbol,
+    }
+
+
+@api.get("/revenue/pair/{symbol}")
+async def revenue_pair(symbol: str, user: dict = Depends(get_current_user)):
+    """Cumulative profit + trade count for a single symbol (used on TradingPair page)."""
+    symbol = symbol.upper()
+    rows = await db.transactions.find(
+        {"user_id": user["id"], "symbol": symbol, "side": "SELL"},
+        {"_id": 0, "profit": 1, "created_at": 1},
+    ).to_list(1000)
+    total = sum(r.get("profit", 0.0) for r in rows)
+    today_str = now_utc().strftime("%Y-%m-%d")
+    today = sum(r.get("profit", 0.0) for r in rows if (r.get("created_at") or "")[:10] == today_str)
+    return {
+        "symbol": symbol,
+        "cumulative_profit": round(total, 4),
+        "today_profit": round(today, 4),
+        "sell_count": len(rows),
     }
 
 

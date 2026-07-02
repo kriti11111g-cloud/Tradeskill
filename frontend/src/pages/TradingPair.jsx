@@ -33,6 +33,7 @@ export default function TradingPair() {
   const [posEditOpen, setPosEditOpen] = useState(false);
   const [posEdit, setPosEdit] = useState({ position_qty: "", avg_price: "", margin_call_count: "" });
   const [live, setLive] = useState(null);
+  const [pairRev, setPairRev] = useState(null);
 
   // ★ Real-time price via Binance's OFFICIAL public WebSocket — exactly the price
   // shown on binance.com. Sub-second updates; no discrepancy vs the exchange.
@@ -41,16 +42,18 @@ export default function TradingPair() {
   const change24 = stream.price > 0 ? stream.change : (stats ? parseFloat(stats.priceChangePercent) : 0);
 
   const loadAll = async () => {
-    const [b, s, bd, ev] = await Promise.all([
+    const [b, s, bd, ev, pr] = await Promise.all([
       api.get(`/bots/${sym}`).then((r) => r.data),
       api.get(`/market/stats/${sym}`).then((r) => r.data).catch(() => null),
       api.get(`/binance/bind`).then((r) => r.data).catch(() => null),
       api.get(`/bots/${sym}/events`).then((r) => r.data).catch(() => []),
+      api.get(`/revenue/pair/${sym}`).then((r) => r.data).catch(() => null),
     ]);
     setBot(b);
     setStats(s);
     setBind(bd);
     setEvents(ev);
+    setPairRev(pr);
     setBuyAmt(b.first_buy_amount);
     // If real/testnet, fetch live Binance balances
     if (bd?.mode === "real" || bd?.mode === "testnet") {
@@ -72,9 +75,11 @@ export default function TradingPair() {
       Promise.all([
         api.get(`/bots/${sym}`).then((r) => r.data).catch(() => null),
         api.get(`/bots/${sym}/events`).then((r) => r.data).catch(() => []),
-      ]).then(([b, ev]) => {
+        api.get(`/revenue/pair/${sym}`).then((r) => r.data).catch(() => null),
+      ]).then(([b, ev, pr]) => {
         if (b) setBot(b);
         setEvents(ev);
+        if (pr) setPairRev(pr);
       });
     }, 8000);
     return () => {
@@ -391,6 +396,47 @@ export default function TradingPair() {
           </>
         );
       })()}
+
+      {/* Pair-level Profit banner (matches HiTechBot layout) */}
+      <div className="px-4 mt-3">
+        <div
+          className="rounded-2xl border border-white/25 p-4 flex items-stretch gap-3 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl"
+          data-testid="pair-revenue-banner"
+        >
+          <div className="flex-1">
+            <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
+              Today&apos;s Profit
+            </div>
+            <div
+              className={`font-display font-black text-2xl tabular-nums mt-1 ${
+                (pairRev?.today_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+              }`}
+              data-testid="pair-today-profit"
+            >
+              {(pairRev?.today_profit || 0) >= 0 ? "+" : ""}
+              {fmtNum(pairRev?.today_profit || 0, 4)}
+            </div>
+          </div>
+          <div className="w-px bg-white/15" />
+          <div className="flex-1">
+            <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
+              Cumulative Profit
+            </div>
+            <div
+              className={`font-display font-black text-2xl tabular-nums mt-1 ${
+                (pairRev?.cumulative_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+              }`}
+              data-testid="pair-cum-profit"
+            >
+              {(pairRev?.cumulative_profit || 0) >= 0 ? "+" : ""}
+              {fmtNum(pairRev?.cumulative_profit || 0, 4)}
+            </div>
+            <div className="text-[9px] text-[#8B9BB4] mt-0.5">
+              {pairRev?.sell_count || 0} sells
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Position Stats grid */}
       <div className="px-4 mt-3">

@@ -45,6 +45,11 @@ User asked to build an app similar to "HiTechBot" (crypto trading bot shown in r
 - ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
 - ✅ Binance WebSockets for zero-lag price on Market + TradingPair
 
+## Implemented (2026-07-02, later)
+- ✅ **Revenue page overhaul** (HiTechBot-style): prominent Today's Profit + Cumulative Profit, auto-refresh 15s, "By Symbol" now shows sell counts, radial glow that flips red on drawdown
+- ✅ **Per-pair profit banner** on TradingPair page (Today's + Cumulative + sells count) — updates every 8s alongside bot state
+- ✅ New endpoint `/api/revenue/pair/{symbol}` returning `{cumulative_profit, today_profit, sell_count}`
+
 ## Implemented (2026-07-01, later)
 - ✅ **News**: live crypto feed from Cointelegraph RSS (30 items, images, external links)
 - ✅ **Referral commissions**: auto-credit referrer 10% of every profitable SELL (bot + manual) as claimable reward
