@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Wallet } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
+const BinanceLogo = ({ size = 14 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
+    <path fill="#F0B90B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
+    <path fill="#F0B90B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
+  </svg>
+);
+
 export default function Revenue() {
   const [data, setData] = useState(null);
+  const [wallet, setWallet] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = () => api.get("/revenue/summary").then(({ data }) => setData(data));
+    const load = () => {
+      api.get("/revenue/summary").then(({ data }) => setData(data));
+      api.get("/wallet/spot").then(({ data }) => setWallet(data)).catch(() => setWallet(null));
+    };
     load();
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
@@ -24,8 +35,53 @@ export default function Revenue() {
     <div className="pb-24">
       <PageHeader title="Revenue" subtitle="Profit & Loss · Auto-refresh 15s" />
 
-      {/* HERO: Today + Cumulative side-by-side (HiTechBot style) */}
+      {/* CARD 1: Wallet Balance (Spot) */}
       <div className="px-4">
+        <div
+          className="rounded-3xl border border-[#F0B90B]/30 p-5 bg-gradient-to-br from-[#1A1500]/80 to-[#050914]/80 backdrop-blur-xl relative overflow-hidden"
+          data-testid="wallet-balance-card"
+        >
+          <div
+            className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-25"
+            style={{ background: "radial-gradient(circle, #F0B90B 0%, transparent 70%)" }}
+          />
+          <div className="relative flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#F0B90B]/15 border border-[#F0B90B]/40 flex items-center justify-center shrink-0">
+              <Wallet size={20} className="text-[#F0B90B]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <BinanceLogo size={12} />
+                <div className="text-[9px] uppercase tracking-[0.25em] text-[#F0B90B] font-bold">
+                  Binance Spot Wallet
+                </div>
+                {wallet?.connected ? (
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40 leading-none">
+                    Live · {wallet.mode?.toUpperCase()}
+                  </span>
+                ) : (
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-white/5 text-[#8B9BB4] border border-white/20 leading-none">
+                    Demo
+                  </span>
+                )}
+              </div>
+              <div
+                className="font-mono font-black text-[26px] mt-1 leading-none text-white"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+                data-testid="wallet-usdt-balance"
+              >
+                {fmtUSD(wallet?.usdt_balance || 0)}
+              </div>
+              <div className="text-[9px] text-[#8B9BB4] mt-1">
+                Available USDT · {wallet?.connected ? "Fetched from Binance API" : "Bind API keys for live balance"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CARD 2: Today + Cumulative Profit */}
+      <div className="px-4 mt-3">
         <div className="rounded-3xl border border-white/25 p-6 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl relative overflow-hidden">
           <div
             className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-30"

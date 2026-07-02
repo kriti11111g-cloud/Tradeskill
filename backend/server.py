@@ -1257,6 +1257,33 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
     }
 
 
+@api.get("/wallet/spot")
+async def wallet_spot(user: dict = Depends(get_current_user)):
+    """Returns the user's spot USDT balance. If Binance is bound (real or testnet)
+    and reachable, returns the live Binance USDT free balance. Otherwise falls back
+    to the demo wallet balance."""
+    result = {
+        "mode": "demo",
+        "connected": False,
+        "usdt_balance": float(user.get("wallet_usdt", 0.0)),
+    }
+    client, mode = await get_user_binance(user["id"])
+    if not client:
+        return result
+    try:
+        data = await run_in_threadpool(client.get_account)
+        usdt = 0.0
+        for b in data.get("balances", []):
+            if b.get("asset") == "USDT":
+                usdt = float(b.get("free", 0)) + float(b.get("locked", 0))
+                break
+        result.update({"mode": mode, "connected": True, "usdt_balance": round(usdt, 4)})
+    except Exception:
+        # Binance unreachable (geo/rate). Keep mode metadata so the client can show it.
+        result.update({"mode": mode, "connected": False})
+    return result
+
+
 # ==== Referral ====
 @api.get("/referral")
 async def referral(user: dict = Depends(get_current_user)):

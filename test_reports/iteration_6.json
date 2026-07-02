@@ -1,0 +1,29 @@
+{
+  "summary": "Full backend + frontend verification of the new Binance Spot Wallet card on /revenue and its backing endpoint GET /api/wallet/spot. Backend: 9/9 pytest cases pass — admin (no bind) returns 200 with {mode:'demo', connected:false, usdt_balance:10127.4747...} matching /wallet/summary.wallet_usdt to within 1e-9; requires auth (401 unauth); never 5xx; regressions on /revenue/summary and /transactions (with and without date) all healthy. Frontend (420x900): wallet-balance-card renders ABOVE profit card (walletTop=107.5, profitTop=247.5) with the exact spec — amber border rgba(240,185,11,0.3), amber gradient background, lucide Wallet icon in an amber tile, inline Binance yellow diamond SVG (viewBox 0 0 2500 2500), heading 'BINANCE SPOT WALLET', DEMO chip (grey), USDT balance $10,127.47 in mono/tabular-nums, hint 'Available USDT · Bind API keys for live balance'. Profit card (Today's +$412.80 · Cumulative +$531.18) still below, Daily Profit recharts chart renders, Daily History list (by-date-list) present. 15s polling verified via network intercept: 2 initial /wallet/spot calls (StrictMode double-mount) + 1 additional call at ~15s → 3 total after 16s wait. All regressions pass: /transactions?date=2026-07-02 → 9 SELL rows default, 4 BUY on filter switch, date chip + clear button visible; /pair/BTCUSDT loads; /transactions?symbol=BTCUSDT shows symbol chip + clear.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_wallet_spot.py",
+    "/app/test_reports/pytest/pytest_wallet_spot.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py L1260-1284 /api/wallet/spot: clean fallback design — never 5xx, returns mode metadata even when Binance client raises (geo/rate). Good defensive pattern. Consider logging the exception once (currently silently swallowed) so ops can distinguish geo-block from real credential errors.",
+    "server.py L1278: usdt = free + locked — this differs from many exchanges' 'available' concept. Since the frontend labels it 'Available USDT', consider using only 'free' or updating the label to 'Total USDT'. Currently doesn't matter for demo path.",
+    "Revenue.jsx L21-29: /revenue/summary and /wallet/spot both refresh on the same 15s interval. Fine for now but if one is slower it could delay the other; acceptable at current cadence.",
+    "Revenue.jsx L24: setWallet(null) on catch means the card will show $0.00 (fmtUSD(0)) and 'Bind API keys for live balance' if the network call ever fails transiently. Could keep the previous wallet value for smoother UX (setWallet(prev => prev) or omit setWallet(null)).",
+    "Revenue.jsx L73: fmtUSD(wallet?.usdt_balance || 0) — using || means an actual 0 balance is displayed identically to 'not yet loaded'. Consider wallet?.usdt_balance ?? 0 to allow 0 balance but distinguish loading state (e.g., '—' when wallet is null).",
+    "Revenue.jsx L58-66: 'Live · REAL' vs 'Live · TESTNET' chip logic looks correct; only exercisable manually because Binance is geo-blocked in this preview.",
+    "Backend usdt rounding to 4 decimals is applied only in the live path (L1280) but not in demo fallback (L1268) — demo returns full float precision like 10127.474751425227. Not a bug (frontend formats), but inconsistent."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_wallet_spot.py (new)"
+  ],
+  "success_rate": {"backend": "100% (9/9 pytest)", "frontend": "100% (all 14 review scenarios pass)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 — verified working",
+  "seed_data_creation": "None. Reused existing seed. Admin wallet_usdt is $10,127.47 (dynamic).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "GET /api/wallet/spot returns {mode:'demo'|'real'|'testnet', connected:bool, usdt_balance:float}. Demo fallback triggers on missing bind OR any Binance client exception (geo-block in preview env means real/testnet paths cannot be tested end-to-end here). Frontend polls at 15s alongside /revenue/summary. Data-testids: wallet-balance-card, wallet-usdt-balance. Card is styled with amber #F0B90B (border rgba(240,185,11,0.3), gradient rgba(26,21,0,0.8)→rgba(5,9,20,0.8)) and clearly visually distinct from the cyan/green profit card below. Under React StrictMode dev, expect the initial /wallet/spot call count to be 2 (double-mount), so verify polling via delta rather than absolute count.",
+  "rca of the issue": "No bugs found. Implementation matches spec exactly."
+}
