@@ -514,11 +514,28 @@ async def list_bots(user: dict = Depends(get_current_user)):
         elif side == "SELL":
             s["sell_count"] = a["count"]
             s["cumulative_profit"] = round(a["profit_sum"], 4)
+
+    # First + last transaction date per symbol (for date range display)
+    range_pipeline = [
+        {"$match": {"user_id": user["id"]}},
+        {"$group": {
+            "_id": "$symbol",
+            "first_at": {"$min": "$created_at"},
+            "last_at": {"$max": "$created_at"},
+        }},
+    ]
+    range_by_sym: dict = {}
+    async for a in db.transactions.aggregate(range_pipeline):
+        range_by_sym[a["_id"]] = {"first_at": a["first_at"], "last_at": a["last_at"]}
+
     for r in rows:
         s = stats_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0, "cumulative_profit": 0.0})
         r["buy_count"] = s["buy_count"]
         r["sell_count"] = s["sell_count"]
         r["cumulative_profit"] = s["cumulative_profit"]
+        rng = range_by_sym.get(r["symbol"], {})
+        r["first_trade_at"] = rng.get("first_at")
+        r["last_trade_at"] = rng.get("last_at")
     return rows
 
 

@@ -7,6 +7,15 @@ import { fmtNum, fmtUSD, shortSymbol } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
 import useBinanceStream from "@/hooks/useBinanceStream";
 
+const fmtDateShortUTC = (iso) => {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  });
+};
+
 function BotCard({ bot }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
@@ -93,41 +102,43 @@ function BotCard({ bot }) {
         </div>
       </div>
 
-      {/* Bottom counter row (HiTechBot style) */}
-      <div className="mt-2 pt-2 border-t border-white/10 grid grid-cols-4 gap-1.5">
-        <Counter label="Buys" value={bot.buy_count || 0} color="#39FF14" testid={`bot-buys-${bot.symbol}`} />
-        <Counter label="Sells" value={bot.sell_count || 0} color="#FF007A" testid={`bot-sells-${bot.symbol}`} />
-        <Counter
-          label="Round"
-          value={hasPosition ? (bot.margin_call_count || 0) + 1 : "—"}
-          color="#00F0FF"
-          testid={`bot-round-${bot.symbol}`}
-        />
-        <Counter
-          label="Profit"
-          value={`${cumProfit >= 0 ? "+" : ""}$${fmtNum(cumProfit, 2)}`}
-          color={cumProfit >= 0 ? "#39FF14" : "#FF007A"}
-          small
-          testid={`bot-profit-${bot.symbol}`}
-        />
+      {/* Merged Buy/Sell/Profit strip with date range */}
+      <div className="mt-2 pt-2 border-t border-white/10">
+        {(bot.first_trade_at || bot.last_trade_at) && (
+          <div
+            className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold mb-1"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+            data-testid={`bot-date-range-${bot.symbol}`}
+          >
+            {fmtDateShortUTC(bot.first_trade_at)}
+            {bot.first_trade_at !== bot.last_trade_at && (
+              <> → {fmtDateShortUTC(bot.last_trade_at)}</>
+            )}
+            {(bot.margin_call_count > 0 || hasPosition) && (
+              <span className="ml-2 text-[#00F0FF]">· Round {(bot.margin_call_count || 0) + (hasPosition ? 1 : 0)}</span>
+            )}
+          </div>
+        )}
+        <div
+          className="flex items-center gap-2 text-[11px] font-mono"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          <span className="text-[#39FF14] font-bold" data-testid={`bot-buys-${bot.symbol}`}>
+            {bot.buy_count || 0}<span className="text-[8px] uppercase tracking-widest text-[#8B9BB4] ml-1">Buys</span>
+          </span>
+          <span className="text-white/20">·</span>
+          <span className="text-[#FF007A] font-bold" data-testid={`bot-sells-${bot.symbol}`}>
+            {bot.sell_count || 0}<span className="text-[8px] uppercase tracking-widest text-[#8B9BB4] ml-1">Sells</span>
+          </span>
+          <span
+            className={`ml-auto font-extrabold ${cumProfit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+            data-testid={`bot-profit-${bot.symbol}`}
+          >
+            {cumProfit >= 0 ? "+" : ""}${fmtNum(cumProfit, 2)}
+          </span>
+        </div>
       </div>
     </button>
-  );
-}
-
-function Counter({ label, value, color, small, testid }) {
-  return (
-    <div className="text-center" data-testid={testid}>
-      <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
-        {label}
-      </div>
-      <div
-        className={`font-mono font-extrabold tabular-nums mt-0.5 leading-none ${small ? "text-[10px]" : "text-[12px]"}`}
-        style={{ color }}
-      >
-        {value}
-      </div>
-    </div>
   );
 }
 
