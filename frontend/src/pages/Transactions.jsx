@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { fmtUSD, fmtNum, shortSymbol } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
 
-const filters = ["SELL", "BUY"];
+const filters = ["ALL", "SELL", "BUY"];
 
 const monoNum = { fontVariantNumeric: "tabular-nums" };
 
@@ -39,7 +39,7 @@ const fmtFullUTC = (iso) => {
 
 export default function Transactions() {
   const [rows, setRows] = useState([]);
-  const [f, setF] = useState("SELL");
+  const [f, setF] = useState("ALL");
   const [openId, setOpenId] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ export default function Transactions() {
     setOpenId(null);
   }, [symbolFilter, dateFilter]);
 
-  const filtered = rows.filter((r) => r.side === f);
+  const filtered = rows.filter((r) => (f === "ALL" ? true : r.side === f));
 
   const clearFilter = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -74,13 +74,13 @@ export default function Transactions() {
   return (
     <div className="pb-24">
       <PageHeader
-        title="Transactions"
+        title="Trade History"
         subtitle={
           dateFilter
-            ? `${dateLabel} · Trade History`
+            ? `${dateLabel} · Every Buy & Sell`
             : symbolFilter
-              ? `${shortSymbol(symbolFilter)} · Trade History`
-              : "Trade History"
+              ? `${shortSymbol(symbolFilter)} · Every Buy & Sell`
+              : "Every Buy & Sell · Latest First"
         }
         showBack={hasFilter}
         onBack={() => navigate("/revenue")}
@@ -131,7 +131,7 @@ export default function Transactions() {
             {rows.length > 0 && (
               <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
                 <span className="text-white">{rows.length}</span> trades
-                {f === "SELL" && (
+                {(f === "SELL" || f === "ALL") && (
                   <>
                     {" "}·
                     <span className={totalProfit >= 0 ? "text-[#39FF14] ml-1" : "text-[#FF007A] ml-1"}>
@@ -161,7 +161,9 @@ export default function Transactions() {
               f === x
                 ? x === "SELL"
                   ? "bg-[#FF007A] text-white border-[#FF007A]"
-                  : "bg-[#39FF14] text-[#050914] border-[#39FF14]"
+                  : x === "BUY"
+                    ? "bg-[#39FF14] text-[#050914] border-[#39FF14]"
+                    : "bg-[#00F0FF] text-[#050914] border-[#00F0FF]"
                 : "bg-white/5 text-[#8B9BB4] border-white/25 hover:bg-white/10"
             }`}
           >
@@ -173,7 +175,9 @@ export default function Transactions() {
       <div className="px-4">
         {filtered.length === 0 && (
           <div className="text-center text-sm text-[#8B9BB4] py-16" data-testid="empty-tx">
-            No {f.toLowerCase()} transactions in this view.
+            {f === "ALL"
+              ? "No transactions in this view."
+              : `No ${f.toLowerCase()} transactions in this view.`}
           </div>
         )}
         <div className="space-y-1.5" data-testid="tx-list">
@@ -214,6 +218,9 @@ export default function Transactions() {
                         className="text-[9px] text-[#8B9BB4] mt-0.5 truncate leading-none"
                         style={monoNum}
                       >
+                        {!dateFilter && (
+                          <span className="text-white/70">{fmtDateUTC(t.created_at)} · </span>
+                        )}
                         {fmtTimeUTC(t.created_at)} UTC · {fmtNum(t.quantity, 6)} · ${fmtNum(t.price, 4)}
                       </div>
                     </div>
