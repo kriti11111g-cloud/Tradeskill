@@ -237,9 +237,7 @@ export default function Transactions() {
                   </div>
                   {/* Price row */}
                   <div className="flex items-baseline gap-1.5 mt-1" style={monoNum}>
-                    <span
-                      className={`font-mono font-extrabold text-[15px] leading-none ${isSell ? "text-[#FF007A]" : "text-[#39FF14]"}`}
-                    >
+                    <span className="font-mono font-extrabold text-[15px] leading-none text-white">
                       {fmtNum(t.price, t.price < 1 ? 4 : 2)}
                     </span>
                     {isSell && (
