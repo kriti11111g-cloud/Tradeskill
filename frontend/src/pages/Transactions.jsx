@@ -196,16 +196,17 @@ export default function Transactions() {
                   className="w-full py-1.5 px-2.5 flex items-center justify-between text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-mono font-extrabold text-[10px] leading-none"
-                      style={{
-                        background: `${sideColor}22`,
-                        border: `1px solid ${sideColor}66`,
-                        color: sideColor,
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {t.side === "SELL" ? "SEL" : "BUY"}
+                    <div className="relative shrink-0">
+                      <CoinIcon symbol={t.symbol} size={28} />
+                      <div
+                        className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0F1524] flex items-center justify-center font-mono font-black text-[7px] leading-none"
+                        style={{
+                          background: sideColor,
+                          color: t.side === "SELL" ? "#fff" : "#050914",
+                        }}
+                      >
+                        {t.side === "SELL" ? "S" : "B"}
+                      </div>
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-[12px] leading-tight flex items-center gap-1.5">
