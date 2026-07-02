@@ -21,7 +21,7 @@ export default function Revenue() {
   const total = data?.total_profit || 0;
 
   return (
-    <div className="pb-4">
+    <div className="pb-24">
       <PageHeader title="Revenue" subtitle="Profit & Loss · Auto-refresh 15s" />
 
       {/* HERO: Today + Cumulative side-by-side (HiTechBot style) */}
