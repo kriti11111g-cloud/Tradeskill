@@ -1174,20 +1174,23 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
 
 @api.get("/revenue/pair/{symbol}")
 async def revenue_pair(symbol: str, user: dict = Depends(get_current_user)):
-    """Cumulative profit + trade count for a single symbol (used on TradingPair page)."""
+    """Cumulative profit + trade counts for a single symbol (used on TradingPair page)."""
     symbol = symbol.upper()
     rows = await db.transactions.find(
-        {"user_id": user["id"], "symbol": symbol, "side": "SELL"},
-        {"_id": 0, "profit": 1, "created_at": 1},
-    ).to_list(1000)
-    total = sum(r.get("profit", 0.0) for r in rows)
+        {"user_id": user["id"], "symbol": symbol},
+        {"_id": 0, "profit": 1, "created_at": 1, "side": 1},
+    ).to_list(2000)
+    sells = [r for r in rows if r.get("side") == "SELL"]
+    buys = [r for r in rows if r.get("side") == "BUY"]
+    total = sum(r.get("profit", 0.0) for r in sells)
     today_str = now_utc().strftime("%Y-%m-%d")
-    today = sum(r.get("profit", 0.0) for r in rows if (r.get("created_at") or "")[:10] == today_str)
+    today = sum(r.get("profit", 0.0) for r in sells if (r.get("created_at") or "")[:10] == today_str)
     return {
         "symbol": symbol,
         "cumulative_profit": round(total, 4),
         "today_profit": round(today, 4),
-        "sell_count": len(rows),
+        "sell_count": len(sells),
+        "buy_count": len(buys),
     }
 
 

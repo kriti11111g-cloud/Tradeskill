@@ -400,39 +400,64 @@ export default function TradingPair() {
       {/* Pair-level Profit banner (matches HiTechBot layout) */}
       <div className="px-4 mt-3">
         <div
-          className="rounded-2xl border border-white/25 p-4 flex items-stretch gap-3 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl"
+          className="rounded-2xl border border-white/25 p-4 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl"
           data-testid="pair-revenue-banner"
         >
-          <div className="flex-1">
-            <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
-              Today&apos;s Profit
+          <div className="flex items-stretch gap-3">
+            <div className="flex-1">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
+                Today&apos;s Profit
+              </div>
+              <div
+                className={`font-display font-black text-2xl tabular-nums mt-1 ${
+                  (pairRev?.today_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                }`}
+                data-testid="pair-today-profit"
+              >
+                {(pairRev?.today_profit || 0) >= 0 ? "+" : ""}
+                {fmtNum(pairRev?.today_profit || 0, 4)}
+              </div>
             </div>
-            <div
-              className={`font-display font-black text-2xl tabular-nums mt-1 ${
-                (pairRev?.today_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-              }`}
-              data-testid="pair-today-profit"
-            >
-              {(pairRev?.today_profit || 0) >= 0 ? "+" : ""}
-              {fmtNum(pairRev?.today_profit || 0, 4)}
+            <div className="w-px bg-white/15" />
+            <div className="flex-1">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
+                Cumulative Profit
+              </div>
+              <div
+                className={`font-display font-black text-2xl tabular-nums mt-1 ${
+                  (pairRev?.cumulative_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                }`}
+                data-testid="pair-cum-profit"
+              >
+                {(pairRev?.cumulative_profit || 0) >= 0 ? "+" : ""}
+                {fmtNum(pairRev?.cumulative_profit || 0, 4)}
+              </div>
             </div>
           </div>
-          <div className="w-px bg-white/15" />
-          <div className="flex-1">
-            <div className="text-[9px] uppercase tracking-[0.25em] text-[#8B9BB4] font-bold">
-              Cumulative Profit
+
+          {/* Bot cycle counters row */}
+          <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-3 gap-2">
+            <div className="text-center" data-testid="pair-buy-count">
+              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Buys</div>
+              <div
+                className="font-mono font-extrabold text-[16px] tabular-nums mt-1 text-[#39FF14]"
+              >
+                {pairRev?.buy_count || 0}
+              </div>
             </div>
-            <div
-              className={`font-display font-black text-2xl tabular-nums mt-1 ${
-                (pairRev?.cumulative_profit || 0) >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
-              }`}
-              data-testid="pair-cum-profit"
-            >
-              {(pairRev?.cumulative_profit || 0) >= 0 ? "+" : ""}
-              {fmtNum(pairRev?.cumulative_profit || 0, 4)}
+            <div className="text-center border-x border-white/10" data-testid="pair-sell-count">
+              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Sells</div>
+              <div
+                className="font-mono font-extrabold text-[16px] tabular-nums mt-1 text-[#FF007A]"
+              >
+                {pairRev?.sell_count || 0}
+              </div>
             </div>
-            <div className="text-[9px] text-[#8B9BB4] mt-0.5">
-              {pairRev?.sell_count || 0} sells
+            <div className="text-center" data-testid="pair-cycle-count">
+              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Round</div>
+              <div className="font-mono font-extrabold text-[16px] tabular-nums mt-1 text-[#00F0FF]">
+                {(bot?.position_qty || 0) > 0 ? (bot?.margin_call_count || 0) + 1 : "—"}
+              </div>
             </div>
           </div>
         </div>
