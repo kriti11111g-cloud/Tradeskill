@@ -243,24 +243,51 @@ export default function Transactions() {
                     >
                       {fmtNum(t.price, t.price < 1 ? 4 : 2)}
                     </span>
-                    {isSell && (
-                      <span
-                        className={`font-mono font-bold text-[11px] leading-none ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
-                      >
-                        ({profitPositive ? "+" : ""}
-                        {(t.profit || 0).toFixed(2)})
-                      </span>
-                    )}
                   </div>
                   {/* Description */}
                   <div className="text-[9px] text-[#8B9BB4] mt-0.5 leading-none">
                     Average {t.side} in price USDT
                   </div>
                 </div>
-                <ChevronDown
-                  size={14}
-                  className={`text-[#8B9BB4] mt-1 shrink-0 transition ${isOpen ? "rotate-180" : ""}`}
-                />
+
+                {/* Right-side profit / amount block */}
+                <div className="flex flex-col items-end shrink-0 pl-2" style={monoNum}>
+                  {isSell ? (
+                    <>
+                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                        Profit
+                      </div>
+                      <div
+                        className={`font-mono font-extrabold text-[13px] leading-none mt-1 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                        data-testid={`tx-profit-${t.id}`}
+                      >
+                        {profitPositive ? "+" : ""}${(t.profit || 0).toFixed(2)}
+                      </div>
+                      {t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
+                        <div
+                          className={`text-[9px] font-mono font-bold leading-none mt-0.5 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                          data-testid={`tx-roi-${t.id}`}
+                        >
+                          {profitPositive ? "+" : ""}
+                          {(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                        Amount
+                      </div>
+                      <div className="font-mono font-extrabold text-[13px] leading-none mt-1 text-[#EAECEF]">
+                        ${fmtNum(t.amount, 2)}
+                      </div>
+                    </>
+                  )}
+                  <ChevronDown
+                    size={12}
+                    className={`text-[#8B9BB4] mt-1.5 transition ${isOpen ? "rotate-180" : ""}`}
+                  />
+                </div>
               </button>
 
               {isOpen && (
