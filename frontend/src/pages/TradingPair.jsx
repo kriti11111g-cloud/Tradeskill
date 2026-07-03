@@ -533,6 +533,8 @@ export default function TradingPair() {
                   ? "text-[#39FF14] border-[#39FF14]/40 bg-[#39FF14]/10"
                   : bot.trigger_state === "dca_armed"
                   ? "text-[#FFD700] border-[#FFD700]/40 bg-[#FFD700]/10"
+                  : bot.trigger_state === "reentry_armed"
+                  ? "text-[#FF9F1C] border-[#FF9F1C]/40 bg-[#FF9F1C]/10"
                   : bot.trigger_state === "waiting"
                   ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/10"
                   : bot.trigger_state === "start_pending"
@@ -545,6 +547,8 @@ export default function TradingPair() {
                 ? "TP Armed · Chasing Peak"
                 : bot.trigger_state === "dca_armed"
                 ? "DCA Armed · Chasing Bottom"
+                : bot.trigger_state === "reentry_armed"
+                ? "Re-entry Armed · Waiting for Pullback"
                 : bot.trigger_state === "waiting"
                 ? "Waiting for trigger"
                 : bot.trigger_state === "start_pending"
@@ -552,6 +556,31 @@ export default function TradingPair() {
                 : "Idle"}
             </div>
           </div>
+
+          {/* Re-entry tracker — shown after a SELL while bot waits for pullback */}
+          {bot.reentry_armed && bot.peak_price > 0 && (
+            <div
+              className="mb-3 rounded-xl border border-[#FF9F1C]/30 bg-[#FF9F1C]/[0.06] px-3 py-2 flex items-center justify-between"
+              data-testid="reentry-tracker"
+            >
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-[#FF9F1C] font-black">
+                  Post-Sell Peak · {fmtNum(bot.peak_price, bot.peak_price > 100 ? 2 : 6)}
+                </div>
+                <div className="text-[9px] text-[#8B9BB4] mt-0.5">
+                  First buy fires when price pulls back to ≤ {fmtNum(bot.reentry_trigger_price, bot.reentry_trigger_price > 100 ? 2 : 6)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+                  Callback
+                </div>
+                <div className="font-display font-black text-lg tabular-nums text-[#FF9F1C]">
+                  {(bot.buy_in_callback || 0).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Locked profit meter — shown when TP is armed and price has peaked */}
           {bot.tp_armed && bot.peak_price > 0 && (

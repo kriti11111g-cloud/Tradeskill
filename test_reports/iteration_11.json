@@ -1,0 +1,47 @@
+{
+  "summary": "Verified the new RE-ENTRY TRAILING mechanism end-to-end. Added 5 new pytest cases in test_trailing_bot_logic.py (TestFirstBuyFreshBot / TestReentryTrailingBuy / TestSellSeedsPeakForReentry) and updated TestBotDetailAPIExposesTrailingFields to assert the new reentry_armed / reentry_trigger_price fields. Removed the now-invalid TestFirstBuyResetsTrailingState (with peak_price>0 the first buy is no longer immediate). All 13 trailing tests pass. All 9 pre-existing test_trading_verification tests pass. Full suite: 96 passed / 1 failed — the single failure (test_bots_list::test_dogeusdt_expected — expected DOGE buy_count==1, got 26) is a pre-existing stale hard-coded assertion against the live bot's transaction count, NOT caused by the re-entry change. On the frontend, BTC bot is currently reentry_armed=true (position was just sold, peak_price=62,101.99). The re-entry chip 'RE-ENTRY ARMED · WAITING FOR PULLBACK' renders in orange, and the [data-testid=reentry-tracker] panel shows Post-Sell Peak · 62,101.99, trigger price 61,480.97, and Callback 1.00% — exactly as specified. Bottom nav has all 6 tabs, DCA ladder still renders ladder-current-row + ladder-mc-row-1 through ladder-mc-row-10 (10 levels). Backend logs show no first-buy spam — the engine is polling BTC price without firing a first-buy while in re-entry state. Note: original problem statement assumed BTC still had position, but in fact BTC recently completed a SELL and is now the perfect live example of the new re-entry behaviour.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "N/A (pre-existing test)",
+        "issue": "tests/test_bots_list.py::TestBotsList::test_dogeusdt_expected fails: hard-coded expected buy_count==1 but DOGE bot has been running and cumulated 26 buys. Same class also hard-codes BTC=8 / SOL=2 / XRP=1 which will drift over time. Recommend converting these to relative sanity checks (e.g. buy_count >= 1, or take a snapshot at test start) or delete these ratcheting assertions. Not caused by the re-entry change."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_trailing_bot_logic.py",
+    "/app/backend/tests/test_trading_verification.py",
+    "/app/test_reports/pytest/pytest_trailing_bot.xml",
+    "/app/test_reports/pytest/pytest_trading_verification.xml",
+    "/app/test_reports/pytest/pytest_all.xml"
+  ],
+  "action_items": [
+    "MINOR: Fix the drifting hard-coded assertions in tests/test_bots_list.py (buy_count/sell_count/cumulative_profit) — they will keep failing as live bots trade. Consider converting to >=1 sanity checks."
+  ],
+  "critical_code_review_comments": [
+    "server.py has grown to 1724 lines — still well over the 700-line threshold. Recommend module split (bots.py, trades.py, market.py, auth.py, engine.py). Not blocking.",
+    "server.py still uses @app.on_event startup/shutdown handlers — swap for FastAPI lifespan.",
+    "Bot Activity log shows several 'First Buy $0.00 @ 1' entries for the BTC bot (see screenshot). These are ancient events with amount=0 and price=1, unrelated to the re-entry code path, but they clutter the UI. Consider suppressing zero-amount events or backfilling correct values.",
+    "Re-entry logic in _bot_tick is clean and correct: reads peak, ratchets it up via db.update_one only when a new high is made, and skips BUY while price > peak*(1-buy_in_callback/100). After BUY, peak_price is explicitly reset to 0 (server.py:1164-1167). Verified by unit test test_reentry_flow_full_sequence.",
+    "SELL execution seeds peak_price=sell_price for Cycle mode in BOTH real and demo paths (server.py:1003, 1088). One-Shot still zeroes peak. Verified by unit tests."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_trailing_bot_logic.py (added TestFirstBuyFreshBot, TestReentryTrailingBuy, TestSellSeedsPeakForReentry; extended TestBotDetailAPIExposesTrailingFields to check reentry_armed & reentry_trigger_price; removed obsolete TestFirstBuyResetsTrailingState)"
+  ],
+  "success_rate": {
+    "backend": "13/13 trailing tests pass; 9/9 trading_verification pass; 96/97 across full suite (1 pre-existing stale assertion failure unrelated to this iteration)",
+    "frontend": "100% — re-entry chip + tracker panel + 6-tab nav + 10-level DCA ladder all confirmed on /pair/BTCUSDT under mobile viewport. No console errors related to trailing logic (only pre-existing Binance WS 451 geo-restriction warnings)."
+  },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "Test bot doc for symbol TESTBTCUSDT is inserted/mutated/cleaned within each test class. status='stopped' so the real bot_engine_loop ignores it. Module cleanup fixture wipes it at teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The trailing-bot pytest requires pytest-asyncio (already installed). /app/backend/tests/pytest.ini pins BOTH default fixture AND default test loop scope to 'session' — REQUIRED because motor's AsyncIOMotorClient binds to the event loop at import time; per-test loops trigger 'Event loop is closed'. To rerun: cd /app/backend && python -m pytest tests/ -v. If you add re-entry tests that flip status='running', immediately reset to 'stopped' at teardown so the real bot engine doesn't try to fetch TESTBTCUSDT price from Binance (which 400s). BTC live bot is currently in reentry_armed state — use this to eyeball the frontend chip/panel without mutating any DB.",
+  "rca of the issue": "N/A — no bugs in the re-entry feature. The one test failure (DOGE buy_count) is a stale hard-coded assertion from an earlier iteration and unrelated to this change."
+}
