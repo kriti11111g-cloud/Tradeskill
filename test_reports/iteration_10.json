@@ -1,0 +1,51 @@
+{
+  "summary": "Verified HiTechBot-style Trailing Take Profit + Trailing DCA (bottom chase) implementation. Wrote 9 new pytest tests in /app/backend/tests/test_trailing_bot_logic.py that directly exercise server._bot_tick with mocked fetch_price / _execute_trade to drive price series through the trough & peak tracking logic; all 9 pass. Existing test_trading_verification.py (9 tests) still fully green. Frontend /pair/BTCUSDT rendered under mobile viewport, admin logged in: Operation Reminder panel renders, trigger-state chip reads 'Waiting for trigger' (BTC bot currently waiting), locked-profit-meter / bottom-tracker / dca-recover-row are conditionally hidden as expected, MC trigger row description now reads 'Arms bottom-tracker when price ≤ trigger', TP row still shows 'Arms peak-tracker · 1.5% profit', 6-tab bottom nav (home/market/trade/wallet/bot/profile), DCA ladder still renders 10 levels. No console errors related to trailing logic (only harmless Binance WebSocket 451 geo-restriction errors, pre-existing). Backend logs show engine still polling Binance & creating trades; no new exceptions from trailing logic.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/bots/{symbol}",
+        "issue": "Response does NOT explicitly include the key `dca_bottom_price` when the bot doc has never armed it. `merged.get('dca_bottom_price')` yields None instead of 0. Requirement explicitly says: 'returns the new trailing fields ... dca_bottom_price ... (numbers/booleans, not undefined)'. Fix: add `merged['dca_bottom_price'] = round(trough, 6)` near line 645 alongside peak_price / dca_recover_trigger_price."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_trailing_bot_logic.py",
+    "/app/backend/tests/test_trading_verification.py",
+    "/app/backend/tests/conftest.py",
+    "/app/backend/tests/pytest.ini",
+    "/app/test_reports/pytest/pytest_trailing_bot.xml",
+    "/app/test_reports/pytest/pytest_trading_verification.xml",
+    "/app/test_reports/pytest/pytest_all.xml"
+  ],
+  "action_items": [
+    "MINOR: Explicitly expose `dca_bottom_price` in GET /api/bots/{symbol} response merged dict (currently missing when the field has never been armed on the bot doc). Suggested one-line fix in server.py get_bot(): merged['dca_bottom_price'] = round(trough, 6) if trough else 0."
+  ],
+  "critical_code_review_comments": [
+    "server.py has grown to 1681 lines — well over the 700-line threshold. Recommend splitting into modules (bots.py, trades.py, market.py, auth.py, engine.py). Not blocking.",
+    "server.py still uses deprecated `@app.on_event(...)` handlers (2 warnings) — switch to lifespan handler.",
+    "In _bot_tick TP branch, when the peak already equals the current price the DB write is skipped (`if new_peak != peak`). Fine for peak_price, but note that the FIRST time price >= tp_trigger with peak==0, new_peak = max(0, price) = price so the write DOES fire — good.",
+    "Trailing DCA correctly resets dca_bottom_price to 0 after a safety-order buy AND on every SELL/first-buy (server.py lines 963-964, 988-989, 1038-1039, 1070-1071, 1213) — verified via tests.",
+    "Race condition risk: _bot_tick reads bot dict (in-memory), then updates DB. If two ticks overlap (unlikely with 10s cadence) trough writes could stomp. Acceptable for MVP."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_trailing_bot_logic.py (new)",
+    "/app/backend/tests/conftest.py (new)",
+    "/app/backend/tests/pytest.ini (new; enables asyncio_mode=auto with session loop scope)"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 tests pass)",
+    "frontend": "100% (all data-testids resolve, trigger chip label correct, conditional panels hidden as spec'd)"
+  },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "Test bot doc for symbol TESTBTCUSDT is inserted/mutated/cleaned within each test class. status='stopped' so the real bot_engine_loop ignores it. Cleanup by symbol removes leftovers from prior runs.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The trailing-bot pytest expects pytest-asyncio (installed via pip). /app/backend/tests/pytest.ini sets asyncio_mode=auto and pins BOTH default fixture AND default test loop scope to 'session' — this is REQUIRED because motor's AsyncIOMotorClient binds to the event loop at import time; per-test loops trigger 'Event loop is closed' errors. To rerun: cd /app/backend && python -m pytest tests/ -v",
+  "rca of the issue": "Only minor gap: DEFAULT_BOT_CFG doesn't include dca_bottom_price, and get_bot() reads trough via merged.get('dca_bottom_price', 0) but never writes it back into merged before returning, so the field is absent for bots that never armed a DCA trough. Fix in one line as noted above."
+}

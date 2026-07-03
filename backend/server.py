@@ -608,6 +608,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     mc_count = int(merged.get("margin_call_count", 0) or 0)
     mc_limit = int(merged.get("margin_call_limit", 0) or 0)
     peak = float(merged.get("peak_price", 0) or 0)
+    trough = float(merged.get("dca_bottom_price", 0) or 0)
     tp_callback = float(merged.get("whole_take_profit_callback", 0) or 0)
 
     tp_trigger = avg_price * (1 + tp_ratio / 100.0) if avg_price > 0 else 0.0
@@ -615,19 +616,40 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     if next_buy == 0 and avg_price > 0 and buy_cb > 0:
         next_buy = avg_price * (1 - buy_cb / 100.0)
 
-    # Trigger state for the UI
+    # === Trailing trigger states =====================================
+    # tp_armed  → price crossed take-profit target, bot is chasing the peak
+    # dca_armed → price crossed DCA target, bot is chasing the bottom
+    tp_armed = position_qty > 0 and peak > 0
+    dca_armed = position_qty > 0 and trough > 0 and mc_count < mc_limit
+
+    # Locked-in profit % if a peak has been recorded
+    locked_profit_pct = 0.0
+    if tp_armed and avg_price > 0:
+        pullback_price = peak * (1 - tp_callback / 100.0)
+        locked_profit_pct = ((pullback_price - avg_price) / avg_price) * 100.0
+
+    # Recovery trigger for trailing DCA — price must climb back this high
+    # from the tracked trough before the safety-order fires.
+    dca_recover_trigger = trough * (1 + buy_cb / 100.0) if trough > 0 else 0.0
+
     if position_qty == 0:
         trigger_state = "start_pending" if merged.get("status") == "running" else "idle"
-    elif peak > 0:
+    elif tp_armed:
         trigger_state = "tp_armed"
+    elif dca_armed:
+        trigger_state = "dca_armed"
     else:
         trigger_state = "waiting"
 
     merged["take_profit_trigger_price"] = round(tp_trigger, 6) if tp_trigger else 0
     merged["margin_call_trigger_price"] = round(next_buy, 6) if next_buy else 0
     merged["tp_pullback_trigger_price"] = round(peak * (1 - tp_callback / 100.0), 6) if peak > 0 else 0
+    merged["dca_recover_trigger_price"] = round(dca_recover_trigger, 6) if dca_recover_trigger else 0
     merged["margin_call_remaining"] = max(0, mc_limit - mc_count)
     merged["trigger_state"] = trigger_state
+    merged["tp_armed"] = tp_armed
+    merged["dca_armed"] = dca_armed
+    merged["locked_profit_pct"] = round(locked_profit_pct, 4)
     # Fetch current market price so we can build a preview ladder
     # even when the bot has no open position yet.
     live_px = 0.0
@@ -709,6 +731,7 @@ async def override_position(symbol: str, body: PositionOverrideIn, user: dict = 
     }
     if body.reset_peak:
         update_set["peak_price"] = 0.0
+        update_set["dca_bottom_price"] = 0.0
 
     await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": update_set})
 
@@ -938,6 +961,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "last_buy_price": avg_price,
                     "next_buy_price": next_buy_price,
                     "peak_price": 0.0,
+                    "dca_bottom_price": 0.0,
                     "margin_call_count": new_mc_count,
                 }},
                 upsert=True,
@@ -962,6 +986,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "last_buy_price": 0.0,
                     "next_buy_price": 0.0,
                     "peak_price": 0.0,
+                    "dca_bottom_price": 0.0,
                     "cycles_completed": bot.get("cycles_completed", 0) + 1,
                 })
                 if bot.get("trade_method") != "Cycle":
@@ -1011,6 +1036,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "last_buy_price": price,
                 "next_buy_price": next_buy_price,
                 "peak_price": 0.0,
+                "dca_bottom_price": 0.0,
                 "margin_call_count": new_mc_count,
             }},
             upsert=True,
@@ -1042,6 +1068,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "last_buy_price": 0.0,
                 "next_buy_price": 0.0,
                 "peak_price": 0.0,
+                "dca_bottom_price": 0.0,
                 "cycles_completed": bot.get("cycles_completed", 0) + 1,
             })
             if bot.get("trade_method") != "Cycle":
@@ -1084,8 +1111,10 @@ async def _bot_tick(bot: dict):
     mc_limit = int(bot.get("margin_call_limit", 10) or 10)
     tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
     tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
+    dca_callback = float(bot.get("buy_in_callback", 0.3) or 0.3)
     next_buy = float(bot.get("next_buy_price", 0.0) or 0)
     peak = float(bot.get("peak_price", 0.0) or 0)
+    trough = float(bot.get("dca_bottom_price", 0.0) or 0)
 
     # === FIRST BUY ===
     if position_qty == 0:
@@ -1139,34 +1168,57 @@ async def _bot_tick(bot: dict):
                 logger.warning(f"bot {symbol}: TP sell failed: {e.msg}")
         return
 
-    # === DCA / MARGIN CALL BUY ===
-    if next_buy > 0 and price <= next_buy and mc_count < mc_limit:
-        # Look up this round's rule (0-indexed): mc_count = 0 → first DCA (1st call), etc.
-        rule = _get_margin_rule(bot, mc_count)
-        amount = first_buy * rule["multiplier"]
-        try:
-            await _execute_trade(
-                user_id=user_id, symbol=symbol, side="BUY",
-                usdt_amount=amount, source="bot",
-            )
-            await db.bot_events.insert_one({
-                "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
-                "kind": "margin_call", "round": mc_count + 2,
-                "amount": amount, "price": price,
-                "drop_pct": rule["drop"], "multiplier": rule["multiplier"],
-                "created_at": iso(now_utc()),
-            })
-            logger.info(
-                f"bot {symbol}: DCA round {mc_count + 2}, ${amount} (x{rule['multiplier']}) at ~{price} "
-                f"(drop {rule['drop']}%)"
-            )
-        except _TradeError as e:
-            logger.warning(f"bot {symbol}: DCA buy failed: {e.msg}")
-            if e.status == 400 and "Insufficient" in e.msg:
+    # === TRAILING DCA / MARGIN CALL BUY ================================
+    # Instead of buying the instant `next_buy` is crossed, we wait for the
+    # price to keep falling, track the running trough, and only fire the
+    # safety order when the price bounces back up by `dca_callback`% from
+    # that trough. This gives us a lower average entry on the next round.
+    if next_buy > 0 and mc_count < mc_limit:
+        # Have we crossed the DCA trigger yet?
+        if trough > 0 or price <= next_buy:
+            new_trough = min(trough, price) if trough > 0 else min(next_buy, price)
+            # Persist a new lower trough as it happens
+            if new_trough != trough:
                 await db.bots.update_one(
                     {"user_id": user_id, "symbol": symbol},
-                    {"$set": {"stop_reason": "Insufficient balance for DCA — please deposit or Close position."}},
+                    {"$set": {"dca_bottom_price": new_trough}},
                 )
+                trough = new_trough
+
+            # Fire the safety order once price recovers by dca_callback% from trough
+            recover_trigger = trough * (1 + dca_callback / 100.0)
+            if price >= recover_trigger and trough > 0:
+                rule = _get_margin_rule(bot, mc_count)
+                amount = first_buy * rule["multiplier"]
+                try:
+                    await _execute_trade(
+                        user_id=user_id, symbol=symbol, side="BUY",
+                        usdt_amount=amount, source="bot",
+                    )
+                    await db.bot_events.insert_one({
+                        "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                        "kind": "margin_call", "round": mc_count + 2,
+                        "amount": amount, "price": price,
+                        "trough": trough,
+                        "drop_pct": rule["drop"], "multiplier": rule["multiplier"],
+                        "created_at": iso(now_utc()),
+                    })
+                    logger.info(
+                        f"bot {symbol}: DCA round {mc_count + 2}, ${amount} (x{rule['multiplier']}) "
+                        f"at {price} (trough {trough}, drop {rule['drop']}%)"
+                    )
+                    # Reset trough after safety-order fires so the next round starts fresh
+                    await db.bots.update_one(
+                        {"user_id": user_id, "symbol": symbol},
+                        {"$set": {"dca_bottom_price": 0.0}},
+                    )
+                except _TradeError as e:
+                    logger.warning(f"bot {symbol}: DCA buy failed: {e.msg}")
+                    if e.status == 400 and "Insufficient" in e.msg:
+                        await db.bots.update_one(
+                            {"user_id": user_id, "symbol": symbol},
+                            {"$set": {"stop_reason": "Insufficient balance for DCA — please deposit or Close position."}},
+                        )
 
 
 _engine_task = None

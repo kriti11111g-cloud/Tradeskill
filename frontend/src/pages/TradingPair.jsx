@@ -531,6 +531,8 @@ export default function TradingPair() {
               className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
                 bot.trigger_state === "tp_armed"
                   ? "text-[#39FF14] border-[#39FF14]/40 bg-[#39FF14]/10"
+                  : bot.trigger_state === "dca_armed"
+                  ? "text-[#FFD700] border-[#FFD700]/40 bg-[#FFD700]/10"
                   : bot.trigger_state === "waiting"
                   ? "text-[#00F0FF] border-[#00F0FF]/40 bg-[#00F0FF]/10"
                   : bot.trigger_state === "start_pending"
@@ -540,7 +542,9 @@ export default function TradingPair() {
               data-testid="trigger-state"
             >
               {bot.trigger_state === "tp_armed"
-                ? "TP Armed"
+                ? "TP Armed · Chasing Peak"
+                : bot.trigger_state === "dca_armed"
+                ? "DCA Armed · Chasing Bottom"
                 : bot.trigger_state === "waiting"
                 ? "Waiting for trigger"
                 : bot.trigger_state === "start_pending"
@@ -548,6 +552,56 @@ export default function TradingPair() {
                 : "Idle"}
             </div>
           </div>
+
+          {/* Locked profit meter — shown when TP is armed and price has peaked */}
+          {bot.tp_armed && bot.peak_price > 0 && (
+            <div
+              className="mb-3 rounded-xl border border-[#39FF14]/30 bg-[#39FF14]/[0.06] px-3 py-2 flex items-center justify-between"
+              data-testid="locked-profit-meter"
+            >
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-[#39FF14] font-black">
+                  Peak · {fmtNum(bot.peak_price, bot.peak_price > 100 ? 2 : 6)}
+                </div>
+                <div className="text-[9px] text-[#8B9BB4] mt-0.5">
+                  Locked if pullback hits ≤ {fmtNum(bot.tp_pullback_trigger_price, bot.tp_pullback_trigger_price > 100 ? 2 : 6)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+                  Locked
+                </div>
+                <div className="font-display font-black text-lg tabular-nums text-[#39FF14]">
+                  +{(bot.locked_profit_pct || 0).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom tracker — shown when DCA is armed and price is trending down */}
+          {bot.dca_armed && bot.dca_bottom_price > 0 && (
+            <div
+              className="mb-3 rounded-xl border border-[#FFD700]/30 bg-[#FFD700]/[0.06] px-3 py-2 flex items-center justify-between"
+              data-testid="bottom-tracker"
+            >
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-[#FFD700] font-black">
+                  Trough · {fmtNum(bot.dca_bottom_price, bot.dca_bottom_price > 100 ? 2 : 6)}
+                </div>
+                <div className="text-[9px] text-[#8B9BB4] mt-0.5">
+                  Fires safety order once price rebounds to ≥ {fmtNum(bot.dca_recover_trigger_price, bot.dca_recover_trigger_price > 100 ? 2 : 6)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+                  Callback
+                </div>
+                <div className="font-display font-black text-lg tabular-nums text-[#FFD700]">
+                  {(bot.buy_in_callback || 0).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2.5">
             {/* Margin call trigger */}
@@ -561,7 +615,7 @@ export default function TradingPair() {
                     Margin call trigger price
                   </div>
                   <div className="text-[9px] text-[#8B9BB4]">
-                    Auto-BUY when price ≤ trigger · {bot.margin_call_remaining} rounds left
+                    Arms bottom-tracker when price ≤ trigger · {bot.margin_call_remaining} rounds left
                   </div>
                 </div>
               </div>
@@ -578,6 +632,30 @@ export default function TradingPair() {
                 )}
               </div>
             </div>
+
+            {/* DCA recovery trigger — shown once armed */}
+            {bot.dca_recover_trigger_price > 0 && (
+              <div className="flex items-center justify-between border-t border-white/20 pt-2.5" data-testid="dca-recover-row">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#FFD700]/25 border border-[#FFD700]/40 flex items-center justify-center">
+                    <span className="font-display font-black text-[9px] text-[#FFD700]">↺</span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-[#FFD700] font-bold">
+                      DCA recover trigger
+                    </div>
+                    <div className="text-[9px] text-[#8B9BB4]">
+                      Safety-order fires when price rebounds ≥ trigger
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-display font-black text-sm tabular-nums text-[#FFD700]">
+                    ≥ {fmtNum(bot.dca_recover_trigger_price, bot.dca_recover_trigger_price > 100 ? 2 : 6)}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Take profit trigger */}
             <div className="flex items-center justify-between" data-testid="tp-trigger-row">
