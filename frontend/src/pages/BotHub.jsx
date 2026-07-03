@@ -5,26 +5,19 @@ const HERO_IMAGE =
 
 /**
  * Coordinates are in percentages so they scale with the image at every size.
- * All twinkles sit BELOW the chip on the actual circuit-board area — never
- * on top of the chip or the fan (which have their own dedicated glow).
+ * Each dot is anchored on a visible small chip/component on the PCB below
+ * the main AI chip — never on the main chip or the fan itself.
  */
 const TWINKLES = [
-  // Left-side PCB traces
-  { top: "52%", left: "14%", delay: "0s" },
-  { top: "56%", left: "22%", delay: "1.1s" },
-  { top: "60%", left: "16%", delay: "2.0s" },
-  { top: "64%", left: "24%", delay: "0.5s" },
-  { top: "58%", left: "30%", delay: "1.6s" },
-  // Center PCB traces (below chip, above logo)
-  { top: "56%", left: "42%", delay: "0.8s" },
-  { top: "62%", left: "50%", delay: "1.9s" },
-  { top: "58%", left: "58%", delay: "0.3s" },
-  { top: "64%", left: "44%", delay: "2.3s" },
-  // Right-side PCB traces (below the fan, not on it)
-  { top: "60%", left: "70%", delay: "1.3s" },
-  { top: "64%", left: "78%", delay: "0.4s" },
-  { top: "58%", left: "86%", delay: "1.7s" },
-  { top: "62%", left: "92%", delay: "2.4s" },
+  // Left edge: small chips near the PCB border
+  { top: "50%", left: "9%", delay: "0s" },
+  { top: "55%", left: "19%", delay: "1.2s" },
+  { top: "60%", left: "13%", delay: "0.6s" },
+  // Bottom-center-left small chip cluster
+  { top: "58%", left: "28%", delay: "1.8s" },
+  // Right side small chips (below fan, not on it)
+  { top: "60%", left: "77%", delay: "0.4s" },
+  { top: "56%", left: "88%", delay: "1.5s" },
 ];
 
 /**
