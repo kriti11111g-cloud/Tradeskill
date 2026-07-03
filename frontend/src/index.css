@@ -91,11 +91,11 @@ html, body, #root {
 /* ================= BotHub animated overlays ================= */
 
 /* Twinkling circuit lights: fade in red → shift to green → fade out.
-   Placed absolute over the hero image; 12px orb with soft glow. */
+   Placed absolute over the hero image; small orb with soft glow. */
 .tgx-twinkle {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 9999px;
   transform: translate(-50%, -50%);
   pointer-events: none;

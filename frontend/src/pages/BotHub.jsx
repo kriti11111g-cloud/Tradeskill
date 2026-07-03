@@ -4,20 +4,17 @@ const HERO_IMAGE =
   "https://customer-assets.emergentagent.com/job_tgx-api-gateway/artifacts/v63grioq_file_000000003580720b84b6c5daae428f49.png";
 
 /**
- * Coordinates are in percentages so they scale with the image at every size.
- * Each dot is anchored on a visible small chip/component on the PCB below
- * the main AI chip — never on the main chip or the fan itself.
+ * Each dot sits on a real small chip component visible on the PCB. Positions
+ * are picked in the strip BETWEEN the main AI chip (top < 42%) and the
+ * "HUB X BOT" wordmark (top > 54%) so text is never covered.
  */
 const TWINKLES = [
-  // Left edge: small chips near the PCB border
-  { top: "50%", left: "9%", delay: "0s" },
-  { top: "55%", left: "19%", delay: "1.2s" },
-  { top: "60%", left: "13%", delay: "0.6s" },
-  // Bottom-center-left small chip cluster
-  { top: "58%", left: "28%", delay: "1.8s" },
-  // Right side small chips (below fan, not on it)
-  { top: "60%", left: "77%", delay: "0.4s" },
-  { top: "56%", left: "88%", delay: "1.5s" },
+  // Left-edge PCB — two small chips visible near the left border
+  { top: "47%", left: "7%", delay: "0s" },
+  { top: "51%", left: "14%", delay: "1.2s" },
+  // Right-edge PCB — two small chips visible near the right border
+  { top: "47%", left: "93%", delay: "0.6s" },
+  { top: "51%", left: "86%", delay: "1.8s" },
 ];
 
 /**
