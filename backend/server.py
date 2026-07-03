@@ -994,7 +994,9 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "last_sell_price": avg_price,
                     "cycles_completed": bot.get("cycles_completed", 0) + 1,
                 })
-                if bot.get("trade_method") != "Cycle":
+                # Only halt after cycle for explicit One-Shot bots. If trade_method
+                # is missing/None we default to Cycle behaviour (safer).
+                if bot.get("trade_method") == "One-Shot":
                     update_set["status"] = "stopped"
             await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
             await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
@@ -1082,7 +1084,9 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "last_sell_price": price,
                 "cycles_completed": bot.get("cycles_completed", 0) + 1,
             })
-            if bot.get("trade_method") != "Cycle":
+            # Only halt after cycle for explicit One-Shot bots. If trade_method
+            # is missing/None we default to Cycle behaviour (safer).
+            if bot.get("trade_method") == "One-Shot":
                 update_set["status"] = "stopped"
         await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
         await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
