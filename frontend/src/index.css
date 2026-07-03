@@ -88,6 +88,102 @@ html, body, #root {
 /* No text selection on nav */
 .no-select { user-select: none; -webkit-user-select: none; }
 
+/* ================= BotHub animated overlays ================= */
+
+/* Twinkling circuit lights: fade in red → shift to green → fade out.
+   Placed absolute over the hero image; 12px orb with soft glow. */
+.tgx-twinkle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: tgx-twinkle 2.6s ease-in-out infinite;
+  will-change: transform, opacity, background-color, box-shadow;
+}
+@keyframes tgx-twinkle {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); background: #FF3B3B; box-shadow: 0 0 0px rgba(255,59,59,0); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1);   background: #FF3B3B; box-shadow: 0 0 12px 2px rgba(255,59,59,0.85); }
+  55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); background: #39FF14; box-shadow: 0 0 14px 3px rgba(57,255,20,0.85); }
+  80%  { opacity: 0.9; transform: translate(-50%, -50%) scale(0.9); background: #39FF14; box-shadow: 0 0 8px 1px rgba(57,255,20,0.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); background: #39FF14; box-shadow: 0 0 0px rgba(57,255,20,0); }
+}
+
+/* Traces: light "packet" running along an SVG path via dash offset shift. */
+.tgx-trace {
+  animation: tgx-trace-flow 2.4s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(57,255,20,0.85));
+  will-change: stroke-dashoffset;
+}
+@keyframes tgx-trace-flow {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0;  }
+}
+
+/* Central chip pulse — radial red→green pulse behind the "AI" chip.
+   Positioned roughly over the chip in the hero image. */
+.tgx-chip-pulse {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+  width: 34%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: tgx-chip-pulse 3.2s ease-in-out infinite;
+  will-change: opacity, transform, background;
+  mix-blend-mode: screen;
+}
+@keyframes tgx-chip-pulse {
+  0%   { opacity: 0.15; transform: translate(-50%, -50%) scale(0.7); background: radial-gradient(circle, rgba(255,59,59,0.55) 0%, rgba(255,59,59,0) 65%); }
+  50%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1.1); background: radial-gradient(circle, rgba(57,255,20,0.7) 0%, rgba(57,255,20,0) 65%); }
+  100% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.7); background: radial-gradient(circle, rgba(255,59,59,0.55) 0%, rgba(255,59,59,0) 65%); }
+}
+
+/* Fan glow — pulsing radial glow over the fan (bottom-right of hero). */
+.tgx-fan-glow {
+  position: absolute;
+  top: 44%;
+  left: 82%;
+  width: 18%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: tgx-fan-glow 1.8s ease-in-out infinite;
+  will-change: opacity, background;
+  mix-blend-mode: screen;
+}
+@keyframes tgx-fan-glow {
+  0%   { opacity: 0.2; background: radial-gradient(circle, rgba(255,59,59,0.8) 0%, rgba(255,59,59,0) 70%); }
+  50%  { opacity: 0.85; background: radial-gradient(circle, rgba(57,255,20,0.95) 0%, rgba(57,255,20,0) 70%); }
+  100% { opacity: 0.2; background: radial-gradient(circle, rgba(255,59,59,0.8) 0%, rgba(255,59,59,0) 70%); }
+}
+
+/* Diagonal scanning highlight sweeping across the card, once every 4s. */
+.tgx-scan-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(57,255,20,0.14) 50%, transparent 60%);
+  animation: tgx-scan-sweep 4s linear infinite;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+@keyframes tgx-scan-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .tgx-twinkle, .tgx-trace, .tgx-chip-pulse, .tgx-fan-glow, .tgx-scan-sweep {
+    animation: none;
+  }
+}
+
 /* Hide default number spinner */
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
