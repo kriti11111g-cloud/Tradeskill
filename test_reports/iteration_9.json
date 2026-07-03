@@ -1,0 +1,47 @@
+{
+  "summary": "Frontend-only regression on /bot page after CSS tweak (.tgx-fan-glow: top:42%→45%, width:5%→6%). Login worked with admin creds, /bot loads (redirect through /login then to /bot succeeded). Verified data-testid=fan-glow exists, computed style shows position:absolute with expected geometry, and computed CENTER coordinates fall within the expected tolerance on the fan hub. 5 SVG trace paths (data-testid=bothub-hero > svg > path.tgx-trace) present, 6 bottom-nav tabs (Home, Market, Trade, Asset, Bot, Profile). No console errors captured on /bot page. Screenshot confirms ONE unified pulsing red↔green light sits directly on the fan's center hub (upper-right of the hero image, right of the AI chip).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots/bot_page_full.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Preview-only overlay: the 'Made with Emergent' badge visually overlaps the right half of the bottom nav (covers Asset/Bot/Profile labels) in the preview environment. This is preview-injected, not shipped code — nav-bot click via testid still works when the overlay isn't blocking (direct URL navigation to /bot also works). No action required."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (frontend-only per request)", "frontend": "100%" },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "none",
+  "measurements": {
+    "fan_glow_computed_style": {
+      "position": "absolute",
+      "top_px": "160.188px",
+      "left_px": "291.906px",
+      "width_px": "21.36px",
+      "height_px": "21.36px",
+      "transform": "matrix(1, 0, 0, 1, -10.68, -10.68)  (i.e., translate(-50%,-50%))"
+    },
+    "fan_glow_center_relative_to_hero": {
+      "pctTop": 0.4502,
+      "pctLeft": 0.8182,
+      "widthPctOfHero": 0.0597,
+      "assertions": {
+        "pctTop in [0.42, 0.48]": "PASS",
+        "pctLeft in [0.80, 0.84]": "PASS",
+        "widthPct in [0.055, 0.065] (~6%)": "PASS"
+      }
+    },
+    "trace_paths_count": 5,
+    "bottom_nav_tab_count": 6,
+    "console_errors_on_bot_page": 0
+  },
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The CSS fix for .tgx-fan-glow (top:45%, left:82%, width:6%) is verified. Computed center on a 358x358 hero: cx=~82%, cy=~45%. To re-verify at any time: goto /bot after admin login, then run document.querySelector('[data-testid=fan-glow]').getBoundingClientRect() vs document.querySelector('[data-testid=bothub-hero]').getBoundingClientRect() and compute (cy-heroTop)/heroH ≈ 0.45. Screenshot at /app/test_reports/screenshots/bot_page_full.png shows the unified pulsing glow on the fan hub.",
+  "visual_verification_notes": "Screenshot confirms the pulsing overlay sits exactly on the fan hub (small fan visible in the upper-right of the HUB X BOT hero, right of the AI chip). No secondary/duplicate light above or below — single merged red↔green pulse."
+}
