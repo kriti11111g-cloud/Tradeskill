@@ -21,6 +21,7 @@ import News from "@/pages/News";
 import Guide from "@/pages/Guide";
 import Profile from "@/pages/Profile";
 import Market from "@/pages/Market";
+import BotHub from "@/pages/BotHub";
 
 export default function App() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/bind-api" element={<BindAPI />} />
             <Route path="/pair/:symbol" element={<TradingPair />} />
             <Route path="/wallet" element={<Wallet />} />
+            <Route path="/bot" element={<BotHub />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/trades" element={<Trades />} />
             <Route path="/revenue" element={<Revenue />} />
