@@ -218,11 +218,12 @@ export default function Trades() {
       <button
         onClick={() => navigate("/market")}
         data-testid="add-bot-fab"
-        className="fixed bottom-24 right-6 w-12 h-12 rounded-full bg-[#00F0FF] text-[#050914] flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.6)] hover:scale-105 active:scale-95 transition"
+        className="fixed bottom-24 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#00F0FF] text-[#050914] font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,240,255,0.6)] hover:scale-105 active:scale-95 transition"
         style={{ zIndex: 40, right: "calc(50vw - 220px + 20px)" }}
         aria-label="Start new bot"
       >
-        <Plus size={22} strokeWidth={3} />
+        <Plus size={16} strokeWidth={3} />
+        New Bot
       </button>
     </div>
   );
