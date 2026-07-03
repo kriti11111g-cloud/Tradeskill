@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only regression on the BOT tab / /bot page. Verified 6-tab bottom nav order, nav-bot navigation, BotHub page render (title/subtitle above hero), hero image src+naturalWidth, fan-glow overlay presence, CSS assertion top:42% left:82% width:5%, computed position on the fan center hub (~42.04% / ~81.82% of hero), 5 circuit traces still animating, and no BOT-page-specific console errors. Visually confirmed via screenshot that the animated glow sits ON the fan's center hub (upper-right, right of the AI chip), NOT below the fan.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/bot_hero_only.png (hero-only closeup — screenshot save failed due to png-quality; use bot_page_full.png)",
+    "/app/test_reports/bot_page_full.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "None blocking for this iteration. Note: the Emergent 'Made with Emergent' preview badge overlaps the right half of the bottom nav in preview builds (covers ASSET/BOT/PROFILE labels visually) — this is a preview-env only overlay, not shipped code, so no action required. All 6 nav items are present and clickable (nav-bot click navigates to /bot successfully once overlay is not in front)."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (frontend-only per request)", "frontend": "100%" },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The /bot route (BotHub) is stable. .tgx-fan-glow CSS is at top:42% left:82% width:5% and the DOM confirms the overlay centers at ~42.04%/~81.82% of the hero container. If the user tweaks the pixel position again, just re-run the fan_style JS evaluate block against [data-testid=\"fan-glow\"] and screenshot [data-testid=\"bothub-hero\"]. Ignore Binance WSS 451 console errors — pre-existing, geo/policy blocked in preview, unrelated to BOT.",
+  "visual_verification_notes": "Screenshot shows the animated pulsing overlay sits directly on the fan's central hub (the small circular fan located immediately to the right of the AI-labelled chip, upper-right of the hero). It overlays the existing built-in green fan-light rather than appearing below the fan. Placement matches the fix requirement."
+}

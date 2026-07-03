@@ -145,7 +145,7 @@ html, body, #root {
 /* Fan glow — tight pulse right ON the CENTER (hub) of the fan, not its border. */
 .tgx-fan-glow {
   position: absolute;
-  top: 48%;
+  top: 42%;
   left: 82%;
   width: 5%;
   aspect-ratio: 1 / 1;
