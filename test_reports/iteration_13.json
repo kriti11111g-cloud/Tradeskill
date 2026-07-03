@@ -1,0 +1,43 @@
+{
+  "summary": "Verified iteration-13 SELL corrupt-ROI bug fix end-to-end. Added /app/backend/tests/test_roi_cleanup_bug.py (4 tests, all pass): (1) /api/revenue/summary total_profit=$94.4658 (in expected 50–300 range post-cleanup); (2) 0 SELL rows have profit >= 95% of amount (12 backfilled rows note='reset_stale_avg' correctly have profit=0); (3) informational scan of ROI outliers > 500% — 3 legacy rows exist (711%, 945%, 1120%) but all are hidden by the frontend cap so users never see them; (4) backend safety — POST /api/trade/order SELL with position_qty>0 and avg_price=0 returns HTTP 400 with 'no valid average price' (no 500, no ObjectId errors). Frontend Playwright run on mobile viewport: /transactions renders 26 SELL rows, 26 ROI badges — every single badge parses as a finite number within [-500%, +500%]. No NaN/Infinity/undefined. /revenue page shows CUMULATIVE PROFIT +$94.47 and TODAY'S PROFIT +$1.10 matching backend exactly; daily history chart renders 8 bars without breaking; 6-tab bottom nav present (home/market/trade/wallet/bot/profile). Regression: all 14 trailing-bot logic tests still pass; no new console errors — only the pre-existing 4 Binance WS geo-restriction warnings from iteration 12.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/transactions", "issue": "3 SELL rows still have very small cost basis producing ROI 711%, 945%, 1120% (amount≈$40/20/36, profit≈$35/18/33). These slipped past the 95%-of-amount backfill filter because profit is only 87–92% of amount. Frontend hides them via the ±500% cap, so users are protected, but the underlying DB rows are still anomalous. Recommend a second backfill pass with a stricter 'profit/cost > 500%' rule."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_roi_cleanup_bug.py",
+    "/app/test_reports/pytest/pytest_roi_cleanup.xml",
+    "/app/test_reports/pytest/pytest_trailing_bot.xml"
+  ],
+  "action_items": [
+    "OPTIONAL data hygiene: run a second DB backfill on the 3 remaining outlier SELL rows (ids 7f96ea6f-7081-45ce-9491-524eff9353c1, 74cec381-3d52-437f-bf82-b88a2737016e, 7fd1f536-8be1-4653-88b6-101fdafb1a33) — either recompute their profit from an accurate avg_price or zero them out with note='reset_stale_avg'. Not blocking — frontend cap already hides them.",
+    "OPTIONAL: the /transactions?date=2026-07-03 query param does not appear to actually filter the client view (still 26 rows on both filtered and unfiltered views — could be coincidence since most recent SELLs are on 2026-07-03, or the date filter chip may not wire to the URL param). Backend supports ?date= filtering. Worth a quick check if intentional."
+  ],
+  "critical_code_review_comments": [
+    "server.py:1061 — the new avg<=0 guard is placed correctly BEFORE `proceeds = qty * price` in the demo SELL branch. Good.",
+    "server.py:920–1010 — the LIVE Binance SELL path does NOT have the same avg_price<=0 guard. If a live-mode bot ever has a stale zero avg_price, it would still book profit=proceeds. Recommend mirroring the guard there too (near line 933 after `qty = quantity or bot.get('position_qty', 0.0)`).",
+    "Transactions.jsx:280 — cost <= 0.01 guard is correct, but the fallback also silently hides legit tiny sells. Consider showing '—' or 'N/A' rather than nothing so the row still communicates 'no ROI available' rather than an empty visual gap.",
+    "Transactions.jsx:282 — Math.abs(roi) > 500 hides negative outliers too (e.g., a -600% loss). That's a defensive UX choice, but if the app ever books a real >500% loss it will be silently hidden. Consider two-sided threshold like -95 < roi < 500.",
+    "server.py still 1695 lines — same recommendation to split into modules as prior iterations."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_roi_cleanup_bug.py (new)"
+  ],
+  "success_rate": {
+    "backend": "4/4 new bug-fix tests pass; 14/14 trailing tests still pass; total_profit=$94.4658 matches expected ~$94; 12 reset_stale_avg rows present; 400 refusal on avg_price=0 SELL verified",
+    "frontend": "100% — 26/26 ROI badges within ±500% and finite on /transactions; cumulative profit $94.47 and today's profit $1.10 render correctly on /revenue; 6-tab bottom nav intact; no new console errors beyond pre-existing Binance WS geo-warnings"
+  },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "Test bot doc for MATICUSDT inserted with position_qty=0.001, avg_price=0, status='stopped' — cleaned up in the test's finally block. Chose MATICUSDT because admin has no active bot on it, so no risk of interfering with live BTC/DOGE/UNI bots.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug fix verified. Key artefacts: (a) /app/backend/tests/test_roi_cleanup_bug.py is the regression harness for the corrupt-ROI SELL bug — keep running it. (b) The DB cleanup backfilled 12 rows with note='reset_stale_avg' and profit=0; do NOT delete or re-process these. (c) Live cumulative_profit drifts upward as bots trade — the test allows 50 ≤ total_profit ≤ 300 to accommodate that. (d) 3 legacy outlier SELL rows with ROI 711/945/1120% remain in the DB but are hidden by the frontend ±500% cap. If the frontend cap is ever loosened, these rows must be cleaned up first. (e) The LIVE-mode SELL path in server.py (~line 933) does NOT have the avg_price<=0 guard — only the demo path (line 1061) does. Consider adding to the live path too. (f) Trailing bot tests unaffected — all 14 pass.",
+  "rca of the issue": "Original bug: some SELL transactions had corrupt data (profit ≈ amount) because the bot doc's avg_price was 0.0 at SELL time, making `profit = proceeds - qty*avg_price = proceeds - 0 = proceeds`, which yielded infinite ROI on the UI. Cause: stale/duplicate bot docs that got their position_qty populated but never had avg_price set. Fix stack: (1) backend refuses to book a SELL when avg_price<=0 and pos_qty>0 (server.py:1061) — verified by direct trade endpoint test returning 400. (2) frontend caps ROI display at ±500% and hides for cost<$0.01 (Transactions.jsx:280–291) — verified visually and programmatically. (3) DB backfill zeroed 12 historical corrupt rows (profit>=95%*amount) with note='reset_stale_avg' — verified: exactly 12 such rows present, total profit correctly recomputed to $94.47. Residual: 3 lesser outlier rows (profit 87–92% of amount → ROI 711–1120%) exist but are hidden by the frontend cap; recommend a stricter secondary backfill."
+}

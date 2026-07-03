@@ -1055,17 +1055,22 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         if qty <= 0:
             raise _TradeError(400, "No position to sell")
         qty = min(qty, bot.get("position_qty", 0.0))
+        avg = float(bot.get("avg_price", 0.0) or 0.0)
+        # Safety: refuse to sell if the bot doc has a corrupt/zero avg price.
+        # Otherwise `profit = proceeds - qty*0` would spike ROI to ~∞%.
+        if avg <= 0:
+            raise _TradeError(400, "Bot has no valid average price — refresh or restart the bot")
         proceeds = qty * price
-        cost = qty * bot.get("avg_price", 0.0)
+        cost = qty * avg
         profit = proceeds - cost
         remaining_qty = bot.get("position_qty", 0.0) - qty
-        remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
+        remaining_amt = remaining_qty * avg
         new_wallet = wallet + proceeds
         reset = remaining_qty == 0
         update_set = {
             "position_qty": remaining_qty,
             "position_amount": remaining_amt,
-            "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0,
+            "avg_price": avg if remaining_qty > 0 else 0.0,
         }
         if reset:
             update_set.update({

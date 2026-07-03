@@ -270,15 +270,25 @@ export default function Transactions() {
                       >
                         {profitPositive ? "+" : ""}${(t.profit || 0).toFixed(2)}
                       </div>
-                      {t.quantity > 0 && (t.amount - (t.profit || 0)) > 0 && (
-                        <div
-                          className={`text-[9px] font-mono font-bold leading-none mt-0.5 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
-                          data-testid={`tx-roi-${t.id}`}
-                        >
-                          {profitPositive ? "+" : ""}
-                          {(((t.profit || 0) / (t.amount - (t.profit || 0))) * 100).toFixed(2)}%
-                        </div>
-                      )}
+                      {(() => {
+                        // ROI = profit / cost_basis * 100 where cost = amount - profit.
+                        // Guard against garbage data (avg_price=0 stale bots) that
+                        // would otherwise produce insane percentages by capping the
+                        // display at ±999.99% and hiding it when cost is unreliable.
+                        const profit = t.profit || 0;
+                        const cost = t.amount - profit;
+                        if (!t.quantity || cost <= 0.01) return null;
+                        const roi = (profit / cost) * 100;
+                        if (!isFinite(roi) || Math.abs(roi) > 500) return null;
+                        return (
+                          <div
+                            className={`text-[9px] font-mono font-bold leading-none mt-0.5 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                            data-testid={`tx-roi-${t.id}`}
+                          >
+                            {profitPositive ? "+" : ""}{roi.toFixed(2)}%
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     <>
