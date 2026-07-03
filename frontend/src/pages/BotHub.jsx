@@ -5,33 +5,40 @@ const HERO_IMAGE =
 
 /**
  * Coordinates are in percentages so they scale with the image at every size.
- * These points are hand-tuned to fall on the circuit traces / fan / chip.
+ * All twinkles sit BELOW the chip on the actual circuit-board area — never
+ * on top of the chip or the fan (which have their own dedicated glow).
  */
 const TWINKLES = [
-  { top: "38%", left: "18%", delay: "0s" },
-  { top: "42%", left: "28%", delay: "0.6s" },
-  { top: "35%", left: "45%", delay: "1.1s" },
-  { top: "36%", left: "62%", delay: "0.3s" },
-  { top: "44%", left: "78%", delay: "1.7s" },
-  { top: "48%", left: "88%", delay: "0.9s" },
-  { top: "52%", left: "12%", delay: "2.1s" },
-  { top: "56%", left: "30%", delay: "1.4s" },
-  { top: "58%", left: "48%", delay: "0.5s" },
-  { top: "54%", left: "68%", delay: "2.4s" },
-  { top: "60%", left: "82%", delay: "1.9s" },
-  { top: "46%", left: "50%", delay: "3.0s" }, // near chip
-  { top: "50%", left: "52%", delay: "0.8s" }, // near chip
+  // Left-side PCB traces
+  { top: "52%", left: "14%", delay: "0s" },
+  { top: "56%", left: "22%", delay: "1.1s" },
+  { top: "60%", left: "16%", delay: "2.0s" },
+  { top: "64%", left: "24%", delay: "0.5s" },
+  { top: "58%", left: "30%", delay: "1.6s" },
+  // Center PCB traces (below chip, above logo)
+  { top: "56%", left: "42%", delay: "0.8s" },
+  { top: "62%", left: "50%", delay: "1.9s" },
+  { top: "58%", left: "58%", delay: "0.3s" },
+  { top: "64%", left: "44%", delay: "2.3s" },
+  // Right-side PCB traces (below the fan, not on it)
+  { top: "60%", left: "70%", delay: "1.3s" },
+  { top: "64%", left: "78%", delay: "0.4s" },
+  { top: "58%", left: "86%", delay: "1.7s" },
+  { top: "62%", left: "92%", delay: "2.4s" },
 ];
 
-// Traces that run from edges toward the chip (center-top area).
-// Each trace is an SVG line with a moving dash to look like a light packet.
+/**
+ * Traces START from just below the chip perimeter and flow OUTWARD along
+ * the visible PCB tracks — down-left, down-right and straight down. They
+ * never go into or across the chip.
+ * viewBox is 0..100 on both axes so coords are simple percentages.
+ */
 const TRACES = [
-  { d: "M 5,55 L 40,50 L 45,42", delay: "0s" },
-  { d: "M 95,55 L 60,50 L 55,42", delay: "0.4s" },
-  { d: "M 15,72 L 45,60 L 50,45", delay: "0.9s" },
-  { d: "M 85,72 L 55,60 L 50,45", delay: "1.3s" },
-  { d: "M 8,40 L 30,42 L 45,42", delay: "1.8s" },
-  { d: "M 92,40 L 70,42 L 55,42", delay: "0.6s" },
+  { d: "M 40,42 L 30,52 L 18,58", delay: "0s" },     // chip → down-left
+  { d: "M 60,42 L 70,52 L 82,58", delay: "0.5s" },   // chip → down-right
+  { d: "M 45,44 L 42,58 L 30,66", delay: "1.0s" },   // chip → mid-left
+  { d: "M 55,44 L 58,58 L 70,66", delay: "1.5s" },   // chip → mid-right
+  { d: "M 50,44 L 50,60 L 50,68", delay: "0.7s" },   // chip → straight down
 ];
 
 export default function BotHub() {
@@ -96,14 +103,8 @@ export default function BotHub() {
             ))}
           </svg>
 
-          {/* Central chip pulse (behind the AI chip) */}
-          <span className="tgx-chip-pulse" data-testid="chip-pulse" />
-
           {/* Fan glow (right side, roughly where the fan is) */}
           <span className="tgx-fan-glow" data-testid="fan-glow" />
-
-          {/* Diagonal scan line sweeping the whole card */}
-          <span className="tgx-scan-sweep" aria-hidden />
         </div>
       </div>
     </div>
