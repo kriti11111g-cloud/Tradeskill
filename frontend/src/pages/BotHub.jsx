@@ -4,20 +4,6 @@ const HERO_IMAGE =
   "https://customer-assets.emergentagent.com/job_tgx-api-gateway/artifacts/v63grioq_file_000000003580720b84b6c5daae428f49.png";
 
 /**
- * Each dot sits on a real small chip component visible on the PCB. Positions
- * are picked in the strip BETWEEN the main AI chip (top < 42%) and the
- * "HUB X BOT" wordmark (top > 54%) so text is never covered.
- */
-const TWINKLES = [
-  // Left-edge PCB — two small chips visible near the left border
-  { top: "47%", left: "7%", delay: "0s" },
-  { top: "51%", left: "14%", delay: "1.2s" },
-  // Right-edge PCB — two small chips visible near the right border
-  { top: "47%", left: "93%", delay: "0.6s" },
-  { top: "51%", left: "86%", delay: "1.8s" },
-];
-
-/**
  * Traces START from just below the chip perimeter and flow OUTWARD along
  * the visible PCB tracks — down-left, down-right and straight down. They
  * never go into or across the chip.
@@ -54,15 +40,6 @@ export default function BotHub() {
           />
 
           {/* === ANIMATED OVERLAYS === */}
-
-          {/* Twinkling circuit lights (red→green pulse) */}
-          {TWINKLES.map((t, i) => (
-            <span
-              key={i}
-              className="tgx-twinkle"
-              style={{ top: t.top, left: t.left, animationDelay: t.delay }}
-            />
-          ))}
 
           {/* Electric traces (SVG lines with moving dash) */}
           <svg
