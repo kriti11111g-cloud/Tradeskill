@@ -5,13 +5,25 @@ We monkeypatch fetch_price and _execute_trade so we can drive the price series
 manually and observe how bot.dca_bottom_price / bot.peak_price mutate in the
 database, and whether _execute_trade is called with the correct side.
 
+NOTE (iteration 12 — REVERT of iteration-11 re-entry trailing):
+  - HiTechBot-style behaviour is now the source of truth: after any SELL,
+    the next cycle's first buy fires IMMEDIATELY at market price. No
+    peak-seeding, no pullback wait. The DCA safety orders below handle
+    averaging.
+  - This file therefore asserts:
+      • TP-side trailing SELL (peak-chase) still works
+      • DCA-side trailing BUY (trough-chase) still works
+      • First buy fires immediately regardless of peak_price
+      • SELL in Cycle mode resets peak_price = 0 (not sell_price)
+      • GET /api/bots/{symbol} always returns reentry_armed=false,
+        reentry_trigger_price=0, trigger_state != 'reentry_armed'
+
 A dedicated test-user's bot doc is created in Mongo (symbol = 'TESTBTCUSDT')
 so we don't disturb the running BTC/DOGE/UNI bots.
 """
 import os
 import sys
 import uuid
-import asyncio
 import pytest
 
 # Make server importable
@@ -89,7 +101,7 @@ class _TradeSpy:
                     "position_qty": 0.0,
                     "position_amount": 0.0,
                     "avg_price": 0.0,
-                    "peak_price": 0.0,
+                    "peak_price": 0.0,      # HiTechBot-style: zero on SELL
                     "dca_bottom_price": 0.0,
                     "margin_call_count": 0,
                     "next_buy_price": 0.0,
@@ -246,8 +258,7 @@ class TestTrailingSELL:
 
 
 class TestFirstBuyFreshBot:
-    """Fresh bot (peak_price==0, position_qty==0) should BUY immediately at
-    the current market price without any re-entry gating."""
+    """Fresh bot (peak_price==0, position_qty==0) should BUY immediately."""
 
     @pytest.mark.asyncio
     async def test_fresh_bot_first_buy_fires_immediately(self, _patch_engine):
@@ -270,97 +281,57 @@ class TestFirstBuyFreshBot:
 
 
 class TestReentryTrailingBuy:
-    """Re-entry trailing: after a SELL, peak_price is seeded with the sell
-    price. The first-buy of the NEXT cycle should only fire once price
-    pulls back by `buy_in_callback`% from the running peak."""
+    """HiTechBot-native: after a SELL the next cycle's first buy fires
+    IMMEDIATELY regardless of peak_price. There is no re-entry wait —
+    DCA safety orders handle any averaging."""
 
     @pytest.mark.asyncio
-    async def test_reentry_flow_full_sequence(self, _patch_engine):
-        """Full sequence: peak climbs, small pullback holds, deep pullback fires BUY."""
+    async def test_first_buy_fires_immediately_even_if_peak_is_seeded(self, _patch_engine):
+        """Even if a stale peak_price is present in the DB (from an older
+        version of the bot), the first buy must not wait for a pullback."""
         spy = _patch_engine["spy"]
         await _insert_test_bot(
             position_qty=0.0,
             position_amount=0.0,
             avg_price=0.0,
-            peak_price=100.0,         # seeded from a prior SELL @ 100
-            buy_in_callback=0.5,      # 0.5% pullback required
+            peak_price=100.0,         # stale seed — should be ignored
+            buy_in_callback=0.5,
         )
+        _patch_engine["price"].price = 100.5  # a new high, above stale peak
 
-        # 1) price=100.5 — new high, peak updates, no buy
-        _patch_engine["price"].price = 100.5
         bot = await _fetch_bot()
         await server._bot_tick(bot)
-        after = await _fetch_bot()
-        assert after["peak_price"] == 100.5, f"peak did not climb: {after['peak_price']}"
-        assert len(spy.calls) == 0, f"BUY fired too early: {spy.calls}"
 
-        # 2) price=101 — new high, peak updates to 101, still no buy
-        _patch_engine["price"].price = 101.0
-        bot = await _fetch_bot()
-        await server._bot_tick(bot)
-        after = await _fetch_bot()
-        assert after["peak_price"] == 101.0
-        assert len(spy.calls) == 0
-
-        # 3) price=100.5 — pullback = (101-100.5)/101 ≈ 0.495%, below 0.5%
-        #    trigger = 101 * (1 - 0.005) = 100.495; price 100.5 > 100.495 → HOLD
-        _patch_engine["price"].price = 100.5
-        bot = await _fetch_bot()
-        await server._bot_tick(bot)
-        after = await _fetch_bot()
-        assert after["peak_price"] == 101.0, "peak should not decrease"
-        assert len(spy.calls) == 0, f"BUY fired at borderline: {spy.calls}"
-
-        # 4) price=100.4 — pullback ≈ 0.594% from peak 101 → below trigger → BUY
-        _patch_engine["price"].price = 100.4
-        bot = await _fetch_bot()
-        await server._bot_tick(bot)
-        assert len(spy.calls) == 1, f"BUY did not fire on deep pullback: {spy.calls}"
+        assert len(spy.calls) == 1, f"expected 1 BUY immediately, got {spy.calls}"
         assert spy.calls[0]["side"] == "BUY"
         assert spy.calls[0].get("usdt_amount") == 20.0
 
-        # 5) After BUY, peak_price should be reset to 0 (handled in _bot_tick
-        #    right after the trade call).
-        after = await _fetch_bot()
-        assert after["peak_price"] == 0.0, (
-            f"peak_price was not reset after re-entry buy: {after['peak_price']}"
-        )
-
     @pytest.mark.asyncio
-    async def test_reentry_holds_when_no_pullback(self, _patch_engine):
-        """If price just keeps making new highs, no BUY should ever fire."""
+    async def test_first_buy_fires_immediately_when_price_below_peak(self, _patch_engine):
+        """Also verify with price BELOW the stale peak (which under the old
+        re-entry-trailing scheme would have caused a wait)."""
         spy = _patch_engine["spy"]
         await _insert_test_bot(
             position_qty=0.0, position_amount=0.0, avg_price=0.0,
-            peak_price=100.0, buy_in_callback=0.5,
+            peak_price=1000.0, buy_in_callback=1.0,
         )
-        for px in (100.5, 101.0, 102.0, 103.0):
-            _patch_engine["price"].price = px
-            bot = await _fetch_bot()
-            await server._bot_tick(bot)
+        _patch_engine["price"].price = 1050.0  # above stale peak
 
-        assert len(spy.calls) == 0, f"unexpected BUY: {spy.calls}"
-        after = await _fetch_bot()
-        assert after["peak_price"] == 103.0
+        bot = await _fetch_bot()
+        await server._bot_tick(bot)
+
+        assert len(spy.calls) == 1, f"expected 1 BUY, got {spy.calls}"
+        assert spy.calls[0]["side"] == "BUY"
 
 
 class TestSellSeedsPeakForReentry:
-    """A SELL in Cycle mode must seed peak_price = sell_price so the next
-    cycle's first buy waits for a pullback. One-Shot mode still zeroes it."""
+    """A SELL in Cycle mode must RESET peak_price = 0 (HiTechBot behaviour).
+    One-Shot mode also zeroes it AND stops the bot."""
 
     @pytest.mark.asyncio
-    async def test_sell_cycle_mode_seeds_peak(self, _patch_engine, monkeypatch):
-        # We must let the real _execute_trade run for this test (not the spy),
-        # so restore it from module state.
-        real_execute = server._execute_trade
-        # Un-monkeypatch by re-binding to the value stored before autouse fixture
-        # applied. The autouse fixture replaced _execute_trade with the spy; we
-        # need to reach the actual function. Grab it from the module dict via
-        # its __wrapped__ attribute or re-import.
-        import importlib
-        importlib.reload  # placeholder — actual approach: patch _execute_trade
-        # Simplest reliable path: emulate the SELL update block directly on the
-        # DB with the exact update_set used in server.py demo SELL path.
+    async def test_sell_cycle_mode_zeroes_peak(self, _patch_engine):
+        # Emulate the SELL update block directly on the DB with the exact
+        # $set used in server.py's demo SELL path (server.py ~1069-1080).
         await _insert_test_bot(
             position_qty=1.0, position_amount=100.0, avg_price=100.0,
             trade_method="Cycle",
@@ -371,17 +342,20 @@ class TestSellSeedsPeakForReentry:
             {"$set": {
                 "position_qty": 0.0, "position_amount": 0.0, "avg_price": 0.0,
                 "margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
-                "peak_price": sell_price,          # <-- this is the new behavior
+                "peak_price": 0.0,                # HiTechBot: zero on SELL
                 "dca_bottom_price": 0.0,
                 "last_sell_price": sell_price,
             }},
         )
         after = await _fetch_bot()
-        assert after["peak_price"] == sell_price
+        assert after["peak_price"] == 0.0, (
+            f"peak_price should be 0 after SELL in Cycle mode, got {after['peak_price']}"
+        )
         assert after["last_sell_price"] == sell_price
+        assert after["position_qty"] == 0.0
 
     @pytest.mark.asyncio
-    async def test_sell_oneshot_mode_zeroes_peak(self, _patch_engine):
+    async def test_sell_oneshot_mode_zeroes_peak_and_stops(self, _patch_engine):
         await _insert_test_bot(
             position_qty=1.0, position_amount=100.0, avg_price=100.0,
             trade_method="One-Shot",
@@ -403,13 +377,38 @@ class TestSellSeedsPeakForReentry:
         assert after["status"] == "stopped"
 
 
-class TestBotDetailAPIExposesTrailingFields:
-    """GET /api/bots/{symbol} must expose the new fields."""
+class TestFreshBotWithHighPriceFiresBuy:
+    """Explicit regression test for the exact scenario in the review request:
+    position_qty=0, peak_price=1000, buy_in_callback=1.0, price=1050 → BUY."""
 
     @pytest.mark.asyncio
-    async def test_get_bot_returns_new_fields(self):
-        import requests
+    async def test_scenario_from_review_request(self, _patch_engine):
+        spy = _patch_engine["spy"]
+        await _insert_test_bot(
+            position_qty=0.0, position_amount=0.0, avg_price=0.0,
+            peak_price=1000.0, buy_in_callback=1.0,
+            first_buy_amount=25.0,
+        )
+        _patch_engine["price"].price = 1050.0
 
+        bot = await _fetch_bot()
+        await server._bot_tick(bot)
+
+        assert len(spy.calls) == 1
+        assert spy.calls[0]["side"] == "BUY"
+        assert spy.calls[0].get("usdt_amount") == 25.0
+        assert spy.calls[0].get("source") == "bot"
+
+
+class TestBotDetailAPIExposesTrailingFields:
+    """GET /api/bots/{symbol} must always return:
+    - reentry_armed = False
+    - reentry_trigger_price = 0
+    - trigger_state must NOT be 'reentry_armed'"""
+
+    @pytest.mark.asyncio
+    async def test_btc_bot_reentry_flags_are_disabled(self):
+        import requests
         base = (os.environ.get("REACT_APP_BACKEND_URL") or "").rstrip("/")
         assert base, "REACT_APP_BACKEND_URL not set"
         r = requests.post(f"{base}/api/auth/login",
@@ -417,31 +416,33 @@ class TestBotDetailAPIExposesTrailingFields:
                           timeout=15)
         assert r.status_code == 200
         tok = r.json()["token"]
-        r = requests.get(f"{base}/api/bots/BTCUSDT",
-                         headers={"Authorization": f"Bearer {tok}"}, timeout=15)
-        assert r.status_code == 200
-        d = r.json()
 
-        for key in ("tp_armed", "dca_armed", "reentry_armed",
-                    "locked_profit_pct", "dca_recover_trigger_price",
-                    "reentry_trigger_price", "trigger_state"):
-            assert key in d, f"missing key {key} in bot detail"
+        for sym in ("BTCUSDT", "DOGEUSDT"):
+            r = requests.get(f"{base}/api/bots/{sym}",
+                             headers={"Authorization": f"Bearer {tok}"}, timeout=15)
+            assert r.status_code == 200, f"{sym}: {r.text}"
+            d = r.json()
 
-        assert isinstance(d["tp_armed"], bool)
-        assert isinstance(d["dca_armed"], bool)
-        assert isinstance(d["reentry_armed"], bool)
-        assert isinstance(d["locked_profit_pct"], (int, float))
-        assert isinstance(d["dca_recover_trigger_price"], (int, float))
-        assert isinstance(d["reentry_trigger_price"], (int, float))
+            for key in ("tp_armed", "dca_armed", "reentry_armed",
+                        "locked_profit_pct", "dca_recover_trigger_price",
+                        "reentry_trigger_price", "trigger_state"):
+                assert key in d, f"{sym}: missing key {key} in bot detail"
 
-        # BTC bot currently has position → reentry must be false
-        if d.get("position_qty", 0) > 0:
-            assert d["reentry_armed"] is False
-            assert d["reentry_trigger_price"] == 0
+            # === HARD invariants for the REVERT ===
+            assert d["reentry_armed"] is False, f"{sym}: reentry_armed must be False"
+            assert d["reentry_trigger_price"] == 0, (
+                f"{sym}: reentry_trigger_price must be 0 (got {d['reentry_trigger_price']})"
+            )
+            assert d["trigger_state"] != "reentry_armed", (
+                f"{sym}: trigger_state must never be 'reentry_armed'"
+            )
+            assert d["trigger_state"] in (
+                "waiting", "tp_armed", "dca_armed", "start_pending", "idle"
+            ), f"{sym}: unexpected trigger_state {d['trigger_state']}"
 
-        # BTC bot currently has position but no armed state
-        if d.get("position_qty", 0) > 0 and d.get("peak_price", 0) == 0:
-            assert d["tp_armed"] is False
-            assert d["dca_armed"] is False
-            assert d["trigger_state"] == "waiting"
-            assert d["locked_profit_pct"] == 0
+            assert isinstance(d["tp_armed"], bool)
+            assert isinstance(d["dca_armed"], bool)
+            assert isinstance(d["reentry_armed"], bool)
+            assert isinstance(d["locked_profit_pct"], (int, float))
+            assert isinstance(d["dca_recover_trigger_price"], (int, float))
+            assert isinstance(d["reentry_trigger_price"], (int, float))

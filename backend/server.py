@@ -617,12 +617,12 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
         next_buy = avg_price * (1 - buy_cb / 100.0)
 
     # === Trailing trigger states =====================================
-    # tp_armed         → price crossed take-profit target, chasing peak to SELL
-    # dca_armed        → price crossed DCA target, chasing trough to BUY (safety)
-    # reentry_armed    → position closed, chasing peak DOWN before first BUY
+    # tp_armed  → price crossed take-profit target, bot is chasing the peak
+    # dca_armed → price crossed DCA target, bot is chasing the bottom
+    # (HiTechBot style: no re-entry wait — first buy fires immediately)
     tp_armed = position_qty > 0 and peak > 0
     dca_armed = position_qty > 0 and trough > 0 and mc_count < mc_limit
-    reentry_armed = position_qty == 0 and peak > 0
+    reentry_armed = False
 
     # Locked-in profit % if a peak has been recorded
     locked_profit_pct = 0.0
@@ -634,16 +634,8 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     # from the tracked trough before the safety-order fires.
     dca_recover_trigger = trough * (1 + buy_cb / 100.0) if trough > 0 else 0.0
 
-    # Re-entry trigger — after a SELL the bot waits for a pullback of
-    # buy_in_callback% from the running peak before the first-buy of the
-    # next cycle fires.
-    reentry_trigger = peak * (1 - buy_cb / 100.0) if reentry_armed else 0.0
-
     if position_qty == 0:
-        if reentry_armed:
-            trigger_state = "reentry_armed"
-        else:
-            trigger_state = "start_pending" if merged.get("status") == "running" else "idle"
+        trigger_state = "start_pending" if merged.get("status") == "running" else "idle"
     elif tp_armed:
         trigger_state = "tp_armed"
     elif dca_armed:
@@ -655,7 +647,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     merged["margin_call_trigger_price"] = round(next_buy, 6) if next_buy else 0
     merged["tp_pullback_trigger_price"] = round(peak * (1 - tp_callback / 100.0), 6) if peak > 0 and position_qty > 0 else 0
     merged["dca_recover_trigger_price"] = round(dca_recover_trigger, 6) if dca_recover_trigger else 0
-    merged["reentry_trigger_price"] = round(reentry_trigger, 6) if reentry_trigger else 0
+    merged["reentry_trigger_price"] = 0
     merged["margin_call_remaining"] = max(0, mc_limit - mc_count)
     merged["trigger_state"] = trigger_state
     merged["tp_armed"] = tp_armed
@@ -997,10 +989,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "margin_call_count": 0,
                     "last_buy_price": 0.0,
                     "next_buy_price": 0.0,
-                    # Seed peak with the sell price so the first-buy of the
-                    # NEXT cycle waits for a pullback instead of buying right
-                    # at the top. Zero it out only for One-Shot mode.
-                    "peak_price": avg_price if bot.get("trade_method") == "Cycle" else 0.0,
+                    "peak_price": 0.0,
                     "dca_bottom_price": 0.0,
                     "last_sell_price": avg_price,
                     "cycles_completed": bot.get("cycles_completed", 0) + 1,
@@ -1083,9 +1072,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "margin_call_count": 0,
                 "last_buy_price": 0.0,
                 "next_buy_price": 0.0,
-                # Seed peak with the sell price so the first-buy of the NEXT
-                # cycle waits for a pullback (skip for One-Shot).
-                "peak_price": price if bot.get("trade_method") == "Cycle" else 0.0,
+                "peak_price": 0.0,
                 "dca_bottom_price": 0.0,
                 "last_sell_price": price,
                 "cycles_completed": bot.get("cycles_completed", 0) + 1,
@@ -1135,35 +1122,14 @@ async def _bot_tick(bot: dict):
     peak = float(bot.get("peak_price", 0.0) or 0)
     trough = float(bot.get("dca_bottom_price", 0.0) or 0)
 
-    # === FIRST BUY (with re-entry trailing) ===
-    # After a SELL, `peak_price` is seeded with the sell price so the next
-    # cycle's first buy waits for a pullback of `buy_in_callback`% from the
-    # local high — never re-enters at a fresh top. Fresh bots (peak==0) buy
-    # immediately at the current market price.
+    # === FIRST BUY (HiTechBot style — immediate re-entry after SELL) ===
+    # DCA safety orders below handle the averaging, so we don't wait for
+    # a pullback before entering the next cycle. Bot always stays in market.
     if position_qty == 0:
-        if peak > 0:
-            # We are in "re-entry armed" mode. Update the running high, then
-            # check if price has retraced enough to enter.
-            new_peak = max(peak, price)
-            if new_peak != peak:
-                await db.bots.update_one(
-                    {"user_id": user_id, "symbol": symbol},
-                    {"$set": {"peak_price": new_peak}},
-                )
-                peak = new_peak
-            entry_trigger = peak * (1 - dca_callback / 100.0)
-            if price > entry_trigger:
-                # Still trending up — keep chasing the peak, don't buy yet
-                return
         try:
             await _execute_trade(
                 user_id=user_id, symbol=symbol, side="BUY",
                 usdt_amount=first_buy, source="bot",
-            )
-            # Reset the pre-entry peak now that we've entered
-            await db.bots.update_one(
-                {"user_id": user_id, "symbol": symbol},
-                {"$set": {"peak_price": 0.0}},
             )
             await db.bot_events.insert_one({
                 "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,

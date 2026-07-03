@@ -1,0 +1,43 @@
+{
+  "summary": "Verified REVERT of iteration-11 re-entry trailing mechanism (HiTechBot-native behaviour restored). Rewrote /app/backend/tests/test_trailing_bot_logic.py: kept TrailingDCA / TrailingSELL / FirstBuyFreshBot classes; RE-PURPOSED TestReentryTrailingBuy to assert first buy fires IMMEDIATELY regardless of peak_price; RE-PURPOSED TestSellSeedsPeakForReentry to assert peak_price is 0 after SELL in both Cycle and One-Shot; added TestFreshBotWithHighPriceFiresBuy for the exact review-request scenario (peak=1000, buy_in_callback=1.0, price=1050 → BUY immediately). Extended TestBotDetailAPIExposesTrailingFields to assert on BOTH BTCUSDT and DOGEUSDT that reentry_armed is False, reentry_trigger_price==0, and trigger_state is in {waiting,tp_armed,dca_armed,start_pending,idle} (never reentry_armed). All 14 trailing tests pass. Full backend suite: 96 passed / 2 failed — both failures are the pre-existing stale hard-coded assertions in test_bots_list.py (BTC buy_count expected 8 got 9; DOGE expected 1 got 30). The DOGE count grew from 26→30 since iteration-11, confirming the fix: DOGE fired its first buy of the new cycle immediately (pos_qty=652.83 units visible on /pair/DOGEUSDT). Frontend /pair/BTCUSDT and /pair/DOGEUSDT both render Operation Reminder without the re-entry chip, and [data-testid=reentry-tracker] is absent from the DOM on both. 6-tab bottom nav intact, DCA ladder rows present. Backend logs clean, no exceptions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "N/A (pre-existing test)", "issue": "tests/test_bots_list.py::TestBotsList::test_btcusdt_expected_counts_and_profit — hard-coded buy_count==8 but actual is 9. Grows over time as live BTC bot trades. Same pattern as DOGE stale assertion flagged in iteration-11."},
+      {"endpoint": "N/A (pre-existing test)", "issue": "tests/test_bots_list.py::TestBotsList::test_dogeusdt_expected — hard-coded buy_count==1 but actual is 30. Grew from 26 (iter-11) → 30 (now), confirming the immediate-first-buy fix is working. Recommend replacing hard-coded values with buy_count>=1 sanity checks."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_trailing_bot_logic.py",
+    "/app/test_reports/pytest/pytest_trailing_bot.xml",
+    "/app/test_reports/pytest/pytest_all.xml"
+  ],
+  "action_items": [
+    "MINOR: Convert the two hard-coded buy_count/sell_count assertions in tests/test_bots_list.py to relative sanity checks (>=1) so they don't drift with live bot trading. Not caused by this iteration."
+  ],
+  "critical_code_review_comments": [
+    "server.py still 1690 lines — same recommendation as prior iterations to split into bots/trades/market/auth/engine modules.",
+    "server.py still uses @app.on_event startup/shutdown (deprecated) — should be moved to FastAPI lifespan.",
+    "_bot_tick FIRST BUY block (server.py ~1128-1148) is now clean: guard is simply `if position_qty == 0`. No peak/trough gating for entry. Verified by 4 new tests.",
+    "SELL reset blocks (server.py ~987-996 for real, ~1070-1080 for demo) both set peak_price=0.0 for Cycle mode. last_sell_price is still recorded for reference. Consistent with HiTechBot spec.",
+    "get_bot (server.py ~625) hard-codes reentry_armed=False and reentry_trigger_price=0 on every response — regardless of stored DB state. Good defensive design for the revert."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_trailing_bot_logic.py (rewrote: kept TrailingDCA & TrailingSELL & FirstBuyFreshBot; re-purposed TestReentryTrailingBuy → first-buy-fires-immediately-regardless-of-peak; re-purposed TestSellSeedsPeakForReentry → peak_price zeroed after SELL in Cycle mode; added TestFreshBotWithHighPriceFiresBuy for review-request scenario; extended TestBotDetailAPIExposesTrailingFields to hard-invariant reentry_armed=False and trigger_state != 'reentry_armed' for BTC+DOGE)"
+  ],
+  "success_rate": {
+    "backend": "14/14 trailing tests pass; 96/98 full suite (2 pre-existing stale hard-coded assertions in test_bots_list.py, unrelated to this iteration)",
+    "frontend": "100% — [data-testid=reentry-tracker] absent from DOM on both /pair/BTCUSDT and /pair/DOGEUSDT; Operation Reminder + DCA ladder + 6-tab nav all render; DOGE shows position_qty=652.83 confirming immediate first buy on new cycle. Only console noise is the pre-existing Binance WS 451 geo-restriction warnings, unrelated."
+  },
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "Test bot doc for symbol TESTBTCUSDT is inserted/mutated/cleaned within each test class. status='stopped' so the real bot_engine_loop ignores it. Module cleanup fixture wipes it at teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Trailing tests require pytest-asyncio (installed) and /app/backend/tests/pytest.ini pins loop scope='session' (do not change — motor binds to event loop at import). Run: cd /app/backend && python -m pytest tests/ -v. To retest UI, remember re-entry has been removed: chip labels are only {TP Armed, DCA Armed, Waiting for trigger, First buy pending, Idle}. [data-testid=reentry-tracker] MUST NOT exist. reentry_armed and reentry_trigger_price are hard-coded to False/0 in get_bot response regardless of DB state — do not rely on DB peak_price to test these flags. DOGE bot has active running position (pos_qty~653) — good live sample. BTC currently pos_qty~0.000323, actively trading. The two failing test_bots_list assertions are pre-existing tech debt.",
+  "rca of the issue": "N/A — revert verified successful. Old re-entry-trailing gate (`if position_qty==0 and peak_price>0` requiring pullback) has been replaced by unconditional `if position_qty==0 → BUY immediately`. Verified by test_first_buy_fires_immediately_even_if_peak_is_seeded (peak=100, price=100.5 → BUY) and test_scenario_from_review_request (peak=1000, price=1050 → BUY). Live proof: DOGE position_qty=652.83 units on new cycle after most recent SELL, visible on /pair/DOGEUSDT and confirmed via GET /api/bots/DOGEUSDT."
+}
