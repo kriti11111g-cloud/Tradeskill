@@ -29,7 +29,8 @@ function BotCard({ bot }) {
   const floating = hasPosition && hasLivePrice ? marketValue - costBasis : 0;
   const floatingPct =
     hasPosition && hasLivePrice && avgPrice > 0 ? ((livePrice - avgPrice) / avgPrice) * 100 : 0;
-  const isRunning = bot.state === "running" || bot.state === "RUNNING";
+  const rawState = bot.status || bot.state || "";
+  const isRunning = String(rawState).toLowerCase() === "running";
   const cumProfit = bot.cumulative_profit || 0;
 
   return (
@@ -159,7 +160,9 @@ export default function Trades() {
   }, []);
 
   const totalProfit = bots.reduce((s, b) => s + (b.cumulative_profit || 0), 0);
-  const active = bots.filter((b) => b.state === "running" || b.state === "RUNNING").length;
+  const active = bots.filter(
+    (b) => String(b.status || b.state || "").toLowerCase() === "running"
+  ).length;
 
   return (
     <div className="pb-24">
