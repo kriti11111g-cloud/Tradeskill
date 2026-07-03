@@ -633,6 +633,113 @@ export default function TradingPair() {
         </div>
       </div>
 
+      {/* DCA Ladder — full breakdown of all pending safety orders + take profit */}
+      {(bot.dca_ladder && bot.dca_ladder.length > 0) || bot.take_profit_trigger_price > 0 ? (
+        <div className="px-4 mt-4">
+          <div
+            className="rounded-2xl border border-white/25 p-4 relative overflow-hidden"
+            style={{ background: "linear-gradient(180deg, rgba(57,255,20,0.04), rgba(255,215,0,0.04)), #0F1524" }}
+            data-testid="dca-ladder-panel"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
+                Auto-Trigger Ladder
+              </div>
+              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+                {bot.dca_ladder?.length || 0} Levels · {bot.margin_call_remaining || 0} Left
+              </div>
+            </div>
+
+            {/* Take Profit row (top of ladder) */}
+            {bot.take_profit_trigger_price > 0 && (
+              <div
+                className="flex items-center justify-between py-2 border-b border-[#39FF14]/20"
+                data-testid="ladder-tp-row"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-7 rounded-full bg-[#39FF14] shadow-[0_0_8px_#39FF14]" />
+                  <div className="w-8 h-8 rounded-lg bg-[#39FF14]/15 border border-[#39FF14]/40 flex items-center justify-center">
+                    <TrendingUp size={14} className="text-[#39FF14]" strokeWidth={2.2} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-[#39FF14]">
+                      SELL — Take Profit
+                    </div>
+                    <div className="text-[9px] text-[#8B9BB4]">
+                      +{bot.whole_take_profit_ratio}% · pullback {bot.whole_take_profit_callback}%
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-display font-black text-sm tabular-nums text-[#39FF14]">
+                    ≥ {fmtNum(bot.take_profit_trigger_price, bot.take_profit_trigger_price > 100 ? 2 : 4)}
+                  </div>
+                  {price > 0 && (
+                    <div className="text-[9px] tabular-nums text-[#8B9BB4]">
+                      {(((bot.take_profit_trigger_price - price) / price) * 100).toFixed(2)}% to go
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Current price marker */}
+            <div className="flex items-center justify-between py-2 my-1 rounded-lg bg-[#00F0FF]/[0.08] border border-[#00F0FF]/30 px-2" data-testid="ladder-current-row">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-7 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-[#00F0FF]">
+                    Current Price
+                  </div>
+                  <div className="text-[9px] text-[#8B9BB4]">Live · Binance</div>
+                </div>
+              </div>
+              <div className="font-display font-black text-base tabular-nums text-white">
+                {price > 0 ? fmtNum(price, price > 100 ? 2 : 4) : "—"}
+              </div>
+            </div>
+
+            {/* Safety orders (DCA ladder) */}
+            {(bot.dca_ladder || []).map((lvl, idx) => (
+              <div
+                key={lvl.level}
+                className="flex items-center justify-between py-2 border-t border-white/10"
+                data-testid={`ladder-mc-row-${lvl.level}`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-1 h-7 rounded-full ${idx === 0 ? "bg-[#FFD700] shadow-[0_0_8px_#FFD700]" : "bg-[#FFD700]/40"}`} />
+                  <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center">
+                    <span className="font-display font-black text-[10px] text-[#FFD700]">L{lvl.level}</span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-[#FFD700]">
+                      BUY — Safety Order
+                    </div>
+                    <div className="text-[9px] text-[#8B9BB4]">
+                      -{lvl.drop_pct}% · ${lvl.amount_usdt} · Total ${lvl.cumulative_usdt}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-display font-black text-sm tabular-nums text-[#FFD700]">
+                    ≤ {fmtNum(lvl.trigger_price, lvl.trigger_price > 100 ? 2 : 4)}
+                  </div>
+                  {price > 0 && (
+                    <div className="text-[9px] tabular-nums text-[#8B9BB4]">
+                      {(((price - lvl.trigger_price) / lvl.trigger_price) * 100).toFixed(2)}% above
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] mt-3 pt-2 border-t border-white/10 text-center">
+              Bot will auto-execute at each trigger · No manual action needed
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Action Buttons */}
       <div className="grid grid-cols-4 gap-2 px-4 mt-4">
         {[

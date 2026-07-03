@@ -492,6 +492,58 @@ def _get_margin_rule(bot: dict, round_idx: int) -> dict:
     }
 
 
+def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
+    """Return the full remaining DCA ladder for the UI.
+    Each entry: {level, trigger_price, drop_pct, amount_usdt, cumulative_usdt}
+    Level numbering starts at (margin_call_count + 1) — i.e. the NEXT safety order.
+    Prices are computed by compounding the drop% from either the avg_price
+    (if a position is open) or the current market price (if idle).
+    """
+    cfg = bot.get("margin_config") or DEFAULT_MARGIN_CONFIG
+    if not cfg:
+        return []
+    first_buy = float(bot.get("first_buy_amount", 20.0) or 20.0)
+    avg_price = float(bot.get("avg_price", 0) or 0)
+    mc_count = int(bot.get("margin_call_count", 0) or 0)
+    mc_limit = int(bot.get("margin_call_limit", 5) or 5)
+    open_pos_double = bool(bot.get("open_position_double", True))
+
+    # Anchor: if position open, ladder chains down from avg_price;
+    # if idle, chain from current market price so user can preview.
+    anchor = avg_price if avg_price > 0 else float(current_price or 0)
+    if anchor <= 0 or mc_limit <= mc_count:
+        return []
+
+    ladder = []
+    last_price = anchor
+    cum = float(bot.get("position_amount", 0) or 0)
+    if cum <= 0:
+        # If no position yet, seed the running sum with the first buy amount
+        # so cumulative includes the initial base order.
+        cum = first_buy
+    for i in range(mc_count, mc_limit):
+        rule_idx = min(i, len(cfg) - 1)
+        r = cfg[rule_idx]
+        drop = float(r.get("drop", 2.0) or 2.0)
+        mult = float(r.get("multiplier", 2.0) or 2.0)
+        trigger = last_price * (1 - drop / 100.0)
+        # Amount for this safety order
+        if open_pos_double:
+            amount = first_buy * (mult ** (i + 1))
+        else:
+            amount = first_buy
+        cum += amount
+        ladder.append({
+            "level": i + 1,
+            "trigger_price": round(trigger, 6),
+            "drop_pct": round(drop, 2),
+            "amount_usdt": round(amount, 2),
+            "cumulative_usdt": round(cum, 2),
+        })
+        last_price = trigger
+    return ladder
+
+
 @api.get("/bots")
 async def list_bots(user: dict = Depends(get_current_user)):
     rows = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
@@ -576,6 +628,15 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     merged["tp_pullback_trigger_price"] = round(peak * (1 - tp_callback / 100.0), 6) if peak > 0 else 0
     merged["margin_call_remaining"] = max(0, mc_limit - mc_count)
     merged["trigger_state"] = trigger_state
+    # Fetch current market price so we can build a preview ladder
+    # even when the bot has no open position yet.
+    live_px = 0.0
+    try:
+        live_px = float(await fetch_price(symbol.upper()))
+    except Exception:
+        live_px = 0.0
+    merged["current_price"] = round(live_px, 6) if live_px else 0
+    merged["dca_ladder"] = _compute_dca_ladder(merged, current_price=live_px)
     return merged
 
 
