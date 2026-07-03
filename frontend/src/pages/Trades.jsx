@@ -37,8 +37,24 @@ function BotCard({ bot }) {
     <button
       onClick={() => navigate(`/pair/${bot.symbol}`)}
       data-testid={`bot-card-${bot.symbol}`}
-      className="w-full text-left bg-[#0F1524]/60 backdrop-blur-xl border border-white/15 rounded-xl p-2.5 hover:border-[#00F0FF]/40 active:scale-[0.995] transition"
+      className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
+        isRunning
+          ? "bg-gradient-to-br from-[#0F1524]/80 to-[#0B111E]/80 border border-[#39FF14]/35 hover:border-[#39FF14]/60"
+          : "bg-[#0F1524]/60 backdrop-blur-xl border border-white/15 hover:border-[#00F0FF]/40"
+      }`}
+      style={
+        isRunning
+          ? { boxShadow: "inset 0 0 12px rgba(57,255,20,0.06), 0 0 0 1px rgba(57,255,20,0.05)" }
+          : undefined
+      }
     >
+      {/* Left accent bar for live bots */}
+      {isRunning && (
+        <div
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#39FF14]"
+          style={{ boxShadow: "0 0 10px rgba(57,255,20,0.7)" }}
+        />
+      )}
       {/* Top row: coin, pair, mode, running dot */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
@@ -146,6 +162,7 @@ function BotCard({ bot }) {
 export default function Trades() {
   const [bots, setBots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("live"); // "live" | "all" | "idle"
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -159,10 +176,26 @@ export default function Trades() {
     return () => clearInterval(t);
   }, []);
 
+  const isLive = (b) => String(b.status || b.state || "").toLowerCase() === "running";
   const totalProfit = bots.reduce((s, b) => s + (b.cumulative_profit || 0), 0);
-  const active = bots.filter(
-    (b) => String(b.status || b.state || "").toLowerCase() === "running"
-  ).length;
+  const active = bots.filter(isLive).length;
+
+  // Sort: live bots first, then by profit desc
+  const sorted = [...bots].sort((a, b) => {
+    const la = isLive(a) ? 1 : 0;
+    const lb = isLive(b) ? 1 : 0;
+    if (la !== lb) return lb - la;
+    return (b.cumulative_profit || 0) - (a.cumulative_profit || 0);
+  });
+
+  const visible =
+    filter === "live"
+      ? sorted.filter(isLive)
+      : filter === "idle"
+      ? sorted.filter((b) => !isLive(b))
+      : sorted;
+
+  const idleCount = bots.length - active;
 
   return (
     <div className="pb-24">
@@ -178,7 +211,7 @@ export default function Trades() {
           <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
             Active Bots
           </div>
-          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums">{active}</div>
+          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums text-[#39FF14]">{active}</div>
         </div>
         <div className="rounded-xl border border-white/15 bg-[#0F1524]/50 p-2.5">
           <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
@@ -199,6 +232,50 @@ export default function Trades() {
         </div>
       </div>
 
+      {/* Filter chips: Live / All / Idle */}
+      <div className="px-4 mt-3 flex items-center gap-2" data-testid="trades-filter">
+        {[
+          { key: "live", label: "Live", count: active, color: "#39FF14" },
+          { key: "all", label: "All", count: bots.length, color: "#00F0FF" },
+          { key: "idle", label: "Idle", count: idleCount, color: "#8B9BB4" },
+        ].map((t) => {
+          const isActive = filter === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              data-testid={`trades-filter-${t.key}`}
+              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-black transition-all"
+              style={{
+                background: isActive ? `${t.color}18` : "rgba(255,255,255,0.03)",
+                borderWidth: 1,
+                borderStyle: "solid",
+                borderColor: isActive ? `${t.color}80` : "rgba(255,255,255,0.15)",
+                color: isActive ? t.color : "#8B9BB4",
+                boxShadow: isActive ? `0 0 12px ${t.color}40` : "none",
+              }}
+            >
+              {t.key === "live" && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: t.color,
+                    boxShadow: isActive ? `0 0 6px ${t.color}` : "none",
+                  }}
+                />
+              )}
+              {t.label}
+              <span
+                className="tabular-nums font-mono"
+                style={{ color: isActive ? t.color : "#556072" }}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Bot cards list */}
       <div className="px-4 mt-3 space-y-1.5" data-testid="bots-list">
         {loading && (
@@ -212,7 +289,22 @@ export default function Trades() {
             No bots yet. Tap the + button to start one.
           </div>
         )}
-        {bots.map((b) => (
+        {!loading && bots.length > 0 && visible.length === 0 && (
+          <div
+            className="text-center text-sm text-[#8B9BB4] py-16 border border-dashed border-white/20 rounded-2xl"
+            data-testid="no-bots-filter"
+          >
+            {filter === "live" ? (
+              <>
+                No live bots right now.<br />
+                <span className="text-[11px] text-[#556072]">Switch to <b>All</b> to view idle bots.</span>
+              </>
+            ) : (
+              "No bots in this filter."
+            )}
+          </div>
+        )}
+        {visible.map((b) => (
           <BotCard key={b.symbol} bot={b} />
         ))}
       </div>
