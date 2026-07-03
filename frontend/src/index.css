@@ -110,21 +110,15 @@ html, body, #root {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); background: #39FF14; box-shadow: 0 0 0px rgba(57,255,20,0); }
 }
 
-/* Traces: light "packet" runs along the SVG path, then a long pause before
-   the next packet — creates a natural "sometimes it fires, sometimes it
-   waits" rhythm instead of a constant loop. */
+/* Traces: light "packet" running along an SVG path via dash offset shift. */
 .tgx-trace {
-  animation: tgx-trace-flow 3s linear infinite;
+  animation: tgx-trace-flow 2.4s linear infinite;
   filter: drop-shadow(0 0 2px rgba(57,255,20,0.85));
-  will-change: stroke-dashoffset, opacity;
-  opacity: 0;
+  will-change: stroke-dashoffset;
 }
 @keyframes tgx-trace-flow {
-  0%   { stroke-dashoffset: 100; opacity: 0; }
-  5%   { opacity: 0.95; }
-  25%  { stroke-dashoffset: 0;   opacity: 0.95; }
-  30%  { opacity: 0; }
-  100% { stroke-dashoffset: 0;   opacity: 0; }
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0;  }
 }
 
 /* Central chip pulse — radial red→green pulse behind the "AI" chip.
