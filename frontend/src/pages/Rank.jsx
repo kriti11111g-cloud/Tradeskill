@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { Crown, ChevronLeft, ChevronRight } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 
 const IMAGE_BASE = "/ranks";
@@ -60,30 +59,39 @@ export default function Rank() {
   const isNext = activeRank && activeRank.level === currentLevel + 1;
 
   return (
-    <div className="pb-28" data-testid="rank-page">
-      <PageHeader title="Rank Levels" subtitle="1 STAR → 10 STAR" showBack={false} />
-
-      {/* Section label */}
-      {activeRank && (
-        <div className="px-4 mt-1 flex items-center justify-between">
-          <span
-            className="text-[10px] tracking-[0.28em] uppercase font-bold"
-            style={{ color: activeRank.color }}
-            data-testid="rank-section-label"
-          >
-            {isCurrent ? "★ Your Current Rank" : isNext ? "→ Next Rank" : `Level ${activeRank.level} of 10`}
-          </span>
-          <span className="text-[10px] text-[#8B9BB4]">
-            {activeIdx + 1} / {ordered.length}
-          </span>
+    <div
+      className="flex flex-col overflow-hidden"
+      style={{ height: "calc(100dvh - 64px)" }}
+      data-testid="rank-page"
+    >
+      {/* Compact header row — replaces PageHeader to save vertical space */}
+      <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-base font-black text-white tracking-tight">Rank</h1>
+          {activeRank && (
+            <span
+              className="text-[10px] tracking-[0.28em] uppercase font-bold"
+              style={{ color: activeRank.color, textShadow: `0 0 6px ${activeRank.color}80` }}
+              data-testid="rank-section-label"
+            >
+              {isCurrent
+                ? "★ Your Current"
+                : isNext
+                ? "→ Next Rank"
+                : `Level ${activeRank.level}`}
+            </span>
+          )}
         </div>
-      )}
+        <span className="text-[10px] text-[#8B9BB4] font-mono">
+          {activeIdx + 1} / {ordered.length}
+        </span>
+      </div>
 
-      {/* Horizontal snap scroller — one full-width card per page */}
+      {/* Horizontal snap scroller — one full-viewport card per page */}
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="mt-2 flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
+        className="flex-1 min-h-0 flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
         style={{ scrollBehavior: "smooth" }}
         data-testid="rank-pager"
       >
@@ -102,7 +110,7 @@ export default function Rank() {
 
       {/* Prev / Next arrows */}
       {ordered.length > 1 && (
-        <div className="px-4 mt-3 flex items-center justify-between">
+        <div className="shrink-0 px-4 py-2 flex items-center justify-between">
           <button
             onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
             disabled={activeIdx === 0}
@@ -182,73 +190,80 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
 
   return (
     <div
-      className="snap-start shrink-0 w-full px-4"
+      className="snap-start shrink-0 w-full h-full px-4 pb-2 flex items-center justify-center"
       data-testid={`rank-page-${rank.level}`}
     >
       <div
-        className="rounded-2xl overflow-hidden border relative"
+        className="w-full max-h-full rounded-2xl overflow-hidden border relative flex flex-col"
         style={{
           borderColor: `${rank.color}60`,
           background: "#000",
           boxShadow: `0 0 32px ${rank.color}33`,
         }}
       >
-        {/* Full card image — no cropping */}
-        <div className="relative w-full">
+        {/* Image — natural aspect, hugs container width */}
+        <div className="relative w-full min-h-0 flex-1">
           {!imgError ? (
             <img
               src={imgSrc}
               alt={`${rank.level} STAR ${rank.title}`}
-              className="w-full h-auto block select-none"
+              className="w-full h-full object-contain object-center select-none block"
               onError={() => setImgError(true)}
               loading={index < 3 ? "eager" : "lazy"}
               draggable={false}
             />
           ) : (
-            <div className="aspect-square w-full">
+            <div className="aspect-[948/1659]">
               <PlaceholderStar rank={rank} />
             </div>
           )}
-
-          {isCurrent && (
-            <div
-              className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#39FF14] text-black"
-              style={{ boxShadow: "0 0 12px #39FF14" }}
-              data-testid="current-rank-badge"
-            >
-              ★ YOU
-            </div>
-          )}
-
-          {isAchieved && !isCurrent && (
-            <div
-              className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/10 text-[#39FF14] border border-[#39FF14]/40"
-              data-testid={`achieved-badge-${rank.level}`}
-            >
-              ✓ UNLOCKED
-            </div>
-          )}
-
-          {rank.crown && (
-            <Crown
-              size={28}
-              className="absolute top-3 left-3 text-[#FFD700]"
-              style={{ filter: "drop-shadow(0 0 8px #FFD700)" }}
-            />
-          )}
         </div>
 
-        {/* Bottom PROCESSING BAR — always visible on every card */}
+        {/* Top badges */}
+        {isCurrent && (
+          <div
+            className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#39FF14] text-black"
+            style={{ boxShadow: "0 0 12px #39FF14" }}
+            data-testid="current-rank-badge"
+          >
+            ★ YOU
+          </div>
+        )}
+
+        {isAchieved && !isCurrent && (
+          <div
+            className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/70 text-[#39FF14] border border-[#39FF14]/40"
+            data-testid={`achieved-badge-${rank.level}`}
+          >
+            ✓ UNLOCKED
+          </div>
+        )}
+
+        {rank.crown && (
+          <Crown
+            size={24}
+            className="absolute top-3 left-3 z-10 text-[#FFD700]"
+            style={{ filter: "drop-shadow(0 0 8px #FFD700)" }}
+          />
+        )}
+
+        {/* Bottom PROCESSING BAR — OVERLAY glass panel at card bottom */}
         {localProgress && (
           <div
-            className="p-3 border-t border-white/10 space-y-2"
+            className="absolute inset-x-0 bottom-0 z-10 px-3 py-2 space-y-1.5"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0) 100%)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
             data-testid={`rank-processing-${rank.level}`}
           >
-            {/* Overall progress ring/bar */}
+            {/* Overall progress */}
             <div className="flex items-center justify-between">
               <div
-                className="text-[9px] tracking-[0.3em] uppercase font-bold"
-                style={{ color: rank.color }}
+                className="text-[9px] tracking-[0.28em] uppercase font-bold"
+                style={{ color: rank.color, textShadow: `0 0 6px ${rank.color}` }}
               >
                 {isAchieved ? "Achieved" : "Processing"}
               </div>
@@ -261,7 +276,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
               </div>
             </div>
 
-            <div className="h-2 rounded-full bg-white/5 overflow-hidden relative">
+            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden relative">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -269,7 +284,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
                   background: isAchieved
                     ? "linear-gradient(90deg,#39FF14,#7FFF00)"
                     : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
-                  boxShadow: `0 0 10px ${isAchieved ? "#39FF14" : rank.color}`,
+                  boxShadow: `0 0 8px ${isAchieved ? "#39FF14" : rank.color}`,
                 }}
               />
               {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
@@ -282,51 +297,68 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
               )}
             </div>
 
-            {/* Detailed sub-bars — only for future ranks with requirements */}
-            {!isAchieved && (localProgress.direct_needed > 0 || localProgress.team_needed > 0) && (
-              <div className="pt-1 space-y-1.5">
+            {/* Compact inline stats row */}
+            {!isAchieved && (localProgress.direct_needed > 0 || localProgress.team_needed > 0) ? (
+              <div className="flex items-center justify-between gap-1.5 pt-0.5">
                 {localProgress.direct_needed > 0 && (
-                  <ProgressBar
-                    label="Direct Users"
+                  <MiniStat
+                    label="Direct"
                     have={localProgress.direct_have}
                     need={localProgress.direct_needed}
                     color={rank.color}
                   />
                 )}
                 {localProgress.team_needed > 0 && (
-                  <ProgressBar
-                    label="Team Size"
+                  <MiniStat
+                    label="Team"
                     have={localProgress.team_have}
                     need={localProgress.team_needed}
                     color={rank.color}
                   />
                 )}
                 {localProgress.downline_requirement && (
-                  <ProgressBar
-                    label={localProgress.downline_requirement.label}
+                  <MiniStat
+                    label={localProgress.downline_requirement.label.replace("2× ", "")}
                     have={localProgress.downline_have}
                     need={localProgress.downline_requirement.count}
                     color={rank.color}
                   />
                 )}
               </div>
-            )}
-
-            {/* Current-rank team snapshot */}
-            {isCurrent && stats && (
-              <div
-                className="text-center text-[10px] rounded-lg p-1.5 mt-1"
-                style={{ background: `${rank.color}12`, border: `1px solid ${rank.color}30` }}
-              >
-                <span className="text-[#8B9BB4]">Directs:</span>{" "}
-                <span className="text-white font-bold">{stats.direct_count}</span>
-                <span className="text-[#8B9BB4]"> · Team:</span>{" "}
-                <span className="text-white font-bold">{stats.total_team}</span>
-              </div>
+            ) : (
+              isCurrent && stats && (
+                <div className="flex items-center justify-center gap-3 text-[10px]">
+                  <span className="text-[#8B9BB4]">
+                    Directs: <span className="text-white font-bold">{stats.direct_count}</span>
+                  </span>
+                  <span className="text-[#8B9BB4]">
+                    Team: <span className="text-white font-bold">{stats.total_team}</span>
+                  </span>
+                </div>
+              )
             )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, have, need, color }) {
+  const done = have >= need;
+  return (
+    <div className="flex-1 min-w-0 flex items-center justify-between gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/5">
+      <span className="text-[#8B9BB4] truncate text-[9px] uppercase tracking-wider">
+        {label}
+      </span>
+      <span
+        className={`font-mono font-bold tabular-nums shrink-0 text-[10px] ${
+          done ? "text-[#39FF14]" : "text-white"
+        }`}
+        style={done ? {} : { color }}
+      >
+        {have}/{need}
+      </span>
     </div>
   );
 }
