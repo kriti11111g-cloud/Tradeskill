@@ -329,7 +329,7 @@ export default function BotHub() {
                 data-testid="bot-txn-row"
               >
                 <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-white uppercase tracking-wide leading-tight">
+                  <div className="text-[11px] font-semibold text-white capitalize tracking-wide leading-tight">
                     {t.kind.replace("_", " ")}
                   </div>
                   <div className="text-[9px] text-[#8B9BB4] leading-tight">{fmtTime(t.created_at)}</div>
