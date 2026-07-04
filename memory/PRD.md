@@ -108,6 +108,5 @@ See `/app/memory/test_credentials.md`
 - Backend pytest suite at `/app/backend/tests/` with 20+ trailing-logic + wallet tests.
 
 ## Recent Updates
-- **2026-02-05** — Added 4 new Rank Card images (5⭐ Elite, 7⭐ Master, 8⭐ Legend, 10⭐ Supreme Legend). Now 8/10 rank images in `/app/frontend/public/ranks/`.
-- **2026-02-05** — Added "Processing Bar" (progress bar) at bottom of EVERY rank card in `Rank.jsx`. Computes per-rank progress locally from `stats` (direct_count, total_team, downline_ranks). Shows overall % + detailed sub-bars for future ranks; "ACHIEVED 100%" for unlocked ranks. Screenshot-verified.
-- Missing rank images: rank_6.png, rank_9.png (fallback to SVG PlaceholderStar).
+- **2026-02-05** — Added all 10 Rank Card images (5⭐ Elite, 6⭐ Champion, 7⭐ Master, 8⭐ Legend, 9⭐ Grandmaster, 10⭐ Supreme Legend). Full set 1-10 now in `/app/frontend/public/ranks/`.
+- **2026-02-05** — Added "Processing Bar" (progress bar) at bottom of EVERY rank card in `Rank.jsx`. Computes per-rank progress locally from `stats` (direct_count, total_team, downline_ranks). Shows overall % + detailed sub-bars for future ranks; "ACHIEVED 100%" for unlocked ranks. Screenshot-verified for ranks 1, 3, 6, 7, 9.
