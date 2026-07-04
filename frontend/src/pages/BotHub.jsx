@@ -435,9 +435,6 @@ export default function BotHub() {
                     {t.amount > 0 ? "+" : ""}
                     {fmtUSD(t.amount)}
                   </div>
-                  {t.balance_after != null && (
-                    <div className="text-[9px] text-[#8B9BB4] leading-tight">Bal: {fmtUSD(t.balance_after)}</div>
-                  )}
                 </div>
               </div>
             ))
