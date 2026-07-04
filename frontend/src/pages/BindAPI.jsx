@@ -174,7 +174,7 @@ export default function BindAPI() {
           data-testid="confirm-modal"
         >
           <div
-            className="w-full max-w-md bg-[#0F1524] border border-[#FF007A]/40 rounded-3xl p-6"
+            className="w-full max-w-md max-h-[85vh] bg-[#0F1524] border border-[#FF007A]/40 rounded-3xl p-5 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
@@ -187,15 +187,8 @@ export default function BindAPI() {
               </div>
             </div>
 
-            <ul className="space-y-2 text-xs text-white/80 mb-5 leading-relaxed">
-              <li>• Every Buy/Sell will hit your <span className="text-[#FF007A] font-bold">live Binance account</span>.</li>
-              <li>• Losses from market moves or misconfigured strategy are <span className="text-[#FF007A] font-bold">irreversible</span>.</li>
-              <li>• You are responsible for enabling only <span className="text-[#00F0FF]">Read Info + Spot Trading</span> permissions on your key.</li>
-              <li>• Turn on <span className="text-[#00F0FF]">IP whitelist</span> in Binance for extra safety.</li>
-              <li>• TGX BOT will never withdraw funds — that permission is not requested.</li>
-            </ul>
-
-            <label className="flex items-start gap-2 text-xs text-white/90 cursor-pointer mb-4">
+            {/* Acknowledgment checkbox — pinned above the fold */}
+            <label className="flex items-start gap-2 text-xs text-white/90 cursor-pointer mb-3 rounded-xl bg-white/[0.04] border border-white/15 p-3">
               <input
                 type="checkbox"
                 checked={ack}
@@ -206,7 +199,8 @@ export default function BindAPI() {
               <span>I understand the risks and want to enable live trading with my Binance funds.</span>
             </label>
 
-            <div className="grid grid-cols-2 gap-2">
+            {/* Primary action row — always visible without scrolling */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -229,6 +223,17 @@ export default function BindAPI() {
                 {loading ? "Binding..." : "Enable Live"}
               </button>
             </div>
+
+            <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-black mb-2">
+              What you are agreeing to
+            </div>
+            <ul className="space-y-2 text-xs text-white/80 leading-relaxed">
+              <li>• Every Buy/Sell will hit your <span className="text-[#FF007A] font-bold">live Binance account</span>.</li>
+              <li>• Losses from market moves or misconfigured strategy are <span className="text-[#FF007A] font-bold">irreversible</span>.</li>
+              <li>• You are responsible for enabling only <span className="text-[#00F0FF]">Read Info + Spot Trading</span> permissions on your key.</li>
+              <li>• Turn on <span className="text-[#00F0FF]">IP whitelist</span> in Binance for extra safety.</li>
+              <li>• TGX BOT will never withdraw funds — that permission is not requested.</li>
+            </ul>
           </div>
         </div>
       )}
