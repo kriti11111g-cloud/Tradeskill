@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   Wallet as WalletIcon,
@@ -12,8 +12,11 @@ import {
   AlertTriangle,
   Info,
   Calendar,
+  QrCode,
+  Users,
   X,
 } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -33,11 +36,17 @@ const TRACES = [
 export default function BotHub() {
   const { refresh } = useAuth();
   const [status, setStatus] = useState(null);
-  const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'info' | null
+  const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'p2p' | 'info' | null
   const [amount, setAmount] = useState("");
+  const [address, setAddress] = useState("");
+  const [network, setNetwork] = useState("BEP20");
+  const [recipient, setRecipient] = useState("");
+  const [scanning, setScanning] = useState(false);
   const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterDate, setFilterDate] = useState(""); // YYYY-MM-DD, empty = all
+  const qrRef = useRef(null);
+  const qrScannerRef = useRef(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -63,8 +72,12 @@ export default function BotHub() {
   }, [loadStatus, loadTxns]);
 
   const closeModal = () => {
+    stopScan();
     setModal(null);
     setAmount("");
+    setAddress("");
+    setNetwork("BEP20");
+    setRecipient("");
   };
 
   const doActivate = async () => {
@@ -101,16 +114,82 @@ export default function BotHub() {
     }
   };
 
+  const stopScan = useCallback(async () => {
+    if (qrScannerRef.current) {
+      try {
+        await qrScannerRef.current.stop();
+        await qrScannerRef.current.clear();
+      } catch {
+        /* ignore */
+      }
+      qrScannerRef.current = null;
+    }
+    setScanning(false);
+  }, []);
+
+  const startScan = async () => {
+    setScanning(true);
+    // wait a tick for the DOM node to mount
+    setTimeout(async () => {
+      try {
+        const scanner = new Html5Qrcode("qr-reader");
+        qrScannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          (decoded) => {
+            setAddress(decoded);
+            toast.success("Address scanned");
+            stopScan();
+          },
+          () => {},
+        );
+      } catch (e) {
+        toast.error("Camera access denied");
+        setScanning(false);
+      }
+    }, 80);
+  };
+
   const doWithdraw = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
     setLoading(true);
     try {
-      await api.post("/bot-wallet/withdraw", { amount: amt });
-      toast.success(`Withdrew $${amt.toFixed(2)} to Main Wallet`);
+      await api.post("/bot-wallet/withdraw", {
+        amount: amt,
+        address: address || null,
+        network: address ? network : null,
+      });
+      toast.success(
+        address
+          ? `Sent $${amt.toFixed(2)} to ${address.slice(0, 8)}…`
+          : `Withdrew $${amt.toFixed(2)} to Main Wallet`,
+      );
       await loadStatus();
       await loadTxns();
       await refresh?.();
+      closeModal();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doP2P = async () => {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
+    if (!recipient.trim()) return toast.error("Enter recipient email");
+    setLoading(true);
+    try {
+      const { data } = await api.post("/bot-wallet/p2p", {
+        recipient_email: recipient.trim(),
+        amount: amt,
+      });
+      toast.success(`Sent $${amt.toFixed(2)} to ${data.recipient}`);
+      await loadStatus();
+      await loadTxns();
       closeModal();
     } catch (e) {
       toast.error(formatApiError(e));
@@ -258,8 +337,9 @@ export default function BotHub() {
             <span className="text-[11px] font-semibold text-white">Withdraw</span>
           </button>
           <button
-            onClick={() => toast.info("P2P coming soon")}
-            className="rounded-lg border border-[#FFD700]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 hover:bg-[#FFD700]/10 transition"
+            onClick={() => setModal("p2p")}
+            disabled={!activated || balance <= 0}
+            className="rounded-lg border border-[#FFD700]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FFD700]/10 transition"
             data-testid="btn-open-p2p"
           >
             <ArrowRightLeft size={14} className="text-[#FFD700]" />
@@ -448,16 +528,75 @@ export default function BotHub() {
 
       {/* ========== WITHDRAW DIALOG ========== */}
       {modal === "withdraw" && (
-        <ModalShell title="Withdraw from Wallet" onClose={closeModal} testid="dialog-withdraw">
-          <div className="text-xs text-[#8B9BB4] mb-2">
-            Wallet ({fmtUSD(balance)}) → Main Wallet
+        <ModalShell title="Withdraw" onClose={closeModal} testid="dialog-withdraw">
+          <div className="text-[11px] text-[#8B9BB4] mb-1">
+            Wallet Balance: <span className="text-white font-semibold">{fmtUSD(balance)}</span>
           </div>
+
+          {/* Address */}
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+            Recipient Address
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Paste USDT address or scan"
+              className="flex-1 px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] font-mono focus:border-[#FF007A] outline-none"
+              data-testid="input-withdraw-address"
+            />
+            <button
+              onClick={startScan}
+              className="px-3 rounded-lg bg-[#FF007A]/10 border border-[#FF007A]/40 text-[#FF007A] hover:bg-[#FF007A]/20 transition"
+              data-testid="btn-scan-qr"
+              type="button"
+            >
+              <QrCode size={18} />
+            </button>
+          </div>
+          {scanning && (
+            <div className="mt-2 rounded-lg overflow-hidden border border-[#FF007A]/40 bg-black">
+              <div id="qr-reader" ref={qrRef} className="w-full" />
+              <button
+                onClick={stopScan}
+                className="w-full py-1.5 text-[11px] font-semibold bg-[#0B1220] text-[#FF3B3B] border-t border-white/10"
+                data-testid="btn-stop-scan"
+              >
+                Cancel scan
+              </button>
+            </div>
+          )}
+          <div className="text-[10px] text-[#8B9BB4] mt-1">
+            Leave empty to withdraw to your Main Wallet instead.
+          </div>
+
+          {/* Network */}
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+            Network
+          </label>
+          <select
+            value={network}
+            onChange={(e) => setNetwork(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] focus:border-[#FF007A] outline-none"
+            data-testid="select-withdraw-network"
+          >
+            <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
+            <option value="TRC20">TRC20 (Tron)</option>
+            <option value="ERC20">ERC20 (Ethereum)</option>
+            <option value="POLYGON">Polygon</option>
+          </select>
+
+          {/* Amount */}
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+            Amount (USDT)
+          </label>
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount in USDT"
-            className="w-full px-4 py-3 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FF007A] outline-none"
+            placeholder="How much to send"
+            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FF007A] outline-none"
             data-testid="input-withdraw-amount"
           />
           <div className="flex gap-2 mt-2">
@@ -474,7 +613,53 @@ export default function BotHub() {
             className="mt-4 w-full py-3 rounded-lg bg-[#FF007A] text-white font-bold text-sm disabled:opacity-40"
             data-testid="btn-confirm-withdraw"
           >
-            {loading ? "Processing..." : "Confirm Withdraw"}
+            {loading ? "Processing..." : address ? `Send ${network}` : "Withdraw to Main Wallet"}
+          </button>
+        </ModalShell>
+      )}
+
+      {/* ========== P2P DIALOG ========== */}
+      {modal === "p2p" && (
+        <ModalShell title="P2P Transfer" onClose={closeModal} testid="dialog-p2p">
+          <div className="flex items-center gap-2 text-[11px] text-[#8B9BB4] mb-3">
+            <Users size={12} className="text-[#FFD700]" />
+            <span>Send USDT to another TGX BOT user instantly</span>
+          </div>
+
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mb-1">
+            Recipient Email
+          </label>
+          <input
+            type="email"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="user@example.com"
+            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] focus:border-[#FFD700] outline-none"
+            data-testid="input-p2p-recipient"
+          />
+
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+            Amount (USDT)
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount"
+            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FFD700] outline-none"
+            data-testid="input-p2p-amount"
+          />
+          <div className="text-[10px] text-[#8B9BB4] mt-1">
+            Available: <span className="text-white">{fmtUSD(balance)}</span>
+          </div>
+
+          <button
+            onClick={doP2P}
+            disabled={loading}
+            className="mt-4 w-full py-3 rounded-lg bg-[#FFD700] text-black font-bold text-sm disabled:opacity-40"
+            data-testid="btn-confirm-p2p"
+          >
+            {loading ? "Sending..." : "Send"}
           </button>
         </ModalShell>
       )}
@@ -487,7 +672,7 @@ export default function BotHub() {
 function ModalShell({ title, children, onClose, testid }) {
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
       data-testid={testid}
     >

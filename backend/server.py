@@ -1793,6 +1793,17 @@ class BotWalletAmountIn(BaseModel):
     amount: float = Field(gt=0)
 
 
+class BotWalletWithdrawIn(BaseModel):
+    amount: float = Field(gt=0)
+    address: Optional[str] = None
+    network: Optional[str] = None
+
+
+class BotWalletP2PIn(BaseModel):
+    recipient_email: str
+    amount: float = Field(gt=0)
+
+
 @api.get("/bot-wallet/status")
 async def bot_wallet_status(user: dict = Depends(get_current_user)):
     w = await _get_or_create_bot_wallet(user["id"])
@@ -1855,7 +1866,7 @@ async def bot_wallet_deposit(body: BotWalletAmountIn,
 
 
 @api.post("/bot-wallet/withdraw")
-async def bot_wallet_withdraw(body: BotWalletAmountIn,
+async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
                               user: dict = Depends(get_current_user)):
     w = await _get_or_create_bot_wallet(user["id"])
     amount = round(float(body.amount), 4)
@@ -1866,11 +1877,63 @@ async def bot_wallet_withdraw(body: BotWalletAmountIn,
     await db.bot_wallets.update_one(
         {"user_id": user["id"]}, {"$set": {"balance": new_balance}},
     )
-    await db.users.update_one({"id": user["id"]},
-                              {"$inc": {"wallet_usdt": amount}})
-    await _log_bot_txn(user["id"], "withdraw", -amount,
-                       note="Withdraw to main wallet", balance_after=new_balance)
-    return {"ok": True, "balance": new_balance}
+    address = (body.address or "").strip()
+    network = (body.network or "").strip() or "BEP20"
+    if address:
+        # External withdrawal → funds leave the system (mocked; real chain
+        # transfer would happen here). Do NOT credit main wallet.
+        note = f"External → {address[:8]}…{address[-6:]} · {network}"
+        kind = "external_withdraw"
+    else:
+        # Internal transfer back to main wallet.
+        await db.users.update_one({"id": user["id"]},
+                                  {"$inc": {"wallet_usdt": amount}})
+        note = "Withdraw to main wallet"
+        kind = "withdraw"
+    await _log_bot_txn(user["id"], kind, -amount,
+                       note=note, balance_after=new_balance)
+    return {"ok": True, "balance": new_balance, "kind": kind}
+
+
+@api.post("/bot-wallet/p2p")
+async def bot_wallet_p2p(body: BotWalletP2PIn,
+                         user: dict = Depends(get_current_user)):
+    amount = round(float(body.amount), 4)
+    recipient_email = (body.recipient_email or "").strip().lower()
+    if not recipient_email:
+        raise HTTPException(400, "Recipient email is required")
+    recipient = await db.users.find_one({"email": recipient_email}, {"_id": 0})
+    if not recipient:
+        raise HTTPException(404, "Recipient user not found")
+    if recipient["id"] == user["id"]:
+        raise HTTPException(400, "Cannot send to your own wallet")
+    sender_w = await _get_or_create_bot_wallet(user["id"])
+    if not sender_w.get("activated"):
+        raise HTTPException(400, "Activate your bot wallet first")
+    sender_bal = float(sender_w.get("balance", 0.0) or 0.0)
+    if amount > sender_bal:
+        raise HTTPException(400, "Insufficient bot wallet balance")
+    # Ensure recipient wallet exists
+    await _get_or_create_bot_wallet(recipient["id"])
+    # Move funds
+    new_sender_bal = round(sender_bal - amount, 4)
+    await db.bot_wallets.update_one(
+        {"user_id": user["id"]}, {"$set": {"balance": new_sender_bal}},
+    )
+    r_after = await db.bot_wallets.find_one_and_update(
+        {"user_id": recipient["id"]},
+        {"$inc": {"balance": amount}},
+        return_document=True,
+    )
+    r_bal = round(float(r_after.get("balance", 0.0) or 0.0), 4)
+    sender_label = user.get("email") or user["id"][:8]
+    await _log_bot_txn(user["id"], "p2p_sent", -amount,
+                       note=f"P2P → {recipient_email}",
+                       balance_after=new_sender_bal)
+    await _log_bot_txn(recipient["id"], "p2p_received", amount,
+                       note=f"P2P ← {sender_label}",
+                       balance_after=r_bal)
+    return {"ok": True, "balance": new_sender_bal, "recipient": recipient_email}
 
 
 @api.get("/bot-wallet/transactions")
