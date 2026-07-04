@@ -1677,6 +1677,34 @@ async def root():
 
 
 # ==== Bot Wallet (Monetization) ====
+async def _credit_admin_revenue(amount: float, kind: str, from_user_id: str,
+                                note: str = "", symbol: Optional[str] = None) -> Optional[str]:
+    """Credit platform revenue (activation fee, trading fees) to the admin
+    user's main wallet. Returns the admin user_id or None if no admin exists."""
+    if amount <= 0:
+        return None
+    admin = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1})
+    if not admin:
+        return None
+    admin_id = admin["id"]
+    if admin_id == from_user_id:
+        # Self-transfer (admin activating own bot) — net zero, skip.
+        return admin_id
+    await db.users.update_one({"id": admin_id},
+                              {"$inc": {"wallet_usdt": round(amount, 4)}})
+    await db.admin_revenue.insert_one({
+        "id": str(uuid.uuid4()),
+        "admin_id": admin_id,
+        "from_user_id": from_user_id,
+        "kind": kind,   # activation | trading_fee
+        "amount": round(float(amount), 4),
+        "symbol": symbol,
+        "note": note,
+        "created_at": iso(now_utc()),
+    })
+    return admin_id
+
+
 async def _get_or_create_bot_wallet(user_id: str) -> dict:
     """Return the user's bot wallet document, creating a default if missing."""
     doc = await db.bot_wallets.find_one({"user_id": user_id}, {"_id": 0})
@@ -1799,6 +1827,9 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
                        note="One-time bot activation fee",
                        balance_after=float(w.get("balance", 0.0)))
+    # Credit platform revenue to admin wallet
+    await _credit_admin_revenue(BOT_ACTIVATION_FEE, "activation", user["id"],
+                                note=f"Activation fee from {user.get('email','user')}")
     return {"ok": True, "activation_fee": BOT_ACTIVATION_FEE}
 
 
