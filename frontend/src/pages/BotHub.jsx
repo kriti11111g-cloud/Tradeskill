@@ -237,48 +237,33 @@ export default function BotHub() {
           )}
         </div>
 
-        {/* Actions row — Deposit / Withdraw / P2P (matches Wallet page style) */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Actions row — thin inline buttons */}
+        <div className="grid grid-cols-3 gap-2">
           <button
             disabled={!activated}
             onClick={() => setModal("deposit")}
-            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#39FF14]/40 transition"
+            className="rounded-lg border border-[#39FF14]/30 bg-[#39FF14]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#39FF14]/10 transition"
             data-testid="btn-open-deposit"
           >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ background: "#39FF1415", boxShadow: "inset 0 0 20px #39FF1422" }}
-            >
-              <ArrowDownToLine size={20} strokeWidth={1.8} style={{ color: "#39FF14" }} />
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider">Deposit</span>
+            <ArrowDownToLine size={14} className="text-[#39FF14]" />
+            <span className="text-[11px] font-semibold text-white">Deposit</span>
           </button>
           <button
             disabled={!activated || balance <= 0}
             onClick={() => setModal("withdraw")}
-            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#FF007A]/40 transition"
+            className="rounded-lg border border-[#FF007A]/30 bg-[#FF007A]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FF007A]/10 transition"
             data-testid="btn-open-withdraw"
           >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ background: "#FF007A15", boxShadow: "inset 0 0 20px #FF007A22" }}
-            >
-              <ArrowUpToLine size={20} strokeWidth={1.8} style={{ color: "#FF007A" }} />
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider">Withdraw</span>
+            <ArrowUpToLine size={14} className="text-[#FF007A]" />
+            <span className="text-[11px] font-semibold text-white">Withdraw</span>
           </button>
           <button
             onClick={() => toast.info("P2P coming soon")}
-            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl hover:border-[#FFD700]/40 transition"
+            className="rounded-lg border border-[#FFD700]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 hover:bg-[#FFD700]/10 transition"
             data-testid="btn-open-p2p"
           >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ background: "#FFD70015", boxShadow: "inset 0 0 20px #FFD70022" }}
-            >
-              <ArrowRightLeft size={20} strokeWidth={1.8} style={{ color: "#FFD700" }} />
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider">P2P</span>
+            <ArrowRightLeft size={14} className="text-[#FFD700]" />
+            <span className="text-[11px] font-semibold text-white">P2P</span>
           </button>
         </div>
 
@@ -331,30 +316,27 @@ export default function BotHub() {
           </label>
         </div>
 
-        <div className="mt-2 space-y-2" data-testid="bot-history-list">
+        <div className="mt-2 space-y-1.5" data-testid="bot-history-list">
           {visibleTxns.length === 0 ? (
-            <div className="text-center text-sm text-[#8B9BB4] py-6 rounded-xl border border-white/5 bg-[#0B1220]/40">
+            <div className="text-center text-[11px] text-[#8B9BB4] py-3 rounded-lg border border-white/5 bg-[#0B1220]/40">
               {filterDate ? "No transactions on this date." : "No transactions yet."}
             </div>
           ) : (
             visibleTxns.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-[#0B1220] border border-white/5"
+                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0B1220]/70 border border-white/5"
                 data-testid="bot-txn-row"
               >
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-white uppercase tracking-wide">
+                  <div className="text-[11px] font-semibold text-white uppercase tracking-wide leading-tight">
                     {t.kind.replace("_", " ")}
                   </div>
-                  <div className="text-[10px] text-[#8B9BB4]">{fmtTime(t.created_at)}</div>
-                  {t.note && (
-                    <div className="text-[10px] text-[#B8C4D8] mt-0.5 truncate">{t.note}</div>
-                  )}
+                  <div className="text-[9px] text-[#8B9BB4] leading-tight">{fmtTime(t.created_at)}</div>
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <div
-                    className={`text-sm font-bold ${
+                    className={`text-[12px] font-bold leading-tight ${
                       t.amount > 0 ? "text-[#39FF14]" : t.amount < 0 ? "text-[#FF3B3B]" : "text-[#8B9BB4]"
                     }`}
                   >
@@ -362,7 +344,7 @@ export default function BotHub() {
                     {fmtUSD(t.amount)}
                   </div>
                   {t.balance_after != null && (
-                    <div className="text-[10px] text-[#8B9BB4]">Bal: {fmtUSD(t.balance_after)}</div>
+                    <div className="text-[9px] text-[#8B9BB4] leading-tight">Bal: {fmtUSD(t.balance_after)}</div>
                   )}
                 </div>
               </div>
