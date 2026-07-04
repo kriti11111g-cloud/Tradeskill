@@ -325,7 +325,7 @@ export default function BotHub() {
             visibleTxns.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0B1220]/70 border border-white/5"
+                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0B1220]/70 border border-white/15"
                 data-testid="bot-txn-row"
               >
                 <div className="min-w-0">
