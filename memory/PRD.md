@@ -27,6 +27,7 @@ Full HiTechBot clone with:
 - [x] Configurable per-bot: TP%, DCA levels, callbacks, multipliers
 - [x] Real Binance + Testnet + Demo mode support
 - [x] Referral commission (10% of profit) automated
+- [x] **Bot Monetization** — $70 one-time activation fee + 20% trading fee on every profitable SELL, auto-deducted from pre-funded Bot Wallet. Bots auto-pause when wallet balance hits 0. (2026-02, iteration_18 PASS)
 
 ### UI/UX (COMPLETED ✅)
 - [x] 6-tab bottom nav: Home | Market | Trade | Asset | Bot | Profile
@@ -50,14 +51,14 @@ Full HiTechBot clone with:
 ## Pending Backlog
 
 ### P0 — Next Session
-- [ ] **Bot Monetization Model** (HiTechBot-style)
-  - Bot Wallet Balance card (separate from trading wallet)
-  - $70 Activation Fee (one-time deduction on activate)
-  - 2% Trading Fee per profitable SELL
-  - Deposit / Withdraw / Transfer buttons
-  - Unique TRC20 USDT deposit address per user
-  - Bot Status: Inactive → Active after top-up + activation fee
-  - Fee history record with date filter
+- [x] ~~**Bot Monetization Model** (HiTechBot-style)~~ — DONE (2026-02)
+  - $70 one-time activation fee (deducted from main wallet)
+  - 20% trading fee per profitable SELL, auto-deducted from Bot Wallet
+  - Deposit / Withdraw between main wallet ↔ bot wallet
+  - Full transaction history (activation / deposit / withdraw / trading_fee / pause)
+  - Bot Status card: ACTIVE / DEACTIVATE with red-lock or green-check indicator
+  - `POST /api/bots/{symbol}/start` blocks trading if wallet not activated or balance = 0
+  - Auto-pause: bots stop when balance drains to 0
 - [ ] **DOGE Config Fix** — TP 0.001% → 1.5% (immediate impact, quick fix)
 
 ### P1 — This Week
