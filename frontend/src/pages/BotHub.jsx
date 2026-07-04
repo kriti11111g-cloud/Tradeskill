@@ -222,7 +222,7 @@ export default function BotHub() {
         >
           <div className="flex items-center gap-2 mb-2">
             <WalletIcon size={16} className="text-[#00F0FF]" />
-            <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Bot Wallet Balance</div>
+            <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Wallet Balance</div>
           </div>
           <div className="text-3xl font-bold text-white" data-testid="bot-wallet-balance">
             {fmtUSD(balance)}
@@ -276,7 +276,7 @@ export default function BotHub() {
           </div>
           <ul className="text-[12px] text-[#B8C4D8] leading-relaxed space-y-1 list-disc pl-4">
             <li>Pay one-time <span className="text-white">${actFee}</span> to activate the trading bot.</li>
-            <li>Pre-fund your Bot Wallet — fees are auto-deducted from here, never from your Binance funds.</li>
+            <li>Pre-fund your Wallet — fees are auto-deducted from here, never from your Binance funds.</li>
             <li>Every profitable SELL deducts <span className="text-[#FFD700]">{feePct}%</span> of the profit.</li>
             <li>If balance hits <span className="text-[#FF3B3B]">$0</span>, bots pause automatically until you deposit again.</li>
           </ul>
@@ -323,9 +323,9 @@ export default function BotHub() {
 
       {/* ========== DEPOSIT DIALOG ========== */}
       {modal === "deposit" && (
-        <ModalShell title="Deposit to Bot Wallet" onClose={closeModal} testid="dialog-deposit">
+        <ModalShell title="Deposit to Wallet" onClose={closeModal} testid="dialog-deposit">
           <div className="text-xs text-[#8B9BB4] mb-2">
-            From Main Wallet ({fmtUSD(mainBal)}) → Bot Wallet
+            From Main Wallet ({fmtUSD(mainBal)}) → Wallet
           </div>
           <input
             type="number"
@@ -359,9 +359,9 @@ export default function BotHub() {
 
       {/* ========== WITHDRAW DIALOG ========== */}
       {modal === "withdraw" && (
-        <ModalShell title="Withdraw from Bot Wallet" onClose={closeModal} testid="dialog-withdraw">
+        <ModalShell title="Withdraw from Wallet" onClose={closeModal} testid="dialog-withdraw">
           <div className="text-xs text-[#8B9BB4] mb-2">
-            Bot Wallet ({fmtUSD(balance)}) → Main Wallet
+            Wallet ({fmtUSD(balance)}) → Main Wallet
           </div>
           <input
             type="number"
@@ -392,7 +392,7 @@ export default function BotHub() {
 
       {/* ========== HISTORY DIALOG ========== */}
       {modal === "history" && (
-        <ModalShell title="Bot Wallet History" onClose={closeModal} testid="dialog-history">
+        <ModalShell title="Wallet History" onClose={closeModal} testid="dialog-history">
           {txns.length === 0 ? (
             <div className="text-center text-sm text-[#8B9BB4] py-8">No transactions yet.</div>
           ) : (
