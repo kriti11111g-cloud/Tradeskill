@@ -41,6 +41,7 @@ export default function BotHub() {
   const [address, setAddress] = useState("");
   const [network, setNetwork] = useState("BEP20");
   const [recipient, setRecipient] = useState("");
+  const [p2pMode, setP2pMode] = useState("email"); // 'email' | 'address'
   const [scanning, setScanning] = useState(false);
   const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +79,7 @@ export default function BotHub() {
     setAddress("");
     setNetwork("BEP20");
     setRecipient("");
+    setP2pMode("email");
   };
 
   const doActivate = async () => {
@@ -180,14 +182,24 @@ export default function BotHub() {
   const doP2P = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    if (!recipient.trim()) return toast.error("Enter recipient email");
+    const isAddressMode = p2pMode === "address";
+    if (isAddressMode) {
+      if (!address.trim()) return toast.error("Paste or scan an address");
+      if (network !== "BEP20") return toast.error(`${network} coming soon — only BEP20 supported`);
+    } else if (!recipient.trim()) {
+      return toast.error("Enter recipient email");
+    }
     setLoading(true);
     try {
-      const { data } = await api.post("/bot-wallet/p2p", {
-        recipient_email: recipient.trim(),
-        amount: amt,
-      });
-      toast.success(`Sent $${amt.toFixed(2)} to ${data.recipient}`);
+      const payload = isAddressMode
+        ? { recipient_address: address.trim(), network, amount: amt }
+        : { recipient_email: recipient.trim(), amount: amt };
+      const { data } = await api.post("/bot-wallet/p2p", payload);
+      toast.success(
+        isAddressMode
+          ? `Sent $${amt.toFixed(2)} to ${address.slice(0, 8)}…`
+          : `Sent $${amt.toFixed(2)} to ${data.recipient}`,
+      );
       await loadStatus();
       await loadTxns();
       closeModal();
@@ -529,50 +541,12 @@ export default function BotHub() {
       {/* ========== WITHDRAW DIALOG ========== */}
       {modal === "withdraw" && (
         <ModalShell title="Withdraw" onClose={closeModal} testid="dialog-withdraw">
-          <div className="text-[11px] text-[#8B9BB4] mb-1">
+          <div className="text-[11px] text-[#8B9BB4] mb-3">
             Wallet Balance: <span className="text-white font-semibold">{fmtUSD(balance)}</span>
           </div>
 
-          {/* Address */}
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
-            Recipient Address
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Paste USDT address or scan"
-              className="flex-1 px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] font-mono focus:border-[#FF007A] outline-none"
-              data-testid="input-withdraw-address"
-            />
-            <button
-              onClick={startScan}
-              className="px-3 rounded-lg bg-[#FF007A]/10 border border-[#FF007A]/40 text-[#FF007A] hover:bg-[#FF007A]/20 transition"
-              data-testid="btn-scan-qr"
-              type="button"
-            >
-              <QrCode size={18} />
-            </button>
-          </div>
-          {scanning && (
-            <div className="mt-2 rounded-lg overflow-hidden border border-[#FF007A]/40 bg-black">
-              <div id="qr-reader" ref={qrRef} className="w-full" />
-              <button
-                onClick={stopScan}
-                className="w-full py-1.5 text-[11px] font-semibold bg-[#0B1220] text-[#FF3B3B] border-t border-white/10"
-                data-testid="btn-stop-scan"
-              >
-                Cancel scan
-              </button>
-            </div>
-          )}
-          <div className="text-[10px] text-[#8B9BB4] mt-1">
-            Leave empty to withdraw to your Main Wallet instead.
-          </div>
-
-          {/* Network */}
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+          {/* Network first */}
+          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mb-1">
             Network
           </label>
           <select
@@ -582,85 +556,238 @@ export default function BotHub() {
             data-testid="select-withdraw-network"
           >
             <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
-            <option value="TRC20">TRC20 (Tron)</option>
             <option value="ERC20">ERC20 (Ethereum)</option>
+            <option value="TRC20">TRC20 (Tron)</option>
+            <option value="SOL">Solana</option>
             <option value="POLYGON">Polygon</option>
           </select>
 
-          {/* Amount */}
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
-            Amount (USDT)
-          </label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="How much to send"
-            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FF007A] outline-none"
-            data-testid="input-withdraw-amount"
-          />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => setAmount(String(balance))}
-              className="flex-1 py-1.5 text-xs rounded-md border border-white/10 text-[#B8C4D8] hover:border-[#FF007A]/40"
+          {network !== "BEP20" ? (
+            <div
+              className="mt-3 rounded-lg border border-[#FFD700]/40 bg-[#FFD700]/5 p-3 text-center"
+              data-testid="withdraw-coming-soon"
             >
-              Max ({fmtUSD(balance)})
-            </button>
-          </div>
-          <button
-            onClick={doWithdraw}
-            disabled={loading}
-            className="mt-4 w-full py-3 rounded-lg bg-[#FF007A] text-white font-bold text-sm disabled:opacity-40"
-            data-testid="btn-confirm-withdraw"
-          >
-            {loading ? "Processing..." : address ? `Send ${network}` : "Withdraw to Main Wallet"}
-          </button>
+              <div className="text-[#FFD700] font-bold text-sm">Coming Soon</div>
+              <div className="text-[11px] text-[#8B9BB4] mt-1">
+                {network} liquidity is not available yet. Only BEP20 is supported today.
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Address */}
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+                Recipient Address
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Paste USDT address or scan"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] font-mono focus:border-[#FF007A] outline-none"
+                  data-testid="input-withdraw-address"
+                />
+                <button
+                  onClick={startScan}
+                  className="px-3 rounded-lg bg-[#FF007A]/10 border border-[#FF007A]/40 text-[#FF007A] hover:bg-[#FF007A]/20 transition"
+                  data-testid="btn-scan-qr"
+                  type="button"
+                >
+                  <QrCode size={18} />
+                </button>
+              </div>
+              {scanning && (
+                <div className="mt-2 rounded-lg overflow-hidden border border-[#FF007A]/40 bg-black">
+                  <div id="qr-reader" ref={qrRef} className="w-full" />
+                  <button
+                    onClick={stopScan}
+                    className="w-full py-1.5 text-[11px] font-semibold bg-[#0B1220] text-[#FF3B3B] border-t border-white/10"
+                    data-testid="btn-stop-scan"
+                  >
+                    Cancel scan
+                  </button>
+                </div>
+              )}
+              <div className="text-[10px] text-[#8B9BB4] mt-1">
+                Leave empty to withdraw to your Main Wallet instead.
+              </div>
+
+              {/* Amount */}
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+                Amount (USDT)
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="How much to send"
+                className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FF007A] outline-none"
+                data-testid="input-withdraw-amount"
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setAmount(String(balance))}
+                  className="flex-1 py-1.5 text-xs rounded-md border border-white/10 text-[#B8C4D8] hover:border-[#FF007A]/40"
+                >
+                  Max ({fmtUSD(balance)})
+                </button>
+              </div>
+              <button
+                onClick={doWithdraw}
+                disabled={loading}
+                className="mt-4 w-full py-3 rounded-lg bg-[#FF007A] text-white font-bold text-sm disabled:opacity-40"
+                data-testid="btn-confirm-withdraw"
+              >
+                {loading ? "Processing..." : address ? `Send ${network}` : "Withdraw to Main Wallet"}
+              </button>
+            </>
+          )}
         </ModalShell>
       )}
 
-      {/* ========== P2P DIALOG ========== */}
+      {/* ========== P2P DIALOG (Email tab + Address/Scan tab) ========== */}
       {modal === "p2p" && (
         <ModalShell title="P2P Transfer" onClose={closeModal} testid="dialog-p2p">
-          <div className="flex items-center gap-2 text-[11px] text-[#8B9BB4] mb-3">
-            <Users size={12} className="text-[#FFD700]" />
-            <span>Send USDT to another TGX BOT user instantly</span>
+          {/* Tabs */}
+          <div className="flex gap-1.5 rounded-lg bg-[#0B1220] p-1 mb-3">
+            <button
+              onClick={() => setP2pMode("email")}
+              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                p2pMode === "email"
+                  ? "bg-[#FFD700] text-black"
+                  : "text-[#8B9BB4] hover:text-white"
+              }`}
+              data-testid="tab-p2p-email"
+            >
+              By Email
+            </button>
+            <button
+              onClick={() => setP2pMode("address")}
+              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                p2pMode === "address"
+                  ? "bg-[#FFD700] text-black"
+                  : "text-[#8B9BB4] hover:text-white"
+              }`}
+              data-testid="tab-p2p-address"
+            >
+              By Address
+            </button>
           </div>
 
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mb-1">
-            Recipient Email
-          </label>
-          <input
-            type="email"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            placeholder="user@example.com"
-            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] focus:border-[#FFD700] outline-none"
-            data-testid="input-p2p-recipient"
-          />
+          {p2pMode === "email" ? (
+            <>
+              <div className="flex items-center gap-2 text-[11px] text-[#8B9BB4] mb-2">
+                <Users size={12} className="text-[#FFD700]" />
+                <span>Send USDT directly to another TGX BOT user</span>
+              </div>
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mb-1">
+                Recipient Email
+              </label>
+              <input
+                type="email"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="user@example.com"
+                className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] focus:border-[#FFD700] outline-none"
+                data-testid="input-p2p-recipient"
+              />
+            </>
+          ) : (
+            <>
+              {/* Network */}
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mb-1">
+                Network
+              </label>
+              <select
+                value={network}
+                onChange={(e) => setNetwork(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] focus:border-[#FFD700] outline-none"
+                data-testid="select-p2p-network"
+              >
+                <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
+                <option value="ERC20">ERC20 (Ethereum)</option>
+                <option value="TRC20">TRC20 (Tron)</option>
+                <option value="SOL">Solana</option>
+                <option value="POLYGON">Polygon</option>
+              </select>
 
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
-            Amount (USDT)
-          </label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter amount"
-            className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FFD700] outline-none"
-            data-testid="input-p2p-amount"
-          />
-          <div className="text-[10px] text-[#8B9BB4] mt-1">
-            Available: <span className="text-white">{fmtUSD(balance)}</span>
-          </div>
+              {network !== "BEP20" ? (
+                <div
+                  className="mt-3 rounded-lg border border-[#FFD700]/40 bg-[#FFD700]/5 p-3 text-center"
+                  data-testid="p2p-coming-soon"
+                >
+                  <div className="text-[#FFD700] font-bold text-sm">Coming Soon</div>
+                  <div className="text-[11px] text-[#8B9BB4] mt-1">
+                    {network} liquidity is not available yet. Only BEP20 is supported today.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+                    Recipient Address
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Paste address or scan QR"
+                      className="flex-1 px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-[13px] font-mono focus:border-[#FFD700] outline-none"
+                      data-testid="input-p2p-address"
+                    />
+                    <button
+                      onClick={startScan}
+                      className="px-3 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/40 text-[#FFD700] hover:bg-[#FFD700]/20 transition"
+                      data-testid="btn-scan-p2p-qr"
+                      type="button"
+                    >
+                      <QrCode size={18} />
+                    </button>
+                  </div>
+                  {scanning && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-[#FFD700]/40 bg-black">
+                      <div id="qr-reader" ref={qrRef} className="w-full" />
+                      <button
+                        onClick={stopScan}
+                        className="w-full py-1.5 text-[11px] font-semibold bg-[#0B1220] text-[#FF3B3B] border-t border-white/10"
+                        data-testid="btn-stop-scan-p2p"
+                      >
+                        Cancel scan
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
 
-          <button
-            onClick={doP2P}
-            disabled={loading}
-            className="mt-4 w-full py-3 rounded-lg bg-[#FFD700] text-black font-bold text-sm disabled:opacity-40"
-            data-testid="btn-confirm-p2p"
-          >
-            {loading ? "Sending..." : "Send"}
-          </button>
+          {/* Amount + Send (shown unless coming-soon banner is active) */}
+          {!(p2pMode === "address" && network !== "BEP20") && (
+            <>
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[#8B9BB4] mt-3 mb-1">
+                Amount (USDT)
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="w-full px-3 py-2.5 rounded-lg bg-[#0B1220] border border-white/10 text-white text-lg font-semibold focus:border-[#FFD700] outline-none"
+                data-testid="input-p2p-amount"
+              />
+              <div className="text-[10px] text-[#8B9BB4] mt-1">
+                Available: <span className="text-white">{fmtUSD(balance)}</span>
+              </div>
+              <button
+                onClick={doP2P}
+                disabled={loading}
+                className="mt-4 w-full py-3 rounded-lg bg-[#FFD700] text-black font-bold text-sm disabled:opacity-40"
+                data-testid="btn-confirm-p2p"
+              >
+                {loading ? "Sending..." : "Send"}
+              </button>
+            </>
+          )}
         </ModalShell>
       )}
 

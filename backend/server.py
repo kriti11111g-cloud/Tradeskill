@@ -1800,8 +1800,13 @@ class BotWalletWithdrawIn(BaseModel):
 
 
 class BotWalletP2PIn(BaseModel):
-    recipient_email: str
+    recipient_email: Optional[str] = None
+    recipient_address: Optional[str] = None
+    network: Optional[str] = None
     amount: float = Field(gt=0)
+
+
+ALLOWED_EXTERNAL_NETWORKS = {"BEP20"}  # others show "coming soon" in UI
 
 
 @api.get("/bot-wallet/status")
@@ -1880,6 +1885,8 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     address = (body.address or "").strip()
     network = (body.network or "").strip() or "BEP20"
     if address:
+        if network not in ALLOWED_EXTERNAL_NETWORKS:
+            raise HTTPException(400, f"{network} withdrawals are coming soon. Only BEP20 is supported today.")
         # External withdrawal → funds leave the system (mocked; real chain
         # transfer would happen here). Do NOT credit main wallet.
         note = f"External → {address[:8]}…{address[-6:]} · {network}"
@@ -1900,22 +1907,39 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
                          user: dict = Depends(get_current_user)):
     amount = round(float(body.amount), 4)
     recipient_email = (body.recipient_email or "").strip().lower()
-    if not recipient_email:
-        raise HTTPException(400, "Recipient email is required")
-    recipient = await db.users.find_one({"email": recipient_email}, {"_id": 0})
-    if not recipient:
-        raise HTTPException(404, "Recipient user not found")
-    if recipient["id"] == user["id"]:
-        raise HTTPException(400, "Cannot send to your own wallet")
+    recipient_address = (body.recipient_address or "").strip()
+    if not recipient_email and not recipient_address:
+        raise HTTPException(400, "Provide recipient email or wallet address")
     sender_w = await _get_or_create_bot_wallet(user["id"])
     if not sender_w.get("activated"):
         raise HTTPException(400, "Activate your bot wallet first")
     sender_bal = float(sender_w.get("balance", 0.0) or 0.0)
     if amount > sender_bal:
         raise HTTPException(400, "Insufficient bot wallet balance")
+
+    # ---- Address (external) mode ----
+    if recipient_address:
+        network = (body.network or "").strip() or "BEP20"
+        if network not in ALLOWED_EXTERNAL_NETWORKS:
+            raise HTTPException(400, f"{network} transfers are coming soon. Only BEP20 is supported today.")
+        new_sender_bal = round(sender_bal - amount, 4)
+        await db.bot_wallets.update_one(
+            {"user_id": user["id"]}, {"$set": {"balance": new_sender_bal}},
+        )
+        note = f"P2P → {recipient_address[:8]}…{recipient_address[-6:]} · {network}"
+        await _log_bot_txn(user["id"], "p2p_sent", -amount,
+                           note=note, balance_after=new_sender_bal)
+        return {"ok": True, "balance": new_sender_bal,
+                "recipient": recipient_address, "mode": "address"}
+
+    # ---- Email (user-to-user) mode ----
+    recipient = await db.users.find_one({"email": recipient_email}, {"_id": 0})
+    if not recipient:
+        raise HTTPException(404, "Recipient user not found")
+    if recipient["id"] == user["id"]:
+        raise HTTPException(400, "Cannot send to your own wallet")
     # Ensure recipient wallet exists
     await _get_or_create_bot_wallet(recipient["id"])
-    # Move funds
     new_sender_bal = round(sender_bal - amount, 4)
     await db.bot_wallets.update_one(
         {"user_id": user["id"]}, {"$set": {"balance": new_sender_bal}},
@@ -1933,7 +1957,8 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     await _log_bot_txn(recipient["id"], "p2p_received", amount,
                        note=f"P2P ← {sender_label}",
                        balance_after=r_bal)
-    return {"ok": True, "balance": new_sender_bal, "recipient": recipient_email}
+    return {"ok": True, "balance": new_sender_bal,
+            "recipient": recipient_email, "mode": "email"}
 
 
 @api.get("/bot-wallet/transactions")
