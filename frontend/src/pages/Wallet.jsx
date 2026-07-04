@@ -100,7 +100,11 @@ export default function Wallet() {
         >
           <div className="flex items-center justify-between">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">
-              {isLiveMode ? "Demo (Simulation) Balance" : "Total Assets (USDT)"}
+              {isLiveMode
+                ? summary?.wallet_connected
+                  ? `Live ${bind.mode === "real" ? "Binance" : "Testnet"} Balance`
+                  : `${bind.mode === "real" ? "Real" : "Testnet"} · Not Connected`
+                : "Total Assets (USDT)"}
             </div>
             {isLiveMode && (
               <div
@@ -118,6 +122,18 @@ export default function Wallet() {
           <div className="font-display font-black text-4xl tabular-nums mt-2" data-testid="wallet-total">
             {fmtNum(summary?.total_usdt || 0, 2)}
           </div>
+          {/* Wallet connection error banner (real/testnet mode, Binance unreachable) */}
+          {isLiveMode && summary?.wallet_error && (
+            <div
+              className="mt-3 rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
+              data-testid="wallet-connection-error"
+            >
+              <div className="text-[9px] uppercase tracking-widest text-[#FFD700] font-black mb-0.5">
+                Cannot Reach Binance
+              </div>
+              {summary.wallet_error}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
               <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Available USDT</div>

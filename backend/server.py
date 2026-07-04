@@ -1423,27 +1423,67 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
                 "value": val,
                 "pnl": val - b.get("position_amount", 0.0),
             })
+
+    # Determine which wallet balance to show as the "spot" cash portion.
+    # In real/testnet mode we prefer the live Binance USDT balance; if Binance is
+    # unreachable we report 0 (with `wallet_error`) instead of leaking the demo
+    # balance, so the UI doesn't mislead the user about their real funds.
+    demo_balance = float(user.get("wallet_usdt", 0.0))
+    wallet_usdt = demo_balance
+    wallet_mode = "demo"
+    wallet_connected = False
+    wallet_error = None
+    client, mode = await get_user_binance(user["id"])
+    if client and mode in ("real", "testnet"):
+        wallet_mode = mode
+        try:
+            data = await run_in_threadpool(client.get_account)
+            usdt = 0.0
+            for b in data.get("balances", []):
+                if b.get("asset") == "USDT":
+                    usdt = float(b.get("free", 0))
+                    break
+            wallet_usdt = usdt
+            wallet_connected = True
+        except Exception as e:
+            msg = str(e)
+            wallet_usdt = 0.0
+            wallet_connected = False
+            wallet_error = (
+                "Binance is unreachable from this server region (geo-restriction). "
+                "Your funds are safe in Binance — we cannot read the balance from here."
+                if "restricted location" in msg.lower() or "eligibility" in msg.lower()
+                else f"Binance connection failed: {msg[:120]}"
+            )
     return {
-        "wallet_usdt": user.get("wallet_usdt", 0.0),
+        "wallet_usdt": round(wallet_usdt, 4),
         "positions_value_usdt": round(positions_value, 4),
-        "total_usdt": round(user.get("wallet_usdt", 0.0) + positions_value, 4),
+        "total_usdt": round(wallet_usdt + positions_value, 4),
         "positions": positions,
+        "wallet_mode": wallet_mode,
+        "wallet_connected": wallet_connected,
+        "wallet_error": wallet_error,
+        "demo_wallet_usdt": round(demo_balance, 4),
     }
 
 
 @api.get("/wallet/spot")
 async def wallet_spot(user: dict = Depends(get_current_user)):
-    """Returns the user's spot USDT balance. If Binance is bound (real or testnet)
-    and reachable, returns the live Binance USDT free balance. Otherwise falls back
-    to the demo wallet balance."""
-    result = {
-        "mode": "demo",
-        "connected": False,
-        "usdt_balance": round(float(user.get("wallet_usdt", 0.0)), 4),
-    }
+    """Returns the user's spot USDT balance.
+    - No API bound → demo wallet balance (mode='demo').
+    - API bound & reachable → live Binance USDT free balance (mode='real'/'testnet').
+    - API bound but Binance blocks the server region → usdt_balance=0.0 with an
+      `error` field explaining the geo-restriction. We deliberately do NOT leak
+      the demo wallet in that case so the user isn't misled about their funds.
+    """
+    demo_balance = round(float(user.get("wallet_usdt", 0.0)), 4)
     client, mode = await get_user_binance(user["id"])
     if not client:
-        return result
+        return {
+            "mode": "demo",
+            "connected": False,
+            "usdt_balance": demo_balance,
+        }
     try:
         data = await run_in_threadpool(client.get_account)
         usdt = 0.0
@@ -1451,11 +1491,27 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
             if b.get("asset") == "USDT":
                 usdt = float(b.get("free", 0))
                 break
-        result.update({"mode": mode, "connected": True, "usdt_balance": round(usdt, 4)})
+        return {
+            "mode": mode,
+            "connected": True,
+            "usdt_balance": round(usdt, 4),
+        }
     except Exception as e:
-        logger.warning(f"wallet/spot binance fetch failed for {user['id']}: {e}")
-        result.update({"mode": mode, "connected": False})
-    return result
+        msg = str(e)
+        logger.warning(f"wallet/spot binance fetch failed for {user['id']}: {msg}")
+        friendly = (
+            "Binance is unreachable from this server region (geo-restriction). "
+            "Your funds are safe in Binance — we just cannot read the balance from here. "
+            "Switch mode to Demo, or deploy to a supported region."
+            if "restricted location" in msg.lower() or "eligibility" in msg.lower()
+            else f"Binance connection failed: {msg[:120]}"
+        )
+        return {
+            "mode": mode,
+            "connected": False,
+            "usdt_balance": 0.0,
+            "error": friendly,
+        }
 
 
 # ==== Referral ====

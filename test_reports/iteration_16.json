@@ -1,0 +1,62 @@
+{
+  "summary": "Verified the geo-block wallet fix end-to-end. In real mode, /api/wallet/summary and /api/wallet/spot correctly return wallet_usdt=0.0 with wallet_error/error populated — demo balance ($10,357.63) is NOT leaked, only exposed under demo_wallet_usdt. Frontend /wallet correctly shows 'Real · Not Connected' label, yellow banner with data-testid=wallet-connection-error, Available USDT=0, In Positions=$179.34 (live bots). Demo-mode regression: after flipping admin to demo via DB, the backend returns wallet_usdt=10357.6271, mode=demo, no error; frontend shows 'Total Assets (USDT)' label with no banner and no mode badge. Admin mode restored to 'real' at end of testing.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_details": {
+    "wallet_summary_real_mode": {
+      "wallet_usdt": 0.0,
+      "wallet_mode": "real",
+      "wallet_connected": false,
+      "wallet_error_starts_with": "Binance is unreachable from this server region",
+      "demo_wallet_usdt": 10357.6271,
+      "positions_value_usdt_approx": 179.47,
+      "positions_count": 8
+    },
+    "wallet_spot_real_mode": {
+      "mode": "real",
+      "connected": false,
+      "usdt_balance": 0.0,
+      "error_present": true
+    },
+    "wallet_summary_demo_mode_regression": {
+      "wallet_usdt": 10357.6271,
+      "wallet_mode": "demo",
+      "wallet_connected": false,
+      "wallet_error": null
+    },
+    "frontend_wallet_real_mode": {
+      "top_label": "Real · Not Connected",
+      "wallet-total": "179.34",
+      "wallet-mode-badge": "real",
+      "wallet-connection-error_visible": true,
+      "wallet-connection-error_text": "Cannot Reach Binance — Binance is unreachable from this server region (geo-restriction). Your funds are safe in Binance — we cannot read the balance from here.",
+      "available_usdt_displayed": "0",
+      "in_positions_displayed": "179.34"
+    },
+    "frontend_wallet_demo_mode": {
+      "top_label": "Total Assets (USDT)",
+      "wallet-connection-error_count": 0,
+      "wallet-mode-badge_count": 0
+    },
+    "regression_pages": {"trades": "loads OK", "transactions": "loads OK", "console_page_errors": 0},
+    "admin_mode_at_end": "real (restored)"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_wallet_real_mode.py",
+    "/app/test_reports/pytest/pytest_wallet_real_mode.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Pre-existing noise: Binance WebSocket connections return HTTP 451 (region blocked) — floods the console on every page. Not part of this fix, but consider suppressing/rate-limiting the reconnect logic so console isn't flooded.",
+    "Wallet.jsx also renders a second 'Live Binance · Real' card with 'Unable to load balances' pulled from /api/binance/account — duplicates the same error information the new yellow banner already shows. Not a bug, but the UI now displays two error boxes for the same underlying condition."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_wallet_real_mode.py (new)"
+  ],
+  "success_rate": {"backend": "100% (5/5 pytest)", "frontend": "100% (all 7 review points verified)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked)",
+  "seed_data_creation": "None. Admin binance_keys.mode was temporarily flipped to 'demo' during regression test and restored to 'real' at completion.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend geo-block wallet handling is verified. Admin is in 'real' mode with a bound Binance key that the server cannot reach (US region). If retesting, use test_wallet_real_mode.py which auto-flips to demo and restores. Screenshots at /app/test_reports/screenshots/wallet_real_mode_verified.png show the yellow banner + Real · Not Connected label."
+}
