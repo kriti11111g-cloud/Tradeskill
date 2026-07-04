@@ -171,100 +171,89 @@ export default function BotHub() {
 
       {/* ========== BOT WALLET SECTION ========== */}
       <div className="px-4 mt-6" data-testid="bot-wallet-section">
-        {/* Activation status banner */}
+        {/* Activation status — thin, centered */}
         <div
-          className={`rounded-2xl border p-4 mb-3 ${
+          className={`rounded-xl border px-4 py-2.5 mb-3 ${
             activated
               ? "bg-[#39FF14]/5 border-[#39FF14]/40"
               : "bg-[#FF3B3B]/5 border-[#FF3B3B]/40"
           }`}
           data-testid="bot-activation-banner"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {activated ? (
-                <CheckCircle2 size={28} className="text-[#39FF14]" style={{ filter: "drop-shadow(0 0 6px rgba(57,255,20,0.6))" }} />
-              ) : (
-                <Lock size={28} className="text-[#FF3B3B]" style={{ filter: "drop-shadow(0 0 6px rgba(255,59,59,0.6))" }} />
-              )}
-              <div>
-                <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Bot Status</div>
-                <div
-                  className={`text-lg font-bold ${activated ? "text-[#39FF14]" : "text-[#FF3B3B]"}`}
-                  data-testid="bot-status-text"
-                >
-                  {activated ? "ACTIVE" : "DEACTIVATE"}
-                </div>
-              </div>
-            </div>
-            {!activated && (
-              <button
-                onClick={() => setModal("activate")}
-                className="px-4 py-2 rounded-lg text-xs font-bold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition"
-                data-testid="btn-open-activate"
-              >
-                ACTIVATE • ${actFee}
-              </button>
+          <div className="flex items-center justify-center gap-2">
+            {activated ? (
+              <CheckCircle2 size={16} className="text-[#39FF14]" style={{ filter: "drop-shadow(0 0 6px rgba(57,255,20,0.6))" }} />
+            ) : (
+              <Lock size={16} className="text-[#FF3B3B]" style={{ filter: "drop-shadow(0 0 6px rgba(255,59,59,0.6))" }} />
             )}
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Bot Status</span>
+            <span
+              className={`text-sm font-bold tracking-wider ${activated ? "text-[#39FF14]" : "text-[#FF3B3B]"}`}
+              data-testid="bot-status-text"
+            >
+              {activated ? "ACTIVE" : "DEACTIVATE"}
+            </span>
           </div>
           {!activated && (
-            <p className="text-xs text-[#8B9BB4] mt-3 leading-relaxed">
-              Your bot is <span className="text-[#FF3B3B] font-semibold">not activated</span> yet.
-              Pay a one-time <span className="text-white">${actFee} activation fee</span> and pre-fund your Bot Wallet to start automated trading.
-            </p>
+            <button
+              onClick={() => setModal("activate")}
+              className="mt-2 w-full py-2 rounded-md text-xs font-bold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition"
+              data-testid="btn-open-activate"
+            >
+              ACTIVATE • ${actFee}
+            </button>
           )}
         </div>
 
-        {/* Balance card */}
+        {/* Balance card — thin, balance only */}
         <div
-          className="rounded-2xl border border-[#00F0FF]/30 bg-gradient-to-br from-[#00F0FF]/5 to-[#39FF14]/5 p-4 mb-3"
-          style={{ boxShadow: "0 0 20px rgba(0,240,255,0.08)" }}
+          className="rounded-xl border border-[#00F0FF]/30 bg-gradient-to-br from-[#00F0FF]/5 to-[#39FF14]/5 px-4 py-2.5 mb-3"
+          style={{ boxShadow: "0 0 16px rgba(0,240,255,0.06)" }}
           data-testid="bot-wallet-balance-card"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <WalletIcon size={16} className="text-[#00F0FF]" />
-            <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Wallet Balance</div>
-          </div>
-          <div className="text-3xl font-bold text-white" data-testid="bot-wallet-balance">
-            {fmtUSD(balance)}
-          </div>
-          <div className="text-[11px] text-[#8B9BB4] mt-1">
-            Main Wallet: <span className="text-white">{fmtUSD(mainBal)}</span> • Trading Fee: <span className="text-[#FFD700]">{feePct}% of profit</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <WalletIcon size={14} className="text-[#00F0FF]" />
+              <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">Wallet Balance</span>
+            </div>
+            <div className="text-xl font-bold text-white tabular-nums" data-testid="bot-wallet-balance">
+              {fmtUSD(balance)}
+            </div>
           </div>
           {activated && balance <= 0 && (
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-[#FF3B3B]">
-              <AlertTriangle size={14} />
-              <span>Balance is zero — bots are paused. Deposit to resume trading.</span>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[#FF3B3B]">
+              <AlertTriangle size={12} />
+              <span>Balance is zero — bots are paused. Deposit to resume.</span>
             </div>
           )}
         </div>
 
-        {/* Actions row */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Actions row — thin cards */}
+        <div className="grid grid-cols-3 gap-2">
           <button
             disabled={!activated}
             onClick={() => setModal("deposit")}
-            className="rounded-xl border border-[#39FF14]/30 bg-[#39FF14]/5 p-3 flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#39FF14]/10 transition"
+            className="rounded-lg border border-[#39FF14]/30 bg-[#39FF14]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#39FF14]/10 transition"
             data-testid="btn-open-deposit"
           >
-            <ArrowDownToLine size={20} className="text-[#39FF14]" />
+            <ArrowDownToLine size={14} className="text-[#39FF14]" />
             <span className="text-[11px] font-semibold text-white">Deposit</span>
           </button>
           <button
             disabled={!activated || balance <= 0}
             onClick={() => setModal("withdraw")}
-            className="rounded-xl border border-[#FF007A]/30 bg-[#FF007A]/5 p-3 flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FF007A]/10 transition"
+            className="rounded-lg border border-[#FF007A]/30 bg-[#FF007A]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FF007A]/10 transition"
             data-testid="btn-open-withdraw"
           >
-            <ArrowUpToLine size={20} className="text-[#FF007A]" />
+            <ArrowUpToLine size={14} className="text-[#FF007A]" />
             <span className="text-[11px] font-semibold text-white">Withdraw</span>
           </button>
           <button
             onClick={() => { loadTxns(); setModal("history"); }}
-            className="rounded-xl border border-[#FFD700]/30 bg-[#FFD700]/5 p-3 flex flex-col items-center gap-1 hover:bg-[#FFD700]/10 transition"
+            className="rounded-lg border border-[#FFD700]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 hover:bg-[#FFD700]/10 transition"
             data-testid="btn-open-history"
           >
-            <History size={20} className="text-[#FFD700]" />
+            <History size={14} className="text-[#FFD700]" />
             <span className="text-[11px] font-semibold text-white">History</span>
           </button>
         </div>
