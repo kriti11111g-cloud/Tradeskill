@@ -46,7 +46,142 @@ client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 fernet = Fernet(MASTER_KEY.encode())
 
-# ==== Bot Monetization ====
+# ==== Rank System ====
+# 10-STAR rank progression. Each rank unlocks higher earnings + benefits.
+# Team requirements start from rank 2 onwards.
+RANKS = [
+    {
+        "level": 1, "code": "STAR1", "title": "STARTER",
+        "color": "#39FF14", "glow": "#7FFF00",
+        "direct_income": 8, "commission_pct": 3.50, "support_pct": 10,
+        "direct_users": 0, "team_size": 0,
+        "downline_requirement": None,
+    },
+    {
+        "level": 2, "code": "STAR2", "title": "RISING",
+        "color": "#00BFFF", "glow": "#1E90FF",
+        "direct_income": 12, "commission_pct": 5, "support_pct": 10,
+        "direct_users": 2, "team_size": 15,
+        "downline_requirement": None,
+        "team_note": "10+5 in 2 legs",
+    },
+    {
+        "level": 3, "code": "STAR3", "title": "ADVANCING",
+        "color": "#9D3FE0", "glow": "#C77DFF",
+        "direct_income": 15, "commission_pct": 6.50, "support_pct": 10,
+        "direct_users": 4, "team_size": 80,
+        "downline_requirement": {"count": 2, "min_level": 2, "label": "2× Rising"},
+    },
+    {
+        "level": 4, "code": "STAR4", "title": "STRONG",
+        "color": "#FF8C00", "glow": "#FFA500",
+        "direct_income": 18, "commission_pct": 7.50, "support_pct": 10,
+        "direct_users": 6, "team_size": 250,
+        "downline_requirement": {"count": 2, "min_level": 3, "label": "2× Advancing"},
+    },
+    {
+        "level": 5, "code": "STAR5", "title": "ELITE",
+        "color": "#DC143C", "glow": "#FF4444",
+        "direct_income": 22, "commission_pct": 8.50, "support_pct": 10,
+        "direct_users": 8, "team_size": 500,
+        "downline_requirement": {"count": 2, "min_level": 4, "label": "2× Strong"},
+    },
+    {
+        "level": 6, "code": "STAR6", "title": "CHAMPION",
+        "color": "#FFD700", "glow": "#FFC500",
+        "direct_income": 26, "commission_pct": 9.50, "support_pct": 10,
+        "direct_users": 10, "team_size": 1000,
+        "downline_requirement": {"count": 2, "min_level": 5, "label": "2× Elite"},
+    },
+    {
+        "level": 7, "code": "STAR7", "title": "MASTER",
+        "color": "#00FFFF", "glow": "#40E0D0",
+        "direct_income": 30, "commission_pct": 10.50, "support_pct": 10,
+        "direct_users": 12, "team_size": 2000,
+        "downline_requirement": {"count": 2, "min_level": 6, "label": "2× Champion"},
+    },
+    {
+        "level": 8, "code": "STAR8", "title": "LEGEND",
+        "color": "#1E40FF", "glow": "#4169E1",
+        "direct_income": 34, "commission_pct": 11.50, "support_pct": 10,
+        "direct_users": 14, "team_size": 3500,
+        "downline_requirement": {"count": 2, "min_level": 7, "label": "2× Master"},
+    },
+    {
+        "level": 9, "code": "STAR9", "title": "GRANDMASTER",
+        "color": "#FF1493", "glow": "#FF69B4",
+        "direct_income": 38, "commission_pct": 12.50, "support_pct": 10,
+        "direct_users": 16, "team_size": 5500,
+        "downline_requirement": {"count": 2, "min_level": 8, "label": "2× Legend"},
+    },
+    {
+        "level": 10, "code": "STAR10", "title": "SUPREME LEGEND",
+        "color": "#FFD700", "glow": "#FFF8DC",
+        "direct_income": 42, "commission_pct": 14, "support_pct": 10,
+        "direct_users": 20, "team_size": 10000,
+        "downline_requirement": {"count": 2, "min_level": 9, "label": "2× Grandmaster"},
+        "crown": True,
+    },
+]
+
+
+async def _compute_team_stats(user_id: str) -> dict:
+    """Return current user's referral network stats:
+    - direct_count (immediate downline)
+    - total_team (recursive downline size, capped)
+    - downline_ranks: {rank_level: count}
+    """
+    direct = await db.users.count_documents({"referred_by": user_id})
+    # Recursive team walk (BFS, capped at 10 levels + 20k users for perf)
+    seen = {user_id}
+    frontier = [user_id]
+    downline_ranks: dict[int, int] = {}
+    for _depth in range(10):
+        if not frontier or len(seen) > 20000:
+            break
+        cursor = db.users.find(
+            {"referred_by": {"$in": frontier}}, {"id": 1, "rank": 1, "_id": 0},
+        )
+        next_frontier = []
+        async for u in cursor:
+            if u["id"] in seen:
+                continue
+            seen.add(u["id"])
+            next_frontier.append(u["id"])
+            # Track rank counts
+            r_title = u.get("rank", "Starter").upper()
+            for rk in RANKS:
+                if rk["title"] == r_title:
+                    downline_ranks[rk["level"]] = downline_ranks.get(rk["level"], 0) + 1
+                    break
+        frontier = next_frontier
+    return {
+        "direct_count": direct,
+        "total_team": max(0, len(seen) - 1),
+        "downline_ranks": downline_ranks,
+    }
+
+
+def _rank_qualifies(stats: dict, rank: dict) -> bool:
+    if stats["direct_count"] < rank["direct_users"]:
+        return False
+    if stats["total_team"] < rank["team_size"]:
+        return False
+    dr = rank.get("downline_requirement")
+    if dr:
+        need_count = dr["count"]
+        min_level = dr["min_level"]
+        matches = sum(
+            v for lvl, v in stats["downline_ranks"].items() if lvl >= min_level
+        )
+        if matches < need_count:
+            return False
+    return True
+
+
+
+
+
 # One-time activation fee (USDT) charged from user's demo/main wallet the first
 # time they enable trading. After activation, a % of every SELL's profit is
 # auto-deducted from the pre-funded Bot Wallet. If balance runs out, bots pause.
@@ -233,7 +368,7 @@ async def register(body: RegisterIn, response: Response):
         "role": "user",
         "referral_code": ref_code,
         "referred_by": referred_by,
-        "rank": "Bronze",
+        "rank": "Starter",
         "activated": False,
         "wallet_usdt": 1000.0,  # demo starter balance
         "created_at": iso(now_utc()),
@@ -1675,6 +1810,60 @@ async def list_guide():
 @api.get("/")
 async def root():
     return {"app": "TGX BOT", "status": "ok"}
+
+
+# ==== Rank endpoints ====
+@api.get("/ranks/config")
+async def ranks_config():
+    """Public list of all rank tiers (used by the /rank page)."""
+    return {"ranks": RANKS}
+
+
+@api.get("/ranks/me")
+async def ranks_me(user: dict = Depends(get_current_user)):
+    """Return user's current rank, team stats and progress to next rank."""
+    stats = await _compute_team_stats(user["id"])
+    current_title = (user.get("rank") or "Starter").upper()
+
+    current_level = 1
+    for rk in RANKS:
+        if rk["title"] == current_title:
+            current_level = rk["level"]
+            break
+
+    # Auto-promote: pick highest rank the user qualifies for.
+    best_level = 1
+    for rk in RANKS:
+        if _rank_qualifies(stats, rk):
+            best_level = rk["level"]
+
+    if best_level != current_level:
+        new_title = next(r["title"] for r in RANKS if r["level"] == best_level).title()
+        await db.users.update_one({"id": user["id"]}, {"$set": {"rank": new_title}})
+        current_level = best_level
+
+    next_rank = next((r for r in RANKS if r["level"] == current_level + 1), None)
+    progress = None
+    if next_rank:
+        progress = {
+            "direct_needed": next_rank["direct_users"],
+            "direct_have": stats["direct_count"],
+            "team_needed": next_rank["team_size"],
+            "team_have": stats["total_team"],
+            "downline_requirement": next_rank.get("downline_requirement"),
+            "downline_have": sum(
+                v for lvl, v in stats["downline_ranks"].items()
+                if next_rank.get("downline_requirement")
+                and lvl >= next_rank["downline_requirement"]["min_level"]
+            ),
+        }
+    return {
+        "current_level": current_level,
+        "current_title": RANKS[current_level - 1]["title"],
+        "stats": stats,
+        "next_rank": next_rank,
+        "progress": progress,
+    }
 
 
 # ==== Bot Wallet (Monetization) ====

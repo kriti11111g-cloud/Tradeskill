@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Wallet as WalletIcon,
@@ -14,6 +15,7 @@ import {
   Calendar,
   QrCode,
   Users,
+  Trophy,
   X,
 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
@@ -35,6 +37,7 @@ const TRACES = [
 
 export default function BotHub() {
   const { refresh } = useAuth();
+  const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'p2p' | 'info' | null
   const [amount, setAmount] = useState("");
@@ -273,6 +276,22 @@ export default function BotHub() {
 
       {/* ========== BOT WALLET SECTION ========== */}
       <div className="px-4 mt-6" data-testid="bot-wallet-section">
+        {/* Rank quick access */}
+        <button
+          onClick={() => navigate("/rank")}
+          className="w-full flex items-center justify-between rounded-xl border border-[#FFD700]/30 bg-gradient-to-r from-[#FFD700]/10 to-transparent px-4 py-2.5 mb-3 hover:border-[#FFD700]/50 transition"
+          data-testid="btn-open-rank"
+        >
+          <div className="flex items-center gap-2">
+            <Trophy size={16} className="text-[#FFD700]" style={{ filter: "drop-shadow(0 0 6px #FFD700)" }} />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white">
+              Rank Levels
+            </span>
+            <span className="text-[10px] text-[#8B9BB4]">· 1 STAR → 10 STAR</span>
+          </div>
+          <span className="text-[#FFD700] text-lg">›</span>
+        </button>
+
         {/* Activation status — thin, centered */}
         <div
           className={`rounded-xl border px-4 py-2.5 mb-3 ${
