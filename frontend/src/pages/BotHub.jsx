@@ -424,7 +424,7 @@ export default function BotHub() {
               >
                 <div className="min-w-0">
                   <div className="text-[11px] font-semibold text-white capitalize tracking-wide leading-tight">
-                    {t.kind.replace("_", " ")}
+                    {t.kind === "fuel" ? "Bot Fuel" : t.kind.replace("_", " ")}
                   </div>
                   <div className="text-[9px] text-[#8B9BB4] leading-tight">{fmtTime(t.created_at)}</div>
                 </div>
