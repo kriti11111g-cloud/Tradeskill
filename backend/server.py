@@ -51,7 +51,8 @@ fernet = Fernet(MASTER_KEY.encode())
 # time they enable trading. After activation, a % of every SELL's profit is
 # auto-deducted from the pre-funded Bot Wallet. If balance runs out, bots pause.
 BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "70"))
-BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "20"))  # % of profit
+BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "25"))  # % of profit → fuel
+BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "10"))  # bot pauses below this
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 
@@ -767,8 +768,8 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     w = await _get_or_create_bot_wallet(user["id"])
     if not w.get("activated"):
         raise HTTPException(400, "Bot wallet not activated. Please activate your bot from the Bot tab to start trading.")
-    if float(w.get("balance", 0.0) or 0.0) <= 0:
-        raise HTTPException(400, "Bot wallet balance is 0. Please deposit funds to run the bot.")
+    if float(w.get("balance", 0.0) or 0.0) < BOT_MIN_FUEL_BALANCE:
+        raise HTTPException(400, f"Minimum ${BOT_MIN_FUEL_BALANCE:.0f} fuel required to run the bot. Please deposit.")
     await db.bots.update_one(
         {"user_id": user["id"], "symbol": symbol},
         {"$set": {"status": "running", "started_at": iso(now_utc())}},
@@ -1739,8 +1740,9 @@ async def _log_bot_txn(user_id: str, kind: str, amount: float, note: str = "",
 
 async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
     """Called after every profitable SELL. Deducts BOT_TRADING_FEE_PCT% of the
-    profit from the user's Bot Wallet. If insufficient balance, pauses all
-    bots for that user. Returns {fee, deducted, balance_after, paused}."""
+    profit ("fuel") from the user's Bot Wallet AND immediately credits it to
+    the admin's main wallet. If balance falls below BOT_MIN_FUEL_BALANCE
+    after the deduction, all running bots for the user are paused."""
     result = {"fee": 0.0, "deducted": 0.0, "balance_after": 0.0, "paused": False}
     if profit <= 0:
         return result
@@ -1754,13 +1756,13 @@ async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
 
     balance = float(wallet.get("balance", 0.0) or 0.0)
     if balance <= 0:
-        # No funds — pause all running bots for this user.
+        # No fuel → pause all running bots for this user.
         await db.bots.update_many(
             {"user_id": user_id, "status": "running"},
             {"$set": {"status": "stopped"}},
         )
         await _log_bot_txn(user_id, "pause", 0.0,
-                           note="Bot wallet empty — bots paused", symbol=symbol,
+                           note="Fuel wallet empty — bots paused", symbol=symbol,
                            balance_after=0.0)
         result["paused"] = True
         return result
@@ -1772,19 +1774,25 @@ async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
         {"$set": {"balance": new_balance},
          "$inc": {"total_fees_paid": deducted}},
     )
-    await _log_bot_txn(user_id, "trading_fee", -deducted,
-                       note=f"{BOT_TRADING_FEE_PCT}% of ${profit:.2f} profit",
+    await _log_bot_txn(user_id, "fuel", -deducted,
+                       note=f"Fuel · {BOT_TRADING_FEE_PCT}% of ${profit:.2f} profit",
                        symbol=symbol, balance_after=new_balance)
+    # Fuel deducted → immediately credit admin wallet (platform revenue)
+    await _credit_admin_revenue(deducted, "fuel", user_id,
+                                note=f"Fuel {BOT_TRADING_FEE_PCT}% of ${profit:.2f} on {symbol}",
+                                symbol=symbol)
     result["deducted"] = deducted
     result["balance_after"] = new_balance
-    if new_balance <= 0:
+    if new_balance < BOT_MIN_FUEL_BALANCE:
         await db.bots.update_many(
             {"user_id": user_id, "status": "running"},
             {"$set": {"status": "stopped"}},
         )
-        await _log_bot_txn(user_id, "pause", 0.0,
-                           note="Bot wallet drained — bots paused", symbol=symbol,
-                           balance_after=0.0)
+        await _log_bot_txn(
+            user_id, "pause", 0.0,
+            note=f"Fuel below ${BOT_MIN_FUEL_BALANCE:.0f} minimum — bots paused",
+            symbol=symbol, balance_after=new_balance,
+        )
         result["paused"] = True
     return result
 
@@ -1817,6 +1825,7 @@ async def bot_wallet_status(user: dict = Depends(get_current_user)):
         "balance": round(float(w.get("balance", 0.0) or 0.0), 4),
         "activation_fee": BOT_ACTIVATION_FEE,
         "trading_fee_pct": BOT_TRADING_FEE_PCT,
+        "min_fuel_balance": BOT_MIN_FUEL_BALANCE,
         "activated_at": w.get("activated_at"),
         "total_fees_paid": round(float(w.get("total_fees_paid", 0.0) or 0.0), 4),
         "deposit_address": w.get("deposit_address") or BOT_WALLET_DEPOSIT_ADDRESS,

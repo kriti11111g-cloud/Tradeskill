@@ -213,8 +213,10 @@ export default function BotHub() {
   const activated = !!status?.activated;
   const balance = status?.balance ?? 0;
   const mainBal = status?.main_wallet_usdt ?? 0;
-  const feePct = status?.trading_fee_pct ?? 20;
+  const feePct = status?.trading_fee_pct ?? 25;
   const actFee = status?.activation_fee ?? 70;
+  const minFuel = status?.min_fuel_balance ?? 10;
+  const lowFuel = activated && balance < minFuel;
 
   // Filter txns by selected date (YYYY-MM-DD compare against ISO date prefix)
   const visibleTxns = useMemo(() => {
@@ -320,10 +322,10 @@ export default function BotHub() {
               {fmtUSD(balance)}
             </div>
           </div>
-          {activated && balance <= 0 && (
+          {lowFuel && (
             <div className="mt-2 flex items-center gap-2 text-[11px] text-[#FF3B3B]">
               <AlertTriangle size={12} />
-              <span>Balance is zero — bots are paused. Deposit to resume.</span>
+              <span>Fuel below ${minFuel} — bots paused. Deposit to resume.</span>
             </div>
           )}
         </div>
@@ -447,9 +449,9 @@ export default function BotHub() {
         <ModalShell title="How it works" onClose={closeModal} testid="dialog-info">
           <ul className="text-[13px] text-[#B8C4D8] leading-relaxed space-y-2.5 list-disc pl-5">
             <li>Pay one-time <span className="text-white font-semibold">${actFee}</span> to activate the trading bot.</li>
-            <li>Pre-fund your Wallet — fees are auto-deducted from here, never from your Binance funds.</li>
-            <li>Every profitable SELL deducts <span className="text-[#FFD700] font-semibold">{feePct}%</span> of the profit.</li>
-            <li>If balance hits <span className="text-[#FF3B3B] font-semibold">$0</span>, bots pause automatically until you deposit again.</li>
+            <li>Pre-fund your Wallet with <span className="text-white font-semibold">Fuel</span> — the bot burns fuel from here on every profitable trade.</li>
+            <li>Every profitable SELL deducts <span className="text-[#FFD700] font-semibold">{feePct}% Fuel</span> from your Wallet (paid to the platform).</li>
+            <li>Keep at least <span className="text-white font-semibold">${minFuel}</span> Fuel — if balance drops below, all bots pause automatically.</li>
           </ul>
           <button
             onClick={closeModal}

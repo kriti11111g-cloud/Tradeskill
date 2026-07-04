@@ -62,7 +62,8 @@ class TestBotWalletStatusDefaults:
         assert data["activated"] is False
         assert data["balance"] == 0
         assert data["activation_fee"] == 70
-        assert data["trading_fee_pct"] == 20
+        assert data["trading_fee_pct"] == 25
+        assert data["min_fuel_balance"] == 10
         assert "deposit_address" in data
         assert data["main_wallet_usdt"] == 1000.0  # seed wallet
 
@@ -117,7 +118,7 @@ class TestBotWalletActivate:
         r = requests.post(f"{BASE_URL}/api/bots/BTCUSDT/start",
                           headers=_headers(fresh_user["token"]), timeout=15)
         assert r.status_code == 400
-        assert "balance is 0" in r.text.lower() or "balance is $0" in r.text.lower()
+        assert "fuel required" in r.text.lower() or "minimum" in r.text.lower()
 
 
 class TestActivateInsufficientBalance:
@@ -219,9 +220,9 @@ class TestBotWalletTransactions:
 
 # ---------- Trading Fee Deduction on SELL ----------
 class TestTradingFeeDeduction:
-    def test_profitable_sell_deducts_20pct_from_bot_wallet(self):
+    def test_profitable_sell_deducts_25pct_fuel_from_bot_wallet(self):
         """Full flow: register → activate → deposit → BUY → SELL profitable →
-        verify trading_fee txn with amount = -0.20 * profit."""
+        verify fuel txn with amount = -0.25 * profit AND admin wallet credited."""
         token, user, _, _ = _register_fresh()
         h = _headers(token)
 
@@ -274,19 +275,19 @@ class TestTradingFeeDeduction:
         # Allow the async fee task a moment (it's inline so should be fine).
         time.sleep(0.5)
 
-        # Verify bot wallet balance decreased by 20% of profit
+        # Verify bot wallet balance decreased by 25% of profit
         s = requests.get(f"{BASE_URL}/api/bot-wallet/status", headers=h, timeout=15).json()
-        expected_fee = round(profit * 0.20, 4)
+        expected_fee = round(profit * 0.25, 4)
         expected_new = round(bot_bal_before - expected_fee, 4)
         # Allow small rounding tolerance
         assert abs(s["balance"] - expected_new) < 0.02, (
             f"expected balance≈{expected_new}, got {s['balance']} (profit={profit}, fee={expected_fee})"
         )
 
-        # Verify trading_fee txn is logged
+        # Verify fuel txn is logged
         txns = requests.get(f"{BASE_URL}/api/bot-wallet/transactions",
                             headers=h, timeout=15).json()
-        fee_rows = [t for t in txns if t["kind"] == "trading_fee"]
+        fee_rows = [t for t in txns if t["kind"] == "fuel"]
         assert len(fee_rows) >= 1
         assert fee_rows[0]["symbol"] == "BTCUSDT"
         assert fee_rows[0]["amount"] < 0
@@ -302,11 +303,11 @@ class TestTradingFeeDeduction:
         r = requests.post(f"{BASE_URL}/api/bot-wallet/activate", headers=h, timeout=15)
         assert r.status_code == 200, r.text
 
-        # Deposit $1 into bot wallet (tiny balance)
+        # Deposit $11 (just above min $10 fuel to allow bot to start)
         r = requests.post(f"{BASE_URL}/api/bot-wallet/deposit", headers=h,
-                          json={"amount": 1}, timeout=15)
+                          json={"amount": 11}, timeout=15)
         assert r.status_code == 200, r.text
-        assert r.json()["balance"] == 1.0
+        assert r.json()["balance"] == 11.0
 
         # Start a bot so we can verify it gets paused
         start = requests.post(f"{BASE_URL}/api/bots/BTCUSDT/start",
@@ -352,12 +353,12 @@ class TestTradingFeeDeduction:
         assert btc is not None, "BTCUSDT bot missing"
         assert btc["status"] == "stopped", f"expected stopped, got {btc['status']}"
 
-        # Verify a 'pause' bot_transaction is logged AND trading_fee is logged
+        # Verify a 'pause' bot_transaction is logged AND fuel is logged
         txns = requests.get(f"{BASE_URL}/api/bot-wallet/transactions",
                             headers=h, timeout=15).json()
         kinds = [t["kind"] for t in txns]
         assert "pause" in kinds, f"expected 'pause' txn, got kinds={kinds}"
-        assert "trading_fee" in kinds, f"expected 'trading_fee' txn, got kinds={kinds}"
+        assert "fuel" in kinds, f"expected 'fuel' txn, got kinds={kinds}"
 
 
 
@@ -376,4 +377,4 @@ class TestAdminActivated:
         # It may or may not still be activated depending on DB state.
         if data["activated"]:
             assert data["activation_fee"] == 70
-            assert data["trading_fee_pct"] == 20
+            assert data["trading_fee_pct"] == 25
