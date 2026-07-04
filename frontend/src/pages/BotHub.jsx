@@ -9,6 +9,7 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
+  Info,
   X,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -268,20 +269,43 @@ export default function BotHub() {
           </button>
         </div>
 
-        {/* How it works */}
-        <div className="mt-4 rounded-xl border border-white/10 bg-[#0B1220]/60 p-4" data-testid="bot-wallet-info">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap size={14} className="text-[#00F0FF]" />
+        {/* How it works — thin card, tap ⓘ to see conditions */}
+        <button
+          onClick={() => setModal("info")}
+          className="mt-4 w-full flex items-center justify-between rounded-xl border border-white/10 bg-[#0B1220]/60 px-4 py-2.5 hover:border-[#00F0FF]/30 transition"
+          data-testid="bot-wallet-info"
+        >
+          <div className="flex items-center gap-2">
+            <Zap size={12} className="text-[#00F0FF]" />
             <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">How it works</span>
           </div>
-          <ul className="text-[12px] text-[#B8C4D8] leading-relaxed space-y-1 list-disc pl-4">
-            <li>Pay one-time <span className="text-white">${actFee}</span> to activate the trading bot.</li>
-            <li>Pre-fund your Wallet — fees are auto-deducted from here, never from your Binance funds.</li>
-            <li>Every profitable SELL deducts <span className="text-[#FFD700]">{feePct}%</span> of the profit.</li>
-            <li>If balance hits <span className="text-[#FF3B3B]">$0</span>, bots pause automatically until you deposit again.</li>
-          </ul>
-        </div>
+          <Info
+            size={18}
+            className="text-[#00F0FF]"
+            style={{ filter: "drop-shadow(0 0 4px rgba(0,240,255,0.6))" }}
+            data-testid="btn-open-info"
+          />
+        </button>
       </div>
+
+      {/* ========== INFO DIALOG (Conditions) ========== */}
+      {modal === "info" && (
+        <ModalShell title="How it works" onClose={closeModal} testid="dialog-info">
+          <ul className="text-[13px] text-[#B8C4D8] leading-relaxed space-y-2.5 list-disc pl-5">
+            <li>Pay one-time <span className="text-white font-semibold">${actFee}</span> to activate the trading bot.</li>
+            <li>Pre-fund your Wallet — fees are auto-deducted from here, never from your Binance funds.</li>
+            <li>Every profitable SELL deducts <span className="text-[#FFD700] font-semibold">{feePct}%</span> of the profit.</li>
+            <li>If balance hits <span className="text-[#FF3B3B] font-semibold">$0</span>, bots pause automatically until you deposit again.</li>
+          </ul>
+          <button
+            onClick={closeModal}
+            className="mt-5 w-full py-3 rounded-lg bg-[#00F0FF]/15 text-[#00F0FF] font-semibold text-sm border border-[#00F0FF]/30"
+            data-testid="btn-close-info"
+          >
+            Got it
+          </button>
+        </ModalShell>
+      )}
 
       {/* ========== ACTIVATE DIALOG ========== */}
       {modal === "activate" && (
