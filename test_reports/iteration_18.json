@@ -1,0 +1,38 @@
+{
+  "summary": "Retest of the two critical failures from iteration_17. Both are now RESOLVED. (1) DEMO SELL branch now calls _charge_trading_fee → bot wallet balance drops 20% of profit and trading_fee txn is logged. (2) When fee > small balance, balance drained to 0 and running bots paused with a 'pause' bot_transaction. (3) Mobile 390x844 /bot page — Deposit / Withdraw / History all clickable with normal (non-force) clicks; elementFromPoint returns each button's own testid, confirming pb-40 removed the bottom-nav overlay. Only the two originally-failing scenarios were re-run per instructions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_details": {
+    "backend_pytest": "2/2 passed in TestTradingFeeDeduction",
+    "tests_re_run": [
+      "test_profitable_sell_deducts_20pct_from_bot_wallet — PASSED (balance $200 → $190 after $50 profit; trading_fee row with amount=-10.00)",
+      "test_sell_when_fee_exceeds_small_balance_pauses_bots — PASSED (balance $1 → $0; BTCUSDT bot status=stopped; kinds contain 'pause' AND 'trading_fee')"
+    ],
+    "mobile_ui_390x844": {
+      "btn-open-deposit": "elementFromPoint = btn-open-deposit; normal click SUCCESS",
+      "btn-open-withdraw": "elementFromPoint = btn-open-withdraw; normal click SUCCESS",
+      "btn-open-history": "elementFromPoint = btn-open-history; normal click SUCCESS; dialog opened (screenshot verified)"
+    },
+    "server_py_line_1122_1123": "await _credit_referral_commission(...); if profit > 0: await _charge_trading_fee(user_id, profit, symbol) — present in DEMO branch",
+    "BotHub_line_125": "outer container className='pb-40'"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bot_wallet.py",
+    "/app/test_reports/pytest/pytest_iteration18.xml",
+    "/app/test_reports/screenshots/mob_bot_final.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix confirmed at server.py 1122-1123. Note the referral commission is still credited BEFORE the fee is charged — if the fee-pause path fires (balance=0), the referrer already got paid while the platform collected nothing. This is a business-policy call, not a bug per se, but worth documenting.",
+    "server.py remains ~1951 lines — modularization suggestion from iteration_17 still stands."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bot_wallet.py (added test_sell_when_fee_exceeds_small_balance_pauses_bots)"
+  ],
+  "success_rate": {"backend": "100% (2/2 retest)", "frontend": "100% (3/3 mobile buttons)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345; fresh users inline (TEST_botwallet_*, testmob*_*)",
+  "seed_data_creation": "None — inline registrations only",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Both iteration_17 blockers are fixed and verified. TestTradingFeeDeduction class now has 2 tests covering the happy path and the pause-on-empty-wallet path. Mobile 390x844 UI is unblocked. Full regression: run `pytest /app/backend/tests/test_bot_wallet.py -v` — expect all tests to pass (18/18 including the new pause test)."
+}

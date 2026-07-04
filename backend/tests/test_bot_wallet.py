@@ -292,6 +292,75 @@ class TestTradingFeeDeduction:
         assert fee_rows[0]["amount"] < 0
         assert abs(abs(fee_rows[0]["amount"]) - expected_fee) < 0.02
 
+    def test_sell_when_fee_exceeds_small_balance_pauses_bots(self):
+        """Balance ~$1 with a bigger fee → balance drained to 0 and running bots paused.
+        Also verify a 'pause' bot_transaction is logged."""
+        token, user, _, _ = _register_fresh()
+        h = _headers(token)
+
+        # Activate
+        r = requests.post(f"{BASE_URL}/api/bot-wallet/activate", headers=h, timeout=15)
+        assert r.status_code == 200, r.text
+
+        # Deposit $1 into bot wallet (tiny balance)
+        r = requests.post(f"{BASE_URL}/api/bot-wallet/deposit", headers=h,
+                          json={"amount": 1}, timeout=15)
+        assert r.status_code == 200, r.text
+        assert r.json()["balance"] == 1.0
+
+        # Start a bot so we can verify it gets paused
+        start = requests.post(f"{BASE_URL}/api/bots/BTCUSDT/start",
+                              headers=h, timeout=15)
+        assert start.status_code == 200, start.text
+        assert start.json()["status"] == "running"
+
+        # BUY $100 to open a position
+        buy = requests.post(f"{BASE_URL}/api/trade/order", headers=h,
+                            json={"symbol": "BTCUSDT", "side": "BUY",
+                                  "usdt_amount": 100.0}, timeout=30)
+        assert buy.status_code == 200, buy.text
+        buy_qty = float(buy.json()["quantity"])
+        buy_price = float(buy.json()["price"])
+
+        # Override avg_price to half → guarantees profit ≈ $100 → fee ≈ $20 (> $1)
+        override = requests.post(
+            f"{BASE_URL}/api/bots/BTCUSDT/position", headers=h,
+            json={"position_qty": buy_qty, "avg_price": buy_price * 0.5,
+                  "reset_peak": True}, timeout=15,
+        )
+        if override.status_code not in (200, 201):
+            pytest.skip(f"position override not available: {override.status_code}")
+
+        # SELL → profit large → fee > balance → balance drained to 0 and bots paused
+        sell = requests.post(f"{BASE_URL}/api/trade/order", headers=h,
+                             json={"symbol": "BTCUSDT", "side": "SELL",
+                                   "quantity": buy_qty}, timeout=30)
+        assert sell.status_code == 200, sell.text
+        profit = float(sell.json()["profit"])
+        assert profit > 1.0, f"profit {profit} not large enough for scenario"
+
+        time.sleep(0.5)
+
+        # Balance should be 0 (drained down to 0, not negative)
+        s = requests.get(f"{BASE_URL}/api/bot-wallet/status",
+                         headers=h, timeout=15).json()
+        assert s["balance"] == 0.0, f"expected 0, got {s['balance']}"
+
+        # Bot for BTCUSDT should now be stopped (paused)
+        bots = requests.get(f"{BASE_URL}/api/bots", headers=h, timeout=15).json()
+        btc = next((b for b in bots if b["symbol"] == "BTCUSDT"), None)
+        assert btc is not None, "BTCUSDT bot missing"
+        assert btc["status"] == "stopped", f"expected stopped, got {btc['status']}"
+
+        # Verify a 'pause' bot_transaction is logged AND trading_fee is logged
+        txns = requests.get(f"{BASE_URL}/api/bot-wallet/transactions",
+                            headers=h, timeout=15).json()
+        kinds = [t["kind"] for t in txns]
+        assert "pause" in kinds, f"expected 'pause' txn, got kinds={kinds}"
+        assert "trading_fee" in kinds, f"expected 'trading_fee' txn, got kinds={kinds}"
+
+
+
 
 # ---------- Admin (already activated) sanity ----------
 class TestAdminActivated:

@@ -122,7 +122,7 @@ export default function BotHub() {
   const actFee = status?.activation_fee ?? 70;
 
   return (
-    <div className="pb-28" data-testid="bothub-page">
+    <div className="pb-40" data-testid="bothub-page">
       <PageHeader title="Welcome to TGX BOT" subtitle="AI Powered Exchange" showBack={false} />
 
       {/* Hero image with animated overlays */}

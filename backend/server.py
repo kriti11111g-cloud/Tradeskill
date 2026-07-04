@@ -1119,6 +1119,8 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
     await db.transactions.insert_one(txn)
     if side == "SELL":
         await _credit_referral_commission(user_id, profit, symbol)
+        if profit > 0:
+            await _charge_trading_fee(user_id, profit, symbol)
     txn.pop("_id", None)
     return txn
 
