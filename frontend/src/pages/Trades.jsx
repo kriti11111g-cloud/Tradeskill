@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Wallet as WalletIcon, Link2, Lock } from "lucide-react";
+import { Plus, Wallet as WalletIcon, Link2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtNum, fmtUSD, shortSymbol } from "@/lib/format";
@@ -164,7 +164,6 @@ export default function Trades() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("live"); // "live" | "all" | "idle"
   const [spot, setSpot] = useState(null);       // { mode, connected, usdt_balance, error? }
-  const [wallet, setWallet] = useState(null);   // bot-wallet/status
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -179,20 +178,16 @@ export default function Trades() {
   }, []);
 
   useEffect(() => {
-    const loadWallets = async () => {
+    const loadWallet = async () => {
       try {
-        const [s, w] = await Promise.all([
-          api.get("/wallet/spot"),
-          api.get("/bot-wallet/status"),
-        ]);
-        setSpot(s.data);
-        setWallet(w.data);
+        const { data } = await api.get("/wallet/spot");
+        setSpot(data);
       } catch {
         /* silent */
       }
     };
-    loadWallets();
-    const t = setInterval(loadWallets, 15000);
+    loadWallet();
+    const t = setInterval(loadWallet, 15000);
     return () => clearInterval(t);
   }, []);
 
@@ -225,94 +220,49 @@ export default function Trades() {
         showBack={false}
       />
 
-      {/* Wallet Card — Exchange USDT + your Wallet */}
+      {/* Wallet Card — Only the connected Exchange API's USDT balance */}
       <div className="px-4 mb-3">
-        <div
-          className="rounded-2xl border border-[#00F0FF]/25 bg-gradient-to-br from-[#0F1524]/90 to-[#0B111E]/90 p-3"
+        <button
+          onClick={() => navigate("/bind-api")}
+          className="w-full text-left rounded-2xl border border-[#00F0FF]/25 bg-gradient-to-br from-[#0F1524]/90 to-[#0B111E]/90 p-3 hover:border-[#FFD700]/40 transition"
           style={{ boxShadow: "0 0 22px rgba(0,240,255,0.08)" }}
           data-testid="trades-wallet-card"
         >
-          <div className="flex items-center gap-2 mb-2.5">
+          <div className="flex items-center gap-2 mb-2">
             <WalletIcon size={14} className="text-[#00F0FF]" />
-            <div className="text-[10px] uppercase tracking-[0.28em] text-[#8B9BB4] font-semibold">
-              My Wallet
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Exchange side */}
-            <button
-              onClick={() => navigate("/bind-api")}
-              className="text-left rounded-xl border border-white/10 bg-[#0B1220]/60 p-2.5 hover:border-[#FFD700]/40 transition"
-              data-testid="wallet-card-exchange"
+            <span className="text-[10px] uppercase tracking-[0.28em] text-[#8B9BB4] font-semibold">
+              Exchange Wallet
+            </span>
+            <span
+              className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded ${
+                spot?.connected
+                  ? "bg-[#39FF14]/15 text-[#39FF14]"
+                  : "bg-white/5 text-[#8B9BB4]"
+              }`}
+              data-testid="wallet-exchange-status"
             >
-              <div className="flex items-center gap-1.5 mb-1">
-                <Link2 size={10} className={spot?.connected ? "text-[#39FF14]" : "text-[#8B9BB4]"} />
-                <span className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
-                  {spot?.connected ? "Binance" : "Exchange"}
-                </span>
-                <span
-                  className={`ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                    spot?.connected
-                      ? "bg-[#39FF14]/15 text-[#39FF14]"
-                      : "bg-white/5 text-[#8B9BB4]"
-                  }`}
-                >
-                  {spot?.connected ? (spot?.mode || "LIVE").toUpperCase() : "NOT LINKED"}
-                </span>
-              </div>
+              {spot?.connected ? (spot?.mode || "LIVE").toUpperCase() : "NOT LINKED"}
+            </span>
+          </div>
+          <div className="flex items-end justify-between">
+            <div>
               <div
-                className="font-mono font-extrabold text-[15px] tabular-nums text-white leading-tight"
+                className="font-mono font-extrabold text-[22px] tabular-nums text-white leading-none"
                 data-testid="wallet-exchange-usdt"
               >
                 {spot?.connected ? fmtUSD(spot?.usdt_balance || 0) : "—"}
               </div>
-              <div className="text-[8px] text-[#8B9BB4] mt-0.5">
+              <div className="text-[10px] text-[#8B9BB4] mt-1.5 flex items-center gap-1">
+                <Link2 size={10} className={spot?.connected ? "text-[#39FF14]" : "text-[#8B9BB4]"} />
                 {spot?.connected
-                  ? "USDT · Spot Free"
+                  ? "Binance · Spot USDT (free)"
                   : spot?.error
-                  ? "Geo-blocked"
-                  : "Tap to bind API"}
+                  ? "Binance geo-blocked from server region"
+                  : "Tap to bind your Binance API"}
               </div>
-            </button>
-
-            {/* Wallet side */}
-            <button
-              onClick={() => navigate("/bot")}
-              className="text-left rounded-xl border border-white/10 bg-[#0B1220]/60 p-2.5 hover:border-[#39FF14]/40 transition"
-              data-testid="wallet-card-mine"
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                {wallet?.activated ? (
-                  <span className="w-2 h-2 rounded-full bg-[#39FF14]"
-                        style={{ boxShadow: "0 0 6px #39FF14" }} />
-                ) : (
-                  <Lock size={10} className="text-[#FF3B3B]" />
-                )}
-                <span className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
-                  Wallet
-                </span>
-                <span
-                  className={`ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                    wallet?.activated
-                      ? "bg-[#39FF14]/15 text-[#39FF14]"
-                      : "bg-[#FF3B3B]/15 text-[#FF3B3B]"
-                  }`}
-                >
-                  {wallet?.activated ? "ACTIVE" : "DEACTIVATE"}
-                </span>
-              </div>
-              <div
-                className="font-mono font-extrabold text-[15px] tabular-nums text-white leading-tight"
-                data-testid="wallet-mine-usdt"
-              >
-                {fmtUSD(wallet?.balance || 0)}
-              </div>
-              <div className="text-[8px] text-[#8B9BB4] mt-0.5">
-                {wallet?.activated ? "USDT · Bot pre-fund" : `Activate • $${wallet?.activation_fee ?? 70}`}
-              </div>
-            </button>
+            </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Summary strip */}
