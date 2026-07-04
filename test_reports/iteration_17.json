@@ -1,0 +1,78 @@
+{
+  "summary": "Tested Pre-Funded Bot Wallet & Monetization end-to-end. Backend: 17/18 pytest passed. One CRITICAL backend bug: the DEMO branch of _execute_trade does NOT call _charge_trading_fee for profitable SELLs — only the LIVE branch does. Since users default to demo mode, no fees are ever deducted from bot wallets in the primary flow. Frontend: /bot page renders correctly (DEACTIVATE→ACTIVE transition, balance card, dialogs, txn history). All 3 core flows verified (activate, deposit $100, withdraw $50, history shows 3 txns). One UI overlap issue observed on mobile 390x844 viewport.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/trade/order (SELL) [DEMO mode]",
+        "issue": "Missing _charge_trading_fee(user_id, profit, symbol) call in the DEMO branch of _execute_trade. Only _credit_referral_commission is called (server.py line 1120-1122). The LIVE branch correctly calls both (line 1027-1030). Result: bot wallet balance never decreases on profitable demo SELLs, no 'trading_fee' bot_transaction is logged, and bots never pause on balance=0 in the primary flow. Reproduced: fresh user → activate → deposit $200 → BUY BTCUSDT $100 → override avg_price to half → SELL → profit $50 → bot wallet balance remained $200 (expected $190).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "BotHub action buttons row",
+        "issue": "On mobile viewport 390x844 (default iPhone-ish), the Deposit/Withdraw/History button row sits at the very bottom of the scroll area and gets covered by the fixed bottom navigation bar. Native user clicks (and Playwright force clicks) at those coordinates hit the bottom nav instead of the intended button — the dialog never opens. Increasing bottom padding (currently pb-28) or moving the actions higher would fix it. JS-dispatched clicks (which bypass the pointer-events overlap) worked, confirming the click handler itself is correct.",
+        "selector": "[data-testid=\"btn-open-deposit\"], [data-testid=\"btn-open-withdraw\"], [data-testid=\"btn-open-history\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_details": {
+    "backend_pytest": "17 passed, 1 failed (test_profitable_sell_deducts_20pct — see critical bug above)",
+    "endpoints_verified": {
+      "GET /api/bot-wallet/status (fresh user)": "activated=false, balance=0, activation_fee=70, trading_fee_pct=20, main_wallet_usdt=1000",
+      "POST /api/bot-wallet/activate": "deducts $70 from wallet_usdt (1000→930), sets activated=true; idempotent second call returns already=true",
+      "POST /api/bot-wallet/activate (insufficient balance)": "returns 400 'Insufficient main wallet balance'",
+      "POST /api/bot-wallet/deposit (not activated)": "returns 400 'Bot wallet not activated'",
+      "POST /api/bot-wallet/deposit {100}": "returns balance=100.0, moves $100 from wallet_usdt into bot_wallet.balance",
+      "POST /api/bot-wallet/deposit {999999}": "returns 400 Insufficient main wallet balance",
+      "POST /api/bot-wallet/deposit {-10}": "returns 422 (Pydantic gt=0 validation)",
+      "POST /api/bot-wallet/withdraw {50}": "returns balance=50.0, moves $50 back to main wallet",
+      "POST /api/bot-wallet/withdraw {99999}": "returns 400 Insufficient bot wallet balance",
+      "GET /api/bot-wallet/transactions": "returns [] sorted DESC by created_at, kinds observed: activation, deposit, withdraw; no _id leaked",
+      "POST /api/bots/BTCUSDT/start (not activated)": "returns 400 'Bot wallet not activated...'",
+      "POST /api/bots/BTCUSDT/start (activated, balance=0)": "returns 400 'Bot wallet balance is 0...'",
+      "POST /api/bots/BTCUSDT/start (activated, balance>0)": "returns {status: running, symbol: BTCUSDT}"
+    },
+    "frontend_verified": {
+      "fresh_user_bot_page": "DEACTIVATE banner (red) shown, red ACTIVATE • $70 button present, Deposit/Withdraw disabled=true, Main Wallet: $1000",
+      "activate_dialog": "opens with $70 fee shown; confirm click flips status to ACTIVE (green), main wallet becomes $930",
+      "deposit_flow": "Deposit $100 → balance $100.00, main wallet -100",
+      "withdraw_flow": "Withdraw $50 → balance $50.00",
+      "history_dialog": "shows 3 rows: WITHDRAW -$50, DEPOSIT +$100, ACTIVATION -$70 (correct DESC order, balance_after column present)",
+      "admin_bot_page": "shows ACTIVE state, previous $200 balance from earlier iteration confirmed, Deposit/Withdraw enabled"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bot_wallet.py",
+    "/app/test_reports/pytest/pytest_bot_wallet.xml",
+    "/app/test_reports/screenshots/bot_wallet_deactivated.png",
+    "/app/test_reports/screenshots/bot_wallet_final.png",
+    "/app/test_reports/screenshots/bot_wallet_admin_active.png"
+  ],
+  "action_items": [
+    "CRITICAL: Add `if profit > 0: await _charge_trading_fee(user_id, profit, symbol)` in the DEMO SELL branch of _execute_trade (server.py after line 1121, mirror the LIVE branch at line 1029-1030). Without this, the entire monetization loop is broken for demo users — bot wallet never depletes, bots never pause.",
+    "HIGH: Fix action-buttons row overlap on mobile viewport. Either bump `pb-28` on the outer container to `pb-32`/`pb-40`, or place the Deposit/Withdraw/History grid inside a section with additional bottom margin so it isn't obscured by the fixed bottom navigation bar. Currently users on standard mobile heights cannot tap those buttons at their default position — only after scrolling."
+  ],
+  "critical_code_review_comments": [
+    "Monetization bug: SELL fee deduction only happens in LIVE branch (line 1029-1030). DEMO branch (line 1120-1122) is missing the call. Since the default user has no Binance keys bound and runs in demo mode, ~all users skip fee deduction.",
+    "server.py is 1949 lines — worth splitting into modules (auth, wallet, trading, bots, referral, rewards, news, bot_wallet) for maintainability.",
+    "_charge_trading_fee: if balance is already 0 at the time of a profitable SELL, it logs a 'pause' txn but does not actually deduct the fee. The bot is paused correctly, but the referrer commission has already been credited at line 1028/1121. Consider whether referral commissions should still credit when the platform couldn't collect its own fee.",
+    "bot_wallet_activate uses `$inc: {wallet_usdt: -BOT_ACTIVATION_FEE}` and separately a $set on bot_wallets — these are not in a transaction. If the second write fails the user loses $70 with no activation. Consider a Mongo transaction or a compensating update. Same concern applies to deposit/withdraw."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bot_wallet.py (new)"
+  ],
+  "success_rate": {"backend": "94% (17/18 pytest)", "frontend": "95% (all flows work; 1 mobile overlap UX issue)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (worked). Fresh users registered inline (TEST_botwallet_*@example.com, TEST_botwallet2_*@example.com, testbw*_*@example.com).",
+  "seed_data_creation": "None (test users and bot_wallets/bot_transactions rows created inline; no cleanup needed for demo data).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "After main agent adds `await _charge_trading_fee(...)` to the DEMO SELL branch, re-run pytest backend/tests/test_bot_wallet.py — specifically TestTradingFeeDeduction. The test uses /api/bots/{symbol}/position to override avg_price to guarantee a profitable SELL. Also re-verify the mobile UI overlap fix by loading /bot on 390x844 viewport and clicking Deposit/Withdraw/History with a standard (non-force) click.",
+  "rca of the issue": "Root cause of missing fee deduction: when the bot-wallet monetization was added, the _charge_trading_fee helper was inserted into _execute_trade only under the LIVE Binance branch (line 1027-1030). The DEMO simulation branch (line 1120-1122) already had _credit_referral_commission but was not updated with _charge_trading_fee. Since ~100% of users run in demo mode (no Binance key bound + geo-block on US IPs), the fee logic is effectively dead code. Fix: mirror the LIVE branch — after `await _credit_referral_commission(user_id, profit, symbol)` in the DEMO branch, add `if profit > 0: await _charge_trading_fee(user_id, profit, symbol)`."
+}

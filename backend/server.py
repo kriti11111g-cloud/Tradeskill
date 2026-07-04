@@ -46,6 +46,15 @@ client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 fernet = Fernet(MASTER_KEY.encode())
 
+# ==== Bot Monetization ====
+# One-time activation fee (USDT) charged from user's demo/main wallet the first
+# time they enable trading. After activation, a % of every SELL's profit is
+# auto-deducted from the pre-funded Bot Wallet. If balance runs out, bots pause.
+BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "70"))
+BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "20"))  # % of profit
+BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
+                                            "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
+
 BINANCE_PUBLIC = "https://data-api.binance.vision"
 ALLOWED_SYMBOLS = {
     # Fallback set if Binance exchangeInfo isn't reachable at startup — overridden at boot.
@@ -754,6 +763,12 @@ async def override_position(symbol: str, body: PositionOverrideIn, user: dict = 
 @api.post("/bots/{symbol}/start")
 async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()
+    # Block bot start if Bot Wallet is not activated / has no balance
+    w = await _get_or_create_bot_wallet(user["id"])
+    if not w.get("activated"):
+        raise HTTPException(400, "Bot wallet not activated. Please activate your bot from the Bot tab to start trading.")
+    if float(w.get("balance", 0.0) or 0.0) <= 0:
+        raise HTTPException(400, "Bot wallet balance is 0. Please deposit funds to run the bot.")
     await db.bots.update_one(
         {"user_id": user["id"], "symbol": symbol},
         {"$set": {"status": "running", "started_at": iso(now_utc())}},
@@ -1011,6 +1026,8 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         await db.transactions.insert_one(txn)
         if side == "SELL":
             await _credit_referral_commission(user_id, profit, symbol)
+            if profit > 0:
+                await _charge_trading_fee(user_id, profit, symbol)
         txn.pop("_id", None)
         return txn
 
@@ -1657,6 +1674,181 @@ async def root():
     return {"app": "TGX BOT", "status": "ok"}
 
 
+# ==== Bot Wallet (Monetization) ====
+async def _get_or_create_bot_wallet(user_id: str) -> dict:
+    """Return the user's bot wallet document, creating a default if missing."""
+    doc = await db.bot_wallets.find_one({"user_id": user_id}, {"_id": 0})
+    if not doc:
+        doc = {
+            "user_id": user_id,
+            "balance": 0.0,
+            "activated": False,
+            "activated_at": None,
+            "activation_fee_paid": 0.0,
+            "total_fees_paid": 0.0,
+            "deposit_address": BOT_WALLET_DEPOSIT_ADDRESS,
+            "created_at": iso(now_utc()),
+        }
+        await db.bot_wallets.insert_one(dict(doc))
+    return doc
+
+
+async def _log_bot_txn(user_id: str, kind: str, amount: float, note: str = "",
+                       symbol: Optional[str] = None, balance_after: Optional[float] = None):
+    await db.bot_transactions.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "kind": kind,   # activation | deposit | withdraw | trading_fee | pause
+        "amount": round(float(amount), 4),
+        "note": note,
+        "symbol": symbol,
+        "balance_after": round(float(balance_after), 4) if balance_after is not None else None,
+        "created_at": iso(now_utc()),
+    })
+
+
+async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
+    """Called after every profitable SELL. Deducts BOT_TRADING_FEE_PCT% of the
+    profit from the user's Bot Wallet. If insufficient balance, pauses all
+    bots for that user. Returns {fee, deducted, balance_after, paused}."""
+    result = {"fee": 0.0, "deducted": 0.0, "balance_after": 0.0, "paused": False}
+    if profit <= 0:
+        return result
+    wallet = await _get_or_create_bot_wallet(user_id)
+    fee = round(profit * BOT_TRADING_FEE_PCT / 100.0, 4)
+    result["fee"] = fee
+    if not wallet.get("activated"):
+        # Not activated → nothing to deduct (bot shouldn't even be trading, but
+        # we keep this defensive).
+        return result
+
+    balance = float(wallet.get("balance", 0.0) or 0.0)
+    if balance <= 0:
+        # No funds — pause all running bots for this user.
+        await db.bots.update_many(
+            {"user_id": user_id, "status": "running"},
+            {"$set": {"status": "stopped"}},
+        )
+        await _log_bot_txn(user_id, "pause", 0.0,
+                           note="Bot wallet empty — bots paused", symbol=symbol,
+                           balance_after=0.0)
+        result["paused"] = True
+        return result
+
+    deducted = min(fee, balance)
+    new_balance = round(balance - deducted, 4)
+    await db.bot_wallets.update_one(
+        {"user_id": user_id},
+        {"$set": {"balance": new_balance},
+         "$inc": {"total_fees_paid": deducted}},
+    )
+    await _log_bot_txn(user_id, "trading_fee", -deducted,
+                       note=f"{BOT_TRADING_FEE_PCT}% of ${profit:.2f} profit",
+                       symbol=symbol, balance_after=new_balance)
+    result["deducted"] = deducted
+    result["balance_after"] = new_balance
+    if new_balance <= 0:
+        await db.bots.update_many(
+            {"user_id": user_id, "status": "running"},
+            {"$set": {"status": "stopped"}},
+        )
+        await _log_bot_txn(user_id, "pause", 0.0,
+                           note="Bot wallet drained — bots paused", symbol=symbol,
+                           balance_after=0.0)
+        result["paused"] = True
+    return result
+
+
+class BotWalletAmountIn(BaseModel):
+    amount: float = Field(gt=0)
+
+
+@api.get("/bot-wallet/status")
+async def bot_wallet_status(user: dict = Depends(get_current_user)):
+    w = await _get_or_create_bot_wallet(user["id"])
+    return {
+        "activated": bool(w.get("activated", False)),
+        "balance": round(float(w.get("balance", 0.0) or 0.0), 4),
+        "activation_fee": BOT_ACTIVATION_FEE,
+        "trading_fee_pct": BOT_TRADING_FEE_PCT,
+        "activated_at": w.get("activated_at"),
+        "total_fees_paid": round(float(w.get("total_fees_paid", 0.0) or 0.0), 4),
+        "deposit_address": w.get("deposit_address") or BOT_WALLET_DEPOSIT_ADDRESS,
+        "main_wallet_usdt": round(float(user.get("wallet_usdt", 0.0) or 0.0), 4),
+    }
+
+
+@api.post("/bot-wallet/activate")
+async def bot_wallet_activate(user: dict = Depends(get_current_user)):
+    w = await _get_or_create_bot_wallet(user["id"])
+    if w.get("activated"):
+        return {"ok": True, "already": True,
+                "balance": round(float(w.get("balance", 0.0)), 4)}
+    main_bal = float(user.get("wallet_usdt", 0.0) or 0.0)
+    if main_bal < BOT_ACTIVATION_FEE:
+        raise HTTPException(400, f"Insufficient main wallet balance. Need ${BOT_ACTIVATION_FEE:.2f} USDT to activate.")
+    await db.users.update_one({"id": user["id"]},
+                              {"$inc": {"wallet_usdt": -BOT_ACTIVATION_FEE}})
+    await db.bot_wallets.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"activated": True, "activated_at": iso(now_utc()),
+                  "activation_fee_paid": BOT_ACTIVATION_FEE}},
+    )
+    await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
+                       note="One-time bot activation fee",
+                       balance_after=float(w.get("balance", 0.0)))
+    return {"ok": True, "activation_fee": BOT_ACTIVATION_FEE}
+
+
+@api.post("/bot-wallet/deposit")
+async def bot_wallet_deposit(body: BotWalletAmountIn,
+                             user: dict = Depends(get_current_user)):
+    w = await _get_or_create_bot_wallet(user["id"])
+    if not w.get("activated"):
+        raise HTTPException(400, "Bot wallet not activated. Please activate first.")
+    amount = round(float(body.amount), 4)
+    main_bal = float(user.get("wallet_usdt", 0.0) or 0.0)
+    if amount > main_bal:
+        raise HTTPException(400, "Insufficient main wallet balance")
+    await db.users.update_one({"id": user["id"]},
+                              {"$inc": {"wallet_usdt": -amount}})
+    new_balance = round(float(w.get("balance", 0.0) or 0.0) + amount, 4)
+    await db.bot_wallets.update_one(
+        {"user_id": user["id"]}, {"$set": {"balance": new_balance}},
+    )
+    await _log_bot_txn(user["id"], "deposit", amount,
+                       note="Transfer from main wallet", balance_after=new_balance)
+    return {"ok": True, "balance": new_balance}
+
+
+@api.post("/bot-wallet/withdraw")
+async def bot_wallet_withdraw(body: BotWalletAmountIn,
+                              user: dict = Depends(get_current_user)):
+    w = await _get_or_create_bot_wallet(user["id"])
+    amount = round(float(body.amount), 4)
+    bal = float(w.get("balance", 0.0) or 0.0)
+    if amount > bal:
+        raise HTTPException(400, "Insufficient bot wallet balance")
+    new_balance = round(bal - amount, 4)
+    await db.bot_wallets.update_one(
+        {"user_id": user["id"]}, {"$set": {"balance": new_balance}},
+    )
+    await db.users.update_one({"id": user["id"]},
+                              {"$inc": {"wallet_usdt": amount}})
+    await _log_bot_txn(user["id"], "withdraw", -amount,
+                       note="Withdraw to main wallet", balance_after=new_balance)
+    return {"ok": True, "balance": new_balance}
+
+
+@api.get("/bot-wallet/transactions")
+async def bot_wallet_transactions(user: dict = Depends(get_current_user),
+                                  limit: int = 50):
+    rows = await db.bot_transactions.find(
+        {"user_id": user["id"]}, {"_id": 0},
+    ).sort("created_at", -1).to_list(limit)
+    return rows
+
+
 # ==== Startup Seeding ====
 @app.on_event("startup")
 async def startup():
@@ -1665,6 +1857,8 @@ async def startup():
     await db.users.create_index("referral_code")
     await db.bots.create_index([("user_id", 1), ("symbol", 1)], unique=True)
     await db.transactions.create_index([("user_id", 1), ("created_at", -1)])
+    await db.bot_wallets.create_index("user_id", unique=True)
+    await db.bot_transactions.create_index([("user_id", 1), ("created_at", -1)])
 
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@tgxbot.com")
