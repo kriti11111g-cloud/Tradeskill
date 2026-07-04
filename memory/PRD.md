@@ -1,90 +1,107 @@
 # TGX BOT — Product Requirements Document
 
 ## Original Problem Statement
-User asked to build an app similar to "HiTechBot" (crypto trading bot shown in reference video) that integrates with the Binance API. Bot must be named "TGX BOT".
+Mobile-responsive crypto trading bot web app cloning HiTechBot's UI/UX. Dark neon theme. Binance API integration for real trading + Demo mode for practice. Features: Dashboard, Trading Pairs, Bot Strategy (DCA/TP), Transactions, Revenue, Referral, Rewards, Wallet, News.
 
-## User Choices Captured
-- Mobile-responsive web app (looks like phone app)
-- Both Real Binance API mode AND Simulation/Demo mode
-- Email + Password (JWT) authentication
-- Dark theme with neon/crypto vibes
-- All features from video (Bind API, Dashboard, Trading Pairs, Strategy config, Transactions, Revenue, Referral, Rewards, Wallet, News, Guide, Profile)
+**User Language:** Hindi/Hinglish (Devanagari or Latin script based on user's message).
 
-## Architecture
-- **Backend**: FastAPI + Motor (Mongo) + JWT (cookie + Bearer) + Fernet-encrypted Binance API keys + python-binance library.
-- **Frontend**: React 19 + React Router 7 + Framer Motion + Recharts + shadcn/ui + Tailwind, mobile-app frame max-w-[480px].
-- **Market data**: `data-api.binance.vision` (geo-friendly public endpoint) — ticker, 24hr stats, klines.
-- **Trading**: Demo mode executes simulated orders against live Binance price; real-mode wiring via python-binance is scaffolded (bind API stores encrypted keys).
+## Product Vision
+Full HiTechBot clone with:
+1. Automated DCA + Trailing TP + Trailing DCA trading engine
+2. Bot monetization model (activation fee + trading fees)
+3. Multi-mode support: Demo / Testnet / Real Binance
+4. Mobile-first UI with dark neon aesthetic
 
 ## Personas
-1. **Retail crypto trader** wanting hands-off trading.
-2. **Team leader** growing a referral community for commissions.
+- **Retail Crypto Trader** — Wants passive automated income from crypto trading
+- **Beginner** — Uses Demo mode to learn without risk
+- **Serious Trader** — Uses Real Binance API for actual trading
 
-## Core Requirements (static)
-- Auth (register/login/logout/me)
-- Bind Binance API + mode selector
-- Dashboard hero + action grid + live pairs
-- Trading pair page with position stats, strategy config, buy/sell/close
-- Wallet (deposit/withdraw/transfer + history + positions)
-- Transactions history (filter Buy/Sell)
-- Revenue analytics with chart
-- Referral (code, team, share, commissions)
-- Rewards (joining/trading/referral claims)
-- News feed, User guide, Profile
+## Core Requirements
 
-## Implemented (2026-07-01)
-- ✅ Full backend API (`/api/*`) with 25+ endpoints
-- ✅ Full frontend (13 pages) with dark neon design + mobile frame
-- ✅ Live ticker marquee, hero banner, action grid, live Binance pairs
-- ✅ Trading page: current price, position stats, buy/sell/close, strategy config w/ Suggest, start/stop
-- ✅ Wallet with deposit/withdraw/transfer modal + open positions
-- ✅ Transactions filter, Revenue chart, Referral share, Rewards claim
-- ✅ Admin seed + Welcome bonus reward
-- ✅ Background bot engine (DCA, margin calls, take-profit with callback pullback)
-- ✅ Per-round margin config UI + manual position adjustment
-- ✅ 50-pair Market page (CoinGecko top-50 filtered to Binance USDT pairs)
-- ✅ Binance WebSockets for zero-lag price on Market + TradingPair
+### Trading Engine (COMPLETED ✅)
+- [x] Immediate first-buy after SELL (HiTechBot style, no re-entry wait)
+- [x] Trailing Take Profit (peak chase → sell on pullback)
+- [x] Trailing DCA safety orders (trough chase → buy on rebound)
+- [x] Cycle mode (infinite loop) & One-Shot mode
+- [x] Configurable per-bot: TP%, DCA levels, callbacks, multipliers
+- [x] Real Binance + Testnet + Demo mode support
+- [x] Referral commission (10% of profit) automated
 
-## Implemented (2026-07-02, Trade tab redesign)
-- ✅ **New `/trades` page** (bot list view — HiTechBot parity):
-  - Summary strip: Active Bots · Total Bots · Total Profit
-  - Per-bot cards: coin icon, pair, mode, running dot, Live Price (Binance WS), Floating P&L, 4-counter row (Buys · Sells · Round · Profit)
-  - Tap card → `/pair/<SYMBOL>` drill-down
-  - Floating "+" FAB → `/market` to start new bot
-- ✅ Backend `/api/bots` now aggregates `buy_count`, `sell_count`, `cumulative_profit` per bot from transactions
-- ✅ Bottom nav "Trade" tab redirected to `/trades` (was `/transactions`)
-- ✅ Transactions page still reachable via Revenue drill-down (`/transactions?date=` or `?symbol=`)
+### UI/UX (COMPLETED ✅)
+- [x] 6-tab bottom nav: Home | Market | Trade | Asset | Bot | Profile
+- [x] Trade page with LIVE/OFF filter chips
+- [x] Trading Pair detail with DCA Ladder (10 levels visible)
+- [x] Trailing states: TP Armed / DCA Armed chips + trackers
+- [x] Trade History with expandable KV cards, UTC timestamps, ROI cap
+- [x] Revenue page with piecewise bar chart, daily drill-down
+- [x] BOT tab (new) with animated hero image (fan glow, circuit traces)
+- [x] Wallet page with real vs demo mode indicator + geo-block banner
+- [x] Bind API page with restructured Real-mode confirmation modal
 
-## Implemented (2026-07-02, By Date drill-down)
-- ✅ Revenue page's 'By Symbol' section replaced by **'Daily History'** (by_date list): each row shows day tile (UTC), full date label, `N sells · M coins`, day's total profit, "Today" badge, chevron. Tap → `/transactions?date=YYYY-MM-DD`
-- ✅ Backend `/api/revenue/summary` now returns `by_date` [{date, profit, trades, symbols[]}] sorted desc
-- ✅ Backend `/api/transactions` accepts `?date=YYYY-MM-DD` (regex-anchored prefix on created_at)
-- ✅ Symbol + Date filter chips coexist on Transactions page with independent X-clear
-- ✅ UTC-consistent date labels across day-tile, chip label, and 'Today' badge
+### Bug Fixes Completed
+- [x] Bot state=='OFF' when backend said running (field mismatch bot.state vs bot.status)
+- [x] ROI% showing 199501% (capped display + backend safety on avg_price=0 SELL)
+- [x] Bot cycle stopping after SELL when trade_method=None (fixed to check for One-Shot only)
+- [x] Duplicate bot docs in DB (deduped + unique index added)
+- [x] Wallet showing demo balance in real mode (now shows 0 with error banner)
+- [x] Bind API confirm modal button below fold (restructured)
 
-## Implemented (2026-07-02, drill-down)
-- ✅ **Revenue → Transactions drill-down**: Tap any symbol row on /revenue → opens /transactions?symbol=XXX filtered view. Dismissible chip with coin icon + X-clear + back-to-revenue. Deep-linkable URL. BUY/SELL filter pills further narrow within the symbol. Fully e2e tested (10/10 pytest + 11/11 Playwright).
+## Pending Backlog
 
-## Implemented (2026-07-02, later)
-- ✅ **Revenue page overhaul** (HiTechBot-style): prominent Today's Profit + Cumulative Profit, auto-refresh 15s, "By Symbol" now shows sell counts, radial glow that flips red on drawdown
-- ✅ **Per-pair profit banner** on TradingPair page (Today's + Cumulative + sells count) — updates every 8s alongside bot state
-- ✅ New endpoint `/api/revenue/pair/{symbol}` returning `{cumulative_profit, today_profit, sell_count}`
+### P0 — Next Session
+- [ ] **Bot Monetization Model** (HiTechBot-style)
+  - Bot Wallet Balance card (separate from trading wallet)
+  - $70 Activation Fee (one-time deduction on activate)
+  - 2% Trading Fee per profitable SELL
+  - Deposit / Withdraw / Transfer buttons
+  - Unique TRC20 USDT deposit address per user
+  - Bot Status: Inactive → Active after top-up + activation fee
+  - Fee history record with date filter
+- [ ] **DOGE Config Fix** — TP 0.001% → 1.5% (immediate impact, quick fix)
 
-## Implemented (2026-07-01, later)
-- ✅ **News**: live crypto feed from Cointelegraph RSS (30 items, images, external links)
-- ✅ **Referral commissions**: auto-credit referrer 10% of every profitable SELL (bot + manual) as claimable reward
-- ✅ Referral page shows pending commission + commission log
-- ✅ Bottom Nav order finalised: Home → Market → Trade → Asset → Profile
+### P1 — This Week
+- [ ] **Telegram Bot Integration** (`@SmartHubXBot` — token: `8930033871:AAG95Mz_12twvC0Vup5HvV-HdbiD3rxK4pM`)
+  - Trade notifications on phone
+  - Commands: /positions, /profit, /start_bot, /stop, /balance
+  - User linking via Telegram deep link
+- [ ] **Preset Buttons** on TradingPair settings — Conservative / Balanced / Aggressive
 
-## Deferred / P1 Backlog
-- Actual live Binance order placement in "Real" mode (geo-blocked in preview environment)
-- Two-factor auth & password reset flow
-- Push notifications & in-app inbox
-- Advanced technical analysis chart on the TradingPair page (indicators)
-- Multi-language i18n (Hindi/English)
-- **Refactor**: split `server.py` (1300+ lines) into `routers/` and `services/`
+### P2 — Later
+- [ ] **RSI/EMA Smart Entry Filter** — Check indicators before first buy
+- [ ] **AI News Sentiment** — Emergent LLM reads news → pause/resume bots
+- [ ] **Backend Refactor** — server.py (1720 lines) → routes/services modular split
+- [ ] **Bot Auto-Recovery** — Restart stopped bots on balance top-up
+- [ ] **Multi-Exchange Support** — Add KuCoin (backup when Binance geo-blocks)
 
-## Next Action Items
-1. User verification of News + Referral commission flows.
-2. Optional: add trading-volume milestone rewards ($10 traded → $1 bonus, etc.).
-3. When real Binance trading is needed, deploy to a supported region.
+### P3 — Deployment
+- [ ] Deploy to Singapore or London region so Binance real trading works
+- [ ] IP whitelist update in Binance API after deployment
+
+## Technical Architecture
+
+### Backend (`/app/backend/server.py` — 1720 lines)
+- FastAPI + motor (MongoDB async) + python-binance
+- Bot engine: async `bot_engine_loop` polls every 10s
+- Trade execution: `_execute_trade` handles BUY/SELL in demo/testnet/real modes
+- Geographic block: US-region server → Binance blocked. Real trades unavailable until deployment to allowed region.
+
+### Frontend (`/app/frontend/src/`)
+- React + Tailwind + Recharts + Motion (Framer)
+- Routes: /, /market, /trades, /wallet, /bot, /profile, /pair/:symbol, /transactions, /revenue, /bind-api
+- Global BottomNav with 6 tabs
+
+### Database
+- Users, Bots (unique index on user_id+symbol), Transactions, BotEvents, BinanceKeys, Referrals
+
+## Test Credentials
+See `/app/memory/test_credentials.md`
+
+## Known Limitations
+- **Geographic Block**: Server IP `104.198.214.223` (Google Cloud US) is blocked by Binance for both real and testnet endpoints. Fix requires deployment to Singapore/London/EU region.
+- **DOGE TP misconfigured**: 0.001% (too tight). User needs to update or we auto-fix.
+
+## Testing Status
+- Iterations 8-16 all passed testing agent verification.
+- Latest: iteration_16 (wallet geo-block behavior) — PASS.
+- Backend pytest suite at `/app/backend/tests/` with 20+ trailing-logic tests.
