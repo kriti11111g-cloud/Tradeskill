@@ -408,7 +408,7 @@ export default function BotHub() {
           </label>
         </div>
 
-        <div className="mt-2 space-y-1.5" data-testid="bot-history-list">
+        <div className="mt-2 space-y-1" data-testid="bot-history-list">
           {visibleTxns.length === 0 ? (
             <div className="text-center text-[11px] text-[#8B9BB4] py-3 rounded-lg border border-white/5 bg-[#0B1220]/40">
               {filterDate ? "No transactions on this date." : "No transactions yet."}
@@ -417,18 +417,18 @@ export default function BotHub() {
             visibleTxns.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0B1220]/70 border border-white/15"
+                className="flex items-center justify-between px-2.5 py-1 rounded-md bg-[#0B1220]/70 border border-white/15"
                 data-testid="bot-txn-row"
               >
                 <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-white capitalize tracking-wide leading-tight">
+                  <div className="text-[10px] font-semibold text-white capitalize tracking-wide leading-tight">
                     {t.kind.replace("_", " ")}
                   </div>
-                  <div className="text-[9px] text-[#8B9BB4] leading-tight">{fmtTime(t.created_at)}</div>
+                  <div className="text-[8px] text-[#8B9BB4] leading-tight">{fmtTime(t.created_at)}</div>
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <div
-                    className={`text-[12px] font-bold leading-tight ${
+                    className={`text-[11px] font-bold leading-tight ${
                       t.amount > 0 ? "text-[#39FF14]" : t.amount < 0 ? "text-[#FF3B3B]" : "text-[#8B9BB4]"
                     }`}
                   >
