@@ -1,15 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Wallet as WalletIcon,
   Zap,
   ArrowDownToLine,
   ArrowUpToLine,
+  ArrowRightLeft,
   History,
   Lock,
   CheckCircle2,
   AlertTriangle,
   Info,
+  Calendar,
   X,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -31,10 +33,11 @@ const TRACES = [
 export default function BotHub() {
   const { refresh } = useAuth();
   const [status, setStatus] = useState(null);
-  const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'history' | null
+  const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'info' | null
   const [amount, setAmount] = useState("");
   const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filterDate, setFilterDate] = useState(""); // YYYY-MM-DD, empty = all
 
   const loadStatus = useCallback(async () => {
     try {
@@ -121,6 +124,12 @@ export default function BotHub() {
   const mainBal = status?.main_wallet_usdt ?? 0;
   const feePct = status?.trading_fee_pct ?? 20;
   const actFee = status?.activation_fee ?? 70;
+
+  // Filter txns by selected date (YYYY-MM-DD compare against ISO date prefix)
+  const visibleTxns = useMemo(() => {
+    if (!filterDate) return txns;
+    return txns.filter((t) => (t.created_at || "").slice(0, 10) === filterDate);
+  }, [txns, filterDate]);
 
   return (
     <div className="pb-40" data-testid="bothub-page">
@@ -228,33 +237,48 @@ export default function BotHub() {
           )}
         </div>
 
-        {/* Actions row — thin cards */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* Actions row — Deposit / Withdraw / P2P (matches Wallet page style) */}
+        <div className="grid grid-cols-3 gap-3">
           <button
             disabled={!activated}
             onClick={() => setModal("deposit")}
-            className="rounded-lg border border-[#39FF14]/30 bg-[#39FF14]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#39FF14]/10 transition"
+            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#39FF14]/40 transition"
             data-testid="btn-open-deposit"
           >
-            <ArrowDownToLine size={14} className="text-[#39FF14]" />
-            <span className="text-[11px] font-semibold text-white">Deposit</span>
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ background: "#39FF1415", boxShadow: "inset 0 0 20px #39FF1422" }}
+            >
+              <ArrowDownToLine size={20} strokeWidth={1.8} style={{ color: "#39FF14" }} />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Deposit</span>
           </button>
           <button
             disabled={!activated || balance <= 0}
             onClick={() => setModal("withdraw")}
-            className="rounded-lg border border-[#FF007A]/30 bg-[#FF007A]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FF007A]/10 transition"
+            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#FF007A]/40 transition"
             data-testid="btn-open-withdraw"
           >
-            <ArrowUpToLine size={14} className="text-[#FF007A]" />
-            <span className="text-[11px] font-semibold text-white">Withdraw</span>
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ background: "#FF007A15", boxShadow: "inset 0 0 20px #FF007A22" }}
+            >
+              <ArrowUpToLine size={20} strokeWidth={1.8} style={{ color: "#FF007A" }} />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Withdraw</span>
           </button>
           <button
-            onClick={() => { loadTxns(); setModal("history"); }}
-            className="rounded-lg border border-[#FFD700]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 hover:bg-[#FFD700]/10 transition"
-            data-testid="btn-open-history"
+            onClick={() => toast.info("P2P coming soon")}
+            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl hover:border-[#FFD700]/40 transition"
+            data-testid="btn-open-p2p"
           >
-            <History size={14} className="text-[#FFD700]" />
-            <span className="text-[11px] font-semibold text-white">History</span>
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ background: "#FFD70015", boxShadow: "inset 0 0 20px #FFD70022" }}
+            >
+              <ArrowRightLeft size={20} strokeWidth={1.8} style={{ color: "#FFD700" }} />
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider">P2P</span>
           </button>
         </div>
 
@@ -275,6 +299,76 @@ export default function BotHub() {
             data-testid="btn-open-info"
           />
         </button>
+
+        {/* ===== History section (Choose Date filter + inline list) ===== */}
+        <div
+          className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-[#0B1220]/60 px-4 py-2.5"
+          data-testid="bot-history-filter"
+        >
+          <div className="flex items-center gap-2">
+            <History size={12} className="text-[#FFD700]" />
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">History Record</span>
+          </div>
+          <label className="relative flex items-center gap-1 cursor-pointer text-[11px] text-[#00F0FF] font-semibold">
+            <Calendar size={12} />
+            <span>{filterDate || "Choose Date"}</span>
+            {filterDate && (
+              <button
+                onClick={(e) => { e.preventDefault(); setFilterDate(""); }}
+                className="ml-1 text-[#8B9BB4] hover:text-white"
+                data-testid="btn-clear-date"
+              >
+                <X size={11} />
+              </button>
+            )}
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              data-testid="input-history-date"
+            />
+          </label>
+        </div>
+
+        <div className="mt-2 space-y-2" data-testid="bot-history-list">
+          {visibleTxns.length === 0 ? (
+            <div className="text-center text-sm text-[#8B9BB4] py-6 rounded-xl border border-white/5 bg-[#0B1220]/40">
+              {filterDate ? "No transactions on this date." : "No transactions yet."}
+            </div>
+          ) : (
+            visibleTxns.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-[#0B1220] border border-white/5"
+                data-testid="bot-txn-row"
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-white uppercase tracking-wide">
+                    {t.kind.replace("_", " ")}
+                  </div>
+                  <div className="text-[10px] text-[#8B9BB4]">{fmtTime(t.created_at)}</div>
+                  {t.note && (
+                    <div className="text-[10px] text-[#B8C4D8] mt-0.5 truncate">{t.note}</div>
+                  )}
+                </div>
+                <div className="text-right shrink-0 ml-2">
+                  <div
+                    className={`text-sm font-bold ${
+                      t.amount > 0 ? "text-[#39FF14]" : t.amount < 0 ? "text-[#FF3B3B]" : "text-[#8B9BB4]"
+                    }`}
+                  >
+                    {t.amount > 0 ? "+" : ""}
+                    {fmtUSD(t.amount)}
+                  </div>
+                  {t.balance_after != null && (
+                    <div className="text-[10px] text-[#8B9BB4]">Bal: {fmtUSD(t.balance_after)}</div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* ========== INFO DIALOG (Conditions) ========== */}
@@ -403,45 +497,7 @@ export default function BotHub() {
         </ModalShell>
       )}
 
-      {/* ========== HISTORY DIALOG ========== */}
-      {modal === "history" && (
-        <ModalShell title="Wallet History" onClose={closeModal} testid="dialog-history">
-          {txns.length === 0 ? (
-            <div className="text-center text-sm text-[#8B9BB4] py-8">No transactions yet.</div>
-          ) : (
-            <div className="max-h-[60vh] overflow-y-auto space-y-2">
-              {txns.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-[#0B1220] border border-white/5"
-                  data-testid="bot-txn-row"
-                >
-                  <div>
-                    <div className="text-xs font-semibold text-white uppercase tracking-wide">
-                      {t.kind.replace("_", " ")}
-                    </div>
-                    <div className="text-[10px] text-[#8B9BB4]">{fmtTime(t.created_at)}</div>
-                    {t.note && <div className="text-[10px] text-[#B8C4D8] mt-0.5">{t.note}</div>}
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`text-sm font-bold ${
-                        t.amount > 0 ? "text-[#39FF14]" : t.amount < 0 ? "text-[#FF3B3B]" : "text-[#8B9BB4]"
-                      }`}
-                    >
-                      {t.amount > 0 ? "+" : ""}
-                      {fmtUSD(t.amount)}
-                    </div>
-                    {t.balance_after != null && (
-                      <div className="text-[10px] text-[#8B9BB4]">Bal: {fmtUSD(t.balance_after)}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ModalShell>
-      )}
+      {/* ========== HISTORY inline above — modal removed ========== */}
     </div>
   );
 }
