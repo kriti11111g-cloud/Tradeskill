@@ -103,6 +103,11 @@ See `/app/memory/test_credentials.md`
 - **DOGE TP misconfigured**: 0.001% (too tight). User needs to update or we auto-fix.
 
 ## Testing Status
-- Iterations 8-16 all passed testing agent verification.
-- Latest: iteration_16 (wallet geo-block behavior) — PASS.
-- Backend pytest suite at `/app/backend/tests/` with 20+ trailing-logic tests.
+- Iterations 8-18 all passed testing agent verification.
+- Latest: iteration_18 (bot monetization + activation fee) — PASS.
+- Backend pytest suite at `/app/backend/tests/` with 20+ trailing-logic + wallet tests.
+
+## Recent Updates
+- **2026-02-05** — Added 4 new Rank Card images (5⭐ Elite, 7⭐ Master, 8⭐ Legend, 10⭐ Supreme Legend). Now 8/10 rank images in `/app/frontend/public/ranks/`.
+- **2026-02-05** — Added "Processing Bar" (progress bar) at bottom of EVERY rank card in `Rank.jsx`. Computes per-rank progress locally from `stats` (direct_count, total_team, downline_ranks). Shows overall % + detailed sub-bars for future ranks; "ACHIEVED 100%" for unlocked ranks. Screenshot-verified.
+- Missing rank images: rank_6.png, rank_9.png (fallback to SVG PlaceholderStar).

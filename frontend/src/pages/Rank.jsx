@@ -92,6 +92,7 @@ export default function Rank() {
             key={r.level}
             rank={r}
             isCurrent={r.level === currentLevel}
+            isAchieved={r.level <= currentLevel}
             progress={r.level === currentLevel + 1 ? me?.progress : null}
             stats={me?.stats}
             index={i}
@@ -143,9 +144,41 @@ export default function Rank() {
   );
 }
 
-function RankPage({ rank, isCurrent, progress, stats, index }) {
+function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
   const [imgError, setImgError] = useState(false);
   const imgSrc = `${IMAGE_BASE}/rank_${rank.level}.png`;
+
+  // Compute per-rank processing progress (for every card, not just next rank)
+  const localProgress = useMemo(() => {
+    if (!stats) return null;
+    const directHave = stats.direct_count || 0;
+    const directNeed = rank.direct_users || 0;
+    const teamHave = stats.total_team || 0;
+    const teamNeed = rank.team_size || 0;
+    const dr = rank.downline_requirement;
+    const downlineHave = dr
+      ? Object.entries(stats.downline_ranks || {}).reduce(
+          (acc, [lvl, cnt]) => (Number(lvl) >= dr.min_level ? acc + cnt : acc),
+          0,
+        )
+      : 0;
+    const parts = [];
+    if (directNeed > 0) parts.push(Math.min(1, directHave / directNeed));
+    if (teamNeed > 0) parts.push(Math.min(1, teamHave / teamNeed));
+    if (dr) parts.push(Math.min(1, downlineHave / dr.count));
+    const overall = parts.length
+      ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100)
+      : 100;
+    return {
+      direct_have: directHave,
+      direct_needed: directNeed,
+      team_have: teamHave,
+      team_needed: teamNeed,
+      downline_have: downlineHave,
+      downline_requirement: dr,
+      overall_pct: isAchieved ? 100 : overall,
+    };
+  }, [rank, stats, isAchieved]);
 
   return (
     <div
@@ -156,22 +189,25 @@ function RankPage({ rank, isCurrent, progress, stats, index }) {
         className="rounded-2xl overflow-hidden border relative"
         style={{
           borderColor: `${rank.color}60`,
-          background: `linear-gradient(180deg, ${rank.color}12, #050810 60%)`,
+          background: "#000",
           boxShadow: `0 0 32px ${rank.color}33`,
         }}
       >
-        {/* Card image */}
-        <div className="relative w-full aspect-square bg-black/50">
+        {/* Full card image — no cropping */}
+        <div className="relative w-full">
           {!imgError ? (
             <img
               src={imgSrc}
               alt={`${rank.level} STAR ${rank.title}`}
-              className="w-full h-full object-cover"
+              className="w-full h-auto block select-none"
               onError={() => setImgError(true)}
               loading={index < 3 ? "eager" : "lazy"}
+              draggable={false}
             />
           ) : (
-            <PlaceholderStar rank={rank} />
+            <div className="aspect-square w-full">
+              <PlaceholderStar rank={rank} />
+            </div>
           )}
 
           {isCurrent && (
@@ -184,6 +220,15 @@ function RankPage({ rank, isCurrent, progress, stats, index }) {
             </div>
           )}
 
+          {isAchieved && !isCurrent && (
+            <div
+              className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/10 text-[#39FF14] border border-[#39FF14]/40"
+              data-testid={`achieved-badge-${rank.level}`}
+            >
+              ✓ UNLOCKED
+            </div>
+          )}
+
           {rank.crown && (
             <Crown
               size={28}
@@ -193,95 +238,94 @@ function RankPage({ rank, isCurrent, progress, stats, index }) {
           )}
         </div>
 
-        {/* Below-image info strip */}
-        <div className="p-4 space-y-3">
-          <div className="text-center">
-            <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B9BB4]">
-              {rank.level} STAR
-            </div>
-            <div
-              className="text-xl font-black tracking-wider uppercase mt-0.5"
-              style={{ color: rank.color, textShadow: `0 0 10px ${rank.color}80` }}
-            >
-              {rank.title}
-            </div>
-          </div>
-
-          {/* Income triple */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <StatMini label="Direct" value={`$${rank.direct_income}`} color={rank.color} />
-            <StatMini label="Commission" value={`${rank.commission_pct}%`} color={rank.color} />
-            <StatMini label="Support" value={`${rank.support_pct}%`} color={rank.color} />
-          </div>
-
-          {/* Team requirements — only from rank 2 */}
-          {rank.level > 1 && (
-            <div
-              className="rounded-lg border p-3"
-              style={{ borderColor: `${rank.color}40`, background: `${rank.color}08` }}
-            >
+        {/* Bottom PROCESSING BAR — always visible on every card */}
+        {localProgress && (
+          <div
+            className="p-3 border-t border-white/10 space-y-2"
+            data-testid={`rank-processing-${rank.level}`}
+          >
+            {/* Overall progress ring/bar */}
+            <div className="flex items-center justify-between">
               <div
-                className="text-[9px] tracking-[0.3em] uppercase font-bold mb-2"
+                className="text-[9px] tracking-[0.3em] uppercase font-bold"
                 style={{ color: rank.color }}
               >
-                Team Requirement
+                {isAchieved ? "Achieved" : "Processing"}
               </div>
-              <ReqRow label="Direct Users" value={`${rank.direct_users}`} />
-              <ReqRow
-                label="Total Team"
-                value={rank.team_note ? `${rank.team_size} (${rank.team_note})` : String(rank.team_size)}
-              />
-              {rank.downline_requirement && (
-                <ReqRow label="Downline Rank" value={rank.downline_requirement.label} />
-              )}
-            </div>
-          )}
-
-          {/* Progress bars — only when this is user's next rank */}
-          {progress && (
-            <div
-              className="rounded-lg border p-3"
-              style={{ borderColor: `${rank.color}40`, background: `${rank.color}08` }}
-              data-testid="rank-progress-box"
-            >
               <div
-                className="text-[9px] tracking-[0.3em] uppercase font-bold mb-2"
-                style={{ color: rank.color }}
+                className={`text-[11px] font-mono font-black tabular-nums ${
+                  isAchieved ? "text-[#39FF14]" : "text-white"
+                }`}
               >
-                Your Progress
+                {localProgress.overall_pct}%
               </div>
-              <ProgressBar
-                label="Direct Users"
-                have={progress.direct_have}
-                need={progress.direct_needed}
-                color={rank.color}
+            </div>
+
+            <div className="h-2 rounded-full bg-white/5 overflow-hidden relative">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${localProgress.overall_pct}%`,
+                  background: isAchieved
+                    ? "linear-gradient(90deg,#39FF14,#7FFF00)"
+                    : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
+                  boxShadow: `0 0 10px ${isAchieved ? "#39FF14" : rank.color}`,
+                }}
               />
-              <ProgressBar
-                label="Team Size"
-                have={progress.team_have}
-                need={progress.team_needed}
-                color={rank.color}
-              />
-              {progress.downline_requirement && (
-                <ProgressBar
-                  label={progress.downline_requirement.label}
-                  have={progress.downline_have}
-                  need={progress.downline_requirement.count}
-                  color={rank.color}
+              {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
+                <div
+                  className="absolute inset-0 opacity-40 animate-pulse"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${rank.color}88, transparent)`,
+                  }}
                 />
               )}
             </div>
-          )}
 
-          {/* Current stats display */}
-          {isCurrent && stats && (
-            <div className="text-[10px] text-[#8B9BB4] text-center">
-              Your Team — Directs:{" "}
-              <span className="text-white font-semibold">{stats.direct_count}</span> · Team:{" "}
-              <span className="text-white font-semibold">{stats.total_team}</span>
-            </div>
-          )}
-        </div>
+            {/* Detailed sub-bars — only for future ranks with requirements */}
+            {!isAchieved && (localProgress.direct_needed > 0 || localProgress.team_needed > 0) && (
+              <div className="pt-1 space-y-1.5">
+                {localProgress.direct_needed > 0 && (
+                  <ProgressBar
+                    label="Direct Users"
+                    have={localProgress.direct_have}
+                    need={localProgress.direct_needed}
+                    color={rank.color}
+                  />
+                )}
+                {localProgress.team_needed > 0 && (
+                  <ProgressBar
+                    label="Team Size"
+                    have={localProgress.team_have}
+                    need={localProgress.team_needed}
+                    color={rank.color}
+                  />
+                )}
+                {localProgress.downline_requirement && (
+                  <ProgressBar
+                    label={localProgress.downline_requirement.label}
+                    have={localProgress.downline_have}
+                    need={localProgress.downline_requirement.count}
+                    color={rank.color}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Current-rank team snapshot */}
+            {isCurrent && stats && (
+              <div
+                className="text-center text-[10px] rounded-lg p-1.5 mt-1"
+                style={{ background: `${rank.color}12`, border: `1px solid ${rank.color}30` }}
+              >
+                <span className="text-[#8B9BB4]">Directs:</span>{" "}
+                <span className="text-white font-bold">{stats.direct_count}</span>
+                <span className="text-[#8B9BB4]"> · Team:</span>{" "}
+                <span className="text-white font-bold">{stats.total_team}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
