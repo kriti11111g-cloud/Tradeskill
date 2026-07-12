@@ -359,6 +359,40 @@ export default function DemoFintech() {
           ))}
         </div>
 
+        {/* Promotional Banner (CoinStore-style, green) */}
+        <div
+          className="rounded-2xl p-4 mb-5 relative overflow-hidden flex items-center justify-between"
+          style={{
+            background: `linear-gradient(135deg, ${t.deepTeal}, ${t.emerald})`,
+            boxShadow: t.emeraldGlow,
+          }}
+        >
+          <div className="relative z-10">
+            <div className="text-[9px] uppercase tracking-[0.3em] font-black text-white/85">
+              Special Reward
+            </div>
+            <div className="text-white font-black text-base mt-0.5">Win $100 Fuel Bonus</div>
+            <div className="text-white/85 text-[10px] mt-0.5">Complete 10 trades this week</div>
+          </div>
+          <button
+            className="text-[11px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full text-white relative z-10"
+            style={{
+              background: "rgba(255,255,255,0.2)",
+              border: "1px solid rgba(255,255,255,0.35)",
+            }}
+          >
+            Join Now →
+          </button>
+          <div
+            className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-30"
+            style={{ background: "radial-gradient(circle, #2DD4BF 0%, transparent 65%)" }}
+          />
+          <div
+            className="absolute -left-4 -bottom-4 w-20 h-20 rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, white 0%, transparent 65%)" }}
+          />
+        </div>
+
         {/* ============ MARKET LIST ============ */}
         <div className="flex items-center justify-between mb-2.5">
           <div>
