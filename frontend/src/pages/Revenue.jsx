@@ -50,7 +50,7 @@ function ProfitBarTooltip({ active, payload, trades }) {
     <div
       className="bg-[color:var(--surface)] border rounded-lg px-2.5 py-2 shadow-xl"
       style={{
-        borderColor: positive ? "rgba(57,255,20,0.4)" : "rgba(255,0,122,0.4)",
+        borderColor: positive ? "rgba(16,185,129,0.4)" : "rgba(248,113,113,0.4)",
         fontVariantNumeric: "tabular-nums",
       }}
     >
@@ -271,7 +271,7 @@ export default function Revenue() {
                 <div
                   className="mt-2 rounded-xl border p-2.5 bg-[color:var(--bg-base)]/70 backdrop-blur-xl"
                   style={{
-                    borderColor: pos ? "rgba(57,255,20,0.35)" : "rgba(255,0,122,0.35)",
+                    borderColor: pos ? "rgba(16,185,129,0.35)" : "rgba(248,113,113,0.35)",
                   }}
                   data-testid="bar-detail-panel"
                 >

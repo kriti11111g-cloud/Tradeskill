@@ -44,7 +44,7 @@ function BotCard({ bot }) {
       }`}
       style={
         isRunning
-          ? { boxShadow: "inset 0 0 12px rgba(57,255,20,0.06), 0 0 0 1px rgba(57,255,20,0.05)" }
+          ? { boxShadow: "inset 0 0 12px rgba(16,185,129,0.06), 0 0 0 1px rgba(16,185,129,0.05)" }
           : undefined
       }
     >
@@ -52,7 +52,7 @@ function BotCard({ bot }) {
       {isRunning && (
         <div
           className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[color:var(--good)]"
-          style={{ boxShadow: "0 0 10px rgba(57,255,20,0.7)" }}
+          style={{ boxShadow: "0 0 10px rgba(16,185,129,0.7)" }}
         />
       )}
       {/* Top row: coin, pair, mode, running dot */}

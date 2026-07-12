@@ -9,7 +9,7 @@ export default function CoinIcon({ symbol, size = 32, className = "" }) {
   const [errored, setErrored] = useState(false);
 
   const bg =
-    "linear-gradient(135deg, rgba(0,240,255,0.25), rgba(255,0,122,0.25))";
+    "linear-gradient(135deg, rgba(16,185,129,0.25), rgba(248,113,113,0.25))";
 
   if (!base) {
     return (

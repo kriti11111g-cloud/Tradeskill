@@ -35,7 +35,7 @@ export default function Referral() {
           className="rounded-3xl border border-[color:var(--border)] p-6 relative overflow-hidden"
           style={{
             background:
-              "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,0,122,0.10)), url('https://images.unsplash.com/photo-1669951584605-4deba095a87f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGNyeXB0byUyMHRva2VuJTIwZmxvYXRpbmclMjAzZHxlbnwwfHx8fDE3ODIwNzk5MjR8MA&ixlib=rb-4.1.0&q=85')",
+              "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(248,113,113,0.10)), url('https://images.unsplash.com/photo-1669951584605-4deba095a87f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGNyeXB0byUyMHRva2VuJTIwZmxvYXRpbmclMjAzZHxlbnwwfHx8fDE3ODIwNzk5MjR8MA&ixlib=rb-4.1.0&q=85')",
             backgroundSize: "cover",
             backgroundBlendMode: "screen",
           }}
