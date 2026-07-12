@@ -153,26 +153,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ============ SEARCH BAR ============ */}
-        <Link
-          to="/market"
-          data-testid="dash-search"
-          className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 mb-5"
-          style={{
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
-          <Search size={16} color="var(--text-mute)" />
-          <span className="text-sm" style={{ color: "var(--text-mute)" }}>
-            Search coins, pairs, wallets
-          </span>
-        </Link>
-
         {/* ============ BALANCE HERO ============ */}
         <div
-          className="rounded-3xl p-5 text-white relative overflow-hidden mb-4"
+          className="rounded-xl p-5 text-white relative overflow-hidden mb-4"
           style={{
             background: "var(--hero-grad)",
             boxShadow: "var(--shadow-lg)",
@@ -272,6 +255,23 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* ============ SEARCH BAR ============ */}
+        <Link
+          to="/market"
+          data-testid="dash-search"
+          className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 mb-5"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <Search size={16} color="var(--text-mute)" />
+          <span className="text-sm" style={{ color: "var(--text-mute)" }}>
+            Search coins, pairs, wallets
+          </span>
+        </Link>
 
         {/* ============ RANK PROGRESS CARD (Gold accent) ============ */}
         <Link

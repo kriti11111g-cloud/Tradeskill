@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
-import LiveTicker from "@/components/LiveTicker";
 
 export default function AppShell() {
   return (
@@ -10,14 +9,13 @@ export default function AppShell() {
     >
       <div className="grain-overlay" />
       <div
-        className="w-full max-w-[480px] min-h-screen relative pt-9 pb-24"
+        className="w-full max-w-[480px] min-h-screen relative pb-24"
         style={{
           background: "var(--bg-base)",
           boxShadow: "0 0 80px rgba(0,0,0,0.6)",
         }}
         data-testid="app-shell"
       >
-        <LiveTicker />
         <Outlet />
         <BottomNav />
       </div>
