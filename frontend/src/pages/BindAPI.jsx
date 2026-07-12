@@ -61,9 +61,9 @@ export default function BindAPI() {
 
       <div className="px-4 space-y-4">
         {existing?.api_key_mask && (
-          <div className="app-card !border-[color:var(--good)]/30 rounded-2xl p-4 flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[color:var(--good)]/10 flex items-center justify-center">
-              <ShieldCheck size={20} className="text-[color:var(--good)]" />
+          <div className="app-card !border-[color:var(--gold)]/30 rounded-2xl p-4 flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[color:var(--gold)]/10 flex items-center justify-center">
+              <ShieldCheck size={20} className="text-[color:var(--gold)]" />
             </div>
             <div className="flex-1">
               <div className="font-display font-bold text-sm">API Bound</div>
@@ -120,7 +120,7 @@ export default function BindAPI() {
 
         <form onSubmit={save} className="app-card rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <KeyRound size={18} className="text-[color:var(--primary)]" />
+            <KeyRound size={18} className="text-[color:var(--gold-deep)]" />
             <div className="font-display font-bold text-sm">API Credentials</div>
           </div>
           <div>

@@ -52,7 +52,7 @@ export default function News() {
               )}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[color:var(--primary)]/10 text-[color:var(--primary)] border border-[color:var(--primary)]/30 max-w-[45%] truncate">
+                  <span className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[color:var(--gold)]/10 text-[color:var(--gold-deep)] border border-[color:var(--gold)]/30 max-w-[45%] truncate">
                     {n.category}
                   </span>
                   <span className="text-[10px] text-[color:var(--text-mute)]">{fmtTime(n.created_at)}</span>

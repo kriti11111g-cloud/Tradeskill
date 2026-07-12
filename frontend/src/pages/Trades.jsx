@@ -229,7 +229,7 @@ export default function Trades() {
           data-testid="trades-wallet-card"
         >
           <div className="flex items-center gap-2 mb-2">
-            <WalletIcon size={14} className="text-[color:var(--primary)]" />
+            <WalletIcon size={14} className="text-[color:var(--gold)]" />
             <span className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--text-mute)] font-semibold">
               Exchange Wallet
             </span>

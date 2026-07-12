@@ -8,9 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
 
 const actions = [
-  { type: "deposit", label: "Deposit", icon: ArrowDownToLine, testid: "wallet-deposit" },
-  { type: "withdraw", label: "Withdraw", icon: ArrowUpToLine, testid: "wallet-withdraw" },
-  { type: "transfer", label: "Transfer", icon: ArrowRightLeft, testid: "wallet-transfer" },
+  { type: "deposit", label: "Deposit", icon: ArrowDownToLine, testid: "wallet-deposit", tint: "var(--primary)" },
+  { type: "withdraw", label: "Withdraw", icon: ArrowUpToLine, testid: "wallet-withdraw", tint: "var(--gold)" },
+  { type: "transfer", label: "Transfer", icon: ArrowRightLeft, testid: "wallet-transfer", tint: "var(--primary)" },
 ];
 
 export default function Wallet() {
@@ -106,6 +106,19 @@ export default function Wallet() {
                   : `${bind.mode === "real" ? "Real" : "Testnet"} · Not Connected`
                 : "Total Assets (USDT)"}
             </div>
+            {!isLiveMode && (
+              <div
+                className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1"
+                style={{
+                  background: "rgba(245,158,11,0.18)",
+                  border: "1px solid rgba(245,158,11,0.45)",
+                  color: "#FDE68A",
+                }}
+                data-testid="wallet-portfolio-badge"
+              >
+                <span style={{ color: "var(--gold)" }}>◆</span> Portfolio
+              </div>
+            )}
             {isLiveMode && (
               <div
                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
@@ -295,11 +308,11 @@ export default function Wallet() {
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center"
               style={{
-                background: "var(--primary-soft-grad)",
-                border: "1px solid var(--border)",
+                background: `color-mix(in srgb, ${a.tint} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${a.tint} 28%, transparent)`,
               }}
             >
-              <a.icon size={20} strokeWidth={1.8} color="var(--primary)" />
+              <a.icon size={20} strokeWidth={1.8} color={a.tint} />
             </div>
             <span
               className="text-[11px] font-bold uppercase tracking-wider"

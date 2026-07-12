@@ -62,7 +62,7 @@ export default function Rewards() {
               className="app-card rounded-2xl p-4 flex items-center gap-3"
             >
               <div className="w-11 h-11 rounded-xl bg-[color:var(--primary)]/10 flex items-center justify-center">
-                <Gift size={20} className="text-[color:var(--primary)]" />
+                <Gift size={20} className="text-[color:var(--gold)]" />
               </div>
               <div className="flex-1">
                 <div className="font-display font-bold text-sm capitalize">{r.type} Reward</div>

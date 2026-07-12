@@ -148,7 +148,10 @@ export default function Market() {
               className="flex items-center justify-between app-card rounded-2xl p-3.5 hover:border-[color:var(--primary)]/50 hover:bg-[color:var(--surface-3)]/60 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div className="w-7 text-[10px] tabular-nums text-[color:var(--text-mute)] font-bold text-right">
+                <div
+                  className="w-7 text-[10px] tabular-nums font-bold text-right"
+                  style={{ color: i < 3 ? "var(--gold)" : "var(--text-mute)" }}
+                >
                   #{p.rank}
                 </div>
                 {p.image ? (

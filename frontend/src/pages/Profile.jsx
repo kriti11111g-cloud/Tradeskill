@@ -20,16 +20,16 @@ import { useAuth } from "@/context/AuthContext";
 import { fmtUSD } from "@/lib/format";
 
 const items = [
-  { icon: Award, label: "Rank & Activation", to: "/rewards", testid: "profile-rank" },
-  { icon: WalletIcon, label: "Assets", to: "/wallet", testid: "profile-assets" },
-  { icon: Key, label: "API Binding", to: "/bind-api", testid: "profile-api" },
-  { icon: ArrowRightLeft, label: "Transactions", to: "/transactions", testid: "profile-tx" },
-  { icon: Users, label: "Team", to: "/referral", testid: "profile-team" },
-  { icon: Gift, label: "Rewards", to: "/rewards", testid: "profile-rewards" },
-  { icon: Share2, label: "Share", to: "/referral", testid: "profile-share" },
-  { icon: LifeBuoy, label: "Support", to: "/guide", testid: "profile-support" },
-  { icon: Shield, label: "Security Center", to: "/bind-api", testid: "profile-sec" },
-  { icon: Settings, label: "System Setting", to: "/guide", testid: "profile-set" },
+  { icon: Award, label: "Rank & Activation", to: "/rewards", testid: "profile-rank", tint: "var(--gold)" },
+  { icon: WalletIcon, label: "Assets", to: "/wallet", testid: "profile-assets", tint: "var(--primary)" },
+  { icon: Key, label: "API Binding", to: "/bind-api", testid: "profile-api", tint: "var(--primary)" },
+  { icon: ArrowRightLeft, label: "Transactions", to: "/transactions", testid: "profile-tx", tint: "var(--primary)" },
+  { icon: Users, label: "Team", to: "/referral", testid: "profile-team", tint: "var(--gold)" },
+  { icon: Gift, label: "Rewards", to: "/rewards", testid: "profile-rewards", tint: "var(--gold)" },
+  { icon: Share2, label: "Share", to: "/referral", testid: "profile-share", tint: "var(--primary)" },
+  { icon: LifeBuoy, label: "Support", to: "/guide", testid: "profile-support", tint: "var(--primary)" },
+  { icon: Shield, label: "Security Center", to: "/bind-api", testid: "profile-sec", tint: "var(--gold)" },
+  { icon: Settings, label: "System Setting", to: "/guide", testid: "profile-set", tint: "var(--primary)" },
 ];
 
 export default function Profile() {
@@ -185,11 +185,11 @@ export default function Profile() {
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "rgba(22,163,74,0.10)",
-                  border: "1px solid rgba(22,163,74,0.24)",
+                  background: `color-mix(in srgb, ${it.tint} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${it.tint} 28%, transparent)`,
                 }}
               >
-                <it.icon size={16} color="var(--primary)" strokeWidth={1.7} />
+                <it.icon size={16} color={it.tint} strokeWidth={1.7} />
               </div>
               <div
                 className="flex-1 font-body text-sm font-medium"
