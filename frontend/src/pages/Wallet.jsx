@@ -314,23 +314,68 @@ export default function Wallet() {
       {/* Positions */}
       {summary?.positions?.length > 0 && (
         <div className="px-4 mt-5">
-          <div className="font-display font-bold text-lg mb-3">Open Positions</div>
-          <div className="space-y-2">
-            {summary.positions.map((p) => (
+          <div className="flex items-center justify-between mb-2.5">
+            <div>
+              <div className="font-display font-bold text-lg" style={{ color: "var(--text)" }}>
+                Open Positions
+              </div>
+              <div
+                className="text-[10px] uppercase tracking-widest font-bold"
+                style={{ color: "var(--text-mute)" }}
+              >
+                Live · Portfolio snapshot
+              </div>
+            </div>
+            <span
+              className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest text-white"
+              style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
+            >
+              {summary.positions.length}
+            </span>
+          </div>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              backdropFilter: "blur(20px)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            {summary.positions.map((p, i) => (
               <div
                 key={p.symbol}
-                className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
+                className="flex items-center gap-3 px-4 py-3"
+                style={{
+                  borderBottom: i < summary.positions.length - 1 ? "1px solid var(--border)" : "none",
+                }}
                 data-testid={`position-${p.symbol}`}
               >
-                <div>
-                  <div className="font-display font-bold text-sm">{p.symbol.replace("USDT", "/USDT")}</div>
-                  <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5 tabular-nums">
+                <div className="shrink-0">
+                  <CoinIcon symbol={p.symbol} size={36} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-black" style={{ color: "var(--text)" }}>
+                    {p.symbol.replace("USDT", "/USDT")}
+                  </div>
+                  <div
+                    className="text-[10px] tabular-nums mt-0.5"
+                    style={{ color: "var(--text-mute)" }}
+                  >
                     {fmtNum(p.qty, 6)} @ {fmtNum(p.avg_price, 4)}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-display font-bold tabular-nums text-sm">{fmtUSD(p.value)}</div>
-                  <div className={`text-[11px] tabular-nums ${p.pnl >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}>
+                <div className="text-right shrink-0">
+                  <div
+                    className="text-sm font-mono font-black tabular-nums"
+                    style={{ color: "var(--text)" }}
+                  >
+                    {fmtUSD(p.value)}
+                  </div>
+                  <div
+                    className="text-[10px] font-mono font-bold tabular-nums"
+                    style={{ color: p.pnl >= 0 ? "var(--good)" : "var(--bad)" }}
+                  >
                     {p.pnl >= 0 ? "+" : ""}
                     {fmtUSD(p.pnl)}
                   </div>
@@ -343,36 +388,98 @@ export default function Wallet() {
 
       {/* History */}
       <div className="px-4 mt-5">
-        <div className="font-display font-bold text-lg mb-3">History</div>
+        <div className="flex items-center justify-between mb-2.5">
+          <div>
+            <div className="font-display font-bold text-lg" style={{ color: "var(--text)" }}>
+              History
+            </div>
+            <div
+              className="text-[10px] uppercase tracking-widest font-bold"
+              style={{ color: "var(--text-mute)" }}
+            >
+              Recent wallet activity
+            </div>
+          </div>
+        </div>
         {history.length === 0 && (
-          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-history">
+          <div
+            className="text-center text-sm py-8 rounded-2xl"
+            style={{
+              color: "var(--text-mute)",
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
+            data-testid="empty-history"
+          >
             No wallet activity yet
           </div>
         )}
-        <div className="space-y-2">
-          {history.map((h) => (
-            <div
-              key={h.id}
-              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
-            >
-              <div>
-                <div className="font-display font-bold text-sm capitalize">{h.type}</div>
-                <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5">{fmtTime(h.created_at)}</div>
-              </div>
-              <div className="text-right">
+        {history.length > 0 && (
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              backdropFilter: "blur(20px)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            {history.map((h, i) => {
+              const isIn = h.type === "deposit";
+              const isOut = h.type === "withdraw";
+              return (
                 <div
-                  className={`font-display font-bold text-sm tabular-nums ${
-                    h.type === "deposit" ? "text-[color:var(--good)]" : h.type === "withdraw" ? "text-[color:var(--bad)]" : "text-white"
-                  }`}
+                  key={h.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{
+                    borderBottom: i < history.length - 1 ? "1px solid var(--border)" : "none",
+                  }}
                 >
-                  {h.type === "withdraw" ? "-" : "+"}
-                  {fmtUSD(h.amount)}
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      background: "var(--primary-soft-grad)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <span
+                      className="text-lg font-black leading-none"
+                      style={{ color: isIn ? "var(--good)" : isOut ? "var(--bad)" : "var(--primary)" }}
+                    >
+                      {isIn ? "↓" : isOut ? "↑" : "⇄"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-sm font-black capitalize"
+                      style={{ color: "var(--text)" }}
+                    >
+                      {h.type}
+                    </div>
+                    <div
+                      className="text-[10px] mt-0.5"
+                      style={{ color: "var(--text-mute)" }}
+                    >
+                      {fmtTime(h.created_at)}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div
+                      className="text-sm font-mono font-black tabular-nums"
+                      style={{ color: isIn ? "var(--good)" : isOut ? "var(--bad)" : "var(--text)" }}
+                    >
+                      {isOut ? "-" : "+"}
+                      {fmtUSD(h.amount)}
+                    </div>
+                    <div className="text-[10px]" style={{ color: "var(--text-mute)" }}>
+                      Bal {fmtUSD(h.balance_after)}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[10px] text-[color:var(--text-mute)]">Bal {fmtUSD(h.balance_after)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Modal */}
