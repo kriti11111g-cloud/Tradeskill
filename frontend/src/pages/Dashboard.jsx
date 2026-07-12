@@ -174,14 +174,15 @@ export default function Dashboard() {
           <div
             className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
-              background: "rgba(255,255,255,0.2)",
-              border: "1px solid rgba(255,255,255,0.4)",
+              background: "rgba(10,10,10,0.88)",
+              border: "1px solid rgba(245,158,11,0.65)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.35), 0 0 10px rgba(245,158,11,0.35)",
             }}
           >
-            <Crown size={10} color="#FFFFFF" strokeWidth={2.5} />
+            <Crown size={11} color="#FBBF24" strokeWidth={2.5} />
             <span
               className="text-[9px] font-black uppercase tracking-widest"
-              style={{ color: "#FFFFFF" }}
+              style={{ color: "#FBBF24" }}
               data-testid="hero-rank-badge"
             >
               {currentRank.level <= 1 ? "★ Starter" : `★ ${currentRank.level} Star`}
