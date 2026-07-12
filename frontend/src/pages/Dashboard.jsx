@@ -155,10 +155,12 @@ export default function Dashboard() {
 
         {/* ============ BALANCE HERO ============ */}
         <div
-          className="rounded-xl p-5 text-white relative overflow-hidden mb-4"
+          className="rounded-xl p-5 relative overflow-hidden mb-4"
           style={{
-            background: "var(--hero-grad)",
-            boxShadow: "var(--shadow-lg)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+            boxShadow: "var(--shadow-md)",
           }}
           data-testid="hero-balance"
         >
@@ -189,7 +191,7 @@ export default function Dashboard() {
 
           <div className="relative z-10">
             <div className="flex items-center gap-1.5 mb-1">
-              <ShieldCheck size={12} color="#6EE7B7" />
+              <ShieldCheck size={12} color="var(--primary)" />
               <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-90">
                 Total Balance · USDT
               </span>
@@ -216,13 +218,13 @@ export default function Dashboard() {
                 }}
               >
                 {isUp ? (
-                  <ArrowUpRight size={11} color="#6EE7B7" />
+                  <ArrowUpRight size={11} color="var(--good)" />
                 ) : (
-                  <ArrowDownRight size={11} color="#FCA5A5" />
+                  <ArrowDownRight size={11} color="var(--bad)" />
                 )}
                 <span
                   className="text-[11px] font-black font-mono"
-                  style={{ color: isUp ? "#6EE7B7" : "#FCA5A5" }}
+                  style={{ color: isUp ? "var(--good)" : "var(--bad)" }}
                 >
                   {fmtPct(change24h)}
                 </span>
@@ -243,9 +245,8 @@ export default function Dashboard() {
                   data-testid={a.testid}
                   className="flex flex-col items-center gap-1 py-2 rounded-xl"
                   style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    backdropFilter: "blur(12px)",
+                    background: "var(--primary-grad)",
+                    boxShadow: "var(--shadow-sm)",
                   }}
                 >
                   <a.icon size={16} className="text-white" />
