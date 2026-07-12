@@ -68,14 +68,14 @@ export default function Referral() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 mt-4">
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4">
+        <div className="app-card rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-[color:var(--primary)]" />
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Team Size</div>
           </div>
           <div className="font-display font-bold text-2xl tabular-nums mt-1" data-testid="team-size">{data?.team_size || 0}</div>
         </div>
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4">
+        <div className="app-card rounded-2xl p-4">
           <div className="flex items-center gap-2">
             <Gift size={16} className="text-[color:var(--warn)]" />
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Earned</div>
@@ -98,7 +98,7 @@ export default function Referral() {
             {data.earnings.slice(0, 10).map((e) => (
               <div
                 key={e.id}
-                className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
+                className="app-card rounded-2xl p-3 flex items-center justify-between"
               >
                 <div className="min-w-0">
                   <div className="font-display font-bold text-sm truncate">
@@ -135,7 +135,7 @@ export default function Referral() {
           {data?.team?.map((t) => (
             <div
               key={t.email}
-              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
+              className="app-card rounded-2xl p-3 flex items-center justify-between"
             >
               <div>
                 <div className="font-display font-bold text-sm">{t.name || t.email}</div>

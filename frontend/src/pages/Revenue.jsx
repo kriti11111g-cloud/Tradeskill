@@ -158,7 +158,7 @@ export default function Revenue() {
       {/* CARDS 2 & 3: Today's Profit | Cumulative Profit — thin twin cards */}
       <div className="px-4 mt-2.5 grid grid-cols-2 gap-2.5">
         <div
-          className="rounded-2xl border border-[color:var(--border-soft)] p-3 bg-[color:var(--surface)]/50 backdrop-blur-xl"
+          className="rounded-2xl app-card p-3"
           data-testid="today-profit-card"
         >
           <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
@@ -179,7 +179,7 @@ export default function Revenue() {
         </div>
 
         <div
-          className="rounded-2xl border border-[color:var(--border-soft)] p-3 bg-[color:var(--surface)]/50 backdrop-blur-xl"
+          className="rounded-2xl app-card p-3"
           data-testid="cumulative-profit-card"
         >
           <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
@@ -202,7 +202,7 @@ export default function Revenue() {
 
       {data?.daily?.length > 0 && (
         <div className="px-4 mt-2.5">
-          <div className="bg-[color:var(--surface)]/50 backdrop-blur-xl border border-[color:var(--border-soft)] rounded-2xl p-2.5">
+          <div className="app-card rounded-2xl p-2.5">
             <div className="flex items-center justify-between mb-1 px-1">
               <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
                 Daily Profit
@@ -356,7 +356,7 @@ export default function Revenue() {
                   key={d.date}
                   onClick={() => navigate(`/transactions?date=${d.date}`)}
                   data-testid={`revenue-date-${d.date}`}
-                  className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--primary)]/5 active:scale-[0.99] transition text-left"
+                  className="w-full app-card rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--primary)]/5 active:scale-[0.99] transition text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-7 h-7 rounded-md bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/25 flex flex-col items-center justify-center shrink-0">

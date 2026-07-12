@@ -34,7 +34,7 @@ export default function News() {
           const Card = (
             <div
               key={n.id}
-              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl overflow-hidden hover:border-[color:var(--primary)]/40 transition"
+              className="app-card rounded-2xl overflow-hidden hover:border-[color:var(--primary)]/40 transition"
               data-testid={`news-item-${n.id}`}
             >
               {n.image && (

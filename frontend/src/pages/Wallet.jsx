@@ -95,7 +95,7 @@ export default function Wallet() {
         <div
           className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6"
           style={{
-            background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(251,191,36,0.10)), var(--surface)",
+            background: "var(--hero-grad)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -176,7 +176,7 @@ export default function Wallet() {
                 onClick={loadLive}
                 disabled={liveLoading}
                 data-testid="live-refresh"
-                className="w-8 h-8 rounded-lg bg-white/5 border border-[color:var(--border)] flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
+                className="w-8 h-8 rounded-lg bg-[color:var(--surface-2)] border border-[color:var(--border)] flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
               >
                 <RefreshCw size={14} className={liveLoading ? "animate-spin" : ""} />
               </button>
@@ -290,7 +290,7 @@ export default function Wallet() {
             key={a.type}
             onClick={() => setModal(a.type)}
             data-testid={a.testid}
-            className="flex flex-col items-center gap-2 py-4 bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl hover:border-[color:var(--primary)]/30 transition"
+            className="flex flex-col items-center gap-2 py-4 app-card rounded-2xl hover:border-[color:var(--primary)]/30 transition"
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -511,7 +511,7 @@ export default function Wallet() {
                 <button
                   type="button"
                   onClick={() => setModal(null)}
-                  className="py-3 rounded-xl bg-white/5 border border-[color:var(--border)] font-bold"
+                  className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-bold"
                 >
                   Cancel
                 </button>

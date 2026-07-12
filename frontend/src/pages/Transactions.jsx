@@ -207,8 +207,8 @@ export default function Transactions() {
             <div
               key={t.id}
               data-testid={`tx-row-${t.id}`}
-              className={`bg-[color:var(--surface)]/60 backdrop-blur-xl border rounded-xl overflow-hidden transition ${
-                isOpen ? "border-[color:var(--primary)]/50" : "border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/30"
+              className={`app-card rounded-xl overflow-hidden transition ${
+                isOpen ? "!border-[color:var(--primary)]/50" : "hover:border-[color:var(--primary)]/30"
               }`}
             >
               <button

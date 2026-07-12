@@ -40,7 +40,7 @@ function BotCard({ bot }) {
       className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
         isRunning
           ? "bg-[color:var(--surface-2)] backdrop-blur-xl border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
-          : "bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/40"
+          : "app-card hover:border-[color:var(--primary)]/40"
       }`}
       style={
         isRunning
@@ -267,19 +267,19 @@ export default function Trades() {
 
       {/* Summary strip */}
       <div className="px-4 grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+        <div className="rounded-xl app-card p-2.5">
           <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Active Bots
           </div>
           <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums text-[color:var(--good)]">{active}</div>
         </div>
-        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+        <div className="rounded-xl app-card p-2.5">
           <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Total Bots
           </div>
           <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums">{bots.length}</div>
         </div>
-        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+        <div className="rounded-xl app-card p-2.5">
           <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Total Profit
           </div>

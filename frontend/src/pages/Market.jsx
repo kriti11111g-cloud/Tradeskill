@@ -105,7 +105,7 @@ export default function Market() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search coin (BTC, ETH, Solana, ...)"
-            className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[color:var(--primary)] placeholder:text-[color:var(--text-mute)]"
+            className="w-full app-card rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[color:var(--primary)] placeholder:text-[color:var(--text-mute)]"
             data-testid="market-search"
           />
         </div>
@@ -145,7 +145,7 @@ export default function Market() {
             <Link
               to={`/pair/${p.symbol}`}
               data-testid={`market-pair-${p.symbol}`}
-              className="flex items-center justify-between bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3.5 hover:border-[color:var(--primary)]/50 hover:bg-[color:var(--surface)]/80 transition-all"
+              className="flex items-center justify-between app-card rounded-2xl p-3.5 hover:border-[color:var(--primary)]/50 hover:bg-[color:var(--surface-3)]/60 transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="w-7 text-[10px] tabular-nums text-[color:var(--text-mute)] font-bold text-right">

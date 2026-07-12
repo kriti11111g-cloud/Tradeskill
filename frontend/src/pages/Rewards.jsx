@@ -33,7 +33,7 @@ export default function Rewards() {
         <div
           className="rounded-3xl border border-[color:var(--border)] p-5 flex items-center gap-4"
           style={{
-            background: "linear-gradient(135deg, rgba(248,113,113,0.12), rgba(16,185,129,0.10)), var(--surface)",
+            background: "var(--hero-grad)",
           }}
         >
           <div className="w-14 h-14 rounded-2xl bg-[color:var(--gold)]/15 flex items-center justify-center">
@@ -59,7 +59,7 @@ export default function Rewards() {
           {rows.map((r) => (
             <div
               key={r.id}
-              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4 flex items-center gap-3"
+              className="app-card rounded-2xl p-4 flex items-center gap-3"
             >
               <div className="w-11 h-11 rounded-xl bg-[color:var(--primary)]/10 flex items-center justify-center">
                 <Gift size={20} className="text-[color:var(--primary)]" />

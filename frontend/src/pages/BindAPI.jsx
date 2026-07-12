@@ -61,7 +61,7 @@ export default function BindAPI() {
 
       <div className="px-4 space-y-4">
         {existing?.api_key_mask && (
-          <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--good)]/30 rounded-2xl p-4 flex items-start gap-3">
+          <div className="app-card !border-[color:var(--good)]/30 rounded-2xl p-4 flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[color:var(--good)]/10 flex items-center justify-center">
               <ShieldCheck size={20} className="text-[color:var(--good)]" />
             </div>
@@ -81,7 +81,7 @@ export default function BindAPI() {
           </div>
         )}
 
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-5">
+        <div className="app-card rounded-2xl p-5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold mb-3">Trading Mode</div>
           <div className="grid grid-cols-3 gap-2">
             {[
@@ -118,7 +118,7 @@ export default function BindAPI() {
           </div>
         </div>
 
-        <form onSubmit={save} className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-5 space-y-4">
+        <form onSubmit={save} className="app-card rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2">
             <KeyRound size={18} className="text-[color:var(--primary)]" />
             <div className="font-display font-bold text-sm">API Credentials</div>
@@ -208,7 +208,7 @@ export default function BindAPI() {
                   setAck(false);
                 }}
                 disabled={loading}
-                className="py-3 rounded-xl bg-white/5 border border-[color:var(--border)] font-display font-bold text-sm hover:bg-white/10 transition disabled:opacity-60"
+                className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-display font-bold text-sm hover:bg-white/10 transition disabled:opacity-60"
                 data-testid="confirm-cancel"
               >
                 Cancel

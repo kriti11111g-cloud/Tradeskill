@@ -275,7 +275,7 @@ export default function TradingPair() {
 
       {/* Price header */}
       <div className="px-4">
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4">
+        <div className="app-card rounded-2xl p-4">
           <div className="flex items-end justify-between">
             <div className="flex items-center gap-3">
               <CoinIcon symbol={sym} size={40} />
@@ -490,7 +490,7 @@ export default function TradingPair() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3"
+            className="app-card rounded-2xl p-3"
           >
             <div className="text-[9px] uppercase tracking-[0.18em] text-[color:var(--text-mute)] font-bold leading-tight">
               {s.label}
@@ -512,7 +512,7 @@ export default function TradingPair() {
           className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
           style={{
             background:
-              "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(251,191,36,0.08)), var(--surface)",
+              "var(--hero-grad)",
           }}
           data-testid="operation-reminder"
         >
@@ -716,7 +716,7 @@ export default function TradingPair() {
         <div className="px-4 mt-4">
           <div
             className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
-            style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.04), rgba(251,191,36,0.06)), var(--surface)" }}
+            style={{ background: "var(--hero-grad)" }}
             data-testid="dca-ladder-panel"
           >
             <div className="flex items-center justify-between mb-3">
@@ -830,7 +830,7 @@ export default function TradingPair() {
             key={b.label}
             onClick={b.onClick}
             data-testid={b.testid}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white/5 border border-[color:var(--border)] hover:border-[color:var(--primary)]/40 hover:bg-white/10 transition-all"
+            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] hover:border-[color:var(--primary)]/40 hover:bg-white/10 transition-all"
           >
             <b.icon size={20} strokeWidth={1.7} className={b.color || ""} />
             <span className="text-[10px] uppercase tracking-widest font-bold">{b.label}</span>
@@ -840,7 +840,7 @@ export default function TradingPair() {
 
       {/* Manual trade input */}
       <div className="px-4 mt-4">
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4">
+        <div className="app-card rounded-2xl p-4">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold mb-2">Manual Trade</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -870,7 +870,7 @@ export default function TradingPair() {
 
       {/* Strategy Config */}
       <div className="px-4 mt-4">
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-5">
+        <div className="app-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="font-display font-bold">Strategy Configuration</div>
             <button
@@ -943,7 +943,7 @@ export default function TradingPair() {
 
       {/* Margin Configuration Table (per-round drop % and multiplier) */}
       <div className="px-4 mt-4">
-        <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-5" data-testid="margin-config">
+        <div className="app-card rounded-2xl p-5" data-testid="margin-config">
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="font-display font-bold text-sm">Margin Configuration</div>
@@ -975,7 +975,7 @@ export default function TradingPair() {
                 className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center"
                 data-testid={`mc-row-${i}`}
               >
-                <div className="w-10 h-9 rounded-lg bg-white/5 border border-[color:var(--border)] flex items-center justify-center font-display font-bold text-xs">
+                <div className="w-10 h-9 rounded-lg bg-[color:var(--surface-2)] border border-[color:var(--border)] flex items-center justify-center font-display font-bold text-xs">
                   {i + 1}
                 </div>
                 <div className="relative">
@@ -1061,7 +1061,7 @@ export default function TradingPair() {
             {events.slice(0, 8).map((e) => (
               <div
                 key={e.id}
-                className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-xl p-3 flex items-center justify-between"
+                className="app-card rounded-xl p-3 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2.5">
                   <div
@@ -1185,7 +1185,7 @@ export default function TradingPair() {
                   data-testid="pos-mc-input"
                 />
               </div>
-              <div className="bg-white/5 rounded-xl p-3 text-[11px] text-[color:var(--text-mute)]">
+              <div className="app-card rounded-xl p-3 text-[11px] text-[color:var(--text-mute)]">
                 Notional value:{" "}
                 <span className="font-display font-bold text-white tabular-nums">
                   {fmtUSD((parseFloat(posEdit.position_qty) || 0) * (parseFloat(posEdit.avg_price) || 0))}
@@ -1196,7 +1196,7 @@ export default function TradingPair() {
             <div className="grid grid-cols-2 gap-2 mt-5">
               <button
                 onClick={() => setPosEditOpen(false)}
-                className="py-3 rounded-xl bg-white/5 border border-[color:var(--border)] font-display font-bold text-sm"
+                className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-display font-bold text-sm"
                 data-testid="pos-cancel"
               >
                 Cancel

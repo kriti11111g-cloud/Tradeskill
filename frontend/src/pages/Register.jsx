@@ -48,7 +48,7 @@ export default function Register() {
           <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-mute)]">Join the new era of crypto</div>
         </div>
 
-        <div className="bg-[color:var(--surface)]/70 backdrop-blur-xl border border-[color:var(--border)] rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
+        <div className="app-card rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
           <h1 className="font-display font-bold text-2xl mb-1">Create account</h1>
           <p className="text-sm text-[color:var(--text-mute)] mb-6">Get a $1,000 demo balance instantly</p>
 

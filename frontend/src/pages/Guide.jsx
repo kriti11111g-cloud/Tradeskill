@@ -15,7 +15,7 @@ export default function Guide() {
         {rows.map((g) => (
           <div
             key={g.id}
-            className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4"
+            className="app-card rounded-2xl p-4"
           >
             <div className="font-display font-bold text-sm">{g.title}</div>
             <div className="text-xs text-white/70 mt-2 leading-relaxed">{g.body}</div>
