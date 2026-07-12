@@ -520,7 +520,7 @@ export default function TradingPair() {
             <div className="flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[#8B9BB4]"
+                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[#7C93AD]"
                 }`}
               />
               <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
@@ -735,7 +735,7 @@ export default function TradingPair() {
                 data-testid="ladder-tp-row"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-7 rounded-full bg-[color:var(--good)] shadow-[0_0_8px_#39FF14]" />
+                  <div className="w-1 h-7 rounded-full bg-[color:var(--good)] shadow-[0_0_8px_#10B981]" />
                   <div className="w-8 h-8 rounded-lg bg-[color:var(--good)]/15 border border-[color:var(--good)]/40 flex items-center justify-center">
                     <TrendingUp size={14} className="text-[color:var(--good)]" strokeWidth={2.2} />
                   </div>

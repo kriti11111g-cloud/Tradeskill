@@ -252,8 +252,8 @@ export default function BotHub() {
               <linearGradient id="tgxTraceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#FF3B3B" stopOpacity="0" />
                 <stop offset="45%" stopColor="#FF3B3B" stopOpacity="0.9" />
-                <stop offset="55%" stopColor="#39FF14" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#39FF14" stopOpacity="0" />
+                <stop offset="55%" stopColor="#10B981" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
               </linearGradient>
             </defs>
             {TRACES.map((tr, i) => (
@@ -328,7 +328,7 @@ export default function BotHub() {
 
         {/* Balance card — thin, balance only */}
         <div
-          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#39FF14]/5 px-4 py-2.5 mb-3"
+          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#10B981]/5 px-4 py-2.5 mb-3"
           style={{ boxShadow: "0 0 16px rgba(16,185,129,0.06)" }}
           data-testid="bot-wallet-balance-card"
         >

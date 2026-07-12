@@ -35,7 +35,7 @@ export default function Login() {
       />
       <div
         className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #FF007A, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #F87171, transparent 70%)" }}
       />
 
       <div className="w-full max-w-md z-10">

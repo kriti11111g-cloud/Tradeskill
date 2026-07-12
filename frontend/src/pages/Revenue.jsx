@@ -29,8 +29,8 @@ function scaleProfit(p) {
 
 const BinanceLogo = ({ size = 14 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
-    <path fill="#F0B90B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
-    <path fill="#F0B90B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
+    <path fill="#FBBF24" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
+    <path fill="#FBBF24" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
   </svg>
 );
 
@@ -118,16 +118,16 @@ export default function Revenue() {
         >
           <div
             className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-25"
-            style={{ background: "radial-gradient(circle, #F0B90B 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, #FBBF24 0%, transparent 70%)" }}
           />
           <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F0B90B]/15 border border-[#F0B90B]/40 flex items-center justify-center shrink-0">
-              <Wallet size={20} className="text-[#F0B90B]" />
+            <div className="w-10 h-10 rounded-xl bg-[#FBBF24]/15 border border-[#FBBF24]/40 flex items-center justify-center shrink-0">
+              <Wallet size={20} className="text-[#FBBF24]" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <BinanceLogo size={12} />
-                <div className="text-[9px] uppercase tracking-[0.25em] text-[#F0B90B] font-bold">
+                <div className="text-[9px] uppercase tracking-[0.25em] text-[#FBBF24] font-bold">
                   Binance Spot Wallet
                 </div>
                 {wallet?.connected ? (
@@ -220,7 +220,7 @@ export default function Revenue() {
                 <CartesianGrid stroke="#ffffff08" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#8B9BB4", fontSize: 8 }}
+                  tick={{ fill: "#7C93AD", fontSize: 8 }}
                   tickFormatter={(v) => v.slice(5)}
                   interval="preserveStartEnd"
                   minTickGap={20}
@@ -228,7 +228,7 @@ export default function Revenue() {
                 <YAxis
                   ticks={yTicks}
                   domain={yDomain}
-                  tick={{ fill: "#8B9BB4", fontSize: 8 }}
+                  tick={{ fill: "#7C93AD", fontSize: 8 }}
                   tickFormatter={yTickFormatter}
                   width={32}
                 />
@@ -247,7 +247,7 @@ export default function Revenue() {
                   {scaledDaily.map((d) => (
                     <Cell
                       key={d.date}
-                      fill={d.profit >= 0 ? "#39FF14" : "#FF007A"}
+                      fill={d.profit >= 0 ? "#10B981" : "#F87171"}
                       opacity={selectedDay && selectedDay !== d.date ? 0.35 : 1}
                     />
                   ))}

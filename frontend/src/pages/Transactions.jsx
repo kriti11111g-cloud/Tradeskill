@@ -30,8 +30,8 @@ const fmtFullUTC = (iso) => (iso ? `${fmtDateUTC(iso)} · ${fmtTimeUTC(iso)} UTC
 
 const BinanceLogo = ({ size = 12 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
-    <path fill="#F0B90B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
-    <path fill="#F0B90B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
+    <path fill="#FBBF24" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
+    <path fill="#FBBF24" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
   </svg>
 );
 
@@ -43,13 +43,13 @@ function WalletBar({ wallet }) {
         className="rounded-xl border border-[color:var(--gold)]/30 p-2.5 bg-gradient-to-br from-[#1A1500]/60 to-[color:var(--bg-base)] backdrop-blur-xl flex items-center gap-2.5"
         data-testid="wallet-balance-card"
       >
-        <div className="w-8 h-8 rounded-lg bg-[#F0B90B]/15 border border-[#F0B90B]/40 flex items-center justify-center shrink-0">
-          <Wallet size={16} className="text-[#F0B90B]" />
+        <div className="w-8 h-8 rounded-lg bg-[#FBBF24]/15 border border-[#FBBF24]/40 flex items-center justify-center shrink-0">
+          <Wallet size={16} className="text-[#FBBF24]" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <BinanceLogo size={10} />
-            <div className="text-[8px] uppercase tracking-widest text-[#F0B90B] font-bold">
+            <div className="text-[8px] uppercase tracking-widest text-[#FBBF24] font-bold">
               Binance Spot
             </div>
             <span
@@ -201,7 +201,7 @@ export default function Transactions() {
         {filtered.map((t) => {
           const isOpen = openId === t.id;
           const isSell = t.side === "SELL";
-          const sideColor = isSell ? "#FF007A" : "#39FF14";
+          const sideColor = isSell ? "#F87171" : "#10B981";
           const profitPositive = (t.profit || 0) >= 0;
           return (
             <div
@@ -325,14 +325,14 @@ export default function Transactions() {
                     <KV
                       label="Avg Buy Price (USDT)"
                       value={`$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`}
-                      valueColor="#39FF14"
+                      valueColor="#10B981"
                     />
                   )}
                   {isSell && (
                     <KV
                       label="Profit (USDT)"
                       value={`${profitPositive ? "+" : ""}${fmtUSD(t.profit || 0)}`}
-                      valueColor={profitPositive ? "#39FF14" : "#FF007A"}
+                      valueColor={profitPositive ? "#10B981" : "#F87171"}
                     />
                   )}
                   <KV label="Mode" value={(t.mode || "demo").toUpperCase()} />

@@ -193,7 +193,7 @@ export default function BindAPI() {
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
-                className="accent-[#FF007A] w-4 h-4 mt-0.5"
+                className="accent-[#F87171] w-4 h-4 mt-0.5"
                 data-testid="confirm-ack"
               />
               <span>I understand the risks and want to enable live trading with my Binance funds.</span>

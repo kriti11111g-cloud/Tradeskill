@@ -223,7 +223,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
         {isCurrent && (
           <div
             className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[color:var(--good)] text-black"
-            style={{ boxShadow: "0 0 12px #39FF14" }}
+            style={{ boxShadow: "0 0 12px #10B981" }}
             data-testid="current-rank-badge"
           >
             ★ YOU
@@ -282,9 +282,9 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
                 style={{
                   width: `${localProgress.overall_pct}%`,
                   background: isAchieved
-                    ? "linear-gradient(90deg,#39FF14,#7FFF00)"
+                    ? "linear-gradient(90deg,#10B981,#059669)"
                     : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
-                  boxShadow: `0 0 8px ${isAchieved ? "#39FF14" : rank.color}`,
+                  boxShadow: `0 0 8px ${isAchieved ? "#10B981" : rank.color}`,
                 }}
               />
               {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
@@ -402,8 +402,8 @@ function ProgressBar({ label, have, need, color }) {
           className="h-full rounded-full transition-all"
           style={{
             width: `${pct}%`,
-            background: done ? "#39FF14" : color,
-            boxShadow: `0 0 8px ${done ? "#39FF14" : color}`,
+            background: done ? "#10B981" : color,
+            boxShadow: `0 0 8px ${done ? "#10B981" : color}`,
           }}
         />
       </div>

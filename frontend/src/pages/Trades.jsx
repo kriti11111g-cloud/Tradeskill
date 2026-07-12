@@ -70,11 +70,11 @@ function BotCard({ bot }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_#39FF14]" : "bg-[#8B9BB4]"}`}
+            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_#10B981]" : "bg-[#7C93AD]"}`}
           />
           <span
             className="text-[8px] uppercase tracking-widest font-bold"
-            style={{ color: isRunning ? "#39FF14" : "#8B9BB4" }}
+            style={{ color: isRunning ? "#10B981" : "#7C93AD" }}
           >
             {isRunning ? "Live" : "Off"}
           </span>
@@ -295,9 +295,9 @@ export default function Trades() {
       {/* Filter chips: Live / All / Idle */}
       <div className="px-4 mt-3 flex items-center gap-2" data-testid="trades-filter">
         {[
-          { key: "live", label: "Live", count: active, color: "#39FF14" },
+          { key: "live", label: "Live", count: active, color: "#10B981" },
           { key: "all", label: "All", count: bots.length, color: "#10B981" },
-          { key: "idle", label: "Idle", count: idleCount, color: "#8B9BB4" },
+          { key: "idle", label: "Idle", count: idleCount, color: "#7C93AD" },
         ].map((t) => {
           const isActive = filter === t.key;
           return (
@@ -311,7 +311,7 @@ export default function Trades() {
                 borderWidth: 1,
                 borderStyle: "solid",
                 borderColor: isActive ? `${t.color}80` : "rgba(255,255,255,0.15)",
-                color: isActive ? t.color : "#8B9BB4",
+                color: isActive ? t.color : "#7C93AD",
                 boxShadow: isActive ? `0 0 12px ${t.color}40` : "none",
               }}
             >
