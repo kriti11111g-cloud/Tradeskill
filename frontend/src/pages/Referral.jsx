@@ -130,16 +130,18 @@ export default function Referral() {
                   <div className="min-w-0">
                     <div className="font-display font-bold text-[13px] truncate flex items-center gap-1.5">
                       {t.name || t.email.split("@")[0]}
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ background: t.activated ? "var(--primary)" : "var(--gold)" }}
-                        title={t.activated ? "Activated" : "Not activated"}
-                      />
                     </div>
                     <div className="text-[10px] text-[color:var(--text-mute)] truncate mt-0.5">{maskEmail(t.email)}</div>
                   </div>
                 </div>
                 <div className="text-right pl-2 shrink-0">
+                  <div
+                    className="text-[9px] uppercase tracking-widest font-black mb-1"
+                    style={{ color: t.activated ? "var(--primary)" : "#DC2626" }}
+                    data-testid={`direct-status-${i}`}
+                  >
+                    ● {t.activated ? "Active" : "Inactive"}
+                  </div>
                   <span
                     className="text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-md inline-block"
                     style={{
