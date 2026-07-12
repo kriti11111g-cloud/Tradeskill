@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Share2, Users, Gift, TrendingUp, Network } from "lucide-react";
+import { Copy, Share2, Users, Gift, Network } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -77,18 +77,8 @@ export default function Referral() {
         </div>
       </div>
 
-      {/* ==== Activate Profit ==== */}
-      <div className="px-4 mt-4">
-        <SectionCard icon={TrendingUp} title="Activate Profit" testid="ref-profit-card">
-          <div className="grid grid-cols-2 gap-3">
-            <BarStat color="var(--gold)" label="Today Profit" value={fmtUSD(data?.today_profit || 0)} testid="ref-today-profit" />
-            <BarStat color="var(--primary)" label="Total Profit" value={fmtUSD(data?.total_profit || 0)} testid="ref-total-profit" />
-          </div>
-        </SectionCard>
-      </div>
-
       {/* ==== Direct Quantification ==== */}
-      <div className="px-4 mt-3">
+      <div className="px-4 mt-4">
         <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
           <div className="grid grid-cols-2 gap-3">
             <BarStat color="var(--gold)" label="Not Yet Activated" value={ds.not_activated} testid="direct-inactive" />
@@ -117,48 +107,52 @@ export default function Referral() {
           </div>
         )}
         {data?.team?.length > 0 && (
-          <div className="app-card rounded-2xl overflow-hidden" data-testid="direct-table">
-            <div
-              className="grid grid-cols-[1fr_1.6fr_0.6fr_0.9fr] px-3 py-2.5 text-[9px] uppercase tracking-widest font-black"
-              style={{ background: "var(--surface-3)", color: "var(--text-mute)", borderBottom: "1px solid var(--border)" }}
-            >
-              <span>Grade</span>
-              <span>Account</span>
-              <span className="text-center">Team</span>
-              <span className="text-right">Date</span>
-            </div>
+          <div className="space-y-2.5" data-testid="direct-list">
             {data.team.map((t, i) => (
               <div
                 key={t.email}
-                className="grid grid-cols-[1fr_1.6fr_0.6fr_0.9fr] items-center px-3 py-3"
-                style={{ borderBottom: i < data.team.length - 1 ? "1px solid var(--border-soft)" : "none" }}
+                className="rounded-2xl p-3.5 flex items-center justify-between"
+                style={{
+                  background: "var(--surface-2)",
+                  border: "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
+                  boxShadow: "0 2px 12px rgba(245,158,11,0.12)",
+                  backdropFilter: "blur(20px)",
+                }}
                 data-testid={`direct-row-${i}`}
               >
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[13px] text-white"
+                    style={{ background: "var(--primary-grad)" }}
+                  >
+                    {(t.name || t.email || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-display font-bold text-[13px] truncate flex items-center gap-1.5">
+                      {t.name || t.email.split("@")[0]}
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: t.activated ? "var(--primary)" : "var(--gold)" }}
+                        title={t.activated ? "Activated" : "Not activated"}
+                      />
+                    </div>
+                    <div className="text-[10px] text-[color:var(--text-mute)] truncate mt-0.5">{maskEmail(t.email)}</div>
+                  </div>
+                </div>
+                <div className="text-right pl-2 shrink-0">
                   <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: t.activated ? "var(--primary)" : "var(--gold)" }}
-                    title={t.activated ? "Activated" : "Not activated"}
-                  />
-                  <span
-                    className="text-[9px] uppercase tracking-wider font-black truncate px-1.5 py-0.5 rounded-md"
+                    className="text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-md inline-block"
                     style={{
                       color: "var(--gold-deep)",
-                      background: "color-mix(in srgb, var(--gold) 10%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--gold) 25%, transparent)",
+                      background: "color-mix(in srgb, var(--gold) 12%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--gold) 35%, transparent)",
                     }}
                   >
-                    {(t.rank || "Starter").toUpperCase()}
+                    ★ {(t.rank || "Starter").toUpperCase()}
                   </span>
-                </div>
-                <div className="min-w-0 pr-1">
-                  <div className="text-[11px] font-bold truncate">{maskEmail(t.email)}</div>
-                </div>
-                <div className="text-center text-[12px] font-black font-mono tabular-nums text-[color:var(--primary)]">
-                  {t.team_size}
-                </div>
-                <div className="text-right text-[10px] font-mono text-[color:var(--text-mute)]">
-                  {fmtDate(t.created_at)}
+                  <div className="text-[10px] font-mono text-[color:var(--text-mute)] mt-1">
+                    Joined {fmtDate(t.created_at)}
+                  </div>
                 </div>
               </div>
             ))}
