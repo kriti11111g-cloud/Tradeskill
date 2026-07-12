@@ -26,6 +26,7 @@ import BotHub from "@/pages/BotHub";
 import Rank from "@/pages/Rank";
 import DemoTheme from "@/pages/DemoTheme";
 import DemoFintech from "@/pages/DemoFintech";
+import DemoCoinstore from "@/pages/DemoCoinstore";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/demo-theme" element={<DemoTheme />} />
           <Route path="/demo-fintech" element={<DemoFintech />} />
+          <Route path="/demo-coinstore" element={<DemoCoinstore />} />
           <Route
             element={
               <ProtectedRoute>
