@@ -520,7 +520,7 @@ export default function TradingPair() {
             <div className="flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[#7C93AD]"
+                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[color:var(--text-mute)]"
                 }`}
               />
               <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
@@ -785,7 +785,7 @@ export default function TradingPair() {
                 data-testid={`ladder-mc-row-${lvl.level}`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-1 h-7 rounded-full ${idx === 0 ? "bg-[color:var(--gold)] shadow-[0_0_8px_#FFD700]" : "bg-[color:var(--gold)]/40"}`} />
+                  <div className={`w-1 h-7 rounded-full ${idx === 0 ? "bg-[color:var(--gold)] shadow-[0_0_8px_var(--gold-glow)]" : "bg-[color:var(--gold)]/40"}`} />
                   <div className="w-8 h-8 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/30 flex items-center justify-center">
                     <span className="font-display font-black text-[10px] text-[color:var(--warn)]">L{lvl.level}</span>
                   </div>

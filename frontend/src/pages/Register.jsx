@@ -30,7 +30,7 @@ export default function Register() {
       <div className="grain-overlay" />
       <div
         className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #FFD700, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #FBBF24, transparent 70%)" }}
       />
       <div
         className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
@@ -40,7 +40,7 @@ export default function Register() {
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD700] to-[color:var(--bad)] flex items-center justify-center glow-gold">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary-deep)] flex items-center justify-center glow-gold">
               <Zap size={22} className="text-white" strokeWidth={2.5} />
             </div>
             <div className="font-display font-black text-3xl tracking-tight">TGX BOT</div>

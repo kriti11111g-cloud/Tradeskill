@@ -70,11 +70,11 @@ function BotCard({ bot }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_#10B981]" : "bg-[#7C93AD]"}`}
+            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_var(--primary-glow)]" : "bg-[color:var(--text-mute)]"}`}
           />
           <span
             className="text-[8px] uppercase tracking-widest font-bold"
-            style={{ color: isRunning ? "#10B981" : "#7C93AD" }}
+            style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}
           >
             {isRunning ? "Live" : "Off"}
           </span>
@@ -295,9 +295,9 @@ export default function Trades() {
       {/* Filter chips: Live / All / Idle */}
       <div className="px-4 mt-3 flex items-center gap-2" data-testid="trades-filter">
         {[
-          { key: "live", label: "Live", count: active, color: "#10B981" },
-          { key: "all", label: "All", count: bots.length, color: "#10B981" },
-          { key: "idle", label: "Idle", count: idleCount, color: "#7C93AD" },
+          { key: "live", label: "Live", count: active, color: "var(--good)" },
+          { key: "all", label: "All", count: bots.length, color: "var(--good)" },
+          { key: "idle", label: "Idle", count: idleCount, color: "var(--text-mute)" },
         ].map((t) => {
           const isActive = filter === t.key;
           return (
@@ -311,7 +311,7 @@ export default function Trades() {
                 borderWidth: 1,
                 borderStyle: "solid",
                 borderColor: isActive ? `${t.color}80` : "rgba(255,255,255,0.15)",
-                color: isActive ? t.color : "#7C93AD",
+                color: isActive ? t.color : "var(--text-mute)",
                 boxShadow: isActive ? `0 0 12px ${t.color}40` : "none",
               }}
             >
@@ -327,7 +327,7 @@ export default function Trades() {
               {t.label}
               <span
                 className="tabular-nums font-mono"
-                style={{ color: isActive ? t.color : "#556072" }}
+                style={{ color: isActive ? t.color : "var(--text-mute)" }}
               >
                 {t.count}
               </span>
@@ -357,7 +357,7 @@ export default function Trades() {
             {filter === "live" ? (
               <>
                 No live bots right now.<br />
-                <span className="text-[11px] text-[#556072]">Switch to <b>All</b> to view idle bots.</span>
+                <span className="text-[11px] text-[color:var(--text-mute)]">Switch to <b>All</b> to view idle bots.</span>
               </>
             ) : (
               "No bots in this filter."

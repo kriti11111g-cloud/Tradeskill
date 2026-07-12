@@ -220,7 +220,7 @@ export default function Revenue() {
                 <CartesianGrid stroke="#ffffff08" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#7C93AD", fontSize: 8 }}
+                  tick={{ fill: "var(--text-mute)", fontSize: 8 }}
                   tickFormatter={(v) => v.slice(5)}
                   interval="preserveStartEnd"
                   minTickGap={20}
@@ -228,7 +228,7 @@ export default function Revenue() {
                 <YAxis
                   ticks={yTicks}
                   domain={yDomain}
-                  tick={{ fill: "#7C93AD", fontSize: 8 }}
+                  tick={{ fill: "var(--text-mute)", fontSize: 8 }}
                   tickFormatter={yTickFormatter}
                   width={32}
                 />
@@ -247,7 +247,7 @@ export default function Revenue() {
                   {scaledDaily.map((d) => (
                     <Cell
                       key={d.date}
-                      fill={d.profit >= 0 ? "#10B981" : "#F87171"}
+                      fill={d.profit >= 0 ? "var(--good)" : "#F87171"}
                       opacity={selectedDay && selectedDay !== d.date ? 0.35 : 1}
                     />
                   ))}

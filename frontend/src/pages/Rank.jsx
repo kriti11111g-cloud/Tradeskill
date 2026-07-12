@@ -114,7 +114,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
             disabled={activeIdx === 0}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[#B8C4D8] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
             data-testid="btn-rank-prev"
           >
             <ChevronLeft size={14} /> Prev
@@ -141,7 +141,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.min(ordered.length - 1, activeIdx + 1))}
             disabled={activeIdx === ordered.length - 1}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[#B8C4D8] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
             data-testid="btn-rank-next"
           >
             Next <ChevronRight size={14} />
@@ -243,7 +243,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
           <Crown
             size={24}
             className="absolute top-3 left-3 z-10 text-[color:var(--warn)]"
-            style={{ filter: "drop-shadow(0 0 8px #FFD700)" }}
+            style={{ filter: "drop-shadow(0 0 8px var(--gold-glow))" }}
           />
         )}
 
@@ -284,7 +284,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
                   background: isAchieved
                     ? "linear-gradient(90deg,#10B981,#059669)"
                     : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
-                  boxShadow: `0 0 8px ${isAchieved ? "#10B981" : rank.color}`,
+                  boxShadow: `0 0 8px ${isAchieved ? "var(--good)" : rank.color}`,
                 }}
               />
               {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
@@ -380,7 +380,7 @@ function StatMini({ label, value, color }) {
 function ReqRow({ label, value }) {
   return (
     <div className="flex items-center justify-between text-[11px] py-0.5">
-      <span className="text-[#B8C4D8]">{label}</span>
+      <span className="text-[color:var(--text-soft)]">{label}</span>
       <span className="text-white font-semibold text-right ml-2">{value}</span>
     </div>
   );
@@ -392,7 +392,7 @@ function ProgressBar({ label, have, need, color }) {
   return (
     <div className="mb-2" data-testid={`progress-${label.toLowerCase().replace(/ /g, "-")}`}>
       <div className="flex items-center justify-between text-[10px] mb-0.5">
-        <span className="text-[#B8C4D8]">{label}</span>
+        <span className="text-[color:var(--text-soft)]">{label}</span>
         <span className={`font-mono font-semibold ${done ? "text-[color:var(--good)]" : "text-white"}`}>
           {have} / {need}
         </span>
@@ -402,8 +402,8 @@ function ProgressBar({ label, have, need, color }) {
           className="h-full rounded-full transition-all"
           style={{
             width: `${pct}%`,
-            background: done ? "#10B981" : color,
-            boxShadow: `0 0 8px ${done ? "#10B981" : color}`,
+            background: done ? "var(--good)" : color,
+            boxShadow: `0 0 8px ${done ? "var(--good)" : color}`,
           }}
         />
       </div>
@@ -415,7 +415,7 @@ function PlaceholderStar({ rank }) {
   return (
     <div
       className="w-full h-full flex flex-col items-center justify-center"
-      style={{ background: `radial-gradient(circle at center, ${rank.color}20 0%, #0A0E1A 70%)` }}
+      style={{ background: `radial-gradient(circle at center, ${rank.color}20 0%, var(--bg-base) 70%)` }}
     >
       <svg
         viewBox="0 0 100 100"

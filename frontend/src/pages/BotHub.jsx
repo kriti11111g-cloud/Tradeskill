@@ -250,10 +250,10 @@ export default function BotHub() {
           <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
               <linearGradient id="tgxTraceGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#FF3B3B" stopOpacity="0" />
-                <stop offset="45%" stopColor="#FF3B3B" stopOpacity="0.9" />
-                <stop offset="55%" stopColor="#10B981" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                <stop offset="0%" stopColor="#F87171" stopOpacity="0" />
+                <stop offset="45%" stopColor="#F87171" stopOpacity="0.9" />
+                <stop offset="55%" stopColor="var(--good)" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="var(--good)" stopOpacity="0" />
               </linearGradient>
             </defs>
             {TRACES.map((tr, i) => (
@@ -279,11 +279,11 @@ export default function BotHub() {
         {/* Rank quick access */}
         <button
           onClick={() => navigate("/rank")}
-          className="w-full flex items-center justify-between rounded-xl border border-[color:var(--warn)]/30 bg-gradient-to-r from-[#FFD700]/10 to-transparent px-4 py-2.5 mb-3 hover:border-[color:var(--warn)]/50 transition"
+          className="w-full flex items-center justify-between rounded-xl border border-[color:var(--warn)]/30 bg-gradient-to-r from-[color:var(--gold)]/10 to-transparent px-4 py-2.5 mb-3 hover:border-[color:var(--warn)]/50 transition"
           data-testid="btn-open-rank"
         >
           <div className="flex items-center gap-2">
-            <Trophy size={16} className="text-[color:var(--warn)]" style={{ filter: "drop-shadow(0 0 6px #FFD700)" }} />
+            <Trophy size={16} className="text-[color:var(--warn)]" style={{ filter: "drop-shadow(0 0 6px var(--gold-glow))" }} />
             <span className="text-[11px] font-bold uppercase tracking-widest text-white">
               Rank Levels
             </span>
@@ -297,7 +297,7 @@ export default function BotHub() {
           className={`rounded-xl border px-4 py-2.5 mb-3 ${
             activated
               ? "bg-[color:var(--good)]/5 border-[color:var(--good)]/40"
-              : "bg-[#FF3B3B]/5 border-[#FF3B3B]/40"
+              : "bg-[color:var(--bad)]/5 border-[color:var(--bad)]/40"
           }`}
           data-testid="bot-activation-banner"
         >
@@ -305,11 +305,11 @@ export default function BotHub() {
             {activated ? (
               <CheckCircle2 size={16} className="text-[color:var(--good)]" style={{ filter: "drop-shadow(0 0 6px rgba(16,185,129,0.6))" }} />
             ) : (
-              <Lock size={16} className="text-[#FF3B3B]" style={{ filter: "drop-shadow(0 0 6px rgba(255,59,59,0.6))" }} />
+              <Lock size={16} className="text-[color:var(--bad)]" style={{ filter: "drop-shadow(0 0 6px rgba(248,113,113,0.6))" }} />
             )}
             <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Bot Status</span>
             <span
-              className={`text-sm font-bold tracking-wider ${activated ? "text-[color:var(--good)]" : "text-[#FF3B3B]"}`}
+              className={`text-sm font-bold tracking-wider ${activated ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
               data-testid="bot-status-text"
             >
               {activated ? "ACTIVE" : "DEACTIVATE"}
@@ -342,7 +342,7 @@ export default function BotHub() {
             </div>
           </div>
           {lowFuel && (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-[#FF3B3B]">
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[color:var(--bad)]">
               <AlertTriangle size={12} />
               <span>Fuel below ${minFuel} — bots paused. Deposit to resume.</span>
             </div>
@@ -450,7 +450,7 @@ export default function BotHub() {
                 <div className="text-right shrink-0 ml-2">
                   <div
                     className={`text-[12px] font-bold leading-tight ${
-                      t.amount > 0 ? "text-[color:var(--good)]" : t.amount < 0 ? "text-[#FF3B3B]" : "text-[color:var(--text-mute)]"
+                      t.amount > 0 ? "text-[color:var(--good)]" : t.amount < 0 ? "text-[color:var(--bad)]" : "text-[color:var(--text-mute)]"
                     }`}
                   >
                     {t.amount > 0 ? "+" : ""}
@@ -466,7 +466,7 @@ export default function BotHub() {
       {/* ========== INFO DIALOG (Conditions) ========== */}
       {modal === "info" && (
         <ModalShell title="How it works" onClose={closeModal} testid="dialog-info">
-          <ul className="text-[13px] text-[#B8C4D8] leading-relaxed space-y-2.5 list-disc pl-5">
+          <ul className="text-[13px] text-[color:var(--text-soft)] leading-relaxed space-y-2.5 list-disc pl-5">
             <li>Pay one-time <span className="text-white font-semibold">${actFee}</span> to activate the trading bot.</li>
             <li>Pre-fund your Wallet with <span className="text-white font-semibold">Fuel</span> — the bot burns fuel from here on every profitable trade.</li>
             <li>Every profitable SELL deducts <span className="text-[color:var(--warn)] font-semibold">{feePct}% Fuel</span> from your Wallet (paid to the platform).</li>
@@ -515,7 +515,7 @@ export default function BotHub() {
             </button>
           </div>
           {mainBal < actFee && (
-            <p className="text-xs text-[#FF3B3B] text-center mt-2">Insufficient main wallet balance.</p>
+            <p className="text-xs text-[color:var(--bad)] text-center mt-2">Insufficient main wallet balance.</p>
           )}
         </ModalShell>
       )}
@@ -539,7 +539,7 @@ export default function BotHub() {
               <button
                 key={v}
                 onClick={() => setAmount(String(v))}
-                className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[#B8C4D8] hover:border-[color:var(--good)]/40"
+                className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--good)]/40"
               >
                 ${v}
               </button>
@@ -619,7 +619,7 @@ export default function BotHub() {
                   <div id="qr-reader" ref={qrRef} className="w-full" />
                   <button
                     onClick={stopScan}
-                    className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[#FF3B3B] border-t border-[color:var(--border-soft)]"
+                    className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[color:var(--bad)] border-t border-[color:var(--border-soft)]"
                     data-testid="btn-stop-scan"
                   >
                     Cancel scan
@@ -645,7 +645,7 @@ export default function BotHub() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => setAmount(String(balance))}
-                  className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[#B8C4D8] hover:border-[color:var(--bad)]/40"
+                  className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--bad)]/40"
                 >
                   Max ({fmtUSD(balance)})
                 </button>
@@ -767,7 +767,7 @@ export default function BotHub() {
                       <div id="qr-reader" ref={qrRef} className="w-full" />
                       <button
                         onClick={stopScan}
-                        className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[#FF3B3B] border-t border-[color:var(--border-soft)]"
+                        className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[color:var(--bad)] border-t border-[color:var(--border-soft)]"
                         data-testid="btn-stop-scan-p2p"
                       >
                         Cancel scan

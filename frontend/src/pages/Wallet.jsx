@@ -158,7 +158,7 @@ export default function Wallet() {
             className={`rounded-3xl border p-5 relative overflow-hidden ${
               bind.mode === "real"
                 ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[color:var(--bad)]/10 to-transparent"
-                : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
+                : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[color:var(--gold)]/10 to-transparent"
             }`}
             data-testid="live-balances-card"
           >

@@ -40,7 +40,7 @@ function WalletBar({ wallet }) {
   return (
     <div className="px-4">
       <div
-        className="rounded-xl border border-[color:var(--gold)]/30 p-2.5 bg-gradient-to-br from-[#1A1500]/60 to-[color:var(--bg-base)] backdrop-blur-xl flex items-center gap-2.5"
+        className="rounded-xl border border-[color:var(--gold)]/30 p-2.5 bg-gradient-to-br from-[color:var(--gold)]/10 to-[color:var(--bg-base)] backdrop-blur-xl flex items-center gap-2.5"
         data-testid="wallet-balance-card"
       >
         <div className="w-8 h-8 rounded-lg bg-[#FBBF24]/15 border border-[#FBBF24]/40 flex items-center justify-center shrink-0">
@@ -201,7 +201,7 @@ export default function Transactions() {
         {filtered.map((t) => {
           const isOpen = openId === t.id;
           const isSell = t.side === "SELL";
-          const sideColor = isSell ? "#F87171" : "#10B981";
+          const sideColor = isSell ? "#F87171" : "var(--good)";
           const profitPositive = (t.profit || 0) >= 0;
           return (
             <div
@@ -239,7 +239,7 @@ export default function Transactions() {
                   <div className="flex items-baseline gap-1.5 mt-1" style={monoNum}>
                     <span
                       className="font-mono font-extrabold text-[15px] leading-none"
-                      style={{ color: "#EAECEF" }}
+                      style={{ color: "var(--text)" }}
                     >
                       {fmtNum(t.price, t.price < 1 ? 4 : 2)}
                     </span>
@@ -295,7 +295,7 @@ export default function Transactions() {
                       <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold leading-none">
                         Amount
                       </div>
-                      <div className="font-mono font-extrabold text-[13px] leading-none mt-1 text-[#EAECEF]">
+                      <div className="font-mono font-extrabold text-[13px] leading-none mt-1 text-[color:var(--text)]">
                         ${fmtNum(t.amount, 2)}
                       </div>
                     </>
@@ -325,14 +325,14 @@ export default function Transactions() {
                     <KV
                       label="Avg Buy Price (USDT)"
                       value={`$${fmtNum((t.amount - (t.profit || 0)) / t.quantity, 6)}`}
-                      valueColor="#10B981"
+                      valueColor="var(--good)"
                     />
                   )}
                   {isSell && (
                     <KV
                       label="Profit (USDT)"
                       value={`${profitPositive ? "+" : ""}${fmtUSD(t.profit || 0)}`}
-                      valueColor={profitPositive ? "#10B981" : "#F87171"}
+                      valueColor={profitPositive ? "var(--good)" : "#F87171"}
                     />
                   )}
                   <KV label="Mode" value={(t.mode || "demo").toUpperCase()} />
