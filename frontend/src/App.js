@@ -23,6 +23,7 @@ import Profile from "@/pages/Profile";
 import Market from "@/pages/Market";
 import BotHub from "@/pages/BotHub";
 import Rank from "@/pages/Rank";
+import DemoTheme from "@/pages/DemoTheme";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/demo-theme" element={<DemoTheme />} />
           <Route
             element={
               <ProtectedRoute>
