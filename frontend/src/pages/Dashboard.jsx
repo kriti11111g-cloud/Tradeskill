@@ -155,12 +155,10 @@ export default function Dashboard() {
 
         {/* ============ BALANCE HERO ============ */}
         <div
-          className="rounded-xl p-5 relative overflow-hidden mb-4"
+          className="rounded-xl p-5 text-white relative overflow-hidden mb-4"
           style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            color: "var(--text)",
-            boxShadow: "var(--shadow-md)",
+            background: "var(--premium-grad)",
+            boxShadow: "var(--shadow-lg)",
           }}
           data-testid="hero-balance"
         >
@@ -176,14 +174,14 @@ export default function Dashboard() {
           <div
             className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
-              background: "rgba(245,158,11,0.18)",
-              border: "1px solid rgba(245,158,11,0.4)",
+              background: "rgba(255,255,255,0.2)",
+              border: "1px solid rgba(255,255,255,0.4)",
             }}
           >
-            <Award size={10} color="#F59E0B" strokeWidth={2.5} />
+            <Award size={10} color="#FFFFFF" strokeWidth={2.5} />
             <span
               className="text-[9px] font-black uppercase tracking-widest"
-              style={{ color: "#F59E0B" }}
+              style={{ color: "#FFFFFF" }}
             >
               PREMIUM
             </span>
@@ -191,7 +189,7 @@ export default function Dashboard() {
 
           <div className="relative z-10">
             <div className="flex items-center gap-1.5 mb-1">
-              <ShieldCheck size={12} color="var(--primary)" />
+              <ShieldCheck size={12} color="#FFFFFF" />
               <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-90">
                 Total Balance · USDT
               </span>
@@ -211,20 +209,18 @@ export default function Dashboard() {
               <div
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full"
                 style={{
-                  background: isUp ? "rgba(22,163,74,0.2)" : "rgba(248,113,113,0.2)",
-                  border: `1px solid ${
-                    isUp ? "rgba(22,163,74,0.4)" : "rgba(248,113,113,0.4)"
-                  }`,
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.35)",
                 }}
               >
                 {isUp ? (
-                  <ArrowUpRight size={11} color="var(--good)" />
+                  <ArrowUpRight size={11} color="#FFFFFF" />
                 ) : (
-                  <ArrowDownRight size={11} color="var(--bad)" />
+                  <ArrowDownRight size={11} color="#FECACA" />
                 )}
                 <span
                   className="text-[11px] font-black font-mono"
-                  style={{ color: isUp ? "var(--good)" : "var(--bad)" }}
+                  style={{ color: isUp ? "#FFFFFF" : "#FECACA" }}
                 >
                   {fmtPct(change24h)}
                 </span>
@@ -245,8 +241,9 @@ export default function Dashboard() {
                   data-testid={a.testid}
                   className="flex flex-col items-center gap-1 py-2 rounded-xl"
                   style={{
-                    background: "var(--primary-grad)",
-                    boxShadow: "var(--shadow-sm)",
+                    background: "rgba(255,255,255,0.16)",
+                    border: "1px solid rgba(255,255,255,0.28)",
+                    backdropFilter: "blur(12px)",
                   }}
                 >
                   <a.icon size={16} className="text-white" />
