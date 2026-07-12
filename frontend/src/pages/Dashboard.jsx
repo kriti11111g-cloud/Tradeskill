@@ -195,23 +195,14 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 mt-2" data-testid="total-assets">
-              <img
-                src="/usdt-coin.jpeg"
-                alt="USDT"
-                className="w-9 h-9 rounded-full object-cover shrink-0"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
-                data-testid="usdt-coin-icon"
-              />
-              <div className="flex items-baseline gap-1">
-                <span className="text-[13px] opacity-70 font-bold">$</span>
-                <span className="text-4xl font-black font-mono tracking-tight">
-                  {fmtNum(Math.floor(totalBalance), 0)}
-                </span>
-                <span className="text-xl opacity-70 font-bold font-mono">
-                  .{((totalBalance % 1) * 100).toFixed(0).padStart(2, "0")}
-                </span>
-              </div>
+            <div className="flex items-baseline gap-1 mt-2" data-testid="total-assets">
+              <span className="text-3xl opacity-90 font-black">$</span>
+              <span className="text-4xl font-black font-mono tracking-tight">
+                {fmtNum(Math.floor(totalBalance), 0)}
+              </span>
+              <span className="text-xl opacity-70 font-bold font-mono">
+                .{((totalBalance % 1) * 100).toFixed(0).padStart(2, "0")}
+              </span>
             </div>
 
             <div className="flex items-center gap-2 mt-1.5">
