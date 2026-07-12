@@ -1,9 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Crown, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
-
-const IMAGE_BASE = "/ranks";
 
 export default function Rank() {
   const [ranks, setRanks] = useState([]);
@@ -64,14 +62,13 @@ export default function Rank() {
       style={{ height: "calc(100dvh - 64px)" }}
       data-testid="rank-page"
     >
-      {/* Compact header row — replaces PageHeader to save vertical space */}
       <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
         <div className="flex items-baseline gap-2">
           <h1 className="text-base font-black text-[color:var(--text)] tracking-tight">Rank</h1>
           {activeRank && (
             <span
               className="text-[10px] tracking-[0.28em] uppercase font-bold"
-              style={{ color: activeRank.color, textShadow: `0 0 6px ${activeRank.color}80` }}
+              style={{ color: "var(--gold-deep)" }}
               data-testid="rank-section-label"
             >
               {isCurrent
@@ -95,15 +92,13 @@ export default function Rank() {
         style={{ scrollBehavior: "smooth" }}
         data-testid="rank-pager"
       >
-        {ordered.map((r, i) => (
+        {ordered.map((r) => (
           <RankPage
             key={r.level}
             rank={r}
             isCurrent={r.level === currentLevel}
             isAchieved={r.level <= currentLevel}
-            progress={r.level === currentLevel + 1 ? me?.progress : null}
             stats={me?.stats}
-            index={i}
           />
         ))}
       </div>
@@ -120,7 +115,6 @@ export default function Rank() {
             <ChevronLeft size={14} /> Prev
           </button>
 
-          {/* Dots indicator */}
           <div className="flex items-center gap-1.5" data-testid="rank-dots">
             {ordered.map((r, i) => (
               <button
@@ -130,8 +124,7 @@ export default function Rank() {
                 style={{
                   width: i === activeIdx ? 20 : 6,
                   height: 6,
-                  background: i === activeIdx ? r.color : "rgba(255,255,255,0.2)",
-                  boxShadow: i === activeIdx ? `0 0 6px ${r.color}` : "none",
+                  background: i === activeIdx ? "var(--primary)" : "var(--border)",
                 }}
                 aria-label={`Go to rank ${r.level}`}
               />
@@ -152,11 +145,7 @@ export default function Rank() {
   );
 }
 
-function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
-  const [imgError, setImgError] = useState(false);
-  const imgSrc = `${IMAGE_BASE}/rank_${rank.level}.png`;
-
-  // Compute per-rank processing progress (for every card, not just next rank)
+function RankPage({ rank, isCurrent, isAchieved, stats }) {
   const localProgress = useMemo(() => {
     if (!stats) return null;
     const directHave = stats.direct_count || 0;
@@ -194,144 +183,154 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
       data-testid={`rank-page-${rank.level}`}
     >
       <div
-        className="w-full max-h-full rounded-2xl overflow-hidden border relative flex flex-col"
+        className="w-full rounded-2xl overflow-hidden relative flex flex-col text-white"
         style={{
-          borderColor: `${rank.color}60`,
-          background: "#000",
-          boxShadow: `0 0 32px ${rank.color}33`,
+          background: "var(--hero-grad)",
+          border: "1px solid var(--border)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
-        {/* Image — natural aspect, hugs container width */}
-        <div className="relative w-full min-h-0 flex-1">
-          {!imgError ? (
-            <img
-              src={imgSrc}
-              alt={`${rank.level} STAR ${rank.title}`}
-              className="w-full h-full object-contain object-center select-none block"
-              onError={() => setImgError(true)}
-              loading={index < 3 ? "eager" : "lazy"}
-              draggable={false}
+        {/* Top row — crown + badges */}
+        <div className="flex items-center justify-between px-4 pt-4">
+          {rank.crown ? (
+            <Crown
+              size={22}
+              color="#FBBF24"
+              style={{ filter: "drop-shadow(0 0 8px var(--gold-glow))" }}
             />
           ) : (
-            <div className="aspect-[948/1659]">
-              <PlaceholderStar rank={rank} />
+            <span />
+          )}
+          {isCurrent ? (
+            <div
+              className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+              style={{
+                background: "rgba(10,10,10,0.88)",
+                border: "1px solid rgba(245,158,11,0.65)",
+                color: "#FBBF24",
+              }}
+              data-testid="current-rank-badge"
+            >
+              ★ YOU
+            </div>
+          ) : isAchieved ? (
+            <div
+              className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/50 border border-white/25 text-white"
+              data-testid={`achieved-badge-${rank.level}`}
+            >
+              ✓ UNLOCKED
+            </div>
+          ) : (
+            <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/10 border border-white/20 text-white/70">
+              LOCKED
             </div>
           )}
         </div>
 
-        {/* Top badges */}
-        {isCurrent && (
+        {/* Star + Name */}
+        <div className="flex flex-col items-center pt-5 pb-4">
           <div
-            className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[color:var(--good)] text-black"
-            style={{ boxShadow: "0 0 12px #16A34A" }}
-            data-testid="current-rank-badge"
+            className="w-24 h-24 rounded-full flex items-center justify-center relative"
+            style={{
+              background: "rgba(255,255,255,0.10)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              boxShadow: "0 0 30px rgba(245,158,11,0.30)",
+            }}
           >
-            ★ YOU
+            <Star size={44} color="#FBBF24" fill="#FBBF24" strokeWidth={1.5} />
+            <span
+              className="absolute font-display font-black text-[15px]"
+              style={{ color: "#083344", marginTop: 2 }}
+            >
+              {rank.level - 1 > 0 ? rank.level - 1 : "S"}
+            </span>
           </div>
-        )}
-
-        {isAchieved && !isCurrent && (
           <div
-            className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/70 text-[color:var(--good)] border border-[color:var(--good)]/40"
-            data-testid={`achieved-badge-${rank.level}`}
+            className="font-display font-black text-3xl tracking-wide mt-3"
+            data-testid={`rank-title-${rank.level}`}
           >
-            ✓ UNLOCKED
+            {rank.title}
           </div>
-        )}
+          <div className="text-[10px] uppercase tracking-[0.35em] font-bold text-white/60 mt-1">
+            Level {rank.level} of 10
+          </div>
+        </div>
 
-        {rank.crown && (
-          <Crown
-            size={24}
-            className="absolute top-3 left-3 z-10 text-[color:var(--warn)]"
-            style={{ filter: "drop-shadow(0 0 8px var(--gold-glow))" }}
-          />
-        )}
+        {/* Income stats */}
+        <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+          <IncomeStat label="Direct Income" value={`$${rank.direct_income}`} />
+          <IncomeStat label="Commission" value={`${rank.commission_pct}%`} />
+          <IncomeStat label="Support" value={`${rank.support_pct}%`} />
+        </div>
 
-        {/* Bottom PROCESSING BAR — OVERLAY glass panel at card bottom */}
+        {/* Processing bar */}
         {localProgress && (
           <div
-            className="absolute inset-x-0 bottom-0 z-10 px-3 py-2 space-y-1.5"
+            className="px-4 py-3 space-y-1.5"
             style={{
-              background:
-                "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0) 100%)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(0,0,0,0.35)",
+              borderTop: "1px solid rgba(255,255,255,0.12)",
             }}
             data-testid={`rank-processing-${rank.level}`}
           >
-            {/* Overall progress */}
             <div className="flex items-center justify-between">
               <div
                 className="text-[9px] tracking-[0.28em] uppercase font-bold"
-                style={{ color: rank.color, textShadow: `0 0 6px ${rank.color}` }}
+                style={{ color: "#FBBF24" }}
               >
                 {isAchieved ? "Achieved" : "Processing"}
               </div>
-              <div
-                className={`text-[11px] font-mono font-black tabular-nums ${
-                  isAchieved ? "text-[color:var(--good)]" : "text-white"
-                }`}
-              >
+              <div className="text-[11px] font-mono font-black tabular-nums text-white">
                 {localProgress.overall_pct}%
               </div>
             </div>
 
-            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden relative">
+            <div className="h-1.5 rounded-full bg-white/15 overflow-hidden relative">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${localProgress.overall_pct}%`,
                   background: isAchieved
                     ? "linear-gradient(90deg,#16A34A,#0F766E)"
-                    : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
-                  boxShadow: `0 0 8px ${isAchieved ? "var(--good)" : rank.color}`,
+                    : "var(--gold-grad)",
+                  boxShadow: "0 0 8px rgba(245,158,11,0.5)",
                 }}
               />
               {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
                 <div
                   className="absolute inset-0 opacity-40 animate-pulse"
                   style={{
-                    background: `linear-gradient(90deg, transparent, ${rank.color}88, transparent)`,
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(245,158,11,0.55), transparent)",
                   }}
                 />
               )}
             </div>
 
-            {/* Compact inline stats row */}
             {!isAchieved && (localProgress.direct_needed > 0 || localProgress.team_needed > 0) ? (
               <div className="flex items-center justify-between gap-1.5 pt-0.5">
                 {localProgress.direct_needed > 0 && (
-                  <MiniStat
-                    label="Direct"
-                    have={localProgress.direct_have}
-                    need={localProgress.direct_needed}
-                    color={rank.color}
-                  />
+                  <MiniStat label="Direct" have={localProgress.direct_have} need={localProgress.direct_needed} />
                 )}
                 {localProgress.team_needed > 0 && (
-                  <MiniStat
-                    label="Team"
-                    have={localProgress.team_have}
-                    need={localProgress.team_needed}
-                    color={rank.color}
-                  />
+                  <MiniStat label="Team" have={localProgress.team_have} need={localProgress.team_needed} />
                 )}
                 {localProgress.downline_requirement && (
                   <MiniStat
                     label={localProgress.downline_requirement.label.replace("2× ", "")}
                     have={localProgress.downline_have}
                     need={localProgress.downline_requirement.count}
-                    color={rank.color}
                   />
                 )}
               </div>
             ) : (
-              isCurrent && stats && (
+              isCurrent &&
+              stats && (
                 <div className="flex items-center justify-center gap-3 text-[10px]">
-                  <span className="text-[color:var(--text-mute)]">
+                  <span className="text-white/60">
                     Directs: <span className="text-white font-bold">{stats.direct_count}</span>
                   </span>
-                  <span className="text-[color:var(--text-mute)]">
+                  <span className="text-white/60">
                     Team: <span className="text-white font-bold">{stats.total_team}</span>
                   </span>
                 </div>
@@ -344,96 +343,34 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
   );
 }
 
-function MiniStat({ label, have, need, color }) {
-  const done = have >= need;
-  return (
-    <div className="flex-1 min-w-0 flex items-center justify-between gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/5">
-      <span className="text-[color:var(--text-mute)] truncate text-[9px] uppercase tracking-wider">
-        {label}
-      </span>
-      <span
-        className={`font-mono font-bold tabular-nums shrink-0 text-[10px] ${
-          done ? "text-[color:var(--good)]" : "text-white"
-        }`}
-        style={done ? {} : { color }}
-      >
-        {have}/{need}
-      </span>
-    </div>
-  );
-}
-
-function StatMini({ label, value, color }) {
+function IncomeStat({ label, value }) {
   return (
     <div
-      className="rounded-lg border border-[color:var(--border-soft)] bg-black/40 p-2"
-      style={{ boxShadow: `inset 0 0 10px ${color}18` }}
+      className="rounded-xl px-2 py-2.5 text-center"
+      style={{
+        background: "rgba(255,255,255,0.10)",
+        border: "1px solid rgba(255,255,255,0.20)",
+      }}
     >
-      <div className="text-[9px] uppercase text-[color:var(--text-mute)] tracking-wider">{label}</div>
-      <div className="text-lg font-black tabular-nums mt-0.5" style={{ color }}>
+      <div className="text-[8px] uppercase tracking-widest font-bold text-white/60">{label}</div>
+      <div className="font-display font-black text-base mt-0.5" style={{ color: "#FBBF24" }}>
         {value}
       </div>
     </div>
   );
 }
 
-function ReqRow({ label, value }) {
-  return (
-    <div className="flex items-center justify-between text-[11px] py-0.5">
-      <span className="text-[color:var(--text-soft)]">{label}</span>
-      <span className="text-white font-semibold text-right ml-2">{value}</span>
-    </div>
-  );
-}
-
-function ProgressBar({ label, have, need, color }) {
-  const pct = need > 0 ? Math.min(100, (have / need) * 100) : 0;
+function MiniStat({ label, have, need }) {
   const done = have >= need;
   return (
-    <div className="mb-2" data-testid={`progress-${label.toLowerCase().replace(/ /g, "-")}`}>
-      <div className="flex items-center justify-between text-[10px] mb-0.5">
-        <span className="text-[color:var(--text-soft)]">{label}</span>
-        <span className={`font-mono font-semibold ${done ? "text-[color:var(--good)]" : "text-white"}`}>
-          {have} / {need}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{
-            width: `${pct}%`,
-            background: done ? "var(--good)" : color,
-            boxShadow: `0 0 8px ${done ? "var(--good)" : color}`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderStar({ rank }) {
-  return (
-    <div
-      className="w-full h-full flex flex-col items-center justify-center"
-      style={{ background: `radial-gradient(circle at center, ${rank.color}20 0%, var(--bg-base) 70%)` }}
-    >
-      <svg
-        viewBox="0 0 100 100"
-        className="w-2/3 h-2/3"
-        style={{ filter: `drop-shadow(0 0 16px ${rank.color})` }}
+    <div className="flex-1 min-w-0 flex items-center justify-between gap-1 px-2 py-1 rounded-md bg-white/10 border border-white/15">
+      <span className="text-white/60 truncate text-[9px] uppercase tracking-wider">{label}</span>
+      <span
+        className="font-mono font-bold tabular-nums shrink-0 text-[10px]"
+        style={{ color: done ? "#6EE7B7" : "#FBBF24" }}
       >
-        <polygon
-          points="50,8 62,38 94,38 68,58 78,90 50,72 22,90 32,58 6,38 38,38"
-          fill={rank.color}
-          stroke={rank.glow || rank.color}
-          strokeWidth="1.5"
-        />
-        <text x="50" y="62" textAnchor="middle" fontSize="34" fill="white" fontWeight="900"
-          style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.8))" }}>
-          {rank.level}
-        </text>
-      </svg>
-      <div className="text-[10px] text-[color:var(--text-mute)] mt-2 italic">Image coming soon</div>
+        {have}/{need}
+      </span>
     </div>
   );
 }
