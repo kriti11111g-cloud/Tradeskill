@@ -113,7 +113,7 @@ export default function Revenue() {
       {/* CARD 1: Wallet Balance (Spot) */}
       <div className="px-4">
         <div
-          className="rounded-3xl border border-[#F0B90B]/30 p-5 bg-gradient-to-br from-[#1A1500]/80 to-[#050914]/80 backdrop-blur-xl relative overflow-hidden"
+          className="rounded-3xl border border-[color:var(--gold)]/30 p-5 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] backdrop-blur-xl relative overflow-hidden"
           data-testid="wallet-balance-card"
         >
           <div
@@ -131,7 +131,7 @@ export default function Revenue() {
                   Binance Spot Wallet
                 </div>
                 {wallet?.connected ? (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
                     Live · {wallet.mode?.toUpperCase()}
                   </span>
                 ) : (
@@ -234,7 +234,7 @@ export default function Revenue() {
                 />
                 <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
                 <Tooltip
-                  cursor={{ fill: "#00F0FF0F" }}
+                  cursor={{ fill: "rgba(16,185,129,0.06)" }}
                   content={<ProfitBarTooltip trades={data.by_date} />}
                 />
                 <Bar
@@ -323,7 +323,7 @@ export default function Revenue() {
                   <button
                     onClick={() => navigate(`/transactions?date=${selectedDay}`)}
                     data-testid="bar-detail-view-trades"
-                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[#00F0FF]/10 border border-[color:var(--primary)]/30 text-[color:var(--primary)] hover:bg-[#00F0FF]/20 transition"
+                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/30 text-[color:var(--primary)] hover:bg-[color:var(--primary)]/20 transition"
                   >
                     View all trades of this day →
                   </button>
@@ -356,10 +356,10 @@ export default function Revenue() {
                   key={d.date}
                   onClick={() => navigate(`/transactions?date=${d.date}`)}
                   data-testid={`revenue-date-${d.date}`}
-                  className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
+                  className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--primary)]/5 active:scale-[0.99] transition text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-md bg-[#00F0FF]/10 border border-[color:var(--primary)]/25 flex flex-col items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-md bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/25 flex flex-col items-center justify-center shrink-0">
                       <div className="text-[6px] uppercase tracking-wider text-[color:var(--text-mute)] font-bold leading-none">
                         {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
@@ -377,7 +377,7 @@ export default function Revenue() {
                       >
                         {label}
                         {isToday && (
-                          <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
+                          <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
                             Today
                           </span>
                         )}

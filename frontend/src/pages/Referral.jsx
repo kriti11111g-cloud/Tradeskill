@@ -40,7 +40,7 @@ export default function Referral() {
             backgroundBlendMode: "screen",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F1524] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--surface)] via-transparent to-transparent" />
           <div className="relative">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--warn)] font-bold">Your Code</div>
             <div className="font-display font-black text-3xl tabular-nums mt-2 tracking-wider" data-testid="ref-code">
@@ -50,7 +50,7 @@ export default function Referral() {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={copy}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-white text-[#050914] rounded-xl py-2.5 font-bold text-sm"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-white text-white rounded-xl py-2.5 font-bold text-sm"
                 data-testid="ref-copy"
               >
                 <Copy size={14} /> Copy

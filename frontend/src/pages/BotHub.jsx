@@ -296,7 +296,7 @@ export default function BotHub() {
         <div
           className={`rounded-xl border px-4 py-2.5 mb-3 ${
             activated
-              ? "bg-[#39FF14]/5 border-[color:var(--good)]/40"
+              ? "bg-[color:var(--good)]/5 border-[color:var(--good)]/40"
               : "bg-[#FF3B3B]/5 border-[#FF3B3B]/40"
           }`}
           data-testid="bot-activation-banner"
@@ -318,7 +318,7 @@ export default function BotHub() {
           {!activated && (
             <button
               onClick={() => setModal("activate")}
-              className="mt-2 w-full py-2 rounded-md text-xs font-bold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition"
+              className="mt-2 w-full py-2 rounded-md text-xs font-bold bg-[color:var(--good)] text-black hover:bg-[color:var(--good)]/90 transition"
               data-testid="btn-open-activate"
             >
               ACTIVATE • ${actFee}
@@ -328,8 +328,8 @@ export default function BotHub() {
 
         {/* Balance card — thin, balance only */}
         <div
-          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[#00F0FF]/5 to-[#39FF14]/5 px-4 py-2.5 mb-3"
-          style={{ boxShadow: "0 0 16px rgba(0,240,255,0.06)" }}
+          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#39FF14]/5 px-4 py-2.5 mb-3"
+          style={{ boxShadow: "0 0 16px rgba(16,185,129,0.06)" }}
           data-testid="bot-wallet-balance-card"
         >
           <div className="flex items-center justify-between">
@@ -354,7 +354,7 @@ export default function BotHub() {
           <button
             disabled={!activated}
             onClick={() => setModal("deposit")}
-            className="rounded-lg border border-[color:var(--good)]/30 bg-[#39FF14]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#39FF14]/10 transition"
+            className="rounded-lg border border-[color:var(--good)]/30 bg-[color:var(--good)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--good)]/10 transition"
             data-testid="btn-open-deposit"
           >
             <ArrowDownToLine size={14} className="text-[color:var(--good)]" />
@@ -363,7 +363,7 @@ export default function BotHub() {
           <button
             disabled={!activated || balance <= 0}
             onClick={() => setModal("withdraw")}
-            className="rounded-lg border border-[color:var(--bad)]/30 bg-[#FF007A]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FF007A]/10 transition"
+            className="rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--bad)]/10 transition"
             data-testid="btn-open-withdraw"
           >
             <ArrowUpToLine size={14} className="text-[color:var(--bad)]" />
@@ -372,7 +372,7 @@ export default function BotHub() {
           <button
             onClick={() => setModal("p2p")}
             disabled={!activated || balance <= 0}
-            className="rounded-lg border border-[color:var(--warn)]/30 bg-[#FFD700]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#FFD700]/10 transition"
+            className="rounded-lg border border-[color:var(--warn)]/30 bg-[color:var(--gold)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--gold)]/10 transition"
             data-testid="btn-open-p2p"
           >
             <ArrowRightLeft size={14} className="text-[color:var(--warn)]" />
@@ -474,7 +474,7 @@ export default function BotHub() {
           </ul>
           <button
             onClick={closeModal}
-            className="mt-5 w-full py-3 rounded-lg bg-[#00F0FF]/15 text-[color:var(--primary)] font-semibold text-sm border border-[color:var(--primary)]/30"
+            className="mt-5 w-full py-3 rounded-lg bg-[color:var(--primary)]/15 text-[color:var(--primary)] font-semibold text-sm border border-[color:var(--primary)]/30"
             data-testid="btn-close-info"
           >
             Got it
@@ -486,7 +486,7 @@ export default function BotHub() {
       {modal === "activate" && (
         <ModalShell title="Activate Bot" onClose={closeModal} testid="dialog-activate">
           <div className="flex flex-col items-center py-2">
-            <div className="w-16 h-16 rounded-full bg-[#39FF14]/10 border border-[color:var(--good)]/40 flex items-center justify-center mb-3"
+            <div className="w-16 h-16 rounded-full bg-[color:var(--good)]/10 border border-[color:var(--good)]/40 flex items-center justify-center mb-3"
                  style={{ boxShadow: "0 0 24px rgba(57,255,20,0.25)" }}>
               <Zap size={32} className="text-[color:var(--good)]" />
             </div>
@@ -508,7 +508,7 @@ export default function BotHub() {
             <button
               onClick={doActivate}
               disabled={loading || mainBal < actFee}
-              className="flex-1 py-3 rounded-lg bg-[#39FF14] text-black font-bold text-sm disabled:opacity-40"
+              className="flex-1 py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
               data-testid="btn-confirm-activate"
             >
               {loading ? "Processing..." : `Pay $${actFee}`}
@@ -548,7 +548,7 @@ export default function BotHub() {
           <button
             onClick={doDeposit}
             disabled={loading}
-            className="mt-4 w-full py-3 rounded-lg bg-[#39FF14] text-black font-bold text-sm disabled:opacity-40"
+            className="mt-4 w-full py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
             data-testid="btn-confirm-deposit"
           >
             {loading ? "Processing..." : "Confirm Deposit"}
@@ -582,7 +582,7 @@ export default function BotHub() {
 
           {network !== "BEP20" ? (
             <div
-              className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[#FFD700]/5 p-3 text-center"
+              className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-3 text-center"
               data-testid="withdraw-coming-soon"
             >
               <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
@@ -607,7 +607,7 @@ export default function BotHub() {
                 />
                 <button
                   onClick={startScan}
-                  className="px-3 rounded-lg bg-[#FF007A]/10 border border-[color:var(--bad)]/40 text-[color:var(--bad)] hover:bg-[#FF007A]/20 transition"
+                  className="px-3 rounded-lg bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/40 text-[color:var(--bad)] hover:bg-[color:var(--bad)]/20 transition"
                   data-testid="btn-scan-qr"
                   type="button"
                 >
@@ -653,7 +653,7 @@ export default function BotHub() {
               <button
                 onClick={doWithdraw}
                 disabled={loading}
-                className="mt-4 w-full py-3 rounded-lg bg-[#FF007A] text-white font-bold text-sm disabled:opacity-40"
+                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--bad)] text-white font-bold text-sm disabled:opacity-40"
                 data-testid="btn-confirm-withdraw"
               >
                 {loading ? "Processing..." : address ? `Send ${network}` : "Withdraw to Main Wallet"}
@@ -672,7 +672,7 @@ export default function BotHub() {
               onClick={() => setP2pMode("email")}
               className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "email"
-                  ? "bg-[#FFD700] text-black"
+                  ? "bg-[color:var(--gold)] text-black"
                   : "text-[color:var(--text-mute)] hover:text-white"
               }`}
               data-testid="tab-p2p-email"
@@ -683,7 +683,7 @@ export default function BotHub() {
               onClick={() => setP2pMode("address")}
               className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "address"
-                  ? "bg-[#FFD700] text-black"
+                  ? "bg-[color:var(--gold)] text-black"
                   : "text-[color:var(--text-mute)] hover:text-white"
               }`}
               data-testid="tab-p2p-address"
@@ -731,7 +731,7 @@ export default function BotHub() {
 
               {network !== "BEP20" ? (
                 <div
-                  className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[#FFD700]/5 p-3 text-center"
+                  className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-3 text-center"
                   data-testid="p2p-coming-soon"
                 >
                   <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
@@ -755,7 +755,7 @@ export default function BotHub() {
                     />
                     <button
                       onClick={startScan}
-                      className="px-3 rounded-lg bg-[#FFD700]/10 border border-[color:var(--warn)]/40 text-[color:var(--warn)] hover:bg-[#FFD700]/20 transition"
+                      className="px-3 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/40 text-[color:var(--warn)] hover:bg-[color:var(--gold)]/20 transition"
                       data-testid="btn-scan-p2p-qr"
                       type="button"
                     >
@@ -799,7 +799,7 @@ export default function BotHub() {
               <button
                 onClick={doP2P}
                 disabled={loading}
-                className="mt-4 w-full py-3 rounded-lg bg-[#FFD700] text-black font-bold text-sm disabled:opacity-40"
+                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--gold)] text-black font-bold text-sm disabled:opacity-40"
                 data-testid="btn-confirm-p2p"
               >
                 {loading ? "Sending..." : "Send"}

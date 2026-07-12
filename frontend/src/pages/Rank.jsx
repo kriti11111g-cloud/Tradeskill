@@ -222,7 +222,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
         {/* Top badges */}
         {isCurrent && (
           <div
-            className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#39FF14] text-black"
+            className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[color:var(--good)] text-black"
             style={{ boxShadow: "0 0 12px #39FF14" }}
             data-testid="current-rank-badge"
           >

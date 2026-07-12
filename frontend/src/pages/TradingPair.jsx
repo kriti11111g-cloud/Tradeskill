@@ -251,8 +251,8 @@ export default function TradingPair() {
               <div
                 className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                   bind.mode === "real"
-                    ? "bg-[#FF007A]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
-                    : "bg-[#FFD700]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
+                    ? "bg-[color:var(--bad)]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
+                    : "bg-[color:var(--gold)]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
                 }`}
                 data-testid="mode-badge"
               >
@@ -262,7 +262,7 @@ export default function TradingPair() {
             <div
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 bot.status === "running"
-                  ? "bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40"
+                  ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40"
                   : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
               }`}
               data-testid="bot-status"
@@ -288,7 +288,7 @@ export default function TradingPair() {
                       data-testid="ws-live"
                       title="Real-time via Binance WebSocket · same price as binance.com"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--good)] animate-tgx-pulse" />
                       LIVE
                     </span>
                   ) : (
@@ -329,8 +329,8 @@ export default function TradingPair() {
               <div
                 className={`rounded-2xl border p-3 flex items-center justify-between ${
                   bind.mode === "real"
-                    ? "border-[color:var(--bad)]/30 bg-[#FF007A]/5"
-                    : "border-[color:var(--warn)]/30 bg-[#FFD700]/5"
+                    ? "border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5"
+                    : "border-[color:var(--warn)]/30 bg-[color:var(--gold)]/5"
                 }`}
                 data-testid="pair-live-fund"
               >
@@ -360,10 +360,10 @@ export default function TradingPair() {
             {shortfall > 0 && bot.position_qty > 0 && (
               <div className="px-4 mt-3">
                 <div
-                  className="bg-[#FF007A]/10 border border-[color:var(--bad)]/40 rounded-2xl p-3 flex items-start gap-3"
+                  className="bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/40 rounded-2xl p-3 flex items-start gap-3"
                   data-testid="sell-warning"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF007A]/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[color:var(--bad)]/20 flex items-center justify-center flex-shrink-0">
                     <span className="font-display font-black text-[14px] text-[color:var(--bad)]">!</span>
                   </div>
                   <div className="flex-1">
@@ -400,7 +400,7 @@ export default function TradingPair() {
       {/* Pair-level Profit banner (matches HiTechBot layout) */}
       <div className="px-4 mt-3">
         <div
-          className="rounded-2xl border border-[color:var(--border)] p-4 bg-gradient-to-br from-[#0F1524]/80 to-[#050914]/60 backdrop-blur-xl"
+          className="rounded-2xl border border-[color:var(--border)] p-4 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] backdrop-blur-xl"
           data-testid="pair-revenue-banner"
         >
           <div className="flex items-stretch gap-3">
@@ -470,7 +470,7 @@ export default function TradingPair() {
           <button
             onClick={openPosEdit}
             data-testid="edit-position-btn"
-            className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold border border-[color:var(--primary)]/40 rounded-full px-2.5 py-1 hover:bg-[#00F0FF]/10"
+            className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold border border-[color:var(--primary)]/40 rounded-full px-2.5 py-1 hover:bg-[color:var(--primary)]/10"
           >
             <Pencil size={11} /> Edit
           </button>
@@ -512,7 +512,7 @@ export default function TradingPair() {
           className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
           style={{
             background:
-              "linear-gradient(135deg, rgba(0,240,255,0.08), rgba(255,215,0,0.06)), #0F1524",
+              "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(251,191,36,0.08)), var(--surface)",
           }}
           data-testid="operation-reminder"
         >
@@ -520,7 +520,7 @@ export default function TradingPair() {
             <div className="flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  bot.status === "running" ? "bg-[#39FF14] animate-tgx-pulse" : "bg-[#8B9BB4]"
+                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[#8B9BB4]"
                 }`}
               />
               <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
@@ -530,13 +530,13 @@ export default function TradingPair() {
             <div
               className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
                 bot.trigger_state === "tp_armed"
-                  ? "text-[color:var(--good)] border-[color:var(--good)]/40 bg-[#39FF14]/10"
+                  ? "text-[color:var(--good)] border-[color:var(--good)]/40 bg-[color:var(--good)]/10"
                   : bot.trigger_state === "dca_armed"
-                  ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[#FFD700]/10"
+                  ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10"
                   : bot.trigger_state === "waiting"
-                  ? "text-[color:var(--primary)] border-[color:var(--primary)]/40 bg-[#00F0FF]/10"
+                  ? "text-[color:var(--primary)] border-[color:var(--primary)]/40 bg-[color:var(--primary)]/10"
                   : bot.trigger_state === "start_pending"
-                  ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[#FFD700]/10"
+                  ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10"
                   : "text-[color:var(--text-mute)] border-[color:var(--border)] bg-white/5"
               }`}
               data-testid="trigger-state"
@@ -556,7 +556,7 @@ export default function TradingPair() {
           {/* Locked profit meter — shown when TP is armed and price has peaked */}
           {bot.tp_armed && bot.peak_price > 0 && (
             <div
-              className="mb-3 rounded-xl border border-[color:var(--good)]/30 bg-[#39FF14]/[0.06] px-3 py-2 flex items-center justify-between"
+              className="mb-3 rounded-xl border border-[color:var(--good)]/30 bg-[color:var(--good)]/[0.06] px-3 py-2 flex items-center justify-between"
               data-testid="locked-profit-meter"
             >
               <div>
@@ -581,7 +581,7 @@ export default function TradingPair() {
           {/* Bottom tracker — shown when DCA is armed and price is trending down */}
           {bot.dca_armed && bot.dca_bottom_price > 0 && (
             <div
-              className="mb-3 rounded-xl border border-[color:var(--warn)]/30 bg-[#FFD700]/[0.06] px-3 py-2 flex items-center justify-between"
+              className="mb-3 rounded-xl border border-[color:var(--warn)]/30 bg-[color:var(--gold)]/[0.06] px-3 py-2 flex items-center justify-between"
               data-testid="bottom-tracker"
             >
               <div>
@@ -607,7 +607,7 @@ export default function TradingPair() {
             {/* Margin call trigger */}
             <div className="flex items-center justify-between" data-testid="mc-trigger-row">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#FFD700]/15 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-[color:var(--gold)]/15 flex items-center justify-center">
                   <span className="font-display font-black text-[10px] text-[color:var(--warn)]">MC</span>
                 </div>
                 <div>
@@ -637,7 +637,7 @@ export default function TradingPair() {
             {bot.dca_recover_trigger_price > 0 && (
               <div className="flex items-center justify-between border-t border-[color:var(--border)] pt-2.5" data-testid="dca-recover-row">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#FFD700]/25 border border-[color:var(--warn)]/40 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-[color:var(--gold)]/25 border border-[color:var(--warn)]/40 flex items-center justify-center">
                     <span className="font-display font-black text-[9px] text-[color:var(--warn)]">↺</span>
                   </div>
                   <div>
@@ -660,7 +660,7 @@ export default function TradingPair() {
             {/* Take profit trigger */}
             <div className="flex items-center justify-between" data-testid="tp-trigger-row">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#39FF14]/15 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-[color:var(--good)]/15 flex items-center justify-center">
                   <span className="font-display font-black text-[10px] text-[color:var(--good)]">TP</span>
                 </div>
                 <div>
@@ -690,7 +690,7 @@ export default function TradingPair() {
             {bot.tp_pullback_trigger_price > 0 && (
               <div className="flex items-center justify-between border-t border-[color:var(--border)] pt-2.5" data-testid="tp-exit-row">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#FF007A]/15 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-[color:var(--bad)]/15 flex items-center justify-center">
                     <span className="font-display font-black text-[10px] text-[color:var(--bad)]">EX</span>
                   </div>
                   <div>
@@ -716,7 +716,7 @@ export default function TradingPair() {
         <div className="px-4 mt-4">
           <div
             className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
-            style={{ background: "linear-gradient(180deg, rgba(57,255,20,0.04), rgba(255,215,0,0.04)), #0F1524" }}
+            style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.04), rgba(251,191,36,0.06)), var(--surface)" }}
             data-testid="dca-ladder-panel"
           >
             <div className="flex items-center justify-between mb-3">
@@ -735,8 +735,8 @@ export default function TradingPair() {
                 data-testid="ladder-tp-row"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-7 rounded-full bg-[#39FF14] shadow-[0_0_8px_#39FF14]" />
-                  <div className="w-8 h-8 rounded-lg bg-[#39FF14]/15 border border-[color:var(--good)]/40 flex items-center justify-center">
+                  <div className="w-1 h-7 rounded-full bg-[color:var(--good)] shadow-[0_0_8px_#39FF14]" />
+                  <div className="w-8 h-8 rounded-lg bg-[color:var(--good)]/15 border border-[color:var(--good)]/40 flex items-center justify-center">
                     <TrendingUp size={14} className="text-[color:var(--good)]" strokeWidth={2.2} />
                   </div>
                   <div>
@@ -762,9 +762,9 @@ export default function TradingPair() {
             )}
 
             {/* Current price marker */}
-            <div className="flex items-center justify-between py-2 my-1 rounded-lg bg-[#00F0FF]/[0.08] border border-[color:var(--primary)]/30 px-2" data-testid="ladder-current-row">
+            <div className="flex items-center justify-between py-2 my-1 rounded-lg bg-[color:var(--primary)]/[0.08] border border-[color:var(--primary)]/30 px-2" data-testid="ladder-current-row">
               <div className="flex items-center gap-2">
-                <div className="w-1 h-7 rounded-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]" />
+                <div className="w-1 h-7 rounded-full bg-[color:var(--primary)] shadow-[0_0_8px_var(--primary)]" />
                 <div>
                   <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--primary)]">
                     Current Price
@@ -785,8 +785,8 @@ export default function TradingPair() {
                 data-testid={`ladder-mc-row-${lvl.level}`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-1 h-7 rounded-full ${idx === 0 ? "bg-[#FFD700] shadow-[0_0_8px_#FFD700]" : "bg-[#FFD700]/40"}`} />
-                  <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 border border-[color:var(--warn)]/30 flex items-center justify-center">
+                  <div className={`w-1 h-7 rounded-full ${idx === 0 ? "bg-[color:var(--gold)] shadow-[0_0_8px_#FFD700]" : "bg-[color:var(--gold)]/40"}`} />
+                  <div className="w-8 h-8 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/30 flex items-center justify-center">
                     <span className="font-display font-black text-[10px] text-[color:var(--warn)]">L{lvl.level}</span>
                   </div>
                   <div>
@@ -875,7 +875,7 @@ export default function TradingPair() {
             <div className="font-display font-bold">Strategy Configuration</div>
             <button
               onClick={suggest}
-              className="text-[10px] uppercase tracking-widest text-[color:var(--warn)] font-bold border border-[color:var(--warn)]/40 rounded-full px-3 py-1 hover:bg-[#FFD700]/10"
+              className="text-[10px] uppercase tracking-widest text-[color:var(--warn)] font-bold border border-[color:var(--warn)]/40 rounded-full px-3 py-1 hover:bg-[color:var(--gold)]/10"
               data-testid="suggest-btn"
             >
               ⚡ Suggest
@@ -906,7 +906,7 @@ export default function TradingPair() {
                 type="checkbox"
                 checked={bot.open_position_double}
                 onChange={(e) => setBot({ ...bot, open_position_double: e.target.checked })}
-                className="accent-[#00F0FF] w-4 h-4"
+                className="accent-[color:var(--primary)] w-4 h-4"
                 data-testid="cfg-double"
               />
               Open Position Double
@@ -921,7 +921,7 @@ export default function TradingPair() {
                 data-testid={`method-${m}`}
                 className={`py-2 rounded-lg font-display font-bold text-sm uppercase tracking-widest ${
                   bot.trade_method === m
-                    ? "bg-[#00F0FF] text-[#050914]"
+                    ? "bg-[color:var(--primary)] text-white"
                     : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
                 }`}
               >
@@ -954,7 +954,7 @@ export default function TradingPair() {
             <button
               onClick={addMarginRow}
               disabled={(bot.margin_config || []).length >= 10}
-              className="text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold border border-[color:var(--primary)]/40 rounded-full px-3 py-1 hover:bg-[#00F0FF]/10 disabled:opacity-40"
+              className="text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold border border-[color:var(--primary)]/40 rounded-full px-3 py-1 hover:bg-[color:var(--primary)]/10 disabled:opacity-40"
               data-testid="add-margin-row"
             >
               + Add Row
@@ -1003,7 +1003,7 @@ export default function TradingPair() {
                 <button
                   onClick={() => removeMarginRow(i)}
                   disabled={(bot.margin_config || []).length <= 1}
-                  className="w-9 h-9 rounded-lg bg-[#FF007A]/10 border border-[color:var(--bad)]/30 text-[color:var(--bad)] font-bold hover:bg-[#FF007A]/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-9 h-9 rounded-lg bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 text-[color:var(--bad)] font-bold hover:bg-[color:var(--bad)]/20 disabled:opacity-30 disabled:cursor-not-allowed"
                   data-testid={`mc-remove-${i}`}
                 >
                   ×
@@ -1023,7 +1023,7 @@ export default function TradingPair() {
         {bot.status === "running" ? (
           <button
             onClick={stopBot}
-            className="w-full flex items-center justify-center gap-2 bg-[#FF007A] text-white font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-magenta"
+            className="w-full flex items-center justify-center gap-2 bg-[color:var(--bad)] text-white font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-danger"
             data-testid="stop-bot"
           >
             <Square size={20} fill="white" /> STOP BOT
@@ -1031,15 +1031,15 @@ export default function TradingPair() {
         ) : (
           <button
             onClick={startBot}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#00F0FF] to-[#0088FF] text-[#050914] font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-cyan tracking-wide"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[color:var(--primary)] to-[color:var(--primary-deep)] text-white font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-primary tracking-wide"
             data-testid="start-bot"
           >
-            <Play size={20} fill="#050914" /> START BOT
+            <Play size={20} fill="currentColor" /> START BOT
           </button>
         )}
         {bot.status === "running" && (
           <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-[color:var(--good)] font-bold">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse align-middle mr-1.5" />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--good)] animate-tgx-pulse align-middle mr-1.5" />
             Auto-Trading Active · Engine ticks every 10s
           </div>
         )}
@@ -1067,10 +1067,10 @@ export default function TradingPair() {
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-[10px] ${
                       e.kind === "take_profit"
-                        ? "bg-[#39FF14]/15 text-[color:var(--good)]"
+                        ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
                         : e.kind === "margin_call"
-                        ? "bg-[#FFD700]/15 text-[color:var(--warn)]"
-                        : "bg-[#00F0FF]/15 text-[color:var(--primary)]"
+                        ? "bg-[color:var(--gold)]/15 text-[color:var(--warn)]"
+                        : "bg-[color:var(--primary)]/15 text-[color:var(--primary)]"
                     }`}
                   >
                     R{e.round}
@@ -1120,7 +1120,7 @@ export default function TradingPair() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-11 h-11 rounded-2xl bg-[#00F0FF]/15 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-[color:var(--primary)]/15 flex items-center justify-center">
                 <Pencil size={20} className="text-[color:var(--primary)]" />
               </div>
               <div>
@@ -1143,7 +1143,7 @@ export default function TradingPair() {
                       type="button"
                       onClick={importFromBinance}
                       data-testid="pos-import-btn"
-                      className="text-[9px] uppercase tracking-widest font-bold text-[color:var(--primary)] border border-[color:var(--primary)]/40 rounded-full px-2 py-0.5 hover:bg-[#00F0FF]/10"
+                      className="text-[9px] uppercase tracking-widest font-bold text-[color:var(--primary)] border border-[color:var(--primary)]/40 rounded-full px-2 py-0.5 hover:bg-[color:var(--primary)]/10"
                     >
                       ↓ Import from Binance
                     </button>
@@ -1203,7 +1203,7 @@ export default function TradingPair() {
               </button>
               <button
                 onClick={submitPosEdit}
-                className="py-3 rounded-xl bg-[#00F0FF] text-[#050914] font-display font-bold text-sm hover:brightness-110"
+                className="py-3 rounded-xl bg-[color:var(--primary)] text-white font-display font-bold text-sm hover:brightness-110"
                 data-testid="pos-save"
               >
                 Save Position

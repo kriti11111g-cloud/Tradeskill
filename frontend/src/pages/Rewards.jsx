@@ -33,10 +33,10 @@ export default function Rewards() {
         <div
           className="rounded-3xl border border-[color:var(--border)] p-5 flex items-center gap-4"
           style={{
-            background: "linear-gradient(135deg, rgba(255,0,122,0.15), rgba(0,240,255,0.10)), #0F1524",
+            background: "linear-gradient(135deg, rgba(248,113,113,0.12), rgba(16,185,129,0.10)), var(--surface)",
           }}
         >
-          <div className="w-14 h-14 rounded-2xl bg-[#FFD700]/15 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-2xl bg-[color:var(--gold)]/15 flex items-center justify-center">
             <Sparkles size={26} className="text-[color:var(--warn)]" />
           </div>
           <div className="flex-1">
@@ -61,7 +61,7 @@ export default function Rewards() {
               key={r.id}
               className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4 flex items-center gap-3"
             >
-              <div className="w-11 h-11 rounded-xl bg-[#00F0FF]/10 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-xl bg-[color:var(--primary)]/10 flex items-center justify-center">
                 <Gift size={20} className="text-[color:var(--primary)]" />
               </div>
               <div className="flex-1">
@@ -73,7 +73,7 @@ export default function Rewards() {
                 {r.status === "claimable" ? (
                   <button
                     onClick={() => claim(r.id)}
-                    className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[#050914] bg-[#00F0FF] px-3 py-1 rounded-full"
+                    className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white bg-[color:var(--primary)] px-3 py-1 rounded-full"
                     data-testid={`claim-${r.id}`}
                   >
                     Claim

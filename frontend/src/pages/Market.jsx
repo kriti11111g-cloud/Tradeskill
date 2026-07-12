@@ -92,7 +92,7 @@ export default function Market() {
         showBack={false}
         right={
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--good)] animate-tgx-pulse" />
             <span className="text-[10px] uppercase tracking-widest text-[color:var(--good)] font-bold">LIVE</span>
           </div>
         }
@@ -119,7 +119,7 @@ export default function Market() {
             data-testid={`sort-${s.id}`}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               sort === s.id
-                ? "bg-[#00F0FF] text-[#050914] border-[color:var(--primary)]"
+                ? "bg-[color:var(--primary)] text-white border-[color:var(--primary)]"
                 : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
             }`}
           >

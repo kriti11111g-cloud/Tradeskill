@@ -62,7 +62,7 @@ export default function BindAPI() {
       <div className="px-4 space-y-4">
         {existing?.api_key_mask && (
           <div className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--good)]/30 rounded-2xl p-4 flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[color:var(--good)]/10 flex items-center justify-center">
               <ShieldCheck size={20} className="text-[color:var(--good)]" />
             </div>
             <div className="flex-1">
@@ -73,7 +73,7 @@ export default function BindAPI() {
             </div>
             <button
               onClick={unbind}
-              className="w-9 h-9 rounded-xl bg-[#FF007A]/10 border border-[color:var(--bad)]/30 flex items-center justify-center hover:bg-[#FF007A]/20"
+              className="w-9 h-9 rounded-xl bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 flex items-center justify-center hover:bg-[color:var(--bad)]/20"
               data-testid="unbind-btn"
             >
               <Trash2 size={16} className="text-[color:var(--bad)]" />
@@ -96,10 +96,10 @@ export default function BindAPI() {
                 className={`py-3 px-2 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all ${
                   mode === m.id
                     ? m.id === "demo"
-                      ? "bg-[#39FF14] text-[#050914]"
+                      ? "bg-[color:var(--good)] text-white"
                       : m.id === "testnet"
-                      ? "bg-[#FFD700] text-[#050914]"
-                      : "bg-[#FF007A] text-white glow-magenta"
+                      ? "bg-[color:var(--gold)] text-white"
+                      : "bg-[color:var(--bad)] text-white glow-danger"
                     : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
                 }`}
               >
@@ -149,7 +149,7 @@ export default function BindAPI() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#00F0FF] text-[#050914] font-display font-bold rounded-xl py-3.5 hover:bg-white transition-all hover:glow-cyan disabled:opacity-60"
+            className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:bg-white transition-all hover:glow-primary disabled:opacity-60"
             data-testid="bind-submit"
           >
             {loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
@@ -178,7 +178,7 @@ export default function BindAPI() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-11 h-11 rounded-2xl bg-[#FF007A]/15 flex items-center justify-center flex-shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-[color:var(--bad)]/15 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={22} className="text-[color:var(--bad)]" />
               </div>
               <div>
@@ -217,7 +217,7 @@ export default function BindAPI() {
                 type="button"
                 onClick={doBind}
                 disabled={!ack || loading}
-                className="py-3 rounded-xl bg-[#FF007A] text-white font-display font-bold text-sm disabled:opacity-40 hover:brightness-110 transition"
+                className="py-3 rounded-xl bg-[color:var(--bad)] text-white font-display font-bold text-sm disabled:opacity-40 hover:brightness-110 transition"
                 data-testid="confirm-proceed"
               >
                 {loading ? "Binding..." : "Enable Live"}

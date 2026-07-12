@@ -177,7 +177,7 @@ export default function Dashboard() {
           <div
             className={`rounded-2xl border p-4 relative overflow-hidden ${
               bind.mode === "real"
-                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
+                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[color:var(--bad)]/10 to-transparent"
                 : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
             }`}
           >

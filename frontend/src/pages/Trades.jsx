@@ -39,7 +39,7 @@ function BotCard({ bot }) {
       data-testid={`bot-card-${bot.symbol}`}
       className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
         isRunning
-          ? "bg-gradient-to-br from-[#0F1524]/80 to-[#0B111E]/80 border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
+          ? "bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
           : "bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/40"
       }`}
       style={
@@ -51,7 +51,7 @@ function BotCard({ bot }) {
       {/* Left accent bar for live bots */}
       {isRunning && (
         <div
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#39FF14]"
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[color:var(--good)]"
           style={{ boxShadow: "0 0 10px rgba(57,255,20,0.7)" }}
         />
       )}
@@ -70,7 +70,7 @@ function BotCard({ bot }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[#39FF14] shadow-[0_0_6px_#39FF14]" : "bg-[#8B9BB4]"}`}
+            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_#39FF14]" : "bg-[#8B9BB4]"}`}
           />
           <span
             className="text-[8px] uppercase tracking-widest font-bold"
@@ -224,8 +224,8 @@ export default function Trades() {
       <div className="px-4 mb-3">
         <button
           onClick={() => navigate("/bind-api")}
-          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-gradient-to-br from-[#0F1524]/90 to-[#0B111E]/90 p-3 hover:border-[color:var(--warn)]/40 transition"
-          style={{ boxShadow: "0 0 22px rgba(0,240,255,0.08)" }}
+          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] p-3 hover:border-[color:var(--warn)]/40 transition"
+          style={{ boxShadow: "0 0 22px rgba(16,185,129,0.08)" }}
           data-testid="trades-wallet-card"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -236,7 +236,7 @@ export default function Trades() {
             <span
               className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded ${
                 spot?.connected
-                  ? "bg-[#39FF14]/15 text-[color:var(--good)]"
+                  ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
                   : "bg-white/5 text-[color:var(--text-mute)]"
               }`}
               data-testid="wallet-exchange-status"
@@ -296,7 +296,7 @@ export default function Trades() {
       <div className="px-4 mt-3 flex items-center gap-2" data-testid="trades-filter">
         {[
           { key: "live", label: "Live", count: active, color: "#39FF14" },
-          { key: "all", label: "All", count: bots.length, color: "#00F0FF" },
+          { key: "all", label: "All", count: bots.length, color: "#10B981" },
           { key: "idle", label: "Idle", count: idleCount, color: "#8B9BB4" },
         ].map((t) => {
           const isActive = filter === t.key;
@@ -373,7 +373,7 @@ export default function Trades() {
       <button
         onClick={() => navigate("/market")}
         data-testid="add-bot-fab"
-        className="fixed bottom-24 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#00F0FF] text-[#050914] font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(0,240,255,0.6)] hover:scale-105 active:scale-95 transition"
+        className="fixed bottom-24 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[color:var(--primary)] text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_var(--primary-glow)] hover:scale-105 active:scale-95 transition"
         style={{ zIndex: 40, right: "calc(50vw - 220px + 20px)" }}
         aria-label="Start new bot"
       >

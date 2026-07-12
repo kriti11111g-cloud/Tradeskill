@@ -40,7 +40,7 @@ function WalletBar({ wallet }) {
   return (
     <div className="px-4">
       <div
-        className="rounded-xl border border-[#F0B90B]/30 p-2.5 bg-gradient-to-br from-[#1A1500]/60 to-[#050914]/60 backdrop-blur-xl flex items-center gap-2.5"
+        className="rounded-xl border border-[color:var(--gold)]/30 p-2.5 bg-gradient-to-br from-[#1A1500]/60 to-[color:var(--bg-base)] backdrop-blur-xl flex items-center gap-2.5"
         data-testid="wallet-balance-card"
       >
         <div className="w-8 h-8 rounded-lg bg-[#F0B90B]/15 border border-[#F0B90B]/40 flex items-center justify-center shrink-0">
@@ -53,7 +53,7 @@ function WalletBar({ wallet }) {
               Binance Spot
             </div>
             <span
-              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
+              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
             >
               {wallet.connected ? `Live · ${wallet.mode?.toUpperCase()}` : "Demo"}
             </span>
@@ -124,7 +124,7 @@ export default function Transactions() {
           <div className="flex items-center gap-2 flex-wrap">
             {symbolFilter && (
               <div
-                className="flex items-center gap-2 rounded-full border border-[color:var(--primary)]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs"
+                className="flex items-center gap-2 rounded-full border border-[color:var(--primary)]/40 bg-[color:var(--primary)]/10 pl-2 pr-1 py-1 text-xs"
                 data-testid="symbol-filter-active"
               >
                 <CoinIcon symbol={symbolFilter} size={16} />
@@ -143,7 +143,7 @@ export default function Transactions() {
             )}
             {dateFilter && (
               <div
-                className="flex items-center gap-2 rounded-full border border-[color:var(--warn)]/40 bg-[#FFD700]/10 pl-2.5 pr-1 py-1 text-xs"
+                className="flex items-center gap-2 rounded-full border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10 pl-2.5 pr-1 py-1 text-xs"
                 data-testid="date-filter-active"
               >
                 <Calendar size={11} className="text-[color:var(--warn)]" />
@@ -177,10 +177,10 @@ export default function Transactions() {
             className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               f === x
                 ? x === "SELL"
-                  ? "bg-[#FF007A] text-white border-[color:var(--bad)]"
+                  ? "bg-[color:var(--bad)] text-white border-[color:var(--bad)]"
                   : x === "BUY"
-                    ? "bg-[#39FF14] text-[#050914] border-[color:var(--good)]"
-                    : "bg-[#00F0FF] text-[#050914] border-[color:var(--primary)]"
+                    ? "bg-[color:var(--good)] text-white border-[color:var(--good)]"
+                    : "bg-[color:var(--primary)] text-white border-[color:var(--primary)]"
                 : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
             }`}
           >
@@ -225,7 +225,7 @@ export default function Transactions() {
                       className="text-[8px] uppercase tracking-widest font-black px-1.5 py-0.5 rounded leading-none"
                       style={{
                         background: sideColor,
-                        color: isSell ? "#fff" : "#050914",
+                        color: "#fff",
                       }}
                     >
                       {t.side}

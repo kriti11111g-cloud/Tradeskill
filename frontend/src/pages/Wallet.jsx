@@ -95,7 +95,7 @@ export default function Wallet() {
         <div
           className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6"
           style={{
-            background: "linear-gradient(135deg, rgba(0,240,255,0.12), rgba(255,215,0,0.08)), #0F1524",
+            background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(251,191,36,0.10)), var(--surface)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -110,8 +110,8 @@ export default function Wallet() {
               <div
                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                   bind.mode === "real"
-                    ? "bg-[#FF007A]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
-                    : "bg-[#FFD700]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
+                    ? "bg-[color:var(--bad)]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
+                    : "bg-[color:var(--gold)]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
                 }`}
                 data-testid="wallet-mode-badge"
               >
@@ -125,7 +125,7 @@ export default function Wallet() {
           {/* Wallet connection error banner (real/testnet mode, Binance unreachable) */}
           {isLiveMode && summary?.wallet_error && (
             <div
-              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[#FFD700]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
+              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
               data-testid="wallet-connection-error"
             >
               <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black mb-0.5">
@@ -157,7 +157,7 @@ export default function Wallet() {
           <div
             className={`rounded-3xl border p-5 relative overflow-hidden ${
               bind.mode === "real"
-                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
+                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[color:var(--bad)]/10 to-transparent"
                 : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
             }`}
             data-testid="live-balances-card"
@@ -189,7 +189,7 @@ export default function Wallet() {
             )}
 
             {liveErr && (
-              <div className="bg-[#FF007A]/10 border border-[color:var(--bad)]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
+              <div className="bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
                 <div className="font-bold text-[color:var(--bad)] mb-1">Unable to load balances</div>
                 {liveErr}
               </div>
@@ -402,7 +402,7 @@ export default function Wallet() {
                 </button>
                 <button
                   type="submit"
-                  className="py-3 rounded-xl bg-[#00F0FF] text-[#050914] font-display font-bold"
+                  className="py-3 rounded-xl bg-[color:var(--primary)] text-white font-display font-bold"
                   data-testid="wallet-submit"
                 >
                   Confirm

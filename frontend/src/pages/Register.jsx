@@ -26,7 +26,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#050914] text-white flex items-center justify-center px-4 py-10 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[color:var(--bg-base)] text-white flex items-center justify-center px-4 py-10 relative overflow-hidden">
       <div className="grain-overlay" />
       <div
         className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
@@ -34,23 +34,23 @@ export default function Register() {
       />
       <div
         className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #00F0FF, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #10B981, transparent 70%)" }}
       />
 
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD700] to-[#FF007A] flex items-center justify-center glow-gold">
-              <Zap size={22} className="text-[#050914]" strokeWidth={2.5} />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFD700] to-[color:var(--bad)] flex items-center justify-center glow-gold">
+              <Zap size={22} className="text-white" strokeWidth={2.5} />
             </div>
             <div className="font-display font-black text-3xl tracking-tight">TGX BOT</div>
           </div>
-          <div className="text-[10px] uppercase tracking-[0.35em] text-[#8B9BB4]">Join the new era of crypto</div>
+          <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-mute)]">Join the new era of crypto</div>
         </div>
 
-        <div className="bg-[#0F1524]/70 backdrop-blur-xl border border-white/25 rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
+        <div className="bg-[color:var(--surface)]/70 backdrop-blur-xl border border-[color:var(--border)] rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
           <h1 className="font-display font-bold text-2xl mb-1">Create account</h1>
-          <p className="text-sm text-[#8B9BB4] mb-6">Get a $1,000 demo balance instantly</p>
+          <p className="text-sm text-[color:var(--text-mute)] mb-6">Get a $1,000 demo balance instantly</p>
 
           <form onSubmit={onSubmit} className="space-y-4">
             {[
@@ -60,13 +60,13 @@ export default function Register() {
               { key: "referral_code", label: "Referral code (optional)", type: "text", placeholder: "TGX...", testid: "reg-referral" },
             ].map((f) => (
               <div key={f.key}>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">{f.label}</label>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">{f.label}</label>
                 <input
                   type={f.type}
                   required={f.required}
                   value={form[f.key]}
                   onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00F0FF] focus:ring-1 focus:ring-[#00F0FF] transition-all placeholder:text-[#8B9BB4]"
+                  className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)]"
                   placeholder={f.placeholder}
                   data-testid={f.testid}
                 />
@@ -75,16 +75,16 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-[#00F0FF] text-[#050914] font-display font-bold rounded-xl px-6 py-3.5 hover:bg-white transition-all hover:glow-cyan flex items-center justify-center gap-2 disabled:opacity-60"
+              className="w-full mt-2 bg-[color:var(--primary)] text-white font-display font-bold rounded-xl px-6 py-3.5 hover:bg-white transition-all hover:glow-primary flex items-center justify-center gap-2 disabled:opacity-60"
               data-testid="reg-submit"
             >
               {loading ? "Creating..." : "Create Account"} <ArrowRight size={18} />
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[#8B9BB4]">
+          <div className="mt-6 text-center text-sm text-[color:var(--text-mute)]">
             Already have an account?{" "}
-            <Link to="/login" className="text-[#00F0FF] font-semibold hover:underline" data-testid="link-login">
+            <Link to="/login" className="text-[color:var(--primary)] font-semibold hover:underline" data-testid="link-login">
               Sign in
             </Link>
           </div>
