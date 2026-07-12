@@ -212,10 +212,10 @@ export default function Referral() {
 }
 
 const SectionCard = ({ icon: Icon, title, children, testid }) => (
-  <div className="app-card rounded-2xl p-4" data-testid={testid}>
-    <div className="flex items-center gap-2 mb-3">
-      <Icon size={14} className="text-[color:var(--gold-deep)]" />
-      <span className="text-[10px] uppercase tracking-[0.25em] font-black text-[color:var(--text-mute)]">{title}</span>
+  <div className="app-card rounded-2xl p-3" data-testid={testid}>
+    <div className="flex items-center gap-1.5 mb-2">
+      <Icon size={12} className="text-[color:var(--gold-deep)]" />
+      <span className="text-[9px] uppercase tracking-[0.25em] font-black text-[color:var(--text-mute)]">{title}</span>
     </div>
     {children}
   </div>
@@ -223,7 +223,7 @@ const SectionCard = ({ icon: Icon, title, children, testid }) => (
 
 const BarStat = ({ color, label, value, testid }) => (
   <div
-    className="rounded-xl px-2.5 py-2.5 flex items-stretch gap-2 min-w-0"
+    className="rounded-lg px-2 py-1.5 flex items-stretch gap-1.5 min-w-0"
     style={{
       background: `color-mix(in srgb, ${color} 6%, var(--surface))`,
       border: `1px solid color-mix(in srgb, ${color} 35%, transparent)`,
@@ -234,7 +234,7 @@ const BarStat = ({ color, label, value, testid }) => (
     <span className="w-1 rounded-full shrink-0" style={{ background: color }} />
     <div className="min-w-0">
       <div className="text-[8px] uppercase tracking-wider font-bold text-[color:var(--text-mute)] leading-tight">{label}</div>
-      <div className="font-display font-black text-lg tabular-nums mt-0.5">{value}</div>
+      <div className="font-display font-black text-base tabular-nums">{value}</div>
     </div>
   </div>
 );
