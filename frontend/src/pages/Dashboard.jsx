@@ -185,7 +185,7 @@ export default function Dashboard() {
               style={{ color: "#FBBF24" }}
               data-testid="hero-rank-badge"
             >
-              {currentRank.level <= 1 ? "★ Starter" : `★ ${currentRank.level} Star`}
+              ★ {currentRank.title}
             </span>
           </div>
 
@@ -305,7 +305,7 @@ export default function Dashboard() {
                   Your Rank
                 </div>
                 <div className="text-sm font-black" style={{ color: "var(--text)" }}>
-                  {currentRank.level} STAR · {currentRank.title}
+                  {currentRank.title}
                 </div>
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function Dashboard() {
                   Next
                 </div>
                 <div className="text-xs font-black" style={{ color: "var(--gold)" }}>
-                  {nextRank.level} STAR
+                  {nextRank.title}
                 </div>
               </div>
             )}
