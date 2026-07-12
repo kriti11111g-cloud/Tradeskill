@@ -38,15 +38,11 @@ export default function Dashboard() {
   const [pairs, setPairs] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [rank, setRank] = useState(null);
-  const [botWallet, setBotWallet] = useState(null);
-  const [bots, setBots] = useState([]);
 
   useEffect(() => {
     api.get("/market/top?limit=8").then(({ data }) => setPairs(data.coins || [])).catch(() => {});
     api.get("/wallet/summary").then(({ data }) => setWallet(data)).catch(() => {});
     api.get("/ranks/me").then(({ data }) => setRank(data)).catch(() => {});
-    api.get("/bot-wallet/status").then(({ data }) => setBotWallet(data)).catch(() => {});
-    api.get("/bots").then(({ data }) => setBots(data || [])).catch(() => {});
   }, []);
 
   const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
@@ -67,10 +63,6 @@ export default function Dashboard() {
     return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
   }, [rank]);
 
-  const activeBotsCount = bots.filter((b) => b.status === "running").length;
-  const totalTrades = bots.reduce((s, b) => s + (b.total_trades || 0), 0);
-  const totalPnl = bots.reduce((s, b) => s + (b.cumulative_profit || 0), 0);
-  const fuelBalance = botWallet?.balance || 0;
 
   return (
     <div className="pb-4">
@@ -366,60 +358,6 @@ export default function Dashboard() {
             </span>
           </div>
         </Link>
-
-        {/* ============ QUICK STATS ============ */}
-        <div className="grid grid-cols-3 gap-2 mb-5" data-testid="dash-quick-stats">
-          {[
-            {
-              label: "Cumulative PnL",
-              value: `${totalPnl >= 0 ? "+" : ""}$${fmtNum(totalPnl, 2)}`,
-              pct: totalPnl >= 0 ? "Positive" : "Negative",
-              color: totalPnl >= 0 ? "var(--good)" : "var(--bad)",
-            },
-            {
-              label: "Total Trades",
-              value: fmtNum(totalTrades, 0),
-              pct: `${activeBotsCount} active`,
-              color: "var(--text-mute)",
-            },
-            {
-              label: "Bot Fuel",
-              value: `$${fmtNum(fuelBalance, 0)}`,
-              pct: botWallet?.activated ? "Active" : "Inactive",
-              color: botWallet?.activated ? "var(--good)" : "var(--text-mute)",
-            },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl p-3"
-              style={{
-                background: "var(--surface-2)",
-                border: "1px solid var(--border)",
-                backdropFilter: "blur(20px)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              <div
-                className="text-[9px] uppercase tracking-widest font-black mb-1"
-                style={{ color: "var(--text-mute)" }}
-              >
-                {s.label}
-              </div>
-              <div
-                className="text-base font-black font-mono"
-                style={{ color: "var(--text)" }}
-              >
-                {s.value}
-              </div>
-              <div
-                className="text-[10px] font-bold font-mono mt-0.5"
-                style={{ color: s.color }}
-              >
-                {s.pct}
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* ============ FEATURE TILES ============ */}
         <div className="grid grid-cols-4 gap-3 mb-5" data-testid="dash-feature-tiles">
