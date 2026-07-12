@@ -114,9 +114,9 @@ export default function Referral() {
                 className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
                 style={{
                   background: "var(--surface-2)",
-                  border: `1.5px solid color-mix(in srgb, ${t.activated ? "var(--primary)" : "var(--gold)"} 55%, transparent)`,
+                  border: t.activated ? "1.5px solid #16A34A" : "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
                   boxShadow: t.activated
-                    ? "0 2px 12px rgba(22,163,74,0.15)"
+                    ? "0 2px 14px rgba(22,163,74,0.30)"
                     : "0 2px 12px rgba(245,158,11,0.12)",
                   backdropFilter: "blur(20px)",
                 }}
