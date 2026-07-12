@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Share2, Users, Gift } from "lucide-react";
+import { Copy, Share2, Users, Gift, TrendingUp, Network } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
+
+const maskEmail = (email = "") => {
+  const [u, d] = email.split("@");
+  if (!d) return email;
+  const head = u.slice(0, 3);
+  return `${head}***@${d}`;
+};
+
+const fmtDate = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+};
 
 export default function Referral() {
   const [data, setData] = useState(null);
@@ -25,6 +38,9 @@ export default function Referral() {
       toast.success("Referral link copied!");
     }
   };
+
+  const ds = data?.direct_stats || { activated: 0, not_activated: 0 };
+  const ts = data?.team_stats || { total: 0, activated: 0, not_activated: 0 };
 
   return (
     <div className="pb-4">
@@ -61,39 +77,102 @@ export default function Referral() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 px-4 mt-4">
-        <div className="app-card rounded-2xl p-4">
-          <div className="flex items-center gap-2">
-            <Users size={16} className="text-[color:var(--primary)]" />
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Team Size</div>
+      {/* ==== Activate Profit ==== */}
+      <div className="px-4 mt-4">
+        <SectionCard icon={TrendingUp} title="Activate Profit" testid="ref-profit-card">
+          <div className="grid grid-cols-2 gap-3">
+            <BarStat color="var(--gold)" label="Today Profit" value={fmtUSD(data?.today_profit || 0)} testid="ref-today-profit" />
+            <BarStat color="var(--primary)" label="Total Profit" value={fmtUSD(data?.total_profit || 0)} testid="ref-total-profit" />
           </div>
-          <div className="font-display font-bold text-2xl tabular-nums mt-1" data-testid="team-size">{data?.team_size || 0}</div>
-        </div>
-        <div className="app-card rounded-2xl p-4">
-          <div className="flex items-center gap-2">
-            <Gift size={16} className="text-[color:var(--warn)]" />
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Earned</div>
-          </div>
-          <div className="font-display font-bold text-2xl tabular-nums mt-1 text-[color:var(--warn)]" data-testid="ref-earned">
-            {fmtUSD(data?.total_earned || 0)}
-          </div>
-          {(data?.pending || 0) > 0 && (
-            <div className="text-[10px] text-[color:var(--good)] font-bold mt-1" data-testid="ref-pending">
-              +{fmtUSD(data.pending)} pending · claim in Rewards
-            </div>
-          )}
-        </div>
+        </SectionCard>
       </div>
 
+      {/* ==== Direct Quantification ==== */}
+      <div className="px-4 mt-3">
+        <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
+          <div className="grid grid-cols-2 gap-3">
+            <BarStat color="var(--gold)" label="Not Yet Activated" value={ds.not_activated} testid="direct-inactive" />
+            <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ==== Team Quantification ==== */}
+      <div className="px-4 mt-3">
+        <SectionCard icon={Network} title="Team" testid="ref-team-card">
+          <div className="grid grid-cols-3 gap-3">
+            <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
+            <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
+            <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ==== Direct Referrals table ==== */}
+      <div className="px-4 mt-5">
+        <div className="font-display font-bold text-lg mb-3">Direct Referrals</div>
+        {(!data?.team || data.team.length === 0) && (
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-team">
+            Share your code to grow your team.
+          </div>
+        )}
+        {data?.team?.length > 0 && (
+          <div className="app-card rounded-2xl overflow-hidden" data-testid="direct-table">
+            <div
+              className="grid grid-cols-[1fr_1.6fr_0.6fr_0.9fr] px-3 py-2.5 text-[9px] uppercase tracking-widest font-black"
+              style={{ background: "var(--surface-3)", color: "var(--text-mute)", borderBottom: "1px solid var(--border)" }}
+            >
+              <span>Grade</span>
+              <span>Account</span>
+              <span className="text-center">Team</span>
+              <span className="text-right">Date</span>
+            </div>
+            {data.team.map((t, i) => (
+              <div
+                key={t.email}
+                className="grid grid-cols-[1fr_1.6fr_0.6fr_0.9fr] items-center px-3 py-3"
+                style={{ borderBottom: i < data.team.length - 1 ? "1px solid var(--border-soft)" : "none" }}
+                data-testid={`direct-row-${i}`}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: t.activated ? "var(--primary)" : "var(--gold)" }}
+                    title={t.activated ? "Activated" : "Not activated"}
+                  />
+                  <span
+                    className="text-[9px] uppercase tracking-wider font-black truncate px-1.5 py-0.5 rounded-md"
+                    style={{
+                      color: "var(--gold-deep)",
+                      background: "color-mix(in srgb, var(--gold) 10%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--gold) 25%, transparent)",
+                    }}
+                  >
+                    {(t.rank || "Starter").toUpperCase()}
+                  </span>
+                </div>
+                <div className="min-w-0 pr-1">
+                  <div className="text-[11px] font-bold truncate">{maskEmail(t.email)}</div>
+                </div>
+                <div className="text-center text-[12px] font-black font-mono tabular-nums text-[color:var(--primary)]">
+                  {t.team_size}
+                </div>
+                <div className="text-right text-[10px] font-mono text-[color:var(--text-mute)]">
+                  {fmtDate(t.created_at)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ==== Commission Log ==== */}
       {data?.earnings?.length > 0 && (
         <div className="px-4 mt-5">
           <div className="font-display font-bold text-lg mb-3">Commission Log</div>
           <div className="space-y-2" data-testid="commission-log">
             {data.earnings.slice(0, 10).map((e) => (
-              <div
-                key={e.id}
-                className="app-card rounded-2xl p-3 flex items-center justify-between"
-              >
+              <div key={e.id} className="app-card rounded-2xl p-3 flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="font-display font-bold text-sm truncate">
                     {e.symbol ? e.symbol.replace("USDT", "/USDT") : "Referral"}
@@ -118,30 +197,34 @@ export default function Referral() {
         </div>
       )}
 
-      <div className="px-4 mt-5">
-        <div className="font-display font-bold text-lg mb-3">Your Team</div>
-        {data?.team?.length === 0 && (
-          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-team">
-            Share your code to grow your team.
+      {(data?.pending || 0) > 0 && (
+        <div className="px-4 mt-3">
+          <div className="app-card rounded-2xl p-3 flex items-center gap-2 text-[11px] font-bold" data-testid="ref-pending">
+            <Gift size={14} className="text-[color:var(--gold-deep)]" />
+            +{fmtUSD(data.pending)} pending · claim in Rewards
           </div>
-        )}
-        <div className="space-y-2">
-          {data?.team?.map((t) => (
-            <div
-              key={t.email}
-              className="app-card rounded-2xl p-3 flex items-center justify-between"
-            >
-              <div>
-                <div className="font-display font-bold text-sm">{t.name || t.email}</div>
-                <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5">Joined {fmtTime(t.created_at)}</div>
-              </div>
-              <div className="text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold border border-[color:var(--primary)]/40 rounded-full px-2 py-1">
-                {t.rank || "Bronze"}
-              </div>
-            </div>
-          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+const SectionCard = ({ icon: Icon, title, children, testid }) => (
+  <div className="app-card rounded-2xl p-4" data-testid={testid}>
+    <div className="flex items-center gap-2 mb-3">
+      <Icon size={14} className="text-[color:var(--gold-deep)]" />
+      <span className="text-[10px] uppercase tracking-[0.25em] font-black text-[color:var(--text-mute)]">{title}</span>
+    </div>
+    {children}
+  </div>
+);
+
+const BarStat = ({ color, label, value, testid }) => (
+  <div className="flex items-stretch gap-2" data-testid={testid}>
+    <span className="w-1 rounded-full shrink-0" style={{ background: color }} />
+    <div className="min-w-0">
+      <div className="text-[9px] uppercase tracking-wider font-bold text-[color:var(--text-mute)] leading-tight">{label}</div>
+      <div className="font-display font-black text-lg tabular-nums mt-0.5">{value}</div>
+    </div>
+  </div>
+);

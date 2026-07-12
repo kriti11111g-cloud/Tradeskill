@@ -1672,17 +1672,74 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
 # ==== Referral ====
 @api.get("/referral")
 async def referral(user: dict = Depends(get_current_user)):
-    team = await db.users.find({"referred_by": user["id"]}, {"_id": 0, "email": 1, "name": 1, "rank": 1, "created_at": 1}).to_list(500)
+    directs = await db.users.find(
+        {"referred_by": user["id"]},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1, "created_at": 1, "activated": 1},
+    ).to_list(500)
+
+    # BFS whole team, attributing each member to their root direct (for per-direct team size)
+    root_of = {d["id"]: d["id"] for d in directs}
+    seen = {user["id"], *root_of.keys()}
+    frontier = list(root_of.keys())
+    team_total = len(directs)
+    team_activated = sum(1 for d in directs if d.get("activated"))
+    subtree = {d["id"]: 0 for d in directs}
+    for _ in range(10):
+        if not frontier or len(seen) > 20000:
+            break
+        rows = await db.users.find(
+            {"referred_by": {"$in": frontier}},
+            {"_id": 0, "id": 1, "referred_by": 1, "activated": 1},
+        ).to_list(5000)
+        nxt = []
+        for r in rows:
+            if r["id"] in seen:
+                continue
+            seen.add(r["id"])
+            nxt.append(r["id"])
+            root = root_of.get(r["referred_by"])
+            if root:
+                root_of[r["id"]] = root
+                subtree[root] += 1
+            team_total += 1
+            if r.get("activated"):
+                team_activated += 1
+        frontier = nxt
+
     earnings = await db.rewards.find({"user_id": user["id"], "type": "referral"}, {"_id": 0}).sort("created_at", -1).to_list(500)
     total_earned = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimed")
     pending = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimable")
+    today = now_utc().date().isoformat()
+    today_profit = sum(e.get("amount", 0) for e in earnings if (e.get("created_at") or "").startswith(today))
+    total_profit = sum(e.get("amount", 0) for e in earnings)
+
+    direct_activated = sum(1 for d in directs if d.get("activated"))
+    team = [
+        {
+            "email": d["email"],
+            "name": d.get("name"),
+            "rank": d.get("rank", "Starter"),
+            "activated": bool(d.get("activated")),
+            "created_at": d.get("created_at"),
+            "team_size": subtree.get(d["id"], 0),
+        }
+        for d in directs
+    ]
     return {
         "referral_code": user.get("referral_code"),
-        "team_size": len(team),
+        "team_size": len(directs),
         "team": team,
         "total_earned": round(total_earned, 4),
         "pending": round(pending, 4),
         "earnings": earnings,
+        "today_profit": round(today_profit, 4),
+        "total_profit": round(total_profit, 4),
+        "direct_stats": {"activated": direct_activated, "not_activated": len(directs) - direct_activated},
+        "team_stats": {
+            "total": team_total,
+            "activated": team_activated,
+            "not_activated": team_total - team_activated,
+        },
     }
 
 
