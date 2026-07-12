@@ -48,6 +48,8 @@ export default function Dashboard() {
   const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
 
   const currentRank = rank?.rank || { level: 1, title: "Starter" };
+  const change24h = pairs.reduce((s, p) => s + (p.change_pct || 0), 0) / Math.max(pairs.length, 1);
+  const isUp = change24h >= 0;
   const nextRank = rank?.next_rank;
   const progressPct = useMemo(() => {
     if (!rank?.progress) return 0;
@@ -202,6 +204,30 @@ export default function Dashboard() {
               <span className="text-xl opacity-70 font-bold font-mono">
                 .{((totalBalance % 1) * 100).toFixed(0).padStart(2, "0")}
               </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-2">
+              <div
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "#FFFFFF",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+                }}
+                data-testid="hero-change-pill"
+              >
+                {isUp ? (
+                  <ArrowUpRight size={13} color="#16A34A" strokeWidth={3} />
+                ) : (
+                  <ArrowDownRight size={13} color="#DC2626" strokeWidth={3} />
+                )}
+                <span
+                  className="text-[12px] font-black font-mono"
+                  style={{ color: isUp ? "#16A34A" : "#DC2626" }}
+                >
+                  {fmtPct(change24h)}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-white/95">Market avg · 24h</span>
             </div>
 
             <div className="grid grid-cols-4 gap-2 mt-4">
