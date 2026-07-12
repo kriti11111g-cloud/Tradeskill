@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -235,24 +236,38 @@ export default function Dashboard() {
               {[
                 { icon: Download, label: "Deposit", to: "/wallet", testid: "hero-deposit" },
                 { icon: Send, label: "Send", to: "/wallet", testid: "hero-send" },
-                { icon: Repeat, label: "Swap", to: "/market", testid: "hero-swap" },
-                { icon: TrendingUp, label: "Trade", to: "/trades", testid: "hero-trade" },
-              ].map((a) => (
-                <Link
-                  key={a.label}
-                  to={a.to}
-                  data-testid={a.testid}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl"
-                  style={{
-                    background: "rgba(255,255,255,0.16)",
-                    border: "1px solid rgba(255,255,255,0.28)",
-                    backdropFilter: "blur(12px)",
-                  }}
-                >
-                  <a.icon size={16} className="text-white" />
-                  <span className="text-[10px] font-bold text-white/95">{a.label}</span>
-                </Link>
-              ))}
+                { icon: ArrowRightLeft, label: "P2P", to: "/bot", testid: "hero-p2p" },
+                { icon: Repeat, label: "Swap", comingSoon: true, testid: "hero-swap" },
+              ].map((a) => {
+                const inner = (
+                  <>
+                    <a.icon size={16} className="text-white" />
+                    <span className="text-[10px] font-bold text-white/95">{a.label}</span>
+                  </>
+                );
+                const cls = "flex flex-col items-center gap-1 py-2 rounded-xl";
+                const sty = {
+                  background: "rgba(255,255,255,0.16)",
+                  border: "1px solid rgba(255,255,255,0.28)",
+                  backdropFilter: "blur(12px)",
+                };
+                return a.comingSoon ? (
+                  <button
+                    key={a.label}
+                    type="button"
+                    onClick={() => toast("Swap — Coming Soon 🚀")}
+                    data-testid={a.testid}
+                    className={cls}
+                    style={sty}
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <Link key={a.label} to={a.to} data-testid={a.testid} className={cls} style={sty}>
+                    {inner}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
