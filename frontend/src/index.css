@@ -3,106 +3,123 @@
 @tailwind utilities;
 
 /* =========================================================
-   HUBXBOT — GREEN BRAND (Day + Night Mode CSS Variables)
-   Root defaults = Night (dark). [data-theme="light"] = Day.
+   HUBXBOT — PREMIUM (Midnight Navy + Emerald + Gold)
+   Root defaults = Night. [data-theme="light"] = Day.
+   Vibe: Rolex-tier premium · Bank-grade trust · MLM aspiration.
    ========================================================= */
 :root,
 [data-theme="dark"] {
-  /* Background layers */
-  --bg-base: #030B08;
-  --bg-gradient: radial-gradient(1200px 800px at 10% -10%, #052E16 0%, transparent 55%),
-                 radial-gradient(900px 700px at 100% 100%, #041F10 0%, transparent 60%),
-                 #030B08;
-  --surface: #0A1710;
-  --surface-2: rgba(255,255,255,0.04);
-  --surface-3: #0F2318;
+  /* Background layers — Midnight Navy */
+  --bg-base: #0A1929;
+  --bg-gradient: radial-gradient(1200px 800px at 100% -10%, rgba(16,185,129,0.12) 0%, transparent 55%),
+                 radial-gradient(900px 700px at 0% 100%, rgba(245,158,11,0.08) 0%, transparent 60%),
+                 #0A1929;
+  --surface: #0F2137;
+  --surface-2: rgba(148,180,205,0.05);
+  --surface-3: #132B47;
 
   /* Borders & lines */
-  --border: rgba(0,200,83,0.22);
-  --border-soft: rgba(0,200,83,0.10);
+  --border: rgba(148,180,205,0.14);
+  --border-soft: rgba(148,180,205,0.08);
 
   /* Text */
-  --text: #EAFFF3;
-  --text-soft: #B7E4C7;
-  --text-mute: #6B8E7F;
+  --text: #F8FAFC;
+  --text-soft: #CBD5E1;
+  --text-mute: #7C93AD;
 
   /* Green brand */
-  --primary: #00E676;
-  --primary-deep: #00C853;
-  --primary-glow: rgba(0,230,118,0.45);
-  --primary-grad: linear-gradient(135deg,#00E676 0%,#00C853 100%);
-  --primary-soft-grad: linear-gradient(135deg,rgba(0,230,118,0.18) 0%,rgba(0,200,83,0.04) 100%);
-  --hero-grad: linear-gradient(135deg,#00C853 0%,#00E676 55%,#4ADE80 100%);
+  --primary: #10B981;
+  --primary-deep: #059669;
+  --primary-glow: rgba(16,185,129,0.5);
+  --primary-grad: linear-gradient(135deg,#10B981 0%,#059669 100%);
+  --primary-soft-grad: linear-gradient(135deg,rgba(16,185,129,0.18) 0%,rgba(5,150,105,0.04) 100%);
+
+  /* Gold accent (rank · rewards · premium) */
+  --gold: #FBBF24;
+  --gold-deep: #F59E0B;
+  --gold-glow: rgba(251,191,36,0.55);
+  --gold-grad: linear-gradient(135deg,#FBBF24 0%,#F59E0B 100%);
+  --premium-grad: linear-gradient(135deg,#10B981 0%,#F59E0B 100%);
+
+  /* Hero — Navy → Emerald */
+  --hero-grad: linear-gradient(135deg,#0F3A2E 0%,#0A1929 40%,#0F3A2E 100%);
 
   /* Semantic */
-  --good: #4ADE80;
+  --good: #10B981;
   --bad: #F87171;
   --warn: #FBBF24;
 
   /* Chrome */
-  --nav-bg: rgba(6,20,12,0.85);
-  --nav-border: rgba(0,200,83,0.2);
-  --header-bg: rgba(6,20,12,0.7);
-  --toast-bg: #0A1710;
+  --nav-bg: rgba(10,25,41,0.85);
+  --nav-border: rgba(148,180,205,0.14);
+  --header-bg: rgba(10,25,41,0.7);
+  --toast-bg: #0F2137;
 
   /* Shadows */
-  --shadow-sm: 0 4px 12px rgba(0,230,118,0.35);
-  --shadow-md: 0 12px 32px -12px rgba(0,230,118,0.45);
-  --shadow-lg: 0 20px 60px -20px rgba(0,230,118,0.35), 0 0 0 1px rgba(0,230,118,0.12);
+  --shadow-sm: 0 4px 12px rgba(16,185,129,0.35);
+  --shadow-md: 0 12px 32px -12px rgba(16,185,129,0.45);
+  --shadow-lg: 0 20px 60px -20px rgba(16,185,129,0.35), 0 0 0 1px rgba(148,180,205,0.08);
 
-  /* Back-compat aliases (old brand tokens map to green) */
-  --bg-surface: #0F2318;
-  --brand-cyan: #00E676;
+  /* Back-compat aliases */
+  --bg-surface: #132B47;
+  --brand-cyan: #10B981;
   --brand-magenta: #F87171;
   --brand-gold: #FBBF24;
-  --success: #4ADE80;
-  --text-primary: #EAFFF3;
-  --text-secondary: #6B8E7F;
+  --success: #10B981;
+  --text-primary: #F8FAFC;
+  --text-secondary: #7C93AD;
 }
 
 [data-theme="light"] {
-  --bg-base: #F6FFFA;
-  --bg-gradient: radial-gradient(1200px 800px at 10% -10%, #DCFCE7 0%, transparent 55%),
-                 radial-gradient(900px 700px at 100% 100%, #ECFDF5 0%, transparent 60%),
-                 #F6FFFA;
+  --bg-base: #FAFCFB;
+  --bg-gradient: radial-gradient(1200px 800px at 100% -10%, rgba(16,185,129,0.08) 0%, transparent 55%),
+                 radial-gradient(900px 700px at 0% 100%, rgba(245,158,11,0.06) 0%, transparent 60%),
+                 #FAFCFB;
   --surface: #FFFFFF;
-  --surface-2: #F0FDF4;
+  --surface-2: #F1F5F4;
   --surface-3: #ECFDF5;
 
-  --border: #BBF7D0;
-  --border-soft: #DCFCE7;
+  --border: rgba(10,25,41,0.10);
+  --border-soft: rgba(10,25,41,0.06);
 
-  --text: #052E16;
-  --text-soft: #065F46;
-  --text-mute: #6B8E7F;
+  --text: #0A1929;
+  --text-soft: #1E3A5F;
+  --text-mute: #647890;
 
-  --primary: #00A854;
-  --primary-deep: #008040;
-  --primary-glow: rgba(0,168,84,0.35);
-  --primary-grad: linear-gradient(135deg,#00C853 0%,#00A854 100%);
-  --primary-soft-grad: linear-gradient(135deg,#DCFCE7 0%,#FFFFFF 100%);
-  --hero-grad: linear-gradient(135deg,#00A854 0%,#00C853 55%,#4ADE80 100%);
+  --primary: #059669;
+  --primary-deep: #047857;
+  --primary-glow: rgba(5,150,105,0.35);
+  --primary-grad: linear-gradient(135deg,#10B981 0%,#059669 100%);
+  --primary-soft-grad: linear-gradient(135deg,#ECFDF5 0%,#FFFFFF 100%);
+
+  --gold: #D97706;
+  --gold-deep: #B45309;
+  --gold-glow: rgba(245,158,11,0.45);
+  --gold-grad: linear-gradient(135deg,#F59E0B 0%,#D97706 100%);
+  --premium-grad: linear-gradient(135deg,#059669 0%,#D97706 100%);
+
+  --hero-grad: linear-gradient(135deg,#0A1929 0%,#0F3A2E 55%,#059669 100%);
 
   --good: #059669;
   --bad: #DC2626;
   --warn: #D97706;
 
   --nav-bg: rgba(255,255,255,0.9);
-  --nav-border: #BBF7D0;
+  --nav-border: rgba(10,25,41,0.10);
   --header-bg: rgba(255,255,255,0.75);
   --toast-bg: #FFFFFF;
 
-  --shadow-sm: 0 4px 12px rgba(0,168,84,0.25);
-  --shadow-md: 0 12px 32px -12px rgba(0,168,84,0.35);
-  --shadow-lg: 0 20px 60px -20px rgba(0,168,84,0.25), 0 0 0 1px rgba(0,168,84,0.08);
+  --shadow-sm: 0 4px 12px rgba(5,150,105,0.25);
+  --shadow-md: 0 12px 32px -12px rgba(5,150,105,0.35);
+  --shadow-lg: 0 20px 60px -20px rgba(5,150,105,0.25), 0 0 0 1px rgba(10,25,41,0.06);
 
   --bg-surface: #FFFFFF;
-  --brand-cyan: #00A854;
+  --brand-cyan: #059669;
   --brand-magenta: #DC2626;
   --brand-gold: #D97706;
   --success: #059669;
-  --text-primary: #052E16;
-  --text-secondary: #6B8E7F;
+  --text-primary: #0A1929;
+  --text-secondary: #647890;
 }
 
 html, body, #root {
