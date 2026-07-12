@@ -48,22 +48,22 @@ function ProfitBarTooltip({ active, payload, trades }) {
   });
   return (
     <div
-      className="bg-[#0F1524] border rounded-lg px-2.5 py-2 shadow-xl"
+      className="bg-[color:var(--surface)] border rounded-lg px-2.5 py-2 shadow-xl"
       style={{
         borderColor: positive ? "rgba(57,255,20,0.4)" : "rgba(255,0,122,0.4)",
         fontVariantNumeric: "tabular-nums",
       }}
     >
-      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+      <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
         {dateLabel}
       </div>
       <div
-        className={`font-mono font-black text-[14px] leading-none mt-1 ${positive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+        className={`font-mono font-black text-[14px] leading-none mt-1 ${positive ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
       >
         {positive ? "+" : ""}${(d.profit || 0).toFixed(2)}
       </div>
       {meta && (
-        <div className="text-[9px] text-[#8B9BB4] mt-1 leading-tight">
+        <div className="text-[9px] text-[color:var(--text-mute)] mt-1 leading-tight">
           {meta.trades} sells · {meta.symbols.length} coin
           {meta.symbols.length === 1 ? "" : "s"}
         </div>
@@ -131,11 +131,11 @@ export default function Revenue() {
                   Binance Spot Wallet
                 </div>
                 {wallet?.connected ? (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40 leading-none">
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
                     Live · {wallet.mode?.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-white/5 text-[#8B9BB4] border border-white/20 leading-none">
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)] leading-none">
                     Demo
                   </span>
                 )}
@@ -147,7 +147,7 @@ export default function Revenue() {
               >
                 {wallet == null ? "—" : fmtUSD(wallet.usdt_balance ?? 0)}
               </div>
-              <div className="text-[9px] text-[#8B9BB4] mt-1">
+              <div className="text-[9px] text-[color:var(--text-mute)] mt-1">
                 Available USDT · {wallet?.connected ? "Fetched from Binance API" : "Bind API keys for live balance"}
               </div>
             </div>
@@ -158,43 +158,43 @@ export default function Revenue() {
       {/* CARDS 2 & 3: Today's Profit | Cumulative Profit — thin twin cards */}
       <div className="px-4 mt-2.5 grid grid-cols-2 gap-2.5">
         <div
-          className="rounded-2xl border border-white/15 p-3 bg-[#0F1524]/50 backdrop-blur-xl"
+          className="rounded-2xl border border-[color:var(--border-soft)] p-3 bg-[color:var(--surface)]/50 backdrop-blur-xl"
           data-testid="today-profit-card"
         >
-          <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+          <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
             Today&apos;s Profit
           </div>
           <div
             className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
-              today >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+              today >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
             }`}
             data-testid="today-profit"
           >
             {today >= 0 ? "+" : ""}
             {fmtUSD(today)}
           </div>
-          <div className="text-[9px] text-[#8B9BB4] mt-1.5 leading-none">
+          <div className="text-[9px] text-[color:var(--text-mute)] mt-1.5 leading-none">
             {data?.today_trades || 0} sells today
           </div>
         </div>
 
         <div
-          className="rounded-2xl border border-white/15 p-3 bg-[#0F1524]/50 backdrop-blur-xl"
+          className="rounded-2xl border border-[color:var(--border-soft)] p-3 bg-[color:var(--surface)]/50 backdrop-blur-xl"
           data-testid="cumulative-profit-card"
         >
-          <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+          <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
             Cumulative Profit
           </div>
           <div
             className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
-              total >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+              total >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
             }`}
             data-testid="total-profit"
           >
             {total >= 0 ? "+" : ""}
             {fmtUSD(total)}
           </div>
-          <div className="text-[9px] text-[#8B9BB4] mt-1.5 leading-none">
+          <div className="text-[9px] text-[color:var(--text-mute)] mt-1.5 leading-none">
             {data?.total_trades || 0} sells · {data?.by_symbol?.length || 0} symbols
           </div>
         </div>
@@ -202,12 +202,12 @@ export default function Revenue() {
 
       {data?.daily?.length > 0 && (
         <div className="px-4 mt-2.5">
-          <div className="bg-[#0F1524]/50 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5">
+          <div className="bg-[color:var(--surface)]/50 backdrop-blur-xl border border-[color:var(--border-soft)] rounded-2xl p-2.5">
             <div className="flex items-center justify-between mb-1 px-1">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B9BB4] font-semibold">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
                 Daily Profit
               </div>
-              <div className="text-[9px] text-[#8B9BB4] tabular-nums">
+              <div className="text-[9px] text-[color:var(--text-mute)] tabular-nums">
                 All-Time · {data.daily.length}d
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function Revenue() {
               });
               return (
                 <div
-                  className="mt-2 rounded-xl border p-2.5 bg-[#050914]/70 backdrop-blur-xl"
+                  className="mt-2 rounded-xl border p-2.5 bg-[color:var(--bg-base)]/70 backdrop-blur-xl"
                   style={{
                     borderColor: pos ? "rgba(57,255,20,0.35)" : "rgba(255,0,122,0.35)",
                   }}
@@ -278,19 +278,19 @@ export default function Revenue() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div
-                        className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold"
+                        className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold"
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
                         {label} · UTC
                       </div>
                       <div
-                        className={`font-mono font-black text-[20px] leading-none mt-1 ${pos ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                        className={`font-mono font-black text-[20px] leading-none mt-1 ${pos ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
                         {pos ? "+" : ""}${(sel.profit || 0).toFixed(2)}
                       </div>
                       {meta && (
-                        <div className="text-[9px] text-[#8B9BB4] mt-1">
+                        <div className="text-[9px] text-[color:var(--text-mute)] mt-1">
                           {meta.trades} sells · {meta.symbols.length} coin
                           {meta.symbols.length === 1 ? "" : "s"}
                         </div>
@@ -310,7 +310,7 @@ export default function Revenue() {
                       {meta.symbols.map((s) => (
                         <div
                           key={s}
-                          className="flex items-center gap-1 rounded-full bg-white/5 border border-white/15 pl-1 pr-2 py-0.5"
+                          className="flex items-center gap-1 rounded-full bg-white/5 border border-[color:var(--border-soft)] pl-1 pr-2 py-0.5"
                         >
                           <CoinIcon symbol={s} size={14} />
                           <span className="text-[9px] font-bold uppercase tracking-widest">
@@ -323,7 +323,7 @@ export default function Revenue() {
                   <button
                     onClick={() => navigate(`/transactions?date=${selectedDay}`)}
                     data-testid="bar-detail-view-trades"
-                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 transition"
+                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[#00F0FF]/10 border border-[color:var(--primary)]/30 text-[color:var(--primary)] hover:bg-[#00F0FF]/20 transition"
                   >
                     View all trades of this day →
                   </button>
@@ -337,7 +337,7 @@ export default function Revenue() {
       {data?.by_date?.length > 0 && (
         <div className="px-4 mt-4">
           <div className="font-display font-bold text-lg mb-1">Daily History</div>
-          <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mb-2">
+          <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] mb-2">
             Tap a date to see the trades of that day
           </div>
           <div className="space-y-1.5" data-testid="by-date-list">
@@ -356,15 +356,15 @@ export default function Revenue() {
                   key={d.date}
                   onClick={() => navigate(`/transactions?date=${d.date}`)}
                   data-testid={`revenue-date-${d.date}`}
-                  className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
+                  className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[#00F0FF]/5 active:scale-[0.99] transition text-left"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-md bg-[#00F0FF]/10 border border-[#00F0FF]/25 flex flex-col items-center justify-center shrink-0">
-                      <div className="text-[6px] uppercase tracking-wider text-[#8B9BB4] font-bold leading-none">
+                    <div className="w-7 h-7 rounded-md bg-[#00F0FF]/10 border border-[color:var(--primary)]/25 flex flex-col items-center justify-center shrink-0">
+                      <div className="text-[6px] uppercase tracking-wider text-[color:var(--text-mute)] font-bold leading-none">
                         {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
                       </div>
                       <div
-                        className="font-mono font-extrabold text-[11px] leading-none mt-px text-[#00F0FF]"
+                        className="font-mono font-extrabold text-[11px] leading-none mt-px text-[color:var(--primary)]"
                         style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}
                       >
                         {String(dt.getUTCDate()).padStart(2, "0")}
@@ -377,12 +377,12 @@ export default function Revenue() {
                       >
                         {label}
                         {isToday && (
-                          <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40 leading-none">
+                          <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
                             Today
                           </span>
                         )}
                       </div>
-                      <div className="text-[9px] text-[#8B9BB4] mt-0.5 truncate leading-none">
+                      <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5 truncate leading-none">
                         {d.trades} sells · {d.symbols.length} coin{d.symbols.length === 1 ? "" : "s"}
                       </div>
                     </div>
@@ -390,13 +390,13 @@ export default function Revenue() {
                   <div className="flex items-center gap-1 shrink-0 pl-2">
                     <div
                       className={`font-display font-bold tabular-nums text-[12px] ${
-                        d.profit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                        d.profit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
                       }`}
                     >
                       {d.profit >= 0 ? "+" : ""}
                       {fmtUSD(d.profit)}
                     </div>
-                    <ChevronRight size={12} className="text-[#8B9BB4]" />
+                    <ChevronRight size={12} className="text-[color:var(--text-mute)]" />
                   </div>
                 </button>
               );
@@ -406,7 +406,7 @@ export default function Revenue() {
       )}
 
       {(!data?.total_trades) && (
-        <div className="text-center text-sm text-[#8B9BB4] py-8 px-6" data-testid="empty-revenue">
+        <div className="text-center text-sm text-[color:var(--text-mute)] py-8 px-6" data-testid="empty-revenue">
           No completed sells yet. Once your bot closes a position, profit will appear here.
         </div>
       )}

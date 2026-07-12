@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import "@/App.css";
 
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppShell from "@/components/AppShell";
 
@@ -24,26 +25,29 @@ import Market from "@/pages/Market";
 import BotHub from "@/pages/BotHub";
 import Rank from "@/pages/Rank";
 import DemoTheme from "@/pages/DemoTheme";
+import DemoFintech from "@/pages/DemoFintech";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: "#0F1524",
-              color: "#fff",
-              border: "1px solid rgba(0,240,255,0.2)",
-              fontFamily: "Outfit, sans-serif",
-            },
-          }}
-        />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: "var(--toast-bg)",
+                color: "var(--text)",
+                border: "1px solid var(--border)",
+                fontFamily: "Outfit, sans-serif",
+              },
+            }}
+          />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/demo-theme" element={<DemoTheme />} />
+          <Route path="/demo-fintech" element={<DemoFintech />} />
           <Route
             element={
               <ProtectedRoute>
@@ -70,5 +74,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

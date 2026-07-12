@@ -8,16 +8,31 @@ export default function PageHeader({ title, subtitle, right, showBack = true, on
       {showBack && (
         <button
           onClick={() => (onBack ? onBack() : nav(-1))}
-          className="w-9 h-9 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center hover:border-[#00F0FF]/40 hover:bg-white/10 transition-all"
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+          }}
           data-testid="back-btn"
         >
           <ChevronLeft size={18} />
         </button>
       )}
       <div className="flex-1">
-        <div className="font-display font-bold text-lg leading-tight">{title}</div>
+        <div
+          className="font-display font-bold text-lg leading-tight"
+          style={{ color: "var(--text)" }}
+        >
+          {title}
+        </div>
         {subtitle && (
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] mt-0.5">{subtitle}</div>
+          <div
+            className="text-[10px] uppercase tracking-[0.2em] mt-0.5"
+            style={{ color: "var(--text-mute)" }}
+          >
+            {subtitle}
+          </div>
         )}
       </div>
       {right}

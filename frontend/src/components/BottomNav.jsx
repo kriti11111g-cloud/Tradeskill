@@ -13,7 +13,11 @@ const items = [
 export default function BottomNav() {
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-20 bg-[#050914]/85 backdrop-blur-2xl border-t border-white/25 z-50 flex justify-around items-center px-2 no-select"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-20 backdrop-blur-2xl z-50 flex justify-around items-center px-2 no-select transition-colors duration-300"
+      style={{
+        background: "var(--nav-bg)",
+        borderTop: "1px solid var(--nav-border)",
+      }}
       data-testid="bottom-nav"
     >
       {items.map(({ to, icon: Icon, label, testid }) => (
@@ -22,20 +26,26 @@ export default function BottomNav() {
           to={to}
           end={to === "/"}
           data-testid={testid}
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-1 transition-all duration-200 ${
-              isActive ? "text-[#00F0FF]" : "text-[#8B9BB4] hover:text-white"
-            }`
-          }
+          className="flex flex-col items-center gap-1 transition-all duration-200"
         >
           {({ isActive }) => (
             <>
               <Icon
                 size={22}
                 strokeWidth={1.7}
-                style={isActive ? { filter: "drop-shadow(0 0 6px rgba(0,240,255,0.7))" } : {}}
+                style={{
+                  color: isActive ? "var(--primary)" : "var(--text-mute)",
+                  filter: isActive
+                    ? "drop-shadow(0 0 6px var(--primary-glow))"
+                    : "none",
+                }}
               />
-              <span className="text-[10px] uppercase tracking-widest font-semibold font-body">{label}</span>
+              <span
+                className="text-[10px] uppercase tracking-widest font-semibold font-body"
+                style={{ color: isActive ? "var(--primary)" : "var(--text-mute)" }}
+              >
+                {label}
+              </span>
             </>
           )}
         </NavLink>

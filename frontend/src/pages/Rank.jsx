@@ -82,7 +82,7 @@ export default function Rank() {
             </span>
           )}
         </div>
-        <span className="text-[10px] text-[#8B9BB4] font-mono">
+        <span className="text-[10px] text-[color:var(--text-mute)] font-mono">
           {activeIdx + 1} / {ordered.length}
         </span>
       </div>
@@ -114,7 +114,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
             disabled={activeIdx === 0}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#B8C4D8] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[#B8C4D8] text-xs disabled:opacity-30"
             data-testid="btn-rank-prev"
           >
             <ChevronLeft size={14} /> Prev
@@ -141,7 +141,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.min(ordered.length - 1, activeIdx + 1))}
             disabled={activeIdx === ordered.length - 1}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[#B8C4D8] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[#B8C4D8] text-xs disabled:opacity-30"
             data-testid="btn-rank-next"
           >
             Next <ChevronRight size={14} />
@@ -232,7 +232,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
 
         {isAchieved && !isCurrent && (
           <div
-            className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/70 text-[#39FF14] border border-[#39FF14]/40"
+            className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/70 text-[color:var(--good)] border border-[color:var(--good)]/40"
             data-testid={`achieved-badge-${rank.level}`}
           >
             ✓ UNLOCKED
@@ -242,7 +242,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
         {rank.crown && (
           <Crown
             size={24}
-            className="absolute top-3 left-3 z-10 text-[#FFD700]"
+            className="absolute top-3 left-3 z-10 text-[color:var(--warn)]"
             style={{ filter: "drop-shadow(0 0 8px #FFD700)" }}
           />
         )}
@@ -269,7 +269,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
               </div>
               <div
                 className={`text-[11px] font-mono font-black tabular-nums ${
-                  isAchieved ? "text-[#39FF14]" : "text-white"
+                  isAchieved ? "text-[color:var(--good)]" : "text-white"
                 }`}
               >
                 {localProgress.overall_pct}%
@@ -328,10 +328,10 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
             ) : (
               isCurrent && stats && (
                 <div className="flex items-center justify-center gap-3 text-[10px]">
-                  <span className="text-[#8B9BB4]">
+                  <span className="text-[color:var(--text-mute)]">
                     Directs: <span className="text-white font-bold">{stats.direct_count}</span>
                   </span>
-                  <span className="text-[#8B9BB4]">
+                  <span className="text-[color:var(--text-mute)]">
                     Team: <span className="text-white font-bold">{stats.total_team}</span>
                   </span>
                 </div>
@@ -348,12 +348,12 @@ function MiniStat({ label, have, need, color }) {
   const done = have >= need;
   return (
     <div className="flex-1 min-w-0 flex items-center justify-between gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/5">
-      <span className="text-[#8B9BB4] truncate text-[9px] uppercase tracking-wider">
+      <span className="text-[color:var(--text-mute)] truncate text-[9px] uppercase tracking-wider">
         {label}
       </span>
       <span
         className={`font-mono font-bold tabular-nums shrink-0 text-[10px] ${
-          done ? "text-[#39FF14]" : "text-white"
+          done ? "text-[color:var(--good)]" : "text-white"
         }`}
         style={done ? {} : { color }}
       >
@@ -366,10 +366,10 @@ function MiniStat({ label, have, need, color }) {
 function StatMini({ label, value, color }) {
   return (
     <div
-      className="rounded-lg border border-white/10 bg-black/40 p-2"
+      className="rounded-lg border border-[color:var(--border-soft)] bg-black/40 p-2"
       style={{ boxShadow: `inset 0 0 10px ${color}18` }}
     >
-      <div className="text-[9px] uppercase text-[#8B9BB4] tracking-wider">{label}</div>
+      <div className="text-[9px] uppercase text-[color:var(--text-mute)] tracking-wider">{label}</div>
       <div className="text-lg font-black tabular-nums mt-0.5" style={{ color }}>
         {value}
       </div>
@@ -393,7 +393,7 @@ function ProgressBar({ label, have, need, color }) {
     <div className="mb-2" data-testid={`progress-${label.toLowerCase().replace(/ /g, "-")}`}>
       <div className="flex items-center justify-between text-[10px] mb-0.5">
         <span className="text-[#B8C4D8]">{label}</span>
-        <span className={`font-mono font-semibold ${done ? "text-[#39FF14]" : "text-white"}`}>
+        <span className={`font-mono font-semibold ${done ? "text-[color:var(--good)]" : "text-white"}`}>
           {have} / {need}
         </span>
       </div>
@@ -433,7 +433,7 @@ function PlaceholderStar({ rank }) {
           {rank.level}
         </text>
       </svg>
-      <div className="text-[10px] text-[#8B9BB4] mt-2 italic">Image coming soon</div>
+      <div className="text-[10px] text-[color:var(--text-mute)] mt-2 italic">Image coming soon</div>
     </div>
   );
 }

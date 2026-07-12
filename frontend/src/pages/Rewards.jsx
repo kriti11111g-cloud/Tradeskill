@@ -31,13 +31,13 @@ export default function Rewards() {
 
       <div className="px-4">
         <div
-          className="rounded-3xl border border-white/25 p-5 flex items-center gap-4"
+          className="rounded-3xl border border-[color:var(--border)] p-5 flex items-center gap-4"
           style={{
             background: "linear-gradient(135deg, rgba(255,0,122,0.15), rgba(0,240,255,0.10)), #0F1524",
           }}
         >
           <div className="w-14 h-14 rounded-2xl bg-[#FFD700]/15 flex items-center justify-center">
-            <Sparkles size={26} className="text-[#FFD700]" />
+            <Sparkles size={26} className="text-[color:var(--warn)]" />
           </div>
           <div className="flex-1">
             <div className="font-display font-bold text-base">Welcome to Rewards</div>
@@ -51,7 +51,7 @@ export default function Rewards() {
       <div className="px-4 mt-5">
         <div className="font-display font-bold text-lg mb-3">Available</div>
         {rows.length === 0 && (
-          <div className="text-center text-sm text-[#8B9BB4] py-8" data-testid="empty-rewards">
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-rewards">
             No rewards yet.
           </div>
         )}
@@ -59,17 +59,17 @@ export default function Rewards() {
           {rows.map((r) => (
             <div
               key={r.id}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 flex items-center gap-3"
+              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-4 flex items-center gap-3"
             >
               <div className="w-11 h-11 rounded-xl bg-[#00F0FF]/10 flex items-center justify-center">
-                <Gift size={20} className="text-[#00F0FF]" />
+                <Gift size={20} className="text-[color:var(--primary)]" />
               </div>
               <div className="flex-1">
                 <div className="font-display font-bold text-sm capitalize">{r.type} Reward</div>
-                <div className="text-[11px] text-[#8B9BB4] mt-0.5">{r.note || fmtTime(r.created_at)}</div>
+                <div className="text-[11px] text-[color:var(--text-mute)] mt-0.5">{r.note || fmtTime(r.created_at)}</div>
               </div>
               <div className="text-right">
-                <div className="font-display font-bold tabular-nums text-[#39FF14]">+{fmtUSD(r.amount)}</div>
+                <div className="font-display font-bold tabular-nums text-[color:var(--good)]">+{fmtUSD(r.amount)}</div>
                 {r.status === "claimable" ? (
                   <button
                     onClick={() => claim(r.id)}
@@ -79,7 +79,7 @@ export default function Rewards() {
                     Claim
                   </button>
                 ) : (
-                  <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] mt-1">
+                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] mt-1">
                     {r.status}
                   </div>
                 )}

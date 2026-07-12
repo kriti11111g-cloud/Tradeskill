@@ -53,7 +53,7 @@ function WalletBar({ wallet }) {
               Binance Spot
             </div>
             <span
-              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/40" : "bg-white/5 text-[#8B9BB4] border border-white/20"}`}
+              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[#39FF14]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
             >
               {wallet.connected ? `Live · ${wallet.mode?.toUpperCase()}` : "Demo"}
             </span>
@@ -124,11 +124,11 @@ export default function Transactions() {
           <div className="flex items-center gap-2 flex-wrap">
             {symbolFilter && (
               <div
-                className="flex items-center gap-2 rounded-full border border-[#00F0FF]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs"
+                className="flex items-center gap-2 rounded-full border border-[color:var(--primary)]/40 bg-[#00F0FF]/10 pl-2 pr-1 py-1 text-xs"
                 data-testid="symbol-filter-active"
               >
                 <CoinIcon symbol={symbolFilter} size={16} />
-                <span className="font-bold uppercase tracking-widest text-[#00F0FF]">
+                <span className="font-bold uppercase tracking-widest text-[color:var(--primary)]">
                   {shortSymbol(symbolFilter)}
                 </span>
                 <button
@@ -143,11 +143,11 @@ export default function Transactions() {
             )}
             {dateFilter && (
               <div
-                className="flex items-center gap-2 rounded-full border border-[#FFD700]/40 bg-[#FFD700]/10 pl-2.5 pr-1 py-1 text-xs"
+                className="flex items-center gap-2 rounded-full border border-[color:var(--warn)]/40 bg-[#FFD700]/10 pl-2.5 pr-1 py-1 text-xs"
                 data-testid="date-filter-active"
               >
-                <Calendar size={11} className="text-[#FFD700]" />
-                <span className="font-bold uppercase tracking-widest text-[#FFD700]" style={monoNum}>
+                <Calendar size={11} className="text-[color:var(--warn)]" />
+                <span className="font-bold uppercase tracking-widest text-[color:var(--warn)]" style={monoNum}>
                   {dateLabel}
                 </span>
                 <button
@@ -177,11 +177,11 @@ export default function Transactions() {
             className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               f === x
                 ? x === "SELL"
-                  ? "bg-[#FF007A] text-white border-[#FF007A]"
+                  ? "bg-[#FF007A] text-white border-[color:var(--bad)]"
                   : x === "BUY"
-                    ? "bg-[#39FF14] text-[#050914] border-[#39FF14]"
-                    : "bg-[#00F0FF] text-[#050914] border-[#00F0FF]"
-                : "bg-white/5 text-[#8B9BB4] border-white/25 hover:bg-white/10"
+                    ? "bg-[#39FF14] text-[#050914] border-[color:var(--good)]"
+                    : "bg-[#00F0FF] text-[#050914] border-[color:var(--primary)]"
+                : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
             }`}
           >
             {x}
@@ -192,7 +192,7 @@ export default function Transactions() {
       {/* HiTechBot-style thin trade cards */}
       <div className="px-4 mt-3 space-y-1.5" data-testid="tx-list">
         {filtered.length === 0 && (
-          <div className="text-center text-sm text-[#8B9BB4] py-12" data-testid="empty-tx">
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-12" data-testid="empty-tx">
             {f === "ALL"
               ? "No transactions in this view."
               : `No ${f.toLowerCase()} transactions in this view.`}
@@ -207,8 +207,8 @@ export default function Transactions() {
             <div
               key={t.id}
               data-testid={`tx-row-${t.id}`}
-              className={`bg-[#0F1524]/60 backdrop-blur-xl border rounded-xl overflow-hidden transition ${
-                isOpen ? "border-[#00F0FF]/50" : "border-white/15 hover:border-[#00F0FF]/30"
+              className={`bg-[color:var(--surface)]/60 backdrop-blur-xl border rounded-xl overflow-hidden transition ${
+                isOpen ? "border-[color:var(--primary)]/50" : "border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/30"
               }`}
             >
               <button
@@ -230,7 +230,7 @@ export default function Transactions() {
                     >
                       {t.side}
                     </span>
-                    <span className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+                    <span className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
                       <BinanceLogo size={9} />
                       Binance
                     </span>
@@ -245,12 +245,12 @@ export default function Transactions() {
                     </span>
                   </div>
                   {/* Description */}
-                  <div className="text-[9px] text-[#8B9BB4] mt-0.5 leading-none">
+                  <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5 leading-none">
                     Average {t.side} in price USDT
                   </div>
                   {/* Date + Time UTC */}
                   <div
-                    className="text-[9px] text-[#8B9BB4] mt-1 leading-none"
+                    className="text-[9px] text-[color:var(--text-mute)] mt-1 leading-none"
                     style={monoNum}
                   >
                     {fmtDateUTC(t.created_at)} · {fmtTimeUTC(t.created_at).slice(0, 5)} UTC
@@ -261,11 +261,11 @@ export default function Transactions() {
                 <div className="flex flex-col items-end shrink-0 pl-2" style={monoNum}>
                   {isSell ? (
                     <>
-                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                      <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold leading-none">
                         Profit
                       </div>
                       <div
-                        className={`font-mono font-extrabold text-[13px] leading-none mt-1 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                        className={`font-mono font-extrabold text-[13px] leading-none mt-1 ${profitPositive ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
                         data-testid={`tx-profit-${t.id}`}
                       >
                         {profitPositive ? "+" : ""}${(t.profit || 0).toFixed(2)}
@@ -282,7 +282,7 @@ export default function Transactions() {
                         if (!isFinite(roi) || Math.abs(roi) > 500) return null;
                         return (
                           <div
-                            className={`text-[9px] font-mono font-bold leading-none mt-0.5 ${profitPositive ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                            className={`text-[9px] font-mono font-bold leading-none mt-0.5 ${profitPositive ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
                             data-testid={`tx-roi-${t.id}`}
                           >
                             {profitPositive ? "+" : ""}{roi.toFixed(2)}%
@@ -292,7 +292,7 @@ export default function Transactions() {
                     </>
                   ) : (
                     <>
-                      <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold leading-none">
+                      <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold leading-none">
                         Amount
                       </div>
                       <div className="font-mono font-extrabold text-[13px] leading-none mt-1 text-[#EAECEF]">
@@ -302,14 +302,14 @@ export default function Transactions() {
                   )}
                   <ChevronDown
                     size={12}
-                    className={`text-[#8B9BB4] mt-1.5 transition ${isOpen ? "rotate-180" : ""}`}
+                    className={`text-[color:var(--text-mute)] mt-1.5 transition ${isOpen ? "rotate-180" : ""}`}
                   />
                 </div>
               </button>
 
               {isOpen && (
                 <div
-                  className="px-3 pb-2.5 pt-1 border-t border-white/10 bg-[#050914]/40 space-y-1"
+                  className="px-3 pb-2.5 pt-1 border-t border-[color:var(--border-soft)] bg-[color:var(--bg-base)]/40 space-y-1"
                   data-testid={`tx-detail-${t.id}`}
                   style={monoNum}
                 >
@@ -361,7 +361,7 @@ function KV({ label, value, valueColor, copyable }) {
   };
   return (
     <div className="flex items-center gap-2 text-[10px]">
-      <span className="text-[#8B9BB4]">{label} :</span>
+      <span className="text-[color:var(--text-mute)]">{label} :</span>
       <span className="font-mono text-white flex-1 truncate" style={{ color: valueColor || "#fff" }}>
         {value}
       </span>
@@ -373,9 +373,9 @@ function KV({ label, value, valueColor, copyable }) {
           aria-label="Copy"
         >
           {copied ? (
-            <span className="text-[7px] font-black text-[#39FF14]">✓</span>
+            <span className="text-[7px] font-black text-[color:var(--good)]">✓</span>
           ) : (
-            <span className="text-[8px] text-[#8B9BB4]">⧉</span>
+            <span className="text-[8px] text-[color:var(--text-mute)]">⧉</span>
           )}
         </button>
       )}

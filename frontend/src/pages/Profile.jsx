@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  User,
   Award,
   Wallet as WalletIcon,
   Key,
@@ -16,6 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { fmtUSD } from "@/lib/format";
 
@@ -46,21 +46,47 @@ export default function Profile() {
       <PageHeader title="Profile" subtitle="Account · Settings" showBack={false} />
 
       <div className="px-4">
-        <div className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/25 rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00F0FF] to-[#FF007A] flex items-center justify-center font-display font-black text-2xl">
+        {/* User card */}
+        <div
+          className="backdrop-blur-xl rounded-3xl p-5 flex items-center gap-4"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl text-white"
+            style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
+          >
             {(user?.name || user?.email || "?")[0]?.toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-display font-bold text-lg truncate" data-testid="profile-name">
+            <div
+              className="font-display font-bold text-lg truncate"
+              style={{ color: "var(--text)" }}
+              data-testid="profile-name"
+            >
               {user?.name || "Trader"}
             </div>
-            <div className="text-xs text-[#8B9BB4] truncate">{user?.email}</div>
+            <div className="text-xs truncate" style={{ color: "var(--text-mute)" }}>
+              {user?.email}
+            </div>
             <div className="mt-1.5 inline-flex items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30">
+              <span
+                className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: "var(--primary-soft-grad)",
+                  color: "var(--primary)",
+                  border: "1px solid var(--border)",
+                }}
+              >
                 {user?.rank || "Bronze"}
               </span>
               {user?.activated && (
-                <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30">
+                <span
+                  className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full text-white"
+                  style={{ background: "var(--primary-grad)" }}
+                >
                   Active
                 </span>
               )}
@@ -68,41 +94,104 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-4 flex items-center justify-between">
+        {/* Wallet mini */}
+        <div
+          className="mt-3 backdrop-blur-xl rounded-2xl p-4 flex items-center justify-between"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+        >
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">Wallet</div>
-            <div className="font-display font-bold text-xl tabular-nums mt-0.5">
+            <div
+              className="text-[10px] uppercase tracking-widest font-bold"
+              style={{ color: "var(--text-mute)" }}
+            >
+              Wallet
+            </div>
+            <div
+              className="font-display font-bold text-xl tabular-nums mt-0.5"
+              style={{ color: "var(--text)" }}
+            >
               {fmtUSD(user?.wallet_usdt || 0)}
             </div>
           </div>
           <Link
             to="/wallet"
-            className="text-[10px] uppercase tracking-widest text-[#00F0FF] font-bold border border-[#00F0FF]/40 rounded-full px-3 py-1.5"
+            className="text-[10px] uppercase tracking-widest font-bold rounded-full px-3 py-1.5"
+            style={{
+              color: "var(--primary)",
+              border: "1px solid var(--border)",
+            }}
           >
             View →
           </Link>
         </div>
 
-        <div className="mt-3 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl divide-y divide-white/15">
-          {items.map((it) => (
+        {/* Theme toggle card */}
+        <div
+          className="mt-3 backdrop-blur-xl rounded-2xl p-4 flex items-center justify-between"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+          data-testid="theme-setting"
+        >
+          <div>
+            <div
+              className="text-[10px] uppercase tracking-widest font-bold"
+              style={{ color: "var(--text-mute)" }}
+            >
+              Appearance
+            </div>
+            <div
+              className="font-display font-bold text-base mt-0.5"
+              style={{ color: "var(--text)" }}
+            >
+              Day / Night Mode
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        {/* Menu list */}
+        <div
+          className="mt-3 backdrop-blur-xl rounded-2xl overflow-hidden"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+        >
+          {items.map((it, i) => (
             <Link
               key={it.label}
               to={it.to}
               data-testid={it.testid}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition"
+              className="flex items-center gap-3 px-4 py-3.5 transition"
+              style={{
+                borderBottom:
+                  i < items.length - 1 ? "1px solid var(--border-soft)" : "none",
+              }}
             >
-              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/25 flex items-center justify-center">
-                <it.icon size={16} className="text-[#00F0FF]" strokeWidth={1.7} />
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "var(--surface-3)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <it.icon size={16} color="var(--primary)" strokeWidth={1.7} />
               </div>
-              <div className="flex-1 font-body text-sm font-medium">{it.label}</div>
-              <ChevronRight size={16} className="text-[#8B9BB4]" />
+              <div
+                className="flex-1 font-body text-sm font-medium"
+                style={{ color: "var(--text)" }}
+              >
+                {it.label}
+              </div>
+              <ChevronRight size={16} color="var(--text-mute)" />
             </Link>
           ))}
         </div>
 
         <button
           onClick={doLogout}
-          className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#FF007A]/10 border border-[#FF007A]/30 text-[#FF007A] font-display font-bold hover:bg-[#FF007A]/20 transition"
+          className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-display font-bold transition"
+          style={{
+            background: "rgba(248,113,113,0.10)",
+            border: "1px solid rgba(248,113,113,0.35)",
+            color: "var(--bad)",
+          }}
           data-testid="logout-btn"
         >
           <LogOut size={18} /> Logout

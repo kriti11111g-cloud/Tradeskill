@@ -2,23 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-base: #050914;
-  --bg-surface: #0F1524;
-  --brand-cyan: #00F0FF;
-  --brand-magenta: #FF007A;
-  --brand-gold: #FFD700;
-  --success: #39FF14;
-  --text-primary: #FFFFFF;
-  --text-secondary: #8B9BB4;
+/* =========================================================
+   HUBXBOT — GREEN BRAND (Day + Night Mode CSS Variables)
+   Root defaults = Night (dark). [data-theme="light"] = Day.
+   ========================================================= */
+:root,
+[data-theme="dark"] {
+  /* Background layers */
+  --bg-base: #030B08;
+  --bg-gradient: radial-gradient(1200px 800px at 10% -10%, #052E16 0%, transparent 55%),
+                 radial-gradient(900px 700px at 100% 100%, #041F10 0%, transparent 60%),
+                 #030B08;
+  --surface: #0A1710;
+  --surface-2: rgba(255,255,255,0.04);
+  --surface-3: #0F2318;
+
+  /* Borders & lines */
+  --border: rgba(0,200,83,0.22);
+  --border-soft: rgba(0,200,83,0.10);
+
+  /* Text */
+  --text: #EAFFF3;
+  --text-soft: #B7E4C7;
+  --text-mute: #6B8E7F;
+
+  /* Green brand */
+  --primary: #00E676;
+  --primary-deep: #00C853;
+  --primary-glow: rgba(0,230,118,0.45);
+  --primary-grad: linear-gradient(135deg,#00E676 0%,#00C853 100%);
+  --primary-soft-grad: linear-gradient(135deg,rgba(0,230,118,0.18) 0%,rgba(0,200,83,0.04) 100%);
+  --hero-grad: linear-gradient(135deg,#00C853 0%,#00E676 55%,#4ADE80 100%);
+
+  /* Semantic */
+  --good: #4ADE80;
+  --bad: #F87171;
+  --warn: #FBBF24;
+
+  /* Chrome */
+  --nav-bg: rgba(6,20,12,0.85);
+  --nav-border: rgba(0,200,83,0.2);
+  --header-bg: rgba(6,20,12,0.7);
+  --toast-bg: #0A1710;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 12px rgba(0,230,118,0.35);
+  --shadow-md: 0 12px 32px -12px rgba(0,230,118,0.45);
+  --shadow-lg: 0 20px 60px -20px rgba(0,230,118,0.35), 0 0 0 1px rgba(0,230,118,0.12);
+
+  /* Back-compat aliases (old brand tokens map to green) */
+  --bg-surface: #0F2318;
+  --brand-cyan: #00E676;
+  --brand-magenta: #F87171;
+  --brand-gold: #FBBF24;
+  --success: #4ADE80;
+  --text-primary: #EAFFF3;
+  --text-secondary: #6B8E7F;
+}
+
+[data-theme="light"] {
+  --bg-base: #F6FFFA;
+  --bg-gradient: radial-gradient(1200px 800px at 10% -10%, #DCFCE7 0%, transparent 55%),
+                 radial-gradient(900px 700px at 100% 100%, #ECFDF5 0%, transparent 60%),
+                 #F6FFFA;
+  --surface: #FFFFFF;
+  --surface-2: #F0FDF4;
+  --surface-3: #ECFDF5;
+
+  --border: #BBF7D0;
+  --border-soft: #DCFCE7;
+
+  --text: #052E16;
+  --text-soft: #065F46;
+  --text-mute: #6B8E7F;
+
+  --primary: #00A854;
+  --primary-deep: #008040;
+  --primary-glow: rgba(0,168,84,0.35);
+  --primary-grad: linear-gradient(135deg,#00C853 0%,#00A854 100%);
+  --primary-soft-grad: linear-gradient(135deg,#DCFCE7 0%,#FFFFFF 100%);
+  --hero-grad: linear-gradient(135deg,#00A854 0%,#00C853 55%,#4ADE80 100%);
+
+  --good: #059669;
+  --bad: #DC2626;
+  --warn: #D97706;
+
+  --nav-bg: rgba(255,255,255,0.9);
+  --nav-border: #BBF7D0;
+  --header-bg: rgba(255,255,255,0.75);
+  --toast-bg: #FFFFFF;
+
+  --shadow-sm: 0 4px 12px rgba(0,168,84,0.25);
+  --shadow-md: 0 12px 32px -12px rgba(0,168,84,0.35);
+  --shadow-lg: 0 20px 60px -20px rgba(0,168,84,0.25), 0 0 0 1px rgba(0,168,84,0.08);
+
+  --bg-surface: #FFFFFF;
+  --brand-cyan: #00A854;
+  --brand-magenta: #DC2626;
+  --brand-gold: #D97706;
+  --success: #059669;
+  --text-primary: #052E16;
+  --text-secondary: #6B8E7F;
 }
 
 html, body, #root {
-  background: var(--bg-base);
-  color: var(--text-primary);
+  background: var(--bg-gradient);
+  color: var(--text);
   font-family: 'Outfit', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
 .font-display { font-family: 'Unbounded', sans-serif; }

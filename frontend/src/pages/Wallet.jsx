@@ -93,13 +93,13 @@ export default function Wallet() {
       {/* Balance card */}
       <div className="px-4">
         <div
-          className="relative overflow-hidden rounded-3xl border border-white/25 p-6"
+          className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6"
           style={{
             background: "linear-gradient(135deg, rgba(0,240,255,0.12), rgba(255,215,0,0.08)), #0F1524",
           }}
         >
           <div className="flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#8B9BB4] font-bold">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--text-mute)] font-bold">
               {isLiveMode
                 ? summary?.wallet_connected
                   ? `Live ${bind.mode === "real" ? "Binance" : "Testnet"} Balance`
@@ -110,8 +110,8 @@ export default function Wallet() {
               <div
                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                   bind.mode === "real"
-                    ? "bg-[#FF007A]/15 text-[#FF007A] border-[#FF007A]/40"
-                    : "bg-[#FFD700]/15 text-[#FFD700] border-[#FFD700]/40"
+                    ? "bg-[#FF007A]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
+                    : "bg-[#FFD700]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
                 }`}
                 data-testid="wallet-mode-badge"
               >
@@ -125,10 +125,10 @@ export default function Wallet() {
           {/* Wallet connection error banner (real/testnet mode, Binance unreachable) */}
           {isLiveMode && summary?.wallet_error && (
             <div
-              className="mt-3 rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
+              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[#FFD700]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
               data-testid="wallet-connection-error"
             >
-              <div className="text-[9px] uppercase tracking-widest text-[#FFD700] font-black mb-0.5">
+              <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black mb-0.5">
                 Cannot Reach Binance
               </div>
               {summary.wallet_error}
@@ -136,14 +136,14 @@ export default function Wallet() {
           )}
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
-              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Available USDT</div>
+              <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Available USDT</div>
               <div className="font-display font-bold text-lg tabular-nums mt-0.5">
                 {fmtNum(summary?.wallet_usdt || 0, 2)}
               </div>
             </div>
             <div>
-              <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">In Positions</div>
-              <div className="font-display font-bold text-lg tabular-nums mt-0.5 text-[#00F0FF]">
+              <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">In Positions</div>
+              <div className="font-display font-bold text-lg tabular-nums mt-0.5 text-[color:var(--primary)]">
                 {fmtNum(summary?.positions_value_usdt || 0, 2)}
               </div>
             </div>
@@ -157,8 +157,8 @@ export default function Wallet() {
           <div
             className={`rounded-3xl border p-5 relative overflow-hidden ${
               bind.mode === "real"
-                ? "border-[#FF007A]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
-                : "border-[#FFD700]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
+                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[#FF007A]/10 to-transparent"
+                : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
             }`}
             data-testid="live-balances-card"
           >
@@ -166,31 +166,31 @@ export default function Wallet() {
               <div className="flex items-center gap-2">
                 <Zap
                   size={16}
-                  className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}
+                  className={bind.mode === "real" ? "text-[color:var(--bad)]" : "text-[color:var(--warn)]"}
                 />
                 <div className="text-[10px] uppercase tracking-[0.3em] font-bold">
-                  Live Binance · <span className={bind.mode === "real" ? "text-[#FF007A]" : "text-[#FFD700]"}>{bind.mode}</span>
+                  Live Binance · <span className={bind.mode === "real" ? "text-[color:var(--bad)]" : "text-[color:var(--warn)]"}>{bind.mode}</span>
                 </div>
               </div>
               <button
                 onClick={loadLive}
                 disabled={liveLoading}
                 data-testid="live-refresh"
-                className="w-8 h-8 rounded-lg bg-white/5 border border-white/25 flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
+                className="w-8 h-8 rounded-lg bg-white/5 border border-[color:var(--border)] flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
               >
                 <RefreshCw size={14} className={liveLoading ? "animate-spin" : ""} />
               </button>
             </div>
 
             {liveLoading && !live && (
-              <div className="text-center text-xs text-[#8B9BB4] py-4" data-testid="live-loading">
+              <div className="text-center text-xs text-[color:var(--text-mute)] py-4" data-testid="live-loading">
                 Fetching balances from Binance...
               </div>
             )}
 
             {liveErr && (
-              <div className="bg-[#FF007A]/10 border border-[#FF007A]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
-                <div className="font-bold text-[#FF007A] mb-1">Unable to load balances</div>
+              <div className="bg-[#FF007A]/10 border border-[color:var(--bad)]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
+                <div className="font-bold text-[color:var(--bad)] mb-1">Unable to load balances</div>
                 {liveErr}
               </div>
             )}
@@ -207,15 +207,15 @@ export default function Wallet() {
                 .sort((a, b) => b.usdt_value - a.usdt_value);
               return (
                 <div data-testid="live-balances-list">
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/20">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-[color:var(--border)]">
                     <div>
-                      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Est. Total Value</div>
+                      <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Est. Total Value</div>
                       <div className="font-display font-black text-2xl tabular-nums mt-0.5">
                         {fmtUSD(total)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-bold">Assets</div>
+                      <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Assets</div>
                       <div className="font-display font-bold text-lg tabular-nums mt-0.5" data-testid="live-count">
                         {live.balances.length}
                       </div>
@@ -223,12 +223,12 @@ export default function Wallet() {
                   </div>
 
                   <div className="relative mb-2">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B9BB4]" />
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-mute)]" />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search coin..."
-                      className="w-full bg-[#050914] border border-white/25 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
+                      className="w-full bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[color:var(--primary)] placeholder:text-[color:var(--text-mute)]"
                       data-testid="live-search"
                     />
                   </div>
@@ -245,7 +245,7 @@ export default function Wallet() {
                           <div>
                             <div className="font-display font-bold text-sm">{b.asset}</div>
                             {b.locked > 0 && (
-                              <div className="text-[9px] text-[#8B9BB4] tabular-nums">
+                              <div className="text-[9px] text-[color:var(--text-mute)] tabular-nums">
                                 Locked: {fmtNum(b.locked, 6)}
                               </div>
                             )}
@@ -253,20 +253,20 @@ export default function Wallet() {
                         </div>
                         <div className="text-right">
                           <div className="font-display font-bold tabular-nums text-sm">{fmtNum(b.free, 6)}</div>
-                          <div className="text-[10px] text-[#8B9BB4] tabular-nums">
+                          <div className="text-[10px] text-[color:var(--text-mute)] tabular-nums">
                             ≈ {fmtUSD(b.usdt_value)}
                           </div>
                         </div>
                       </div>
                     ))}
                     {filtered.length === 0 && (
-                      <div className="text-center text-xs text-[#8B9BB4] py-4">
+                      <div className="text-center text-xs text-[color:var(--text-mute)] py-4">
                         No coin matches &quot;{search}&quot;.
                       </div>
                     )}
                   </div>
                   {live.canTrade === false && (
-                    <div className="text-[10px] text-[#FF007A] mt-2">
+                    <div className="text-[10px] text-[color:var(--bad)] mt-2">
                       ⚠️ This API key does not have trade permission.
                     </div>
                   )}
@@ -275,7 +275,7 @@ export default function Wallet() {
             })()}
 
             {live && live.balances && live.balances.length === 0 && (
-              <div className="text-center text-xs text-[#8B9BB4] py-4" data-testid="live-empty">
+              <div className="text-center text-xs text-[color:var(--text-mute)] py-4" data-testid="live-empty">
                 No balances found on Binance account.
               </div>
             )}
@@ -290,7 +290,7 @@ export default function Wallet() {
             key={a.type}
             onClick={() => setModal(a.type)}
             data-testid={a.testid}
-            className="flex flex-col items-center gap-2 py-4 bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl hover:border-[#00F0FF]/30 transition"
+            className="flex flex-col items-center gap-2 py-4 bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl hover:border-[color:var(--primary)]/30 transition"
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -311,18 +311,18 @@ export default function Wallet() {
             {summary.positions.map((p) => (
               <div
                 key={p.symbol}
-                className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
+                className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
                 data-testid={`position-${p.symbol}`}
               >
                 <div>
                   <div className="font-display font-bold text-sm">{p.symbol.replace("USDT", "/USDT")}</div>
-                  <div className="text-[10px] text-[#8B9BB4] mt-0.5 tabular-nums">
+                  <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5 tabular-nums">
                     {fmtNum(p.qty, 6)} @ {fmtNum(p.avg_price, 4)}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-display font-bold tabular-nums text-sm">{fmtUSD(p.value)}</div>
-                  <div className={`text-[11px] tabular-nums ${p.pnl >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}>
+                  <div className={`text-[11px] tabular-nums ${p.pnl >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}>
                     {p.pnl >= 0 ? "+" : ""}
                     {fmtUSD(p.pnl)}
                   </div>
@@ -337,7 +337,7 @@ export default function Wallet() {
       <div className="px-4 mt-5">
         <div className="font-display font-bold text-lg mb-3">History</div>
         {history.length === 0 && (
-          <div className="text-center text-sm text-[#8B9BB4] py-8" data-testid="empty-history">
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-history">
             No wallet activity yet
           </div>
         )}
@@ -345,22 +345,22 @@ export default function Wallet() {
           {history.map((h) => (
             <div
               key={h.id}
-              className="bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 flex items-center justify-between"
+              className="bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3 flex items-center justify-between"
             >
               <div>
                 <div className="font-display font-bold text-sm capitalize">{h.type}</div>
-                <div className="text-[10px] text-[#8B9BB4] mt-0.5">{fmtTime(h.created_at)}</div>
+                <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5">{fmtTime(h.created_at)}</div>
               </div>
               <div className="text-right">
                 <div
                   className={`font-display font-bold text-sm tabular-nums ${
-                    h.type === "deposit" ? "text-[#39FF14]" : h.type === "withdraw" ? "text-[#FF007A]" : "text-white"
+                    h.type === "deposit" ? "text-[color:var(--good)]" : h.type === "withdraw" ? "text-[color:var(--bad)]" : "text-white"
                   }`}
                 >
                   {h.type === "withdraw" ? "-" : "+"}
                   {fmtUSD(h.amount)}
                 </div>
-                <div className="text-[10px] text-[#8B9BB4]">Bal {fmtUSD(h.balance_after)}</div>
+                <div className="text-[10px] text-[color:var(--text-mute)]">Bal {fmtUSD(h.balance_after)}</div>
               </div>
             </div>
           ))}
@@ -374,13 +374,13 @@ export default function Wallet() {
           onClick={() => setModal(null)}
         >
           <div
-            className="w-full max-w-md bg-[#0F1524] border border-white/25 rounded-t-3xl sm:rounded-3xl p-6"
+            className="w-full max-w-md bg-[color:var(--surface)] border border-[color:var(--border)] rounded-t-3xl sm:rounded-3xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="font-display font-bold text-xl capitalize mb-4">{modal}</div>
             <form onSubmit={submit} className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8B9BB4] font-bold">Amount (USDT)</label>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">Amount (USDT)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -388,7 +388,7 @@ export default function Wallet() {
                   autoFocus
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full mt-1.5 bg-[#050914] border border-white/25 rounded-xl px-4 py-3 font-display font-bold text-xl tabular-nums focus:outline-none focus:border-[#00F0FF]"
+                  className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 font-display font-bold text-xl tabular-nums focus:outline-none focus:border-[color:var(--primary)]"
                   data-testid="wallet-amount-input"
                 />
               </div>
@@ -396,7 +396,7 @@ export default function Wallet() {
                 <button
                   type="button"
                   onClick={() => setModal(null)}
-                  className="py-3 rounded-xl bg-white/5 border border-white/25 font-bold"
+                  className="py-3 rounded-xl bg-white/5 border border-[color:var(--border)] font-bold"
                 >
                   Cancel
                 </button>

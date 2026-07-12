@@ -93,19 +93,19 @@ export default function Market() {
         right={
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-tgx-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-[#39FF14] font-bold">LIVE</span>
+            <span className="text-[10px] uppercase tracking-widest text-[color:var(--good)] font-bold">LIVE</span>
           </div>
         }
       />
 
       <div className="px-4">
         <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B9BB4]" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[color:var(--text-mute)]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search coin (BTC, ETH, Solana, ...)"
-            className="w-full bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[#00F0FF] placeholder:text-[#8B9BB4]"
+            className="w-full bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[color:var(--primary)] placeholder:text-[color:var(--text-mute)]"
             data-testid="market-search"
           />
         </div>
@@ -119,8 +119,8 @@ export default function Market() {
             data-testid={`sort-${s.id}`}
             className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               sort === s.id
-                ? "bg-[#00F0FF] text-[#050914] border-[#00F0FF]"
-                : "bg-white/5 text-[#8B9BB4] border-white/20 hover:bg-white/10"
+                ? "bg-[#00F0FF] text-[#050914] border-[color:var(--primary)]"
+                : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
             }`}
           >
             {s.label}
@@ -129,7 +129,7 @@ export default function Market() {
       </div>
 
       <div className="px-4 mt-3">
-        <div className="text-[10px] uppercase tracking-widest text-[#8B9BB4] font-bold">
+        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
           {filtered.length} of {coins.length} coins · Tap to trade
         </div>
       </div>
@@ -145,10 +145,10 @@ export default function Market() {
             <Link
               to={`/pair/${p.symbol}`}
               data-testid={`market-pair-${p.symbol}`}
-              className="flex items-center justify-between bg-[#0F1524]/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 hover:border-[#00F0FF]/50 hover:bg-[#0F1524]/80 transition-all"
+              className="flex items-center justify-between bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border)] rounded-2xl p-3.5 hover:border-[color:var(--primary)]/50 hover:bg-[color:var(--surface)]/80 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div className="w-7 text-[10px] tabular-nums text-[#8B9BB4] font-bold text-right">
+                <div className="w-7 text-[10px] tabular-nums text-[color:var(--text-mute)] font-bold text-right">
                   #{p.rank}
                 </div>
                 {p.image ? (
@@ -168,9 +168,9 @@ export default function Market() {
                 <div>
                   <div className="font-display font-bold text-sm">
                     {p.asset}
-                    <span className="text-[#8B9BB4]">/USDT</span>
+                    <span className="text-[color:var(--text-mute)]">/USDT</span>
                   </div>
-                  <div className="text-[10px] text-[#8B9BB4] mt-0.5 truncate max-w-[140px]">
+                  <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5 truncate max-w-[140px]">
                     {p.name}
                   </div>
                 </div>
@@ -181,7 +181,7 @@ export default function Market() {
                 </div>
                 <div
                   className={`text-xs font-bold tabular-nums mt-0.5 ${
-                    p.change_pct >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"
+                    p.change_pct >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
                   }`}
                 >
                   {fmtPct(p.change_pct)}
@@ -192,7 +192,7 @@ export default function Market() {
         ))}
 
         {filtered.length === 0 && (
-          <div className="text-center text-sm text-[#8B9BB4] py-16" data-testid="market-empty">
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-16" data-testid="market-empty">
             {coins.length === 0 ? "Loading top 50..." : `No match for "${search}"`}
           </div>
         )}

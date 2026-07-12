@@ -5,8 +5,8 @@ export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050914]">
-        <div className="w-10 h-10 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[color:var(--bg-base)]">
+        <div className="w-10 h-10 border-2 border-[color:var(--primary)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

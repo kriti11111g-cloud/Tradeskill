@@ -63,18 +63,28 @@ export default function LiveTicker() {
 
   return (
     <div
-      className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-9 border-b border-white/20 bg-[#050914]/95 backdrop-blur-2xl overflow-hidden z-40"
+      className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-9 backdrop-blur-2xl overflow-hidden z-40 transition-colors duration-300"
+      style={{
+        background: "var(--header-bg)",
+        borderBottom: "1px solid var(--nav-border)",
+      }}
       data-testid="live-ticker"
     >
       <div className="flex gap-8 whitespace-nowrap animate-tgx-marquee items-center h-full pr-12">
         {loop.map((p, i) => (
           <div key={i} className="flex items-center gap-2 text-xs font-body">
-            <span className="text-[#8B9BB4] font-semibold">{p.symbol.replace("USDT", "/USDT")}</span>
-            <span className="font-display font-medium tabular-nums text-white">
+            <span className="font-semibold" style={{ color: "var(--text-mute)" }}>
+              {p.symbol.replace("USDT", "/USDT")}
+            </span>
+            <span
+              className="font-display font-medium tabular-nums"
+              style={{ color: "var(--text)" }}
+            >
               {Number(p.last_price).toLocaleString(undefined, { maximumFractionDigits: 4 })}
             </span>
             <span
-              className={`tabular-nums ${p.change_pct >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+              className="tabular-nums"
+              style={{ color: p.change_pct >= 0 ? "var(--good)" : "var(--bad)" }}
             >
               {fmtPct(p.change_pct)}
             </span>

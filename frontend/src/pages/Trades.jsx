@@ -39,8 +39,8 @@ function BotCard({ bot }) {
       data-testid={`bot-card-${bot.symbol}`}
       className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
         isRunning
-          ? "bg-gradient-to-br from-[#0F1524]/80 to-[#0B111E]/80 border border-[#39FF14]/35 hover:border-[#39FF14]/60"
-          : "bg-[#0F1524]/60 backdrop-blur-xl border border-white/15 hover:border-[#00F0FF]/40"
+          ? "bg-gradient-to-br from-[#0F1524]/80 to-[#0B111E]/80 border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
+          : "bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/40"
       }`}
       style={
         isRunning
@@ -63,7 +63,7 @@ function BotCard({ bot }) {
             <div className="font-bold text-[12px] leading-none">
               {shortSymbol(bot.symbol)}/USDT
             </div>
-            <div className="text-[8px] uppercase tracking-widest text-[#8B9BB4] mt-1 leading-none">
+            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] mt-1 leading-none">
               {(bot.trade_method || "Cycle")} · {isRunning ? "Running" : "Idle"}
             </div>
           </div>
@@ -84,7 +84,7 @@ function BotCard({ bot }) {
       {/* Middle: price + floating */}
       <div className="flex items-end justify-between mt-2 gap-2">
         <div>
-          <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] leading-none">
+          <div className="text-[7px] uppercase tracking-widest text-[color:var(--text-mute)] leading-none">
             Live Price
           </div>
           <div
@@ -95,13 +95,13 @@ function BotCard({ bot }) {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[7px] uppercase tracking-widest text-[#8B9BB4] leading-none">
+          <div className="text-[7px] uppercase tracking-widest text-[color:var(--text-mute)] leading-none">
             {hasPosition ? "Floating P&L" : "Position"}
           </div>
           {hasPosition ? (
             hasLivePrice ? (
               <div
-                className={`font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none ${floating >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+                className={`font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none ${floating >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
                 data-testid={`bot-floating-${bot.symbol}`}
               >
                 {floating >= 0 ? "+" : ""}${fmtNum(floating, 2)}
@@ -111,19 +111,19 @@ function BotCard({ bot }) {
                 </span>
               </div>
             ) : (
-              <div className="text-[9px] text-[#8B9BB4] mt-0.5">Connecting…</div>
+              <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">Connecting…</div>
             )
           ) : (
-            <div className="text-[9px] text-[#8B9BB4] mt-0.5">No open position</div>
+            <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">No open position</div>
           )}
         </div>
       </div>
 
       {/* Merged Buy/Sell/Profit strip with date range */}
-      <div className="mt-2 pt-2 border-t border-white/10">
+      <div className="mt-2 pt-2 border-t border-[color:var(--border-soft)]">
         {(bot.first_trade_at || bot.last_trade_at) && (
           <div
-            className="text-[8px] uppercase tracking-widest text-[#8B9BB4] font-bold mb-1"
+            className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold mb-1"
             style={{ fontVariantNumeric: "tabular-nums" }}
             data-testid={`bot-date-range-${bot.symbol}`}
           >
@@ -132,7 +132,7 @@ function BotCard({ bot }) {
               <> → {fmtDateShortUTC(bot.last_trade_at)}</>
             )}
             {(bot.margin_call_count > 0 || hasPosition) && (
-              <span className="ml-2 text-[#00F0FF]">· Round {(bot.margin_call_count || 0) + (hasPosition ? 1 : 0)}</span>
+              <span className="ml-2 text-[color:var(--primary)]">· Round {(bot.margin_call_count || 0) + (hasPosition ? 1 : 0)}</span>
             )}
           </div>
         )}
@@ -140,15 +140,15 @@ function BotCard({ bot }) {
           className="flex items-center gap-2 text-[11px] font-mono"
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
-          <span className="text-[#39FF14] font-bold" data-testid={`bot-buys-${bot.symbol}`}>
-            {bot.buy_count || 0}<span className="text-[8px] uppercase tracking-widest text-[#8B9BB4] ml-1">Buys</span>
+          <span className="text-[color:var(--good)] font-bold" data-testid={`bot-buys-${bot.symbol}`}>
+            {bot.buy_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Buys</span>
           </span>
           <span className="text-white/20">·</span>
-          <span className="text-[#FF007A] font-bold" data-testid={`bot-sells-${bot.symbol}`}>
-            {bot.sell_count || 0}<span className="text-[8px] uppercase tracking-widest text-[#8B9BB4] ml-1">Sells</span>
+          <span className="text-[color:var(--bad)] font-bold" data-testid={`bot-sells-${bot.symbol}`}>
+            {bot.sell_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Sells</span>
           </span>
           <span
-            className={`ml-auto font-extrabold ${cumProfit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+            className={`ml-auto font-extrabold ${cumProfit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
             data-testid={`bot-profit-${bot.symbol}`}
           >
             {cumProfit >= 0 ? "+" : ""}${fmtNum(cumProfit, 2)}
@@ -224,20 +224,20 @@ export default function Trades() {
       <div className="px-4 mb-3">
         <button
           onClick={() => navigate("/bind-api")}
-          className="w-full text-left rounded-2xl border border-[#00F0FF]/25 bg-gradient-to-br from-[#0F1524]/90 to-[#0B111E]/90 p-3 hover:border-[#FFD700]/40 transition"
+          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-gradient-to-br from-[#0F1524]/90 to-[#0B111E]/90 p-3 hover:border-[color:var(--warn)]/40 transition"
           style={{ boxShadow: "0 0 22px rgba(0,240,255,0.08)" }}
           data-testid="trades-wallet-card"
         >
           <div className="flex items-center gap-2 mb-2">
-            <WalletIcon size={14} className="text-[#00F0FF]" />
-            <span className="text-[10px] uppercase tracking-[0.28em] text-[#8B9BB4] font-semibold">
+            <WalletIcon size={14} className="text-[color:var(--primary)]" />
+            <span className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--text-mute)] font-semibold">
               Exchange Wallet
             </span>
             <span
               className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded ${
                 spot?.connected
-                  ? "bg-[#39FF14]/15 text-[#39FF14]"
-                  : "bg-white/5 text-[#8B9BB4]"
+                  ? "bg-[#39FF14]/15 text-[color:var(--good)]"
+                  : "bg-white/5 text-[color:var(--text-mute)]"
               }`}
               data-testid="wallet-exchange-status"
             >
@@ -252,8 +252,8 @@ export default function Trades() {
               >
                 {spot?.connected ? fmtUSD(spot?.usdt_balance || 0) : "—"}
               </div>
-              <div className="text-[10px] text-[#8B9BB4] mt-1.5 flex items-center gap-1">
-                <Link2 size={10} className={spot?.connected ? "text-[#39FF14]" : "text-[#8B9BB4]"} />
+              <div className="text-[10px] text-[color:var(--text-mute)] mt-1.5 flex items-center gap-1">
+                <Link2 size={10} className={spot?.connected ? "text-[color:var(--good)]" : "text-[color:var(--text-mute)]"} />
                 {spot?.connected
                   ? "Binance · Spot USDT (free)"
                   : spot?.error
@@ -267,24 +267,24 @@ export default function Trades() {
 
       {/* Summary strip */}
       <div className="px-4 grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-white/15 bg-[#0F1524]/50 p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Active Bots
           </div>
-          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums text-[#39FF14]">{active}</div>
+          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums text-[color:var(--good)]">{active}</div>
         </div>
-        <div className="rounded-xl border border-white/15 bg-[#0F1524]/50 p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Total Bots
           </div>
           <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums">{bots.length}</div>
         </div>
-        <div className="rounded-xl border border-white/15 bg-[#0F1524]/50 p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[#8B9BB4] font-semibold">
+        <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface)]/50 p-2.5">
+          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
             Total Profit
           </div>
           <div
-            className={`font-mono font-extrabold text-[16px] mt-1 tabular-nums ${totalProfit >= 0 ? "text-[#39FF14]" : "text-[#FF007A]"}`}
+            className={`font-mono font-extrabold text-[16px] mt-1 tabular-nums ${totalProfit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
             data-testid="trades-total-profit"
           >
             {totalProfit >= 0 ? "+" : ""}${fmtNum(totalProfit, 2)}
@@ -339,11 +339,11 @@ export default function Trades() {
       {/* Bot cards list */}
       <div className="px-4 mt-3 space-y-1.5" data-testid="bots-list">
         {loading && (
-          <div className="text-center text-sm text-[#8B9BB4] py-12">Loading bots…</div>
+          <div className="text-center text-sm text-[color:var(--text-mute)] py-12">Loading bots…</div>
         )}
         {!loading && bots.length === 0 && (
           <div
-            className="text-center text-sm text-[#8B9BB4] py-16 border border-dashed border-white/20 rounded-2xl"
+            className="text-center text-sm text-[color:var(--text-mute)] py-16 border border-dashed border-[color:var(--border)] rounded-2xl"
             data-testid="no-bots"
           >
             No bots yet. Tap the + button to start one.
@@ -351,7 +351,7 @@ export default function Trades() {
         )}
         {!loading && bots.length > 0 && visible.length === 0 && (
           <div
-            className="text-center text-sm text-[#8B9BB4] py-16 border border-dashed border-white/20 rounded-2xl"
+            className="text-center text-sm text-[color:var(--text-mute)] py-16 border border-dashed border-[color:var(--border)] rounded-2xl"
             data-testid="no-bots-filter"
           >
             {filter === "live" ? (
