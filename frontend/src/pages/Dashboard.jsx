@@ -23,6 +23,8 @@ import {
   BarChart3,
   Users,
   Trophy,
+  BookOpen,
+  Newspaper,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum } from "@/lib/format";
@@ -462,7 +464,7 @@ export default function Dashboard() {
         </div>
 
         {/* ============ QUICK ACCESS GRID (6 cards) ============ */}
-        <div className="grid grid-cols-3 gap-3 mb-5" data-testid="dash-quick-grid">
+        <div className="grid grid-cols-4 gap-2.5 mb-5" data-testid="dash-quick-grid">
           {[
             { icon: Key, label: "Bind API", to: "/bind-api", tint: "var(--primary)", testid: "quick-bind-api" },
             { icon: ArrowRightLeft, label: "Transactions", to: "/transactions", tint: "var(--gold)", testid: "quick-transactions" },
@@ -470,24 +472,26 @@ export default function Dashboard() {
             { icon: Users, label: "Referral", to: "/referral", tint: "var(--gold)", testid: "quick-referral" },
             { icon: Gift, label: "Rewards Joining", to: "/rewards", tint: "var(--primary)", testid: "quick-rewards-joining" },
             { icon: Trophy, label: "Rewards Trading", to: "/rewards", tint: "var(--gold)", testid: "quick-rewards-trading" },
+            { icon: BookOpen, label: "User Guide", to: "/guide", tint: "var(--primary)", testid: "quick-guide" },
+            { icon: Newspaper, label: "News", to: "/news", tint: "var(--gold)", testid: "quick-news" },
           ].map((c) => (
             <Link
               key={c.label}
               to={c.to}
               data-testid={c.testid}
-              className="app-card rounded-2xl flex flex-col items-center justify-center gap-2 py-4 px-1 hover:border-[color:var(--primary)]/40 transition"
+              className="app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 hover:border-[color:var(--primary)]/40 transition"
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
                   background: `color-mix(in srgb, ${c.tint} 12%, transparent)`,
                   border: `1px solid color-mix(in srgb, ${c.tint} 28%, transparent)`,
                 }}
               >
-                <c.icon size={18} color={c.tint} strokeWidth={1.9} />
+                <c.icon size={16} color={c.tint} strokeWidth={1.9} />
               </div>
               <span
-                className="text-[10px] font-bold text-center leading-tight"
+                className="text-[9px] font-bold text-center leading-tight"
                 style={{ color: "var(--text-soft)" }}
               >
                 {c.label}
