@@ -8,9 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
 
 const actions = [
-  { type: "deposit", label: "Deposit", icon: ArrowDownToLine, color: "#39FF14", testid: "wallet-deposit" },
-  { type: "withdraw", label: "Withdraw", icon: ArrowUpToLine, color: "#FF007A", testid: "wallet-withdraw" },
-  { type: "transfer", label: "Transfer", icon: ArrowRightLeft, color: "#FFD700", testid: "wallet-transfer" },
+  { type: "deposit", label: "Deposit", icon: ArrowDownToLine, testid: "wallet-deposit" },
+  { type: "withdraw", label: "Withdraw", icon: ArrowUpToLine, testid: "wallet-withdraw" },
+  { type: "transfer", label: "Transfer", icon: ArrowRightLeft, testid: "wallet-transfer" },
 ];
 
 export default function Wallet() {
@@ -294,11 +294,19 @@ export default function Wallet() {
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ background: `${a.color}15`, boxShadow: `inset 0 0 20px ${a.color}22` }}
+              style={{
+                background: "var(--primary-soft-grad)",
+                border: "1px solid var(--border)",
+              }}
             >
-              <a.icon size={20} strokeWidth={1.8} style={{ color: a.color }} />
+              <a.icon size={20} strokeWidth={1.8} color="var(--primary)" />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider">{a.label}</span>
+            <span
+              className="text-[11px] font-bold uppercase tracking-wider"
+              style={{ color: "var(--text-soft)" }}
+            >
+              {a.label}
+            </span>
           </button>
         ))}
       </div>

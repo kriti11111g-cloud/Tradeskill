@@ -39,7 +39,7 @@ function BotCard({ bot }) {
       data-testid={`bot-card-${bot.symbol}`}
       className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
         isRunning
-          ? "bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
+          ? "bg-[color:var(--surface-2)] backdrop-blur-xl border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
           : "bg-[color:var(--surface)]/60 backdrop-blur-xl border border-[color:var(--border-soft)] hover:border-[color:var(--primary)]/40"
       }`}
       style={
@@ -224,7 +224,7 @@ export default function Trades() {
       <div className="px-4 mb-3">
         <button
           onClick={() => navigate("/bind-api")}
-          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] p-3 hover:border-[color:var(--warn)]/40 transition"
+          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-[color:var(--surface-2)] backdrop-blur-xl p-3 hover:border-[color:var(--warn)]/40 transition"
           style={{ boxShadow: "0 0 22px rgba(16,185,129,0.08)" }}
           data-testid="trades-wallet-card"
         >

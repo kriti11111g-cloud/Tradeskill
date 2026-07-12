@@ -113,7 +113,7 @@ export default function Revenue() {
       {/* CARD 1: Wallet Balance (Spot) */}
       <div className="px-4">
         <div
-          className="rounded-3xl border border-[color:var(--gold)]/30 p-5 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] backdrop-blur-xl relative overflow-hidden"
+          className="rounded-3xl border border-[color:var(--gold)]/30 p-5 bg-[color:var(--surface-2)] backdrop-blur-xl backdrop-blur-xl relative overflow-hidden"
           data-testid="wallet-balance-card"
         >
           <div

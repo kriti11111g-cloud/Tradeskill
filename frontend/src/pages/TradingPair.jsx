@@ -400,7 +400,7 @@ export default function TradingPair() {
       {/* Pair-level Profit banner (matches HiTechBot layout) */}
       <div className="px-4 mt-3">
         <div
-          className="rounded-2xl border border-[color:var(--border)] p-4 bg-gradient-to-br from-[color:var(--surface)] to-[color:var(--bg-base)] backdrop-blur-xl"
+          className="rounded-2xl border border-[color:var(--border)] p-4 bg-[color:var(--surface-2)] backdrop-blur-xl backdrop-blur-xl"
           data-testid="pair-revenue-banner"
         >
           <div className="flex items-stretch gap-3">
