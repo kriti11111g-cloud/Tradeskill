@@ -121,3 +121,4 @@ See `/app/memory/test_credentials.md`
 - **2026-06-12 (part 8)** — Removed LiveTicker marquee from AppShell (user: "flat hokar kyu chal raha hai"); Balance hero moved to top of Home (right after header, above search) and corners squared (rounded-3xl → rounded-xl). Screenshot-verified.
 - **2026-06-12 (part 9)** — Balance hero card recolored to var(--premium-grad) (green→gold, matching Premium Reward banner) per user video request. White text, white-glass action tiles + PREMIUM badge. Screenshot-verified.
 - **2026-06-12 (part 10)** — Added user-provided 3D USDT/Tether coin icon (/public/usdt-coin.jpeg) before the balance amount on Home hero card. Screenshot-verified.
+- **2026-06-12 (part 11)** — Hero card: removed 24h % pill; PREMIUM badge replaced with dynamic rank badge (Crown icon + "★ Starter" for level 1, "★ N Star" for higher levels, driven by /ranks/me). Bigger $ symbol (earlier request). Screenshot-verified.

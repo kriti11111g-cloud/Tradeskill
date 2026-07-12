@@ -46,8 +46,6 @@ export default function Dashboard() {
   }, []);
 
   const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
-  const change24h = pairs.reduce((s, p) => s + (p.change_pct || 0), 0) / Math.max(pairs.length, 1);
-  const isUp = change24h >= 0;
 
   const currentRank = rank?.rank || { level: 1, title: "Starter" };
   const nextRank = rank?.next_rank;
@@ -178,12 +176,13 @@ export default function Dashboard() {
               border: "1px solid rgba(255,255,255,0.4)",
             }}
           >
-            <Award size={10} color="#FFFFFF" strokeWidth={2.5} />
+            <Crown size={10} color="#FFFFFF" strokeWidth={2.5} />
             <span
               className="text-[9px] font-black uppercase tracking-widest"
               style={{ color: "#FFFFFF" }}
+              data-testid="hero-rank-badge"
             >
-              PREMIUM
+              {currentRank.level <= 1 ? "★ Starter" : `★ ${currentRank.level} Star`}
             </span>
           </div>
 
@@ -203,29 +202,6 @@ export default function Dashboard() {
               <span className="text-xl opacity-70 font-bold font-mono">
                 .{((totalBalance % 1) * 100).toFixed(0).padStart(2, "0")}
               </span>
-            </div>
-
-            <div className="flex items-center gap-2 mt-1.5">
-              <div
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-                style={{
-                  background: "rgba(255,255,255,0.18)",
-                  border: "1px solid rgba(255,255,255,0.35)",
-                }}
-              >
-                {isUp ? (
-                  <ArrowUpRight size={11} color="#FFFFFF" />
-                ) : (
-                  <ArrowDownRight size={11} color="#FECACA" />
-                )}
-                <span
-                  className="text-[11px] font-black font-mono"
-                  style={{ color: isUp ? "#FFFFFF" : "#FECACA" }}
-                >
-                  {fmtPct(change24h)}
-                </span>
-              </div>
-              <span className="text-[11px] font-bold opacity-90">Market avg · 24h</span>
             </div>
 
             <div className="grid grid-cols-4 gap-2 mt-4">
