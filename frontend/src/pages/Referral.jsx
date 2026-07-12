@@ -80,7 +80,7 @@ export default function Referral() {
       {/* ==== Direct Quantification ==== */}
       <div className="px-4 mt-4">
         <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <BarStat color="var(--gold)" label="Not Yet Activated" value={ds.not_activated} testid="direct-inactive" />
             <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
           </div>
@@ -90,7 +90,7 @@ export default function Referral() {
       {/* ==== Team Quantification ==== */}
       <div className="px-4 mt-3">
         <SectionCard icon={Network} title="Team" testid="ref-team-card">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
             <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
             <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
@@ -221,10 +221,18 @@ const SectionCard = ({ icon: Icon, title, children, testid }) => (
 );
 
 const BarStat = ({ color, label, value, testid }) => (
-  <div className="flex items-stretch gap-2" data-testid={testid}>
+  <div
+    className="rounded-xl px-2.5 py-2.5 flex items-stretch gap-2 min-w-0"
+    style={{
+      background: `color-mix(in srgb, ${color} 6%, var(--surface))`,
+      border: `1px solid color-mix(in srgb, ${color} 35%, transparent)`,
+      boxShadow: "var(--shadow-sm)",
+    }}
+    data-testid={testid}
+  >
     <span className="w-1 rounded-full shrink-0" style={{ background: color }} />
     <div className="min-w-0">
-      <div className="text-[9px] uppercase tracking-wider font-bold text-[color:var(--text-mute)] leading-tight">{label}</div>
+      <div className="text-[8px] uppercase tracking-wider font-bold text-[color:var(--text-mute)] leading-tight">{label}</div>
       <div className="font-display font-black text-lg tabular-nums mt-0.5">{value}</div>
     </div>
   </div>
