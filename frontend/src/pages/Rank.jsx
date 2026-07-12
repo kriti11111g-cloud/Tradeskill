@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
-import { Crown, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Crown, ChevronLeft, ChevronRight } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 
 export default function Rank() {
@@ -227,32 +227,76 @@ function RankPage({ rank, isCurrent, isAchieved, stats }) {
           )}
         </div>
 
-        {/* Star + Name */}
+        {/* Star medallion */}
         <div className="flex flex-col items-center pt-5 pb-4">
           <div
-            className="w-24 h-24 rounded-full flex items-center justify-center relative"
+            className="w-28 h-28 rounded-full flex items-center justify-center relative"
             style={{
-              background: "rgba(255,255,255,0.10)",
-              border: "1px solid rgba(255,255,255,0.25)",
-              boxShadow: "0 0 30px rgba(245,158,11,0.30)",
+              background:
+                "conic-gradient(from 210deg, #B45309, #F59E0B, #FDE68A, #F59E0B, #B45309, #F59E0B, #FDE68A, #B45309)",
+              boxShadow:
+                "0 8px 24px rgba(0,0,0,0.35), 0 0 40px rgba(245,158,11,0.35)",
+              padding: 4,
             }}
           >
-            <Star size={44} color="#FBBF24" fill="#FBBF24" strokeWidth={1.5} />
-            <span
-              className="absolute font-display font-black text-[15px]"
-              style={{ color: "#083344", marginTop: 2 }}
+            <div
+              className="w-full h-full rounded-full flex items-center justify-center relative overflow-hidden"
+              style={{
+                background:
+                  "radial-gradient(circle at 32% 28%, #0F4C56 0%, #083344 55%, #041F27 100%)",
+                border: "1px solid rgba(253,230,138,0.35)",
+              }}
             >
-              {rank.level - 1 > 0 ? rank.level - 1 : "S"}
-            </span>
+              <div
+                className="absolute -top-4 -left-3 w-16 h-16 rounded-full opacity-25"
+                style={{ background: "radial-gradient(circle, #FDE68A, transparent 70%)" }}
+              />
+              <svg viewBox="0 0 100 100" className="w-16 h-16 relative" style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.45))" }}>
+                <defs>
+                  <linearGradient id={`starGrad-${rank.level}`} x1="0" y1="0" x2="0.6" y2="1">
+                    <stop offset="0%" stopColor="#FDE68A" />
+                    <stop offset="45%" stopColor="#F59E0B" />
+                    <stop offset="100%" stopColor="#B45309" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="50,6 61.8,36.8 94,36.8 68,56.4 78.2,88 50,69 21.8,88 32,56.4 6,36.8 38.2,36.8"
+                  fill={`url(#starGrad-${rank.level})`}
+                  stroke="#FDE68A"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+                <polygon
+                  points="50,14 58.5,38.5 84,38.5 63.5,53.8 71.5,79 50,63.5 28.5,79 36.5,53.8 16,38.5 41.5,38.5"
+                  fill="rgba(255,255,255,0.14)"
+                />
+                <text
+                  x="50" y="57" textAnchor="middle" fontSize="26" fontWeight="900"
+                  fill="#083344" style={{ fontFamily: "Unbounded, sans-serif" }}
+                >
+                  {rank.level - 1 > 0 ? rank.level - 1 : "S"}
+                </text>
+              </svg>
+            </div>
           </div>
           <div
             className="font-display font-black text-3xl tracking-wide mt-3"
+            style={{
+              background: "linear-gradient(180deg, #FFFFFF 30%, #FDE68A 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))",
+            }}
             data-testid={`rank-title-${rank.level}`}
           >
             {rank.title}
           </div>
-          <div className="text-[10px] uppercase tracking-[0.35em] font-bold text-white/60 mt-1">
-            Level {rank.level} of 10
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="h-px w-8" style={{ background: "linear-gradient(90deg, transparent, rgba(253,230,138,0.7))" }} />
+            <span className="text-[10px] uppercase tracking-[0.35em] font-bold" style={{ color: "#FDE68A" }}>
+              Level {rank.level} of 10
+            </span>
+            <span className="h-px w-8" style={{ background: "linear-gradient(90deg, rgba(253,230,138,0.7), transparent)" }} />
           </div>
         </div>
 
