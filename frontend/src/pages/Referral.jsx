@@ -146,12 +146,13 @@ export default function Referral() {
                       ● {t.activated ? "Active" : "Inactive"}
                     </span>
                     <span
-                      className="text-[8px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded-md inline-block"
-                    style={{
-                      color: "var(--gold-deep)",
-                      background: "color-mix(in srgb, var(--gold) 12%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--gold) 35%, transparent)",
-                    }}
+                      className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
+                      style={{
+                        color: "#FBBF24",
+                        background: "rgba(10,10,10,0.88)",
+                        border: "1px solid rgba(245,158,11,0.65)",
+                        boxShadow: "0 0 8px rgba(245,158,11,0.3)",
+                      }}
                     >
                       ★ {(t.rank || "Starter").toUpperCase()}
                     </span>
