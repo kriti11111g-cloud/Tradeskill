@@ -77,24 +77,24 @@ export default function Referral() {
         </div>
       </div>
 
-      {/* ==== Direct Quantification ==== */}
-      <div className="px-4 mt-4">
-        <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
-          <div className="grid grid-cols-3 gap-2">
-            <BarStat color="var(--primary-deep)" label="Total Direct" value={ds.not_activated + ds.activated} testid="direct-total" />
-            <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
-            <BarStat color="var(--gold)" label="Not Activated" value={ds.not_activated} testid="direct-inactive" />
-          </div>
-        </SectionCard>
-      </div>
-
       {/* ==== Team Quantification ==== */}
-      <div className="px-4 mt-3">
+      <div className="px-4 mt-4">
         <SectionCard icon={Network} title="Team" testid="ref-team-card">
           <div className="grid grid-cols-3 gap-2">
             <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
             <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
             <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* ==== Direct Quantification ==== */}
+      <div className="px-4 mt-3">
+        <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
+          <div className="grid grid-cols-3 gap-2">
+            <BarStat color="var(--primary-deep)" label="Total Direct" value={ds.not_activated + ds.activated} testid="direct-total" />
+            <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
+            <BarStat color="var(--gold)" label="Not Activated" value={ds.not_activated} testid="direct-inactive" />
           </div>
         </SectionCard>
       </div>
