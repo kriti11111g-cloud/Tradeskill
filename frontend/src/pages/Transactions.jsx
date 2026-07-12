@@ -30,8 +30,8 @@ const fmtFullUTC = (iso) => (iso ? `${fmtDateUTC(iso)} · ${fmtTimeUTC(iso)} UTC
 
 const BinanceLogo = ({ size = 12 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
-    <path fill="#FBBF24" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
-    <path fill="#FBBF24" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
+    <path fill="#F59E0B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
+    <path fill="#F59E0B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
   </svg>
 );
 
@@ -43,23 +43,23 @@ function WalletBar({ wallet }) {
         className="rounded-xl border border-[color:var(--gold)]/30 p-2.5 bg-gradient-to-br from-[color:var(--gold)]/10 to-[color:var(--bg-base)] backdrop-blur-xl flex items-center gap-2.5"
         data-testid="wallet-balance-card"
       >
-        <div className="w-8 h-8 rounded-lg bg-[#FBBF24]/15 border border-[#FBBF24]/40 flex items-center justify-center shrink-0">
-          <Wallet size={16} className="text-[#FBBF24]" />
+        <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/40 flex items-center justify-center shrink-0">
+          <Wallet size={16} className="text-[#F59E0B]" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <BinanceLogo size={10} />
-            <div className="text-[8px] uppercase tracking-widest text-[#FBBF24] font-bold">
+            <div className="text-[8px] uppercase tracking-widest text-[#F59E0B] font-bold">
               Binance Spot
             </div>
             <span
-              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
+              className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
             >
               {wallet.connected ? `Live · ${wallet.mode?.toUpperCase()}` : "Demo"}
             </span>
           </div>
           <div
-            className="font-mono font-black text-[16px] tabular-nums mt-0.5 leading-none text-white"
+            className="font-mono font-black text-[16px] tabular-nums mt-0.5 leading-none text-[color:var(--text)]"
             style={monoNum}
             data-testid="wallet-usdt-balance"
           >
@@ -134,7 +134,7 @@ export default function Transactions() {
                 <button
                   onClick={() => clearFilter("symbol")}
                   data-testid="clear-symbol-filter"
-                  className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                  className="ml-1 w-5 h-5 rounded-full bg-[color:var(--text)]/10 flex items-center justify-center hover:bg-[color:var(--text)]/15"
                   aria-label="Clear symbol"
                 >
                   <X size={10} />
@@ -153,7 +153,7 @@ export default function Transactions() {
                 <button
                   onClick={() => clearFilter("date")}
                   data-testid="clear-date-filter"
-                  className="ml-1 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+                  className="ml-1 w-5 h-5 rounded-full bg-[color:var(--text)]/10 flex items-center justify-center hover:bg-[color:var(--text)]/15"
                   aria-label="Clear date"
                 >
                   <X size={10} />
@@ -181,7 +181,7 @@ export default function Transactions() {
                   : x === "BUY"
                     ? "bg-[color:var(--good)] text-white border-[color:var(--good)]"
                     : "bg-[color:var(--primary)] text-white border-[color:var(--primary)]"
-                : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
+                : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-[color:var(--text)]/10"
             }`}
           >
             {x}
@@ -362,14 +362,14 @@ function KV({ label, value, valueColor, copyable }) {
   return (
     <div className="flex items-center gap-2 text-[10px]">
       <span className="text-[color:var(--text-mute)]">{label} :</span>
-      <span className="font-mono text-white flex-1 truncate" style={{ color: valueColor || "#fff" }}>
+      <span className="font-mono text-[color:var(--text)] flex-1 truncate" style={{ color: valueColor || "var(--text)" }}>
         {value}
       </span>
       {copyable && (
         <button
           onClick={onCopy}
           data-testid="copy-order-id"
-          className="w-4 h-4 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0"
+          className="w-4 h-4 rounded bg-[color:var(--text)]/10 hover:bg-[color:var(--text)]/15 flex items-center justify-center shrink-0"
           aria-label="Copy"
         >
           {copied ? (

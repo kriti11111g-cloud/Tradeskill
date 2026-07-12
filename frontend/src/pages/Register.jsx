@@ -26,22 +26,22 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[color:var(--bg-base)] text-white flex items-center justify-center px-4 py-10 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[color:var(--bg-base)] text-[color:var(--text)] flex items-center justify-center px-4 py-10 relative overflow-hidden">
       <div className="grain-overlay" />
       <div
         className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #FBBF24, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #0F766E, transparent 70%)" }}
       />
       <div
         className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #10B981, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #16A34A, transparent 70%)" }}
       />
 
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary-deep)] flex items-center justify-center glow-gold">
-              <Zap size={22} className="text-white" strokeWidth={2.5} />
+              <Zap size={22} className="text-[color:var(--text)]" strokeWidth={2.5} />
             </div>
             <div className="font-display font-black text-3xl tracking-tight">TGX BOT</div>
           </div>
@@ -75,7 +75,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 bg-[color:var(--primary)] text-white font-display font-bold rounded-xl px-6 py-3.5 hover:bg-white transition-all hover:glow-primary flex items-center justify-center gap-2 disabled:opacity-60"
+              className="w-full mt-2 bg-[color:var(--primary)] text-white font-display font-bold rounded-xl px-6 py-3.5 hover:brightness-110 transition-all hover:glow-primary flex items-center justify-center gap-2 disabled:opacity-60"
               data-testid="reg-submit"
             >
               {loading ? "Creating..." : "Create Account"} <ArrowRight size={18} />

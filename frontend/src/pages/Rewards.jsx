@@ -31,7 +31,7 @@ export default function Rewards() {
 
       <div className="px-4">
         <div
-          className="rounded-3xl border border-[color:var(--border)] p-5 flex items-center gap-4"
+          className="rounded-3xl border border-[color:var(--border)] p-5 flex items-center gap-4 text-white"
           style={{
             background: "var(--hero-grad)",
           }}

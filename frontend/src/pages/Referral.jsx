@@ -32,15 +32,9 @@ export default function Referral() {
 
       <div className="px-4">
         <div
-          className="rounded-3xl border border-[color:var(--border)] p-6 relative overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(248,113,113,0.10)), url('https://images.unsplash.com/photo-1669951584605-4deba095a87f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxnb2xkJTIwY29pbiUyMGNyeXB0byUyMHRva2VuJTIwZmxvYXRpbmclMjAzZHxlbnwwfHx8fDE3ODIwNzk5MjR8MA&ixlib=rb-4.1.0&q=85')",
-            backgroundSize: "cover",
-            backgroundBlendMode: "screen",
-          }}
+          className="rounded-3xl border border-[color:var(--border)] p-6 relative overflow-hidden text-white"
+          style={{ background: "var(--hero-grad)" }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--surface)] via-transparent to-transparent" />
           <div className="relative">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--warn)] font-bold">Your Code</div>
             <div className="font-display font-black text-3xl tabular-nums mt-2 tracking-wider" data-testid="ref-code">
@@ -50,7 +44,7 @@ export default function Referral() {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={copy}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-white text-white rounded-xl py-2.5 font-bold text-sm"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-white text-[color:var(--primary-deep)] rounded-xl py-2.5 font-bold text-sm"
                 data-testid="ref-copy"
               >
                 <Copy size={14} /> Copy

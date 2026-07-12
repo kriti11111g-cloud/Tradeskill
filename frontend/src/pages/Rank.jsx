@@ -67,7 +67,7 @@ export default function Rank() {
       {/* Compact header row — replaces PageHeader to save vertical space */}
       <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
         <div className="flex items-baseline gap-2">
-          <h1 className="text-base font-black text-white tracking-tight">Rank</h1>
+          <h1 className="text-base font-black text-[color:var(--text)] tracking-tight">Rank</h1>
           {activeRank && (
             <span
               className="text-[10px] tracking-[0.28em] uppercase font-bold"
@@ -114,7 +114,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
             disabled={activeIdx === 0}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
             data-testid="btn-rank-prev"
           >
             <ChevronLeft size={14} /> Prev
@@ -141,7 +141,7 @@ export default function Rank() {
           <button
             onClick={() => scrollTo(Math.min(ordered.length - 1, activeIdx + 1))}
             disabled={activeIdx === ordered.length - 1}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
             data-testid="btn-rank-next"
           >
             Next <ChevronRight size={14} />
@@ -223,7 +223,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
         {isCurrent && (
           <div
             className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[color:var(--good)] text-black"
-            style={{ boxShadow: "0 0 12px #10B981" }}
+            style={{ boxShadow: "0 0 12px #16A34A" }}
             data-testid="current-rank-badge"
           >
             ★ YOU
@@ -282,7 +282,7 @@ function RankPage({ rank, isCurrent, isAchieved, progress, stats, index }) {
                 style={{
                   width: `${localProgress.overall_pct}%`,
                   background: isAchieved
-                    ? "linear-gradient(90deg,#10B981,#059669)"
+                    ? "linear-gradient(90deg,#16A34A,#0F766E)"
                     : `linear-gradient(90deg, ${rank.color}, ${rank.glow || rank.color})`,
                   boxShadow: `0 0 8px ${isAchieved ? "var(--good)" : rank.color}`,
                 }}

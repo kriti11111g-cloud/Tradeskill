@@ -9,16 +9,16 @@ const ThemeContext = createContext(null);
 export function ThemeProvider({ children }) {
   const [mode, setMode] = useState(() => {
     try {
-      return localStorage.getItem("hubxbot-theme") || "dark";
+      return localStorage.getItem("hubxbot-theme-v2") || "light";
     } catch {
-      return "dark";
+      return "light";
     }
   });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", mode);
     try {
-      localStorage.setItem("hubxbot-theme", mode);
+      localStorage.setItem("hubxbot-theme-v2", mode);
     } catch {
       // ignore storage failures (private mode etc.)
     }

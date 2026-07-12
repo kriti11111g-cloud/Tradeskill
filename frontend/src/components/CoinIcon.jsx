@@ -9,7 +9,7 @@ export default function CoinIcon({ symbol, size = 32, className = "" }) {
   const [errored, setErrored] = useState(false);
 
   const bg =
-    "linear-gradient(135deg, rgba(16,185,129,0.25), rgba(248,113,113,0.25))";
+    "linear-gradient(135deg, rgba(22,163,74,0.25), rgba(248,113,113,0.25))";
 
   if (!base) {
     return (
@@ -45,7 +45,7 @@ export default function CoinIcon({ symbol, size = 32, className = "" }) {
       width={size}
       height={size}
       onError={() => setErrored(true)}
-      className={`rounded-full bg-white/5 object-contain ${className}`}
+      className={`rounded-full bg-[color:var(--text)]/5 object-contain ${className}`}
       style={{ width: size, height: size }}
       loading="lazy"
     />

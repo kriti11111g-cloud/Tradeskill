@@ -89,9 +89,9 @@ export default function Profile() {
               <span
                 className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full"
                 style={{
-                  background: "rgba(251,191,36,0.14)",
+                  background: "rgba(245,158,11,0.14)",
                   color: "var(--gold)",
-                  border: "1px solid rgba(251,191,36,0.32)",
+                  border: "1px solid rgba(245,158,11,0.32)",
                 }}
               >
                 {user?.rank || "Bronze"}
@@ -100,9 +100,9 @@ export default function Profile() {
                 <span
                   className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full"
                   style={{
-                    background: "rgba(16,185,129,0.14)",
+                    background: "rgba(22,163,74,0.14)",
                     color: "var(--primary)",
-                    border: "1px solid rgba(16,185,129,0.32)",
+                    border: "1px solid rgba(22,163,74,0.32)",
                   }}
                 >
                   Active
@@ -185,8 +185,8 @@ export default function Profile() {
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "rgba(16,185,129,0.10)",
-                  border: "1px solid rgba(16,185,129,0.24)",
+                  background: "rgba(22,163,74,0.10)",
+                  border: "1px solid rgba(22,163,74,0.24)",
                 }}
               >
                 <it.icon size={16} color="var(--primary)" strokeWidth={1.7} />

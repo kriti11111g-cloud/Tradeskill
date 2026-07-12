@@ -192,14 +192,14 @@ export default function Dashboard() {
           <div
             className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
-              background: "rgba(251,191,36,0.18)",
-              border: "1px solid rgba(251,191,36,0.4)",
+              background: "rgba(245,158,11,0.18)",
+              border: "1px solid rgba(245,158,11,0.4)",
             }}
           >
-            <Award size={10} color="#FBBF24" strokeWidth={2.5} />
+            <Award size={10} color="#F59E0B" strokeWidth={2.5} />
             <span
               className="text-[9px] font-black uppercase tracking-widest"
-              style={{ color: "#FBBF24" }}
+              style={{ color: "#F59E0B" }}
             >
               PREMIUM
             </span>
@@ -227,9 +227,9 @@ export default function Dashboard() {
               <div
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full"
                 style={{
-                  background: isUp ? "rgba(16,185,129,0.2)" : "rgba(248,113,113,0.2)",
+                  background: isUp ? "rgba(22,163,74,0.2)" : "rgba(248,113,113,0.2)",
                   border: `1px solid ${
-                    isUp ? "rgba(16,185,129,0.4)" : "rgba(248,113,113,0.4)"
+                    isUp ? "rgba(22,163,74,0.4)" : "rgba(248,113,113,0.4)"
                   }`,
                 }}
               >
@@ -492,7 +492,7 @@ export default function Dashboard() {
           <div
             className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-30"
             style={{
-              background: "radial-gradient(circle, #FBBF24 0%, transparent 65%)",
+              background: "radial-gradient(circle, #F59E0B 0%, transparent 65%)",
             }}
           />
         </Link>

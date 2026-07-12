@@ -263,7 +263,7 @@ export default function TradingPair() {
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 bot.status === "running"
                   ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40"
-                  : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
+                  : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
               }`}
               data-testid="bot-status"
             >
@@ -370,7 +370,7 @@ export default function TradingPair() {
                     <div className="font-display font-bold text-sm text-[color:var(--bad)]">
                       Auto-Sell will fail
                     </div>
-                    <div className="text-[11px] text-white/85 mt-0.5 leading-relaxed">
+                    <div className="text-[11px] text-[color:var(--text-soft)] mt-0.5 leading-relaxed">
                       Bot tracks{" "}
                       <span className="font-bold tabular-nums">{fmtNum(bot.position_qty, 6)}</span>{" "}
                       {shortSymbol(sym)}, but Binance only holds{" "}
@@ -418,7 +418,7 @@ export default function TradingPair() {
                 {fmtNum(pairRev?.today_profit || 0, 4)}
               </div>
             </div>
-            <div className="w-px bg-white/15" />
+            <div className="w-px bg-[color:var(--border)]" />
             <div className="flex-1">
               <div className="text-[9px] uppercase tracking-[0.25em] text-[color:var(--text-mute)] font-bold">
                 Cumulative Profit
@@ -497,7 +497,7 @@ export default function TradingPair() {
             </div>
             <div
               className={`font-display font-bold text-base tabular-nums mt-1 ${
-                s.isPct ? (s.pctVal >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]") : "text-white"
+                s.isPct ? (s.pctVal >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]") : "text-[color:var(--text)]"
               }`}
             >
               {s.value}
@@ -509,7 +509,7 @@ export default function TradingPair() {
       {/* Operation Reminder — auto-trigger prices */}
       <div className="px-4 mt-4">
         <div
-          className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
+          className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden text-white"
           style={{
             background:
               "var(--hero-grad)",
@@ -520,7 +520,7 @@ export default function TradingPair() {
             <div className="flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-[color:var(--text-mute)]"
+                  bot.status === "running" ? "bg-[color:var(--good)] animate-tgx-pulse" : "bg-white/40"
                 }`}
               />
               <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
@@ -530,14 +530,14 @@ export default function TradingPair() {
             <div
               className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
                 bot.trigger_state === "tp_armed"
-                  ? "text-[color:var(--good)] border-[color:var(--good)]/40 bg-[color:var(--good)]/10"
+                  ? "text-white border-white/40 bg-white/10"
                   : bot.trigger_state === "dca_armed"
                   ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10"
                   : bot.trigger_state === "waiting"
-                  ? "text-[color:var(--primary)] border-[color:var(--primary)]/40 bg-[color:var(--primary)]/10"
+                  ? "text-white border-white/40 bg-white/10"
                   : bot.trigger_state === "start_pending"
                   ? "text-[color:var(--warn)] border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10"
-                  : "text-[color:var(--text-mute)] border-[color:var(--border)] bg-white/5"
+                  : "text-white/60 border-[color:var(--border)] bg-white/10"
               }`}
               data-testid="trigger-state"
             >
@@ -556,22 +556,22 @@ export default function TradingPair() {
           {/* Locked profit meter — shown when TP is armed and price has peaked */}
           {bot.tp_armed && bot.peak_price > 0 && (
             <div
-              className="mb-3 rounded-xl border border-[color:var(--good)]/30 bg-[color:var(--good)]/[0.06] px-3 py-2 flex items-center justify-between"
+              className="mb-3 rounded-xl border border-white/25 bg-white/10 px-3 py-2 flex items-center justify-between"
               data-testid="locked-profit-meter"
             >
               <div>
-                <div className="text-[9px] uppercase tracking-widest text-[color:var(--good)] font-black">
+                <div className="text-[9px] uppercase tracking-widest text-white font-black">
                   Peak · {fmtNum(bot.peak_price, bot.peak_price > 100 ? 2 : 6)}
                 </div>
-                <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">
+                <div className="text-[9px] text-white/60 mt-0.5">
                   Locked if pullback hits ≤ {fmtNum(bot.tp_pullback_trigger_price, bot.tp_pullback_trigger_price > 100 ? 2 : 6)}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
+                <div className="text-[9px] uppercase tracking-widest text-white/60 font-semibold">
                   Locked
                 </div>
-                <div className="font-display font-black text-lg tabular-nums text-[color:var(--good)]">
+                <div className="font-display font-black text-lg tabular-nums text-white">
                   +{(bot.locked_profit_pct || 0).toFixed(2)}%
                 </div>
               </div>
@@ -588,12 +588,12 @@ export default function TradingPair() {
                 <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black">
                   Trough · {fmtNum(bot.dca_bottom_price, bot.dca_bottom_price > 100 ? 2 : 6)}
                 </div>
-                <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">
+                <div className="text-[9px] text-white/60 mt-0.5">
                   Fires safety order once price rebounds to ≥ {fmtNum(bot.dca_recover_trigger_price, bot.dca_recover_trigger_price > 100 ? 2 : 6)}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
+                <div className="text-[9px] uppercase tracking-widest text-white/60 font-semibold">
                   Callback
                 </div>
                 <div className="font-display font-black text-lg tabular-nums text-[color:var(--warn)]">
@@ -611,10 +611,10 @@ export default function TradingPair() {
                   <span className="font-display font-black text-[10px] text-[color:var(--warn)]">MC</span>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
+                  <div className="text-[10px] uppercase tracking-widest text-white/60 font-bold">
                     Margin call trigger price
                   </div>
-                  <div className="text-[9px] text-[color:var(--text-mute)]">
+                  <div className="text-[9px] text-white/60">
                     Arms bottom-tracker when price ≤ trigger · {bot.margin_call_remaining} rounds left
                   </div>
                 </div>
@@ -626,7 +626,7 @@ export default function TradingPair() {
                     : "—"}
                 </div>
                 {bot.margin_call_trigger_price > 0 && price > 0 && (
-                  <div className="text-[9px] tabular-nums text-[color:var(--text-mute)]">
+                  <div className="text-[9px] tabular-nums text-white/60">
                     {((price - bot.margin_call_trigger_price) / bot.margin_call_trigger_price * 100).toFixed(2)}% above
                   </div>
                 )}
@@ -635,7 +635,7 @@ export default function TradingPair() {
 
             {/* DCA recovery trigger — shown once armed */}
             {bot.dca_recover_trigger_price > 0 && (
-              <div className="flex items-center justify-between border-t border-[color:var(--border)] pt-2.5" data-testid="dca-recover-row">
+              <div className="flex items-center justify-between border-t border-white/15 pt-2.5" data-testid="dca-recover-row">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-[color:var(--gold)]/25 border border-[color:var(--warn)]/40 flex items-center justify-center">
                     <span className="font-display font-black text-[9px] text-[color:var(--warn)]">↺</span>
@@ -644,7 +644,7 @@ export default function TradingPair() {
                     <div className="text-[10px] uppercase tracking-widest text-[color:var(--warn)] font-bold">
                       DCA recover trigger
                     </div>
-                    <div className="text-[9px] text-[color:var(--text-mute)]">
+                    <div className="text-[9px] text-white/60">
                       Safety-order fires when price rebounds ≥ trigger
                     </div>
                   </div>
@@ -660,26 +660,26 @@ export default function TradingPair() {
             {/* Take profit trigger */}
             <div className="flex items-center justify-between" data-testid="tp-trigger-row">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[color:var(--good)]/15 flex items-center justify-center">
-                  <span className="font-display font-black text-[10px] text-[color:var(--good)]">TP</span>
+                <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                  <span className="font-display font-black text-[10px] text-white">TP</span>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
+                  <div className="text-[10px] uppercase tracking-widest text-white/60 font-bold">
                     Take profit trigger price
                   </div>
-                  <div className="text-[9px] text-[color:var(--text-mute)]">
+                  <div className="text-[9px] text-white/60">
                     Arms peak-tracker · {bot.whole_take_profit_ratio}% profit
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-display font-black text-sm tabular-nums text-[color:var(--good)]">
+                <div className="font-display font-black text-sm tabular-nums text-white">
                   {bot.take_profit_trigger_price > 0
                     ? `≥ ${fmtNum(bot.take_profit_trigger_price, 4)}`
                     : "—"}
                 </div>
                 {bot.take_profit_trigger_price > 0 && price > 0 && (
-                  <div className="text-[9px] tabular-nums text-[color:var(--text-mute)]">
+                  <div className="text-[9px] tabular-nums text-white/60">
                     {((bot.take_profit_trigger_price - price) / price * 100).toFixed(2)}% to go
                   </div>
                 )}
@@ -688,16 +688,16 @@ export default function TradingPair() {
 
             {/* TP pullback trigger (only shown once armed) */}
             {bot.tp_pullback_trigger_price > 0 && (
-              <div className="flex items-center justify-between border-t border-[color:var(--border)] pt-2.5" data-testid="tp-exit-row">
+              <div className="flex items-center justify-between border-t border-white/15 pt-2.5" data-testid="tp-exit-row">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-[color:var(--bad)]/15 flex items-center justify-center">
                     <span className="font-display font-black text-[10px] text-[color:var(--bad)]">EX</span>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
+                    <div className="text-[10px] uppercase tracking-widest text-white/60 font-bold">
                       Auto-exit price
                     </div>
-                    <div className="text-[9px] text-[color:var(--text-mute)]">
+                    <div className="text-[9px] text-white/60">
                       SELL all when price ≤ this (peak {fmtNum(bot.peak_price, 4)})
                     </div>
                   </div>
@@ -715,7 +715,7 @@ export default function TradingPair() {
       {(bot.dca_ladder && bot.dca_ladder.length > 0) || bot.take_profit_trigger_price > 0 ? (
         <div className="px-4 mt-4">
           <div
-            className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden"
+            className="rounded-2xl border border-[color:var(--border)] p-4 relative overflow-hidden text-white"
             style={{ background: "var(--hero-grad)" }}
             data-testid="dca-ladder-panel"
           >
@@ -723,7 +723,7 @@ export default function TradingPair() {
               <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
                 Auto-Trigger Ladder
               </div>
-              <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
+              <div className="text-[9px] uppercase tracking-widest text-white/60 font-semibold">
                 {bot.dca_ladder?.length || 0} Levels · {bot.margin_call_remaining || 0} Left
               </div>
             </div>
@@ -731,29 +731,29 @@ export default function TradingPair() {
             {/* Take Profit row (top of ladder) */}
             {bot.take_profit_trigger_price > 0 && (
               <div
-                className="flex items-center justify-between py-2 border-b border-[color:var(--good)]/20"
+                className="flex items-center justify-between py-2 border-b border-white/20"
                 data-testid="ladder-tp-row"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-7 rounded-full bg-[color:var(--good)] shadow-[0_0_8px_#10B981]" />
-                  <div className="w-8 h-8 rounded-lg bg-[color:var(--good)]/15 border border-[color:var(--good)]/40 flex items-center justify-center">
-                    <TrendingUp size={14} className="text-[color:var(--good)]" strokeWidth={2.2} />
+                  <div className="w-1 h-7 rounded-full bg-[color:var(--good)] shadow-[0_0_8px_#16A34A]" />
+                  <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/30 flex items-center justify-center">
+                    <TrendingUp size={14} className="text-white" strokeWidth={2.2} />
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--good)]">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-white">
                       SELL — Take Profit
                     </div>
-                    <div className="text-[9px] text-[color:var(--text-mute)]">
+                    <div className="text-[9px] text-white/60">
                       +{bot.whole_take_profit_ratio}% · pullback {bot.whole_take_profit_callback}%
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-display font-black text-sm tabular-nums text-[color:var(--good)]">
+                  <div className="font-display font-black text-sm tabular-nums text-white">
                     ≥ {fmtNum(bot.take_profit_trigger_price, bot.take_profit_trigger_price > 100 ? 2 : 4)}
                   </div>
                   {price > 0 && (
-                    <div className="text-[9px] tabular-nums text-[color:var(--text-mute)]">
+                    <div className="text-[9px] tabular-nums text-white/60">
                       {(((bot.take_profit_trigger_price - price) / price) * 100).toFixed(2)}% to go
                     </div>
                   )}
@@ -762,14 +762,14 @@ export default function TradingPair() {
             )}
 
             {/* Current price marker */}
-            <div className="flex items-center justify-between py-2 my-1 rounded-lg bg-[color:var(--primary)]/[0.08] border border-[color:var(--primary)]/30 px-2" data-testid="ladder-current-row">
+            <div className="flex items-center justify-between py-2 my-1 rounded-lg bg-white/10 border border-white/25 px-2" data-testid="ladder-current-row">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-7 rounded-full bg-[color:var(--primary)] shadow-[0_0_8px_var(--primary)]" />
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--primary)]">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-white">
                     Current Price
                   </div>
-                  <div className="text-[9px] text-[color:var(--text-mute)]">Live · Binance</div>
+                  <div className="text-[9px] text-white/60">Live · Binance</div>
                 </div>
               </div>
               <div className="font-display font-black text-base tabular-nums text-white">
@@ -793,7 +793,7 @@ export default function TradingPair() {
                     <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--warn)]">
                       BUY — Safety Order
                     </div>
-                    <div className="text-[9px] text-[color:var(--text-mute)]">
+                    <div className="text-[9px] text-white/60">
                       -{lvl.drop_pct}% · ${lvl.amount_usdt} · Total ${lvl.cumulative_usdt}
                     </div>
                   </div>
@@ -803,7 +803,7 @@ export default function TradingPair() {
                     ≤ {fmtNum(lvl.trigger_price, lvl.trigger_price > 100 ? 2 : 4)}
                   </div>
                   {price > 0 && (
-                    <div className="text-[9px] tabular-nums text-[color:var(--text-mute)]">
+                    <div className="text-[9px] tabular-nums text-white/60">
                       {(((price - lvl.trigger_price) / lvl.trigger_price) * 100).toFixed(2)}% above
                     </div>
                   )}
@@ -811,7 +811,7 @@ export default function TradingPair() {
               </div>
             ))}
 
-            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] mt-3 pt-2 border-t border-[color:var(--border-soft)] text-center">
+            <div className="text-[8px] uppercase tracking-widest text-white/60 mt-3 pt-2 border-t border-[color:var(--border-soft)] text-center">
               Bot will auto-execute at each trigger · No manual action needed
             </div>
           </div>
@@ -830,7 +830,7 @@ export default function TradingPair() {
             key={b.label}
             onClick={b.onClick}
             data-testid={b.testid}
-            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] hover:border-[color:var(--primary)]/40 hover:bg-white/10 transition-all"
+            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--text)]/10 transition-all"
           >
             <b.icon size={20} strokeWidth={1.7} className={b.color || ""} />
             <span className="text-[10px] uppercase tracking-widest font-bold">{b.label}</span>
@@ -922,7 +922,7 @@ export default function TradingPair() {
                 className={`py-2 rounded-lg font-display font-bold text-sm uppercase tracking-widest ${
                   bot.trade_method === m
                     ? "bg-[color:var(--primary)] text-white"
-                    : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
+                    : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
                 }`}
               >
                 <Repeat size={12} className="inline mr-1" />
@@ -933,7 +933,7 @@ export default function TradingPair() {
 
           <button
             onClick={saveConfig}
-            className="w-full mt-4 bg-white/10 hover:bg-white/15 border border-[color:var(--border)] py-3 rounded-xl font-display font-bold text-sm"
+            className="w-full mt-4 bg-[color:var(--text)]/10 hover:bg-[color:var(--text)]/10 border border-[color:var(--border)] py-3 rounded-xl font-display font-bold text-sm"
             data-testid="save-config"
           >
             Update Strategy
@@ -1013,7 +1013,7 @@ export default function TradingPair() {
           </div>
 
           <div className="text-[10px] text-[color:var(--text-mute)] mt-3 leading-relaxed">
-            <span className="text-white font-bold">Round N</span> fires when price drops by that N-th <span className="text-[color:var(--warn)]">Margin Drop %</span> from the previous buy, and spends <span className="text-[color:var(--primary)]">First Buy × Ratio</span> USDT.
+            <span className="text-[color:var(--text)] font-bold">Round N</span> fires when price drops by that N-th <span className="text-[color:var(--warn)]">Margin Drop %</span> from the previous buy, and spends <span className="text-[color:var(--primary)]">First Buy × Ratio</span> USDT.
           </div>
         </div>
       </div>
@@ -1031,7 +1031,7 @@ export default function TradingPair() {
         ) : (
           <button
             onClick={startBot}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[color:var(--primary)] to-[color:var(--primary-deep)] text-white font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-primary tracking-wide"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[color:var(--primary)] to-[color:var(--primary-deep)] text-[color:var(--text)] font-display font-black text-base rounded-2xl py-4 hover:brightness-110 transition-all glow-primary tracking-wide"
             data-testid="start-bot"
           >
             <Play size={20} fill="currentColor" /> START BOT
@@ -1187,7 +1187,7 @@ export default function TradingPair() {
               </div>
               <div className="app-card rounded-xl p-3 text-[11px] text-[color:var(--text-mute)]">
                 Notional value:{" "}
-                <span className="font-display font-bold text-white tabular-nums">
+                <span className="font-display font-bold text-[color:var(--text)] tabular-nums">
                   {fmtUSD((parseFloat(posEdit.position_qty) || 0) * (parseFloat(posEdit.avg_price) || 0))}
                 </span>
               </div>

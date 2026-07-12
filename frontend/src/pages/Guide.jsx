@@ -18,7 +18,7 @@ export default function Guide() {
             className="app-card rounded-2xl p-4"
           >
             <div className="font-display font-bold text-sm">{g.title}</div>
-            <div className="text-xs text-white/70 mt-2 leading-relaxed">{g.body}</div>
+            <div className="text-xs text-[color:var(--text-soft)] mt-2 leading-relaxed">{g.body}</div>
           </div>
         ))}
       </div>

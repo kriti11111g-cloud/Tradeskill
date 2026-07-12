@@ -44,7 +44,7 @@ function BotCard({ bot }) {
       }`}
       style={
         isRunning
-          ? { boxShadow: "inset 0 0 12px rgba(16,185,129,0.06), 0 0 0 1px rgba(16,185,129,0.05)" }
+          ? { boxShadow: "inset 0 0 12px rgba(22,163,74,0.06), 0 0 0 1px rgba(22,163,74,0.05)" }
           : undefined
       }
     >
@@ -52,7 +52,7 @@ function BotCard({ bot }) {
       {isRunning && (
         <div
           className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[color:var(--good)]"
-          style={{ boxShadow: "0 0 10px rgba(16,185,129,0.7)" }}
+          style={{ boxShadow: "0 0 10px rgba(22,163,74,0.7)" }}
         />
       )}
       {/* Top row: coin, pair, mode, running dot */}
@@ -143,7 +143,7 @@ function BotCard({ bot }) {
           <span className="text-[color:var(--good)] font-bold" data-testid={`bot-buys-${bot.symbol}`}>
             {bot.buy_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Buys</span>
           </span>
-          <span className="text-white/20">·</span>
+          <span className="text-[color:var(--text-mute)]">·</span>
           <span className="text-[color:var(--bad)] font-bold" data-testid={`bot-sells-${bot.symbol}`}>
             {bot.sell_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Sells</span>
           </span>
@@ -225,7 +225,7 @@ export default function Trades() {
         <button
           onClick={() => navigate("/bind-api")}
           className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-[color:var(--surface-2)] backdrop-blur-xl p-3 hover:border-[color:var(--warn)]/40 transition"
-          style={{ boxShadow: "0 0 22px rgba(16,185,129,0.08)" }}
+          style={{ boxShadow: "0 0 22px rgba(22,163,74,0.08)" }}
           data-testid="trades-wallet-card"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -237,7 +237,7 @@ export default function Trades() {
               className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded ${
                 spot?.connected
                   ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
-                  : "bg-white/5 text-[color:var(--text-mute)]"
+                  : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)]"
               }`}
               data-testid="wallet-exchange-status"
             >
@@ -247,7 +247,7 @@ export default function Trades() {
           <div className="flex items-end justify-between">
             <div>
               <div
-                className="font-mono font-extrabold text-[22px] tabular-nums text-white leading-none"
+                className="font-mono font-extrabold text-[22px] tabular-nums text-[color:var(--text)] leading-none"
                 data-testid="wallet-exchange-usdt"
               >
                 {spot?.connected ? fmtUSD(spot?.usdt_balance || 0) : "—"}

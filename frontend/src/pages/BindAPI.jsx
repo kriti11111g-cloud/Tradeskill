@@ -100,7 +100,7 @@ export default function BindAPI() {
                       : m.id === "testnet"
                       ? "bg-[color:var(--gold)] text-white"
                       : "bg-[color:var(--bad)] text-white glow-danger"
-                    : "bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
+                    : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
                 }`}
               >
                 <div>{m.label}</div>
@@ -149,7 +149,7 @@ export default function BindAPI() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:bg-white transition-all hover:glow-primary disabled:opacity-60"
+            className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:brightness-110 transition-all hover:glow-primary disabled:opacity-60"
             data-testid="bind-submit"
           >
             {loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
@@ -157,7 +157,7 @@ export default function BindAPI() {
         </form>
 
         <div className="text-xs text-[color:var(--text-mute)] px-2 leading-relaxed">
-          <span className="text-white font-bold">Tip:</span> Generate keys in Binance → Account → API Management.
+          <span className="text-[color:var(--text)] font-bold">Tip:</span> Generate keys in Binance → Account → API Management.
           Enable only <span className="text-[color:var(--primary)]">Read Info + Spot Trading</span>. Never share your secret.
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function BindAPI() {
             </div>
 
             {/* Acknowledgment checkbox — pinned above the fold */}
-            <label className="flex items-start gap-2 text-xs text-white/90 cursor-pointer mb-3 rounded-xl bg-white/[0.04] border border-[color:var(--border-soft)] p-3">
+            <label className="flex items-start gap-2 text-xs text-[color:var(--text-soft)] cursor-pointer mb-3 rounded-xl bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] p-3">
               <input
                 type="checkbox"
                 checked={ack}
@@ -208,7 +208,7 @@ export default function BindAPI() {
                   setAck(false);
                 }}
                 disabled={loading}
-                className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-display font-bold text-sm hover:bg-white/10 transition disabled:opacity-60"
+                className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-display font-bold text-sm hover:bg-[color:var(--text)]/10 transition disabled:opacity-60"
                 data-testid="confirm-cancel"
               >
                 Cancel
@@ -227,7 +227,7 @@ export default function BindAPI() {
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-black mb-2">
               What you are agreeing to
             </div>
-            <ul className="space-y-2 text-xs text-white/80 leading-relaxed">
+            <ul className="space-y-2 text-xs text-[color:var(--text-soft)] leading-relaxed">
               <li>• Every Buy/Sell will hit your <span className="text-[color:var(--bad)] font-bold">live Binance account</span>.</li>
               <li>• Losses from market moves or misconfigured strategy are <span className="text-[color:var(--bad)] font-bold">irreversible</span>.</li>
               <li>• You are responsible for enabling only <span className="text-[color:var(--primary)]">Read Info + Spot Trading</span> permissions on your key.</li>

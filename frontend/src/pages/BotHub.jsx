@@ -236,7 +236,7 @@ export default function BotHub() {
         <div
           className="relative w-full overflow-hidden rounded-2xl border border-[color:var(--good)]/25"
           style={{
-            boxShadow: "0 0 30px rgba(16,185,129,0.15), inset 0 0 20px rgba(0,0,0,0.4)",
+            boxShadow: "0 0 30px rgba(22,163,74,0.15), inset 0 0 20px rgba(0,0,0,0.4)",
           }}
           data-testid="bothub-hero"
         >
@@ -284,7 +284,7 @@ export default function BotHub() {
         >
           <div className="flex items-center gap-2">
             <Trophy size={16} className="text-[color:var(--warn)]" style={{ filter: "drop-shadow(0 0 6px var(--gold-glow))" }} />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-white">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text)]">
               Rank Levels
             </span>
             <span className="text-[10px] text-[color:var(--text-mute)]">· 1 STAR → 10 STAR</span>
@@ -303,7 +303,7 @@ export default function BotHub() {
         >
           <div className="flex items-center justify-center gap-2">
             {activated ? (
-              <CheckCircle2 size={16} className="text-[color:var(--good)]" style={{ filter: "drop-shadow(0 0 6px rgba(16,185,129,0.6))" }} />
+              <CheckCircle2 size={16} className="text-[color:var(--good)]" style={{ filter: "drop-shadow(0 0 6px rgba(22,163,74,0.6))" }} />
             ) : (
               <Lock size={16} className="text-[color:var(--bad)]" style={{ filter: "drop-shadow(0 0 6px rgba(248,113,113,0.6))" }} />
             )}
@@ -328,8 +328,8 @@ export default function BotHub() {
 
         {/* Balance card — thin, balance only */}
         <div
-          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#10B981]/5 px-4 py-2.5 mb-3"
-          style={{ boxShadow: "0 0 16px rgba(16,185,129,0.06)" }}
+          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#16A34A]/5 px-4 py-2.5 mb-3"
+          style={{ boxShadow: "0 0 16px rgba(22,163,74,0.06)" }}
           data-testid="bot-wallet-balance-card"
         >
           <div className="flex items-center justify-between">
@@ -337,7 +337,7 @@ export default function BotHub() {
               <WalletIcon size={14} className="text-[color:var(--primary)]" />
               <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Wallet Balance</span>
             </div>
-            <div className="text-xl font-bold text-white tabular-nums" data-testid="bot-wallet-balance">
+            <div className="text-xl font-bold text-[color:var(--text)] tabular-nums" data-testid="bot-wallet-balance">
               {fmtUSD(balance)}
             </div>
           </div>
@@ -358,7 +358,7 @@ export default function BotHub() {
             data-testid="btn-open-deposit"
           >
             <ArrowDownToLine size={14} className="text-[color:var(--good)]" />
-            <span className="text-[11px] font-semibold text-white">Deposit</span>
+            <span className="text-[11px] font-semibold text-[color:var(--text)]">Deposit</span>
           </button>
           <button
             disabled={!activated || balance <= 0}
@@ -367,7 +367,7 @@ export default function BotHub() {
             data-testid="btn-open-withdraw"
           >
             <ArrowUpToLine size={14} className="text-[color:var(--bad)]" />
-            <span className="text-[11px] font-semibold text-white">Withdraw</span>
+            <span className="text-[11px] font-semibold text-[color:var(--text)]">Withdraw</span>
           </button>
           <button
             onClick={() => setModal("p2p")}
@@ -376,7 +376,7 @@ export default function BotHub() {
             data-testid="btn-open-p2p"
           >
             <ArrowRightLeft size={14} className="text-[color:var(--warn)]" />
-            <span className="text-[11px] font-semibold text-white">P2P</span>
+            <span className="text-[11px] font-semibold text-[color:var(--text)]">P2P</span>
           </button>
         </div>
 
@@ -393,7 +393,7 @@ export default function BotHub() {
           <Info
             size={18}
             className="text-[color:var(--primary)]"
-            style={{ filter: "drop-shadow(0 0 4px rgba(16,185,129,0.6))" }}
+            style={{ filter: "drop-shadow(0 0 4px rgba(22,163,74,0.6))" }}
             data-testid="btn-open-info"
           />
         </button>
@@ -413,7 +413,7 @@ export default function BotHub() {
             {filterDate && (
               <button
                 onClick={(e) => { e.preventDefault(); setFilterDate(""); }}
-                className="ml-1 text-[color:var(--text-mute)] hover:text-white"
+                className="ml-1 text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
                 data-testid="btn-clear-date"
               >
                 <X size={11} />
@@ -431,18 +431,18 @@ export default function BotHub() {
 
         <div className="mt-2 space-y-1.5" data-testid="bot-history-list">
           {visibleTxns.length === 0 ? (
-            <div className="text-center text-[11px] text-[color:var(--text-mute)] py-3 rounded-lg border border-white/5 bg-[var(--surface)]/40">
+            <div className="text-center text-[11px] text-[color:var(--text-mute)] py-3 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface)]/40">
               {filterDate ? "No transactions on this date." : "No transactions yet."}
             </div>
           ) : (
             visibleTxns.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--surface)]/70 border border-[color:var(--border)] shadow-[inset_0_0_10px_rgba(16,185,129,0.03)]"
+                className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--surface)]/70 border border-[color:var(--border)] shadow-[inset_0_0_10px_rgba(22,163,74,0.03)]"
                 data-testid="bot-txn-row"
               >
                 <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-white capitalize tracking-wide leading-tight">
+                  <div className="text-[11px] font-semibold text-[color:var(--text)] capitalize tracking-wide leading-tight">
                     {t.kind === "fuel" ? "Bot Fuel" : t.kind.replace("_", " ")}
                   </div>
                   <div className="text-[9px] text-[color:var(--text-mute)] leading-tight">{fmtTime(t.created_at)}</div>
@@ -467,10 +467,10 @@ export default function BotHub() {
       {modal === "info" && (
         <ModalShell title="How it works" onClose={closeModal} testid="dialog-info">
           <ul className="text-[13px] text-[color:var(--text-soft)] leading-relaxed space-y-2.5 list-disc pl-5">
-            <li>Pay one-time <span className="text-white font-semibold">${actFee}</span> to activate the trading bot.</li>
-            <li>Pre-fund your Wallet with <span className="text-white font-semibold">Fuel</span> — the bot burns fuel from here on every profitable trade.</li>
+            <li>Pay one-time <span className="text-[color:var(--text)] font-semibold">${actFee}</span> to activate the trading bot.</li>
+            <li>Pre-fund your Wallet with <span className="text-[color:var(--text)] font-semibold">Fuel</span> — the bot burns fuel from here on every profitable trade.</li>
             <li>Every profitable SELL deducts <span className="text-[color:var(--warn)] font-semibold">{feePct}% Fuel</span> from your Wallet (paid to the platform).</li>
-            <li>Keep at least <span className="text-white font-semibold">${minFuel}</span> Fuel — if balance drops below, all bots pause automatically.</li>
+            <li>Keep at least <span className="text-[color:var(--text)] font-semibold">${minFuel}</span> Fuel — if balance drops below, all bots pause automatically.</li>
           </ul>
           <button
             onClick={closeModal}
@@ -487,20 +487,20 @@ export default function BotHub() {
         <ModalShell title="Activate Bot" onClose={closeModal} testid="dialog-activate">
           <div className="flex flex-col items-center py-2">
             <div className="w-16 h-16 rounded-full bg-[color:var(--good)]/10 border border-[color:var(--good)]/40 flex items-center justify-center mb-3"
-                 style={{ boxShadow: "0 0 24px rgba(16,185,129,0.25)" }}>
+                 style={{ boxShadow: "0 0 24px rgba(22,163,74,0.25)" }}>
               <Zap size={32} className="text-[color:var(--good)]" />
             </div>
             <div className="text-sm text-[color:var(--text-mute)]">One-time Activation Fee</div>
-            <div className="text-4xl font-bold text-white mt-1">${actFee}</div>
+            <div className="text-4xl font-bold text-[color:var(--text)] mt-1">${actFee}</div>
             <p className="text-xs text-[color:var(--text-mute)] text-center mt-3 leading-relaxed">
-              This fee will be deducted from your <span className="text-white">Main Wallet</span> (${fmtUSD(mainBal).replace("$","")}).
+              This fee will be deducted from your <span className="text-[color:var(--text)]">Main Wallet</span> (${fmtUSD(mainBal).replace("$","")}).
               After activation, you can deposit funds to your Bot Wallet and start trading.
             </p>
           </div>
           <div className="mt-4 flex gap-2">
             <button
               onClick={closeModal}
-              className="flex-1 py-3 rounded-lg border border-[color:var(--border-soft)] text-white/70 text-sm"
+              className="flex-1 py-3 rounded-lg border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-sm"
               data-testid="btn-cancel-activate"
             >
               Cancel
@@ -531,7 +531,7 @@ export default function BotHub() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Amount in USDT"
-            className="w-full px-4 py-3 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-lg font-semibold focus:border-[color:var(--good)] outline-none"
+            className="w-full px-4 py-3 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--good)] outline-none"
             data-testid="input-deposit-amount"
           />
           <div className="flex gap-2 mt-2">
@@ -560,7 +560,7 @@ export default function BotHub() {
       {modal === "withdraw" && (
         <ModalShell title="Withdraw" onClose={closeModal} testid="dialog-withdraw">
           <div className="text-[11px] text-[color:var(--text-mute)] mb-3">
-            Wallet Balance: <span className="text-white font-semibold">{fmtUSD(balance)}</span>
+            Wallet Balance: <span className="text-[color:var(--text)] font-semibold">{fmtUSD(balance)}</span>
           </div>
 
           {/* Network first */}
@@ -570,7 +570,7 @@ export default function BotHub() {
           <select
             value={network}
             onChange={(e) => setNetwork(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-[13px] focus:border-[color:var(--bad)] outline-none"
+            className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
             data-testid="select-withdraw-network"
           >
             <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
@@ -602,7 +602,7 @@ export default function BotHub() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Paste USDT address or scan"
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-[13px] font-mono focus:border-[color:var(--bad)] outline-none"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--bad)] outline-none"
                   data-testid="input-withdraw-address"
                 />
                 <button
@@ -639,7 +639,7 @@ export default function BotHub() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="How much to send"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-lg font-semibold focus:border-[color:var(--bad)] outline-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--bad)] outline-none"
                 data-testid="input-withdraw-amount"
               />
               <div className="flex gap-2 mt-2">
@@ -673,7 +673,7 @@ export default function BotHub() {
               className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "email"
                   ? "bg-[color:var(--gold)] text-black"
-                  : "text-[color:var(--text-mute)] hover:text-white"
+                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
               }`}
               data-testid="tab-p2p-email"
             >
@@ -684,7 +684,7 @@ export default function BotHub() {
               className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "address"
                   ? "bg-[color:var(--gold)] text-black"
-                  : "text-[color:var(--text-mute)] hover:text-white"
+                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
               }`}
               data-testid="tab-p2p-address"
             >
@@ -706,7 +706,7 @@ export default function BotHub() {
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="user@example.com"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-[13px] focus:border-[color:var(--warn)] outline-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--warn)] outline-none"
                 data-testid="input-p2p-recipient"
               />
             </>
@@ -719,7 +719,7 @@ export default function BotHub() {
               <select
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-[13px] focus:border-[color:var(--warn)] outline-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--warn)] outline-none"
                 data-testid="select-p2p-network"
               >
                 <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
@@ -750,7 +750,7 @@ export default function BotHub() {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Paste address or scan QR"
-                      className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-[13px] font-mono focus:border-[color:var(--warn)] outline-none"
+                      className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--warn)] outline-none"
                       data-testid="input-p2p-address"
                     />
                     <button
@@ -790,11 +790,11 @@ export default function BotHub() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-white text-lg font-semibold focus:border-[color:var(--warn)] outline-none"
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--warn)] outline-none"
                 data-testid="input-p2p-amount"
               />
               <div className="text-[10px] text-[color:var(--text-mute)] mt-1">
-                Available: <span className="text-white">{fmtUSD(balance)}</span>
+                Available: <span className="text-[color:var(--text)]">{fmtUSD(balance)}</span>
               </div>
               <button
                 onClick={doP2P}
@@ -823,12 +823,12 @@ function ModalShell({ title, children, onClose, testid }) {
     >
       <div
         className="w-full max-w-[440px] bg-[color:var(--surface)] border border-[color:var(--primary)]/25 rounded-2xl p-5"
-        style={{ boxShadow: "0 0 30px rgba(16,185,129,0.15)" }}
+        style={{ boxShadow: "0 0 30px rgba(22,163,74,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className="text-lg font-bold text-white">{title}</div>
-          <button onClick={onClose} className="text-[color:var(--text-mute)] hover:text-white" data-testid="btn-close-dialog">
+          <div className="text-lg font-bold text-[color:var(--text)]">{title}</div>
+          <button onClick={onClose} className="text-[color:var(--text-mute)] hover:text-[color:var(--text)]" data-testid="btn-close-dialog">
             <X size={20} />
           </button>
         </div>

@@ -29,8 +29,8 @@ function scaleProfit(p) {
 
 const BinanceLogo = ({ size = 14 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
-    <path fill="#FBBF24" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
-    <path fill="#FBBF24" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
+    <path fill="#F59E0B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
+    <path fill="#F59E0B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
   </svg>
 );
 
@@ -50,7 +50,7 @@ function ProfitBarTooltip({ active, payload, trades }) {
     <div
       className="bg-[color:var(--surface)] border rounded-lg px-2.5 py-2 shadow-xl"
       style={{
-        borderColor: positive ? "rgba(16,185,129,0.4)" : "rgba(248,113,113,0.4)",
+        borderColor: positive ? "rgba(22,163,74,0.4)" : "rgba(248,113,113,0.4)",
         fontVariantNumeric: "tabular-nums",
       }}
     >
@@ -69,7 +69,7 @@ function ProfitBarTooltip({ active, payload, trades }) {
         </div>
       )}
       {meta?.symbols?.length > 0 && (
-        <div className="text-[9px] text-white/80 mt-0.5 leading-tight truncate max-w-[160px]">
+        <div className="text-[9px] text-[color:var(--text-soft)] mt-0.5 leading-tight truncate max-w-[160px]">
           {meta.symbols.map((s) => s.replace("USDT", "")).join(" · ")}
         </div>
       )}
@@ -118,16 +118,16 @@ export default function Revenue() {
         >
           <div
             className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-25"
-            style={{ background: "radial-gradient(circle, #FBBF24 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, #F59E0B 0%, transparent 70%)" }}
           />
           <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FBBF24]/15 border border-[#FBBF24]/40 flex items-center justify-center shrink-0">
-              <Wallet size={20} className="text-[#FBBF24]" />
+            <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 flex items-center justify-center shrink-0">
+              <Wallet size={20} className="text-[#F59E0B]" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <BinanceLogo size={12} />
-                <div className="text-[9px] uppercase tracking-[0.25em] text-[#FBBF24] font-bold">
+                <div className="text-[9px] uppercase tracking-[0.25em] text-[#F59E0B] font-bold">
                   Binance Spot Wallet
                 </div>
                 {wallet?.connected ? (
@@ -135,13 +135,13 @@ export default function Revenue() {
                     Live · {wallet.mode?.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-white/5 text-[color:var(--text-mute)] border border-[color:var(--border)] leading-none">
+                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)] leading-none">
                     Demo
                   </span>
                 )}
               </div>
               <div
-                className="font-mono font-black text-[26px] mt-1 leading-none text-white"
+                className="font-mono font-black text-[26px] mt-1 leading-none text-[color:var(--text)]"
                 style={{ fontVariantNumeric: "tabular-nums" }}
                 data-testid="wallet-usdt-balance"
               >
@@ -234,7 +234,7 @@ export default function Revenue() {
                 />
                 <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
                 <Tooltip
-                  cursor={{ fill: "rgba(16,185,129,0.06)" }}
+                  cursor={{ fill: "rgba(22,163,74,0.06)" }}
                   content={<ProfitBarTooltip trades={data.by_date} />}
                 />
                 <Bar
@@ -271,7 +271,7 @@ export default function Revenue() {
                 <div
                   className="mt-2 rounded-xl border p-2.5 bg-[color:var(--bg-base)]/70 backdrop-blur-xl"
                   style={{
-                    borderColor: pos ? "rgba(16,185,129,0.35)" : "rgba(248,113,113,0.35)",
+                    borderColor: pos ? "rgba(22,163,74,0.35)" : "rgba(248,113,113,0.35)",
                   }}
                   data-testid="bar-detail-panel"
                 >
@@ -299,7 +299,7 @@ export default function Revenue() {
                     <button
                       onClick={() => setSelectedDay(null)}
                       data-testid="bar-detail-close"
-                      className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0"
+                      className="w-6 h-6 rounded-full bg-[color:var(--text)]/10 hover:bg-[color:var(--text)]/15 flex items-center justify-center shrink-0"
                       aria-label="Close"
                     >
                       <span className="text-[10px]">✕</span>
@@ -310,7 +310,7 @@ export default function Revenue() {
                       {meta.symbols.map((s) => (
                         <div
                           key={s}
-                          className="flex items-center gap-1 rounded-full bg-white/5 border border-[color:var(--border-soft)] pl-1 pr-2 py-0.5"
+                          className="flex items-center gap-1 rounded-full bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] pl-1 pr-2 py-0.5"
                         >
                           <CoinIcon symbol={s} size={14} />
                           <span className="text-[9px] font-bold uppercase tracking-widest">

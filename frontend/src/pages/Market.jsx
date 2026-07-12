@@ -120,7 +120,7 @@ export default function Market() {
             className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
               sort === s.id
                 ? "bg-[color:var(--primary)] text-white border-[color:var(--primary)]"
-                : "bg-white/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-white/10"
+                : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-[color:var(--text)]/10"
             }`}
           >
             {s.label}
@@ -157,7 +157,7 @@ export default function Market() {
                     alt={p.asset}
                     width={36}
                     height={36}
-                    className="rounded-full bg-white/5"
+                    className="rounded-full bg-[color:var(--text)]/5"
                     onError={(e) => {
                       e.currentTarget.outerHTML = "";
                     }}

@@ -93,13 +93,13 @@ export default function Wallet() {
       {/* Balance card */}
       <div className="px-4">
         <div
-          className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6"
+          className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6 text-white"
           style={{
             background: "var(--hero-grad)",
           }}
         >
           <div className="flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--text-mute)] font-bold">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-white/60 font-bold">
               {isLiveMode
                 ? summary?.wallet_connected
                   ? `Live ${bind.mode === "real" ? "Binance" : "Testnet"} Balance`
@@ -125,7 +125,7 @@ export default function Wallet() {
           {/* Wallet connection error banner (real/testnet mode, Binance unreachable) */}
           {isLiveMode && summary?.wallet_error && (
             <div
-              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10 px-3 py-2 text-[11px] text-white/85 leading-snug"
+              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10 px-3 py-2 text-[11px] text-[color:var(--text-soft)] leading-snug"
               data-testid="wallet-connection-error"
             >
               <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black mb-0.5">
@@ -136,13 +136,13 @@ export default function Wallet() {
           )}
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
-              <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">Available USDT</div>
+              <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Available USDT</div>
               <div className="font-display font-bold text-lg tabular-nums mt-0.5">
                 {fmtNum(summary?.wallet_usdt || 0, 2)}
               </div>
             </div>
             <div>
-              <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">In Positions</div>
+              <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">In Positions</div>
               <div className="font-display font-bold text-lg tabular-nums mt-0.5 text-[color:var(--primary)]">
                 {fmtNum(summary?.positions_value_usdt || 0, 2)}
               </div>
@@ -176,7 +176,7 @@ export default function Wallet() {
                 onClick={loadLive}
                 disabled={liveLoading}
                 data-testid="live-refresh"
-                className="w-8 h-8 rounded-lg bg-[color:var(--surface-2)] border border-[color:var(--border)] flex items-center justify-center hover:bg-white/10 disabled:opacity-50"
+                className="w-8 h-8 rounded-lg bg-[color:var(--surface-2)] border border-[color:var(--border)] flex items-center justify-center hover:bg-[color:var(--text)]/10 disabled:opacity-50"
               >
                 <RefreshCw size={14} className={liveLoading ? "animate-spin" : ""} />
               </button>
@@ -189,7 +189,7 @@ export default function Wallet() {
             )}
 
             {liveErr && (
-              <div className="bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 rounded-xl p-3 text-xs text-white/90 leading-relaxed" data-testid="live-error">
+              <div className="bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 rounded-xl p-3 text-xs text-[color:var(--text-soft)] leading-relaxed" data-testid="live-error">
                 <div className="font-bold text-[color:var(--bad)] mb-1">Unable to load balances</div>
                 {liveErr}
               </div>
@@ -327,7 +327,7 @@ export default function Wallet() {
               </div>
             </div>
             <span
-              className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest text-white"
+              className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest text-[color:var(--text)]"
               style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
             >
               {summary.positions.length}

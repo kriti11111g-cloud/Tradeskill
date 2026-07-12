@@ -59,7 +59,7 @@ export default function News() {
                   {n.url && <ExternalLink size={12} className="ml-auto text-[color:var(--text-mute)]" />}
                 </div>
                 <div className="font-display font-bold text-sm leading-snug">{n.title}</div>
-                <div className="text-xs text-white/70 mt-1 line-clamp-3">{n.summary}</div>
+                <div className="text-xs text-[color:var(--text-soft)] mt-1 line-clamp-3">{n.summary}</div>
               </div>
             </div>
           );
