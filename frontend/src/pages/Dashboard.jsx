@@ -1,379 +1,626 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Key, ArrowRightLeft, TrendingUp, Users, Gift, Trophy, BookOpen, Newspaper, Zap } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Zap,
+  TrendingUp,
+  Wallet as WalletIcon,
+  Send,
+  Download,
+  Repeat,
+  ChevronRight,
+  Bell,
+  Search,
+  Bot,
+  Flame,
+  Award,
+  Crown,
+  Gift,
+  ShieldCheck,
+} from "lucide-react";
 import api from "@/lib/api";
-import { fmtUSD, fmtPct, fmtNum, shortSymbol } from "@/lib/format";
+import { fmtUSD, fmtPct, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import CoinIcon from "@/components/CoinIcon";
-
-const actions = [
-  { to: "/bind-api", icon: Key, label: "Bind API", testid: "action-bind" },
-  { to: "/transactions", icon: ArrowRightLeft, label: "Trade History", testid: "action-trades" },
-  { to: "/revenue", icon: TrendingUp, label: "Revenue", testid: "action-revenue" },
-  { to: "/referral", icon: Users, label: "Referral", testid: "action-referral" },
-  { to: "/rewards", icon: Gift, label: "Rewards", testid: "action-rewards" },
-  { to: "/rewards", icon: Trophy, label: "Bonus", testid: "action-bonus" },
-  { to: "/guide", icon: BookOpen, label: "Guide", testid: "action-guide" },
-  { to: "/news", icon: Newspaper, label: "News", testid: "action-news" },
-];
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { mode, toggle } = useTheme();
   const [pairs, setPairs] = useState([]);
   const [wallet, setWallet] = useState(null);
-  const [bind, setBind] = useState(null);
-  const [live, setLive] = useState(null);
-  const [liveErr, setLiveErr] = useState(null);
-  const [liveLoading, setLiveLoading] = useState(false);
-
-  const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
-
-  const loadLive = async () => {
-    setLiveLoading(true);
-    setLiveErr(null);
-    try {
-      const { data } = await api.get("/binance/account");
-      setLive(data);
-    } catch (err) {
-      setLiveErr(err?.response?.data?.detail || err?.message || "Unable to load");
-      setLive(null);
-    } finally {
-      setLiveLoading(false);
-    }
-  };
+  const [rank, setRank] = useState(null);
+  const [botWallet, setBotWallet] = useState(null);
+  const [bots, setBots] = useState([]);
 
   useEffect(() => {
-    api.get("/market/top?limit=8").then(({ data }) => {
-      const list = (data.coins || []).map((c) => ({
-        symbol: c.symbol,
-        asset: c.asset,
-        rank: c.rank,
-        last_price: c.last_price,
-        change_pct: c.change_pct,
-        volume: c.volume,
-        image: c.image,
-      }));
-      setPairs(list);
-    });
-    api.get("/wallet/summary").then(({ data }) => setWallet(data));
-    api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
+    api.get("/market/top?limit=8").then(({ data }) => setPairs(data.coins || [])).catch(() => {});
+    api.get("/wallet/summary").then(({ data }) => setWallet(data)).catch(() => {});
+    api.get("/ranks/me").then(({ data }) => setRank(data)).catch(() => {});
+    api.get("/bot-wallet/status").then(({ data }) => setBotWallet(data)).catch(() => {});
+    api.get("/bots").then(({ data }) => setBots(data || [])).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (isLiveMode) loadLive();
-  }, [isLiveMode]);
+  const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
+  const change24h = pairs.reduce((s, p) => s + (p.change_pct || 0), 0) / Math.max(pairs.length, 1);
+  const isUp = change24h >= 0;
+
+  const currentRank = rank?.rank || { level: 1, title: "Starter" };
+  const nextRank = rank?.next_rank;
+  const progressPct = useMemo(() => {
+    if (!rank?.progress) return 0;
+    const p = rank.progress;
+    const parts = [];
+    if (p.direct_needed > 0) parts.push(Math.min(1, p.direct_have / p.direct_needed));
+    if (p.team_needed > 0) parts.push(Math.min(1, p.team_have / p.team_needed));
+    if (p.downline_requirement)
+      parts.push(Math.min(1, p.downline_have / p.downline_requirement.count));
+    if (!parts.length) return 100;
+    return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
+  }, [rank]);
+
+  const activeBotsCount = bots.filter((b) => b.status === "running").length;
+  const totalTrades = bots.reduce((s, b) => s + (b.total_trades || 0), 0);
+  const totalPnl = bots.reduce((s, b) => s + (b.cumulative_profit || 0), 0);
+  const fuelBalance = botWallet?.balance || 0;
 
   return (
     <div className="pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-5">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
-          >
-            <Zap size={18} className="text-white" strokeWidth={2.5} />
-          </div>
-          <div>
+      <div className="px-4 pt-4">
+        {/* ============ HEADER ============ */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
             <div
-              className="text-[10px] uppercase tracking-[0.25em] font-bold"
-              style={{ color: "var(--text-mute)" }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center relative"
+              style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
             >
-              Hello,
-            </div>
-            <div
-              className="font-display font-bold text-base"
-              style={{ color: "var(--text)" }}
-              data-testid="user-greeting"
-            >
-              {user?.name || "Trader"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mx-4 mt-5 relative overflow-hidden rounded-3xl p-6 min-h-[170px] flex flex-col justify-end"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(0,230,118,0.30) 0%, rgba(0,200,83,0.20) 100%), url('https://images.pexels.com/photos/9404662/pexels-photo-9404662.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundBlendMode: "screen",
-          border: "1px solid var(--border)",
-        }}
-        data-testid="hero-banner"
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, var(--bg-base), transparent 60%)",
-          }}
-        />
-        <div className="relative z-10">
-          <div
-            className="text-[10px] uppercase tracking-[0.3em] font-bold"
-            style={{ color: "var(--primary)" }}
-          >
-            New Era
-          </div>
-          <div
-            className="font-display font-black text-3xl leading-tight tracking-tighter mt-1 text-white"
-          >
-            OF CRYPTO
-          </div>
-          <div className="text-xs text-white/80 mt-1">
-            Automate profits with quantitative trading.
-          </div>
-          <Link
-            to="/bind-api"
-            className="inline-flex items-center gap-1.5 mt-3 rounded-full px-4 py-1.5 font-bold text-xs tracking-wide text-white"
-            style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
-            data-testid="join-now-btn"
-          >
-            JOIN NOW →
-          </Link>
-        </div>
-      </motion.div>
-
-      {/* Wallet Snapshot */}
-      <div
-        className="mx-4 mt-4 backdrop-blur-xl rounded-2xl p-4 flex items-center justify-between"
-        style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
-      >
-        <div>
-          <div
-            className="text-[10px] uppercase tracking-[0.2em] font-bold"
-            style={{ color: "var(--text-mute)" }}
-          >
-            {isLiveMode ? "Demo Balance (USDT)" : "Total Assets (USDT)"}
-          </div>
-          <div
-            className="font-display font-black text-2xl tabular-nums mt-1"
-            style={{ color: "var(--text)" }}
-            data-testid="total-assets"
-          >
-            {fmtNum(wallet?.total_usdt || user?.wallet_usdt || 0, 2)}
-          </div>
-        </div>
-        <Link
-          to="/wallet"
-          className="text-[10px] uppercase tracking-[0.2em] font-bold rounded-full px-3 py-1.5 transition"
-          style={{ color: "var(--primary)", border: "1px solid var(--border)" }}
-          data-testid="wallet-link"
-        >
-          View →
-        </Link>
-      </div>
-
-      {/* Real Binance Balance (live/testnet only) */}
-      {isLiveMode && (
-        <div className="mx-4 mt-3" data-testid="dash-live-balance">
-          <div
-            className={`rounded-2xl border p-4 relative overflow-hidden ${
-              bind.mode === "real"
-                ? "border-[color:var(--bad)]/30 bg-gradient-to-br from-[color:var(--bad)]/10 to-transparent"
-                : "border-[color:var(--warn)]/30 bg-gradient-to-br from-[#FFD700]/10 to-transparent"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Zap
-                  size={14}
-                  className={bind.mode === "real" ? "text-[color:var(--bad)]" : "text-[color:var(--warn)]"}
-                />
-                <div className="text-[10px] uppercase tracking-[0.25em] font-bold">
-                  Real Binance Fund ·{" "}
-                  <span className={bind.mode === "real" ? "text-[color:var(--bad)]" : "text-[color:var(--warn)]"}>
-                    {bind.mode}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={loadLive}
-                disabled={liveLoading}
-                data-testid="dash-live-refresh"
-                className="text-[10px] uppercase tracking-widest text-[color:var(--primary)] font-bold hover:opacity-80 disabled:opacity-40"
-              >
-                {liveLoading ? "..." : "↻"}
-              </button>
-            </div>
-
-            {liveErr && !live && (
-              <div className="text-[11px] text-white/70" data-testid="dash-live-err">
-                <span className="text-[color:var(--bad)] font-bold">Unable to load · </span>
-                {liveErr}
-              </div>
-            )}
-
-            {live && (
-              <div>
-                {(() => {
-                  const usdt = live.balances.find((b) => b.asset === "USDT");
-                  return (
-                    <div>
-                      <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
-                        Available USDT on Binance
-                      </div>
-                      <div className="font-display font-black text-2xl tabular-nums mt-0.5">
-                        {fmtNum(usdt?.free || 0, 2)}
-                      </div>
-                    </div>
-                  );
-                })()}
-                {live.balances.filter((b) => b.asset !== "USDT" && b.free > 0).length > 0 && (
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                    {live.balances
-                      .filter((b) => b.asset !== "USDT" && b.free > 0)
-                      .slice(0, 6)
-                      .map((b) => (
-                        <div
-                          key={b.asset}
-                          className="flex-shrink-0 bg-white/5 border border-[color:var(--border)] rounded-lg px-2.5 py-1.5 min-w-[80px] flex items-center gap-2"
-                          data-testid={`dash-asset-${b.asset}`}
-                        >
-                          <CoinIcon symbol={b.asset} size={20} />
-                          <div>
-                            <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">{b.asset}</div>
-                            <div className="font-display font-bold text-xs tabular-nums">
-                              {fmtNum(b.free, 4)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Action Grid */}
-      <div className="grid grid-cols-4 gap-3 px-4 mt-5" data-testid="action-grid">
-        {actions.map((a, i) => (
-          <motion.div
-            key={a.label}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <Link
-              to={a.to}
-              data-testid={a.testid}
-              className="flex flex-col items-center gap-2 py-3 hover:opacity-80 transition"
-            >
+              <Zap size={18} className="text-white" strokeWidth={2.5} />
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
                 style={{
-                  background: "var(--primary-soft-grad)",
-                  border: "1px solid var(--border)",
+                  background: "var(--gold)",
+                  borderColor: "var(--surface)",
+                  boxShadow: "0 0 8px var(--gold-glow)",
                 }}
               >
-                <a.icon size={20} strokeWidth={1.7} color="var(--primary)" />
+                <Crown size={7} className="text-white" strokeWidth={3} />
+              </div>
+            </div>
+            <div>
+              <div
+                className="text-[10px] uppercase tracking-[0.25em] font-bold"
+                style={{ color: "var(--text-mute)" }}
+              >
+                Welcome back
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="text-[15px] font-black"
+                  style={{ color: "var(--text)" }}
+                  data-testid="user-greeting"
+                >
+                  {user?.name || "Trader"}
+                </span>
+                {user?.activated && (
+                  <span
+                    className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest text-white"
+                    style={{
+                      background: "var(--gold-grad)",
+                      boxShadow: "0 0 8px var(--gold-glow)",
+                    }}
+                  >
+                    PRO
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggle}
+              data-testid="dash-mode-toggle"
+              aria-label="Toggle theme"
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              {mode === "light" ? (
+                <Bell size={16} color="var(--primary)" />
+              ) : (
+                <Bell size={16} color="var(--gold)" />
+              )}
+            </button>
+            <Link
+              to="/news"
+              className="w-10 h-10 rounded-full flex items-center justify-center relative"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                backdropFilter: "blur(12px)",
+              }}
+              data-testid="dash-notif-btn"
+            >
+              <Bell size={16} color="var(--text-soft)" />
+              <span
+                className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                style={{ background: "var(--gold)", boxShadow: "0 0 8px var(--gold-glow)" }}
+              />
+            </Link>
+          </div>
+        </div>
+
+        {/* ============ SEARCH BAR ============ */}
+        <Link
+          to="/market"
+          data-testid="dash-search"
+          className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 mb-5"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <Search size={16} color="var(--text-mute)" />
+          <span className="text-sm" style={{ color: "var(--text-mute)" }}>
+            Search coins, pairs, wallets
+          </span>
+        </Link>
+
+        {/* ============ BALANCE HERO ============ */}
+        <div
+          className="rounded-3xl p-5 text-white relative overflow-hidden mb-4"
+          style={{
+            background: "var(--hero-grad)",
+            boxShadow: "var(--shadow-lg)",
+          }}
+          data-testid="hero-balance"
+        >
+          <div
+            className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-30"
+            style={{ background: "radial-gradient(circle, var(--primary) 0%, transparent 65%)" }}
+          />
+          <div
+            className="absolute -bottom-16 -left-8 w-40 h-40 rounded-full opacity-25"
+            style={{ background: "radial-gradient(circle, var(--gold) 0%, transparent 65%)" }}
+          />
+
+          <div
+            className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full"
+            style={{
+              background: "rgba(251,191,36,0.18)",
+              border: "1px solid rgba(251,191,36,0.4)",
+            }}
+          >
+            <Award size={10} color="#FBBF24" strokeWidth={2.5} />
+            <span
+              className="text-[9px] font-black uppercase tracking-widest"
+              style={{ color: "#FBBF24" }}
+            >
+              PREMIUM
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ShieldCheck size={12} color="#6EE7B7" />
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-90">
+                Total Balance · USDT
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-1 mt-2" data-testid="total-assets">
+              <span className="text-[13px] opacity-70 font-bold">$</span>
+              <span className="text-4xl font-black font-mono tracking-tight">
+                {fmtNum(Math.floor(totalBalance), 0)}
+              </span>
+              <span className="text-xl opacity-70 font-bold font-mono">
+                .{((totalBalance % 1) * 100).toFixed(0).padStart(2, "0")}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-1.5">
+              <div
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                style={{
+                  background: isUp ? "rgba(16,185,129,0.2)" : "rgba(248,113,113,0.2)",
+                  border: `1px solid ${
+                    isUp ? "rgba(16,185,129,0.4)" : "rgba(248,113,113,0.4)"
+                  }`,
+                }}
+              >
+                {isUp ? (
+                  <ArrowUpRight size={11} color="#6EE7B7" />
+                ) : (
+                  <ArrowDownRight size={11} color="#FCA5A5" />
+                )}
+                <span
+                  className="text-[11px] font-black font-mono"
+                  style={{ color: isUp ? "#6EE7B7" : "#FCA5A5" }}
+                >
+                  {fmtPct(change24h)}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold opacity-90">Market avg · 24h</span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 mt-4">
+              {[
+                { icon: Download, label: "Deposit", to: "/wallet", testid: "hero-deposit" },
+                { icon: Send, label: "Send", to: "/wallet", testid: "hero-send" },
+                { icon: Repeat, label: "Swap", to: "/market", testid: "hero-swap" },
+                { icon: TrendingUp, label: "Trade", to: "/trades", testid: "hero-trade" },
+              ].map((a) => (
+                <Link
+                  key={a.label}
+                  to={a.to}
+                  data-testid={a.testid}
+                  className="flex flex-col items-center gap-1 py-2 rounded-xl"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
+                  <a.icon size={16} className="text-white" />
+                  <span className="text-[10px] font-bold text-white/95">{a.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ============ RANK PROGRESS CARD (Gold accent) ============ */}
+        <Link
+          to="/rank"
+          data-testid="rank-card"
+          className="block rounded-2xl p-3.5 mb-4"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{
+                  background: "var(--gold-grad)",
+                  boxShadow: "0 0 10px var(--gold-glow)",
+                }}
+              >
+                <Crown size={14} className="text-white" strokeWidth={2.5} />
+              </div>
+              <div>
+                <div
+                  className="text-[9px] uppercase tracking-widest font-black"
+                  style={{ color: "var(--gold)" }}
+                >
+                  Your Rank
+                </div>
+                <div className="text-sm font-black" style={{ color: "var(--text)" }}>
+                  {currentRank.level} STAR · {currentRank.title}
+                </div>
+              </div>
+            </div>
+            {nextRank && (
+              <div className="text-right">
+                <div
+                  className="text-[9px] uppercase tracking-widest font-bold"
+                  style={{ color: "var(--text-mute)" }}
+                >
+                  Next
+                </div>
+                <div className="text-xs font-black" style={{ color: "var(--gold)" }}>
+                  {nextRank.level} STAR
+                </div>
+              </div>
+            )}
+          </div>
+          <div
+            className="h-1.5 rounded-full overflow-hidden"
+            style={{ background: "var(--surface-3)" }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                background: "var(--gold-grad)",
+                boxShadow: "0 0 8px var(--gold-glow)",
+              }}
+            />
+          </div>
+          <div
+            className="flex items-center justify-between mt-1.5 text-[10px]"
+            style={{ color: "var(--text-mute)" }}
+          >
+            <span>
+              Directs:{" "}
+              <span className="font-black" style={{ color: "var(--text)" }}>
+                {rank?.stats?.direct_count || 0}
+              </span>
+              {rank?.progress?.direct_needed ? `/${rank.progress.direct_needed}` : ""}
+            </span>
+            <span>
+              Team:{" "}
+              <span className="font-black" style={{ color: "var(--text)" }}>
+                {rank?.stats?.total_team || 0}
+              </span>
+              {rank?.progress?.team_needed ? `/${rank.progress.team_needed}` : ""}
+            </span>
+            <span className="font-black" style={{ color: "var(--gold)" }}>
+              {progressPct}%
+            </span>
+          </div>
+        </Link>
+
+        {/* ============ QUICK STATS ============ */}
+        <div className="grid grid-cols-3 gap-2 mb-5" data-testid="dash-quick-stats">
+          {[
+            {
+              label: "Cumulative PnL",
+              value: `${totalPnl >= 0 ? "+" : ""}$${fmtNum(totalPnl, 2)}`,
+              pct: totalPnl >= 0 ? "Positive" : "Negative",
+              color: totalPnl >= 0 ? "var(--good)" : "var(--bad)",
+            },
+            {
+              label: "Total Trades",
+              value: fmtNum(totalTrades, 0),
+              pct: `${activeBotsCount} active`,
+              color: "var(--text-mute)",
+            },
+            {
+              label: "Bot Fuel",
+              value: `$${fmtNum(fuelBalance, 0)}`,
+              pct: botWallet?.activated ? "Active" : "Inactive",
+              color: botWallet?.activated ? "var(--good)" : "var(--text-mute)",
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-2xl p-3"
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                backdropFilter: "blur(20px)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div
+                className="text-[9px] uppercase tracking-widest font-black mb-1"
+                style={{ color: "var(--text-mute)" }}
+              >
+                {s.label}
+              </div>
+              <div
+                className="text-base font-black font-mono"
+                style={{ color: "var(--text)" }}
+              >
+                {s.value}
+              </div>
+              <div
+                className="text-[10px] font-bold font-mono mt-0.5"
+                style={{ color: s.color }}
+              >
+                {s.pct}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ============ FEATURE TILES ============ */}
+        <div className="grid grid-cols-4 gap-3 mb-5" data-testid="dash-feature-tiles">
+          {[
+            { icon: Bot, label: "Auto Bot", to: "/bot", tint: "var(--primary)", testid: "tile-bot" },
+            { icon: Flame, label: "Hot Pairs", to: "/market", tint: "var(--gold)", testid: "tile-hot" },
+            { icon: Award, label: "Rank", to: "/rank", tint: "var(--gold)", testid: "tile-rank" },
+            { icon: WalletIcon, label: "Wallet", to: "/wallet", tint: "var(--primary)", testid: "tile-wallet" },
+          ].map((f) => (
+            <Link
+              key={f.label}
+              to={f.to}
+              data-testid={f.testid}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: `color-mix(in srgb, ${f.tint} 15%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${f.tint} 30%, transparent)`,
+                  }}
+                >
+                  <f.icon size={18} color={f.tint} strokeWidth={2} />
+                </div>
               </div>
               <span
-                className="text-[10px] text-center font-body font-semibold leading-tight"
+                className="text-[10px] font-bold text-center"
                 style={{ color: "var(--text-soft)" }}
               >
-                {a.label}
+                {f.label}
               </span>
             </Link>
-          </motion.div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Top Market Movers preview → link to full Market tab */}
-      <div className="mt-6 px-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div
-              className="font-display font-bold text-lg"
-              style={{ color: "var(--text)" }}
-            >
-              Top Movers
+        {/* ============ PREMIUM PROMO BANNER ============ */}
+        <Link
+          to="/rewards"
+          data-testid="promo-banner"
+          className="block rounded-2xl p-4 mb-5 relative overflow-hidden"
+          style={{
+            background: "var(--premium-grad)",
+            boxShadow: "0 0 20px var(--gold-glow)",
+          }}
+        >
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <Gift size={10} className="text-white/90" />
+                <div className="text-[9px] uppercase tracking-[0.3em] font-black text-white/95">
+                  Premium Reward
+                </div>
+              </div>
+              <div className="text-white font-black text-base">Win $100 Fuel Bonus</div>
+              <div className="text-white/90 text-[10px] mt-0.5">
+                Complete 10 trades this week
+              </div>
             </div>
             <div
-              className="text-[10px] uppercase tracking-[0.2em] font-bold"
+              className="text-[11px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full text-white shrink-0"
+              style={{
+                background: "rgba(255,255,255,0.22)",
+                border: "1px solid rgba(255,255,255,0.4)",
+              }}
+            >
+              Claim →
+            </div>
+          </div>
+          <div
+            className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-30"
+            style={{
+              background: "radial-gradient(circle, #FBBF24 0%, transparent 65%)",
+            }}
+          />
+        </Link>
+
+        {/* ============ MARKET LIST ============ */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div>
+            <div className="text-base font-black" style={{ color: "var(--text)" }}>
+              Market
+            </div>
+            <div
+              className="text-[10px] uppercase tracking-widest font-bold"
               style={{ color: "var(--text-mute)" }}
             >
-              Live · Tap to view full market
+              Real-time · Top movers
             </div>
           </div>
           <Link
             to="/market"
-            data-testid="see-market-link"
-            className="text-[10px] uppercase tracking-widest font-bold rounded-full px-3 py-1.5"
-            style={{ color: "var(--primary)", border: "1px solid var(--border)" }}
+            data-testid="see-all-market"
+            className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider"
+            style={{ color: "var(--primary)" }}
           >
-            See Market →
+            See all <ChevronRight size={12} />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-2" data-testid="top-movers-grid">
-          {pairs.slice(0, 4).map((p, i) => (
-            <motion.div
-              key={p.symbol}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+          data-testid="market-list"
+        >
+          {pairs.slice(0, 4).map((p, i) => {
+            const spark = Array.from({ length: 8 }, (_, k) => 4 + Math.sin(k + i) * 3 + (p.change_pct || 0) * 0.5);
+            const up = (p.change_pct || 0) >= 0;
+            return (
               <Link
+                key={p.symbol}
                 to={`/pair/${p.symbol}`}
                 data-testid={`mover-${p.symbol}`}
-                className="flex items-center gap-2.5 backdrop-blur-xl rounded-2xl p-3 transition-all"
+                className="flex items-center gap-3 px-4 py-3"
                 style={{
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--border)",
+                  borderBottom: i < 3 ? "1px solid var(--border)" : "none",
                 }}
               >
-                <CoinIcon symbol={p.symbol} size={32} />
-                <div className="min-w-0 flex-1">
+                <div className="shrink-0">
+                  <CoinIcon symbol={p.symbol} size={40} />
+                </div>
+
+                <div className="flex-1 min-w-0">
                   <div
-                    className="font-display font-bold text-xs truncate"
+                    className="text-sm font-black"
                     style={{ color: "var(--text)" }}
                   >
-                    {shortSymbol(p.symbol)}
+                    {p.symbol.replace("USDT", "")}/USDT
                   </div>
+                  <div className="text-[10px]" style={{ color: "var(--text-mute)" }}>
+                    {p.asset || p.symbol.replace("USDT", "")}
+                  </div>
+                </div>
+
+                <svg width="46" height="20" viewBox="0 0 46 20" className="shrink-0">
+                  <polyline
+                    fill="none"
+                    stroke={up ? "var(--good)" : "var(--bad)"}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={spark.map((v, k) => `${k * 6.5},${20 - Math.max(1, Math.min(9, v)) * 2}`).join(" ")}
+                  />
+                </svg>
+
+                <div className="text-right shrink-0">
                   <div
-                    className="font-display font-bold text-[11px] tabular-nums"
+                    className="text-sm font-mono font-black tabular-nums"
                     style={{ color: "var(--text)" }}
                   >
                     {fmtUSD(p.last_price, p.last_price > 100 ? 0 : 2)}
                   </div>
                   <div
-                    className="text-[10px] font-bold tabular-nums"
-                    style={{
-                      color: p.change_pct >= 0 ? "var(--good)" : "var(--bad)",
-                    }}
+                    className="text-[10px] font-mono font-bold tabular-nums flex items-center justify-end gap-0.5"
+                    style={{ color: up ? "var(--good)" : "var(--bad)" }}
                   >
+                    {up ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                     {fmtPct(p.change_pct)}
                   </div>
                 </div>
               </Link>
-            </motion.div>
-          ))}
+            );
+          })}
+          {!pairs.length && (
+            <div
+              className="px-4 py-6 text-center text-xs"
+              style={{ color: "var(--text-mute)" }}
+            >
+              Loading market data...
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Start Bot CTA */}
-      <div className="px-4 mt-6">
-        <Link
-          to="/pair/BTCUSDT"
-          data-testid="start-bot-btn"
-          className="w-full flex items-center justify-center gap-2 text-white font-display font-black text-base rounded-2xl py-4 transition-all tracking-wide"
-          style={{
-            background: "var(--primary-grad)",
-            boxShadow: "var(--shadow-md)",
-          }}
-        >
-          <Zap size={20} strokeWidth={2.5} /> START BOT
-        </Link>
+        {/* ============ START BOT CTA ============ */}
+        <div className="mt-5 relative">
+          <Link
+            to="/pair/BTCUSDT"
+            data-testid="start-bot-btn"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm tracking-widest text-white uppercase"
+            style={{
+              background: "var(--primary-grad)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
+            <Zap size={16} strokeWidth={2.5} />
+            Start Auto Trading Bot
+          </Link>
+          <div
+            className="absolute -bottom-1 left-6 right-6 h-1 rounded-full opacity-70 pointer-events-none"
+            style={{
+              background: "var(--gold-grad)",
+              boxShadow: "0 0 8px var(--gold-glow)",
+              filter: "blur(3px)",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
