@@ -111,7 +111,7 @@ export default function Referral() {
             {data.team.map((t, i) => (
               <div
                 key={t.email}
-                className="rounded-2xl p-3.5 flex items-center justify-between"
+                className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
                 style={{
                   background: "var(--surface-2)",
                   border: "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
@@ -122,7 +122,7 @@ export default function Referral() {
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[13px] text-white"
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[12px] text-white"
                     style={{ background: "var(--primary-grad)" }}
                   >
                     {(t.name || t.email || "?").charAt(0).toUpperCase()}
@@ -135,24 +135,26 @@ export default function Referral() {
                   </div>
                 </div>
                 <div className="text-right pl-2 shrink-0">
-                  <div
-                    className="text-[9px] uppercase tracking-widest font-black mb-1"
-                    style={{ color: t.activated ? "var(--primary)" : "#DC2626" }}
-                    data-testid={`direct-status-${i}`}
-                  >
-                    ● {t.activated ? "Active" : "Inactive"}
-                  </div>
-                  <span
-                    className="text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-md inline-block"
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span
+                      className="text-[8px] uppercase tracking-widest font-black"
+                      style={{ color: t.activated ? "var(--primary)" : "#DC2626" }}
+                      data-testid={`direct-status-${i}`}
+                    >
+                      ● {t.activated ? "Active" : "Inactive"}
+                    </span>
+                    <span
+                      className="text-[8px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded-md inline-block"
                     style={{
                       color: "var(--gold-deep)",
                       background: "color-mix(in srgb, var(--gold) 12%, transparent)",
                       border: "1px solid color-mix(in srgb, var(--gold) 35%, transparent)",
                     }}
-                  >
-                    ★ {(t.rank || "Starter").toUpperCase()}
-                  </span>
-                  <div className="text-[10px] font-mono text-[color:var(--text-mute)] mt-1">
+                    >
+                      ★ {(t.rank || "Starter").toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-[9px] font-mono text-[color:var(--text-mute)] mt-0.5">
                     Joined {fmtDate(t.created_at)}
                   </div>
                 </div>
