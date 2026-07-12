@@ -55,10 +55,24 @@ export default function Profile() {
           }}
         >
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl text-white"
-            style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
+            className="w-16 h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl text-white relative"
+            style={{
+              background: "var(--hero-grad)",
+              boxShadow: "var(--shadow-md)",
+              border: "1px solid var(--border)",
+            }}
           >
             {(user?.name || user?.email || "?")[0]?.toUpperCase()}
+            <div
+              className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+              style={{
+                background: "var(--gold-grad)",
+                border: "2px solid var(--surface)",
+                boxShadow: "0 0 8px var(--gold-glow)",
+              }}
+            >
+              <span className="text-[8px] font-black text-white">★</span>
+            </div>
           </div>
           <div className="flex-1 min-w-0">
             <div
@@ -75,17 +89,21 @@ export default function Profile() {
               <span
                 className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full"
                 style={{
-                  background: "var(--primary-soft-grad)",
-                  color: "var(--primary)",
-                  border: "1px solid var(--border)",
+                  background: "rgba(251,191,36,0.14)",
+                  color: "var(--gold)",
+                  border: "1px solid rgba(251,191,36,0.32)",
                 }}
               >
                 {user?.rank || "Bronze"}
               </span>
               {user?.activated && (
                 <span
-                  className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full text-white"
-                  style={{ background: "var(--primary-grad)" }}
+                  className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(16,185,129,0.14)",
+                    color: "var(--primary)",
+                    border: "1px solid rgba(16,185,129,0.32)",
+                  }}
                 >
                   Active
                 </span>
@@ -167,8 +185,8 @@ export default function Profile() {
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "var(--surface-3)",
-                  border: "1px solid var(--border)",
+                  background: "rgba(16,185,129,0.10)",
+                  border: "1px solid rgba(16,185,129,0.24)",
                 }}
               >
                 <it.icon size={16} color="var(--primary)" strokeWidth={1.7} />
