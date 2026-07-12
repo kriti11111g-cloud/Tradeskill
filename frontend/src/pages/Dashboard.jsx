@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [pairs, setPairs] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [rank, setRank] = useState(null);
+  const [rankUp, setRankUp] = useState(null);
 
   useEffect(() => {
     api.get("/market/top?limit=8").then(({ data }) => setPairs(data.coins || [])).catch(() => {});
@@ -48,7 +50,23 @@ export default function Dashboard() {
 
   const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
 
-  const currentRank = rank?.rank || { level: 1, title: "Starter" };
+  const currentRank = rank
+    ? { level: rank.current_level || 1, title: rank.current_title || "STARTER" }
+    : { level: 1, title: "STARTER" };
+
+  useEffect(() => {
+    if (!rank?.current_level) return;
+    const stored = Number(localStorage.getItem("hubx-rank-level") || 1);
+    if (rank.current_level > stored) {
+      setRankUp({ title: rank.current_title, level: rank.current_level });
+      const fire = (opts) =>
+        confetti({ particleCount: 90, spread: 75, zIndex: 9999, ...opts });
+      fire({ origin: { x: 0.2, y: 0.7 }, colors: ["#16A34A", "#F59E0B", "#FFFFFF"] });
+      fire({ origin: { x: 0.8, y: 0.7 }, colors: ["#16A34A", "#F59E0B", "#FFFFFF"] });
+      setTimeout(() => fire({ origin: { x: 0.5, y: 0.5 }, particleCount: 140, spread: 100, colors: ["#F59E0B", "#FBBF24", "#16A34A"] }), 400);
+    }
+    localStorage.setItem("hubx-rank-level", String(rank.current_level));
+  }, [rank]);
   const change24h = pairs.reduce((s, p) => s + (p.change_pct || 0), 0) / Math.max(pairs.length, 1);
   const isUp = change24h >= 0;
   const nextRank = rank?.next_rank;
@@ -67,6 +85,38 @@ export default function Dashboard() {
 
   return (
     <div className="pb-4">
+      {rankUp && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-8"
+          style={{ background: "rgba(4,25,32,0.72)", backdropFilter: "blur(6px)" }}
+          onClick={() => setRankUp(null)}
+          data-testid="rankup-overlay"
+        >
+          <div
+            className="w-full max-w-xs rounded-3xl p-6 text-center text-white relative overflow-hidden"
+            style={{ background: "var(--hero-grad)", border: "1px solid rgba(245,158,11,0.5)", boxShadow: "0 0 60px rgba(245,158,11,0.35)" }}
+          >
+            <div className="text-5xl mb-2">🎉</div>
+            <div className="text-[10px] uppercase tracking-[0.35em] font-bold" style={{ color: "#FBBF24" }}>
+              Rank Achieved
+            </div>
+            <div className="font-display font-black text-4xl mt-2" data-testid="rankup-title">
+              ★ {rankUp.title}
+            </div>
+            <div className="text-[11px] text-white/70 mt-2">
+              Congratulations! Aapne saari conditions poori kar li. 🥳
+            </div>
+            <button
+              className="mt-4 px-6 py-2 rounded-full text-[12px] font-black uppercase tracking-widest"
+              style={{ background: "rgba(10,10,10,0.85)", border: "1px solid rgba(245,158,11,0.65)", color: "#FBBF24" }}
+              onClick={() => setRankUp(null)}
+              data-testid="rankup-close"
+            >
+              Awesome!
+            </button>
+          </div>
+        </div>
+      )}
       <div className="px-4 pt-4">
         {/* ============ HEADER ============ */}
         <div className="flex items-center justify-between mb-5">
