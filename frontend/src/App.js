@@ -27,6 +27,7 @@ import Rank from "@/pages/Rank";
 import DemoTheme from "@/pages/DemoTheme";
 import DemoFintech from "@/pages/DemoFintech";
 import DemoCoinstore from "@/pages/DemoCoinstore";
+import DemoPremium from "@/pages/DemoPremium";
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/demo-theme" element={<DemoTheme />} />
           <Route path="/demo-fintech" element={<DemoFintech />} />
           <Route path="/demo-coinstore" element={<DemoCoinstore />} />
+          <Route path="/demo-premium" element={<DemoPremium />} />
           <Route
             element={
               <ProtectedRoute>
