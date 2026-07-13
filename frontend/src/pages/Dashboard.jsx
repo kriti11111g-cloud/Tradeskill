@@ -177,7 +177,8 @@ export default function Dashboard() {
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
                 background: "var(--surface-2)",
-                border: "1px solid var(--border)",
+                border: "1.5px solid color-mix(in srgb, var(--gold) 60%, transparent)",
+                boxShadow: "0 0 10px rgba(245,158,11,0.18)",
                 backdropFilter: "blur(12px)",
               }}
             >
@@ -192,7 +193,8 @@ export default function Dashboard() {
               className="w-10 h-10 rounded-full flex items-center justify-center relative"
               style={{
                 background: "var(--surface-2)",
-                border: "1px solid var(--border)",
+                border: "1.5px solid color-mix(in srgb, var(--gold) 60%, transparent)",
+                boxShadow: "0 0 10px rgba(245,158,11,0.18)",
                 backdropFilter: "blur(12px)",
               }}
               data-testid="dash-notif-btn"
