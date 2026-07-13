@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
@@ -6,6 +7,7 @@ import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, fmtTime } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
+import WalletHeroCard from "@/components/WalletHeroCard";
 
 const actions = [
   { type: "deposit", label: "Deposit", icon: ArrowDownToLine, testid: "wallet-deposit", tint: "var(--primary)" },
@@ -25,6 +27,10 @@ export default function Wallet() {
   const [liveLoading, setLiveLoading] = useState(false);
   const [prices, setPrices] = useState({});
   const [search, setSearch] = useState("");
+  const [rankTitle, setRankTitle] = useState("STARTER");
+  const [change24h, setChange24h] = useState(0);
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
 
   const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
 
@@ -70,6 +76,16 @@ export default function Wallet() {
   };
   useEffect(() => {
     load();
+    api.get("/ranks/me").then(({ data }) => setRankTitle(data?.current_title || "STARTER")).catch(() => {});
+    api.get("/market/top?limit=8").then(({ data }) => {
+      const coins = data.coins || [];
+      if (coins.length) setChange24h(coins.reduce((a, c) => a + (c.change_pct || 0), 0) / coins.length);
+    }).catch(() => {});
+    const action = params.get("action");
+    if (action === "deposit" || action === "withdraw" || action === "transfer") {
+      setModal(action);
+      setParams({}, { replace: true });
+    }
   }, []);
 
   const submit = async (e) => {
@@ -90,80 +106,78 @@ export default function Wallet() {
     <div className="pb-4">
       <PageHeader title="Wallet" subtitle="Assets · Portfolio" />
 
-      {/* Balance card */}
-      <div className="px-4">
-        <div
-          className="relative overflow-hidden rounded-xl p-5 text-white"
-          style={{
-            background: "var(--premium-grad)",
-            boxShadow: "var(--shadow-lg)",
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-white/60 font-bold">
-              {isLiveMode
-                ? summary?.wallet_connected
-                  ? `Live ${bind.mode === "real" ? "Binance" : "Testnet"} Balance`
-                  : `${bind.mode === "real" ? "Real" : "Testnet"} · Not Connected`
-                : "Total Assets (USDT)"}
-            </div>
-            {!isLiveMode && (
-              <div
-                className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1"
-                style={{
-                  background: "rgba(245,158,11,0.18)",
-                  border: "1px solid rgba(245,158,11,0.45)",
-                  color: "#FDE68A",
-                }}
-                data-testid="wallet-portfolio-badge"
-              >
-                <span style={{ color: "var(--gold)" }}>◆</span> Portfolio
+      {/* Balance card — same as Dashboard */}
+      {!isLiveMode && (
+        <div className="px-4">
+          <WalletHeroCard
+            balance={summary?.total_usdt || 0}
+            changePct={change24h}
+            rankTitle={rankTitle}
+            onAction={(t) => {
+              if (t === "swap") return toast("Swap — Coming Soon 🚀");
+              if (t === "p2p") return navigate("/bot");
+              setModal(t === "send" ? "withdraw" : "deposit");
+            }}
+          >
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Available USDT</div>
+                <div className="font-display font-bold text-lg tabular-nums mt-0.5">
+                  {fmtNum(summary?.wallet_usdt || 0, 2)}
+                </div>
               </div>
-            )}
-            {isLiveMode && (
+              <div>
+                <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">In Positions</div>
+                <div className="font-display font-bold text-lg tabular-nums mt-0.5" style={{ color: "#FDE68A" }}>
+                  {fmtNum(summary?.positions_value_usdt || 0, 2)}
+                </div>
+              </div>
+            </div>
+          </WalletHeroCard>
+        </div>
+      )}
+
+      {/* Live-mode balance card */}
+      {isLiveMode && (
+        <div className="px-4">
+          <div
+            className="relative overflow-hidden rounded-xl p-5 text-white"
+            style={{ background: "var(--premium-grad)", boxShadow: "var(--shadow-lg)" }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-white/60 font-bold">
+                {summary?.wallet_connected
+                  ? `Live ${bind.mode === "real" ? "Binance" : "Testnet"} Balance`
+                  : `${bind.mode === "real" ? "Real" : "Testnet"} · Not Connected`}
+              </div>
               <div
                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                   bind.mode === "real"
-                    ? "bg-[color:var(--bad)]/15 text-[color:var(--bad)] border-[color:var(--bad)]/40"
-                    : "bg-[color:var(--gold)]/15 text-[color:var(--warn)] border-[color:var(--warn)]/40"
+                    ? "bg-[color:var(--bad)]/15 text-white border-white/40"
+                    : "bg-[color:var(--gold)]/15 text-white border-white/40"
                 }`}
                 data-testid="wallet-mode-badge"
               >
                 {bind.mode}
               </div>
+            </div>
+            <div className="font-display font-black text-4xl tabular-nums mt-2" data-testid="wallet-total">
+              {fmtNum(summary?.total_usdt || 0, 2)}
+            </div>
+            {summary?.wallet_error && (
+              <div
+                className="mt-3 rounded-xl border border-white/30 bg-black/20 px-3 py-2 text-[11px] text-white/85 leading-snug"
+                data-testid="wallet-connection-error"
+              >
+                <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black mb-0.5">
+                  Cannot Reach Binance
+                </div>
+                {summary.wallet_error}
+              </div>
             )}
           </div>
-          <div className="font-display font-black text-4xl tabular-nums mt-2" data-testid="wallet-total">
-            {fmtNum(summary?.total_usdt || 0, 2)}
-          </div>
-          {/* Wallet connection error banner (real/testnet mode, Binance unreachable) */}
-          {isLiveMode && summary?.wallet_error && (
-            <div
-              className="mt-3 rounded-xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/10 px-3 py-2 text-[11px] text-[color:var(--text-soft)] leading-snug"
-              data-testid="wallet-connection-error"
-            >
-              <div className="text-[9px] uppercase tracking-widest text-[color:var(--warn)] font-black mb-0.5">
-                Cannot Reach Binance
-              </div>
-              {summary.wallet_error}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <div>
-              <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Available USDT</div>
-              <div className="font-display font-bold text-lg tabular-nums mt-0.5">
-                {fmtNum(summary?.wallet_usdt || 0, 2)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">In Positions</div>
-              <div className="font-display font-bold text-lg tabular-nums mt-0.5 text-[color:var(--primary)]">
-                {fmtNum(summary?.positions_value_usdt || 0, 2)}
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Live Binance Balances (real/testnet) */}
       {isLiveMode && (
