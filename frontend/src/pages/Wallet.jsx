@@ -88,14 +88,15 @@ export default function Wallet() {
 
   return (
     <div className="pb-4">
-      <PageHeader title="Assets" subtitle="Wallet · Portfolio" />
+      <PageHeader title="Wallet" subtitle="Assets · Portfolio" />
 
       {/* Balance card */}
       <div className="px-4">
         <div
-          className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] p-6 text-white"
+          className="relative overflow-hidden rounded-xl p-5 text-white"
           style={{
-            background: "var(--hero-grad)",
+            background: "var(--premium-grad)",
+            boxShadow: "var(--shadow-lg)",
           }}
         >
           <div className="flex items-center justify-between">

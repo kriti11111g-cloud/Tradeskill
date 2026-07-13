@@ -21,7 +21,7 @@ import { fmtUSD } from "@/lib/format";
 
 const items = [
   { icon: Award, label: "Rank & Activation", to: "/rewards", testid: "profile-rank", tint: "var(--gold)" },
-  { icon: WalletIcon, label: "Assets", to: "/wallet", testid: "profile-assets", tint: "var(--primary)" },
+  { icon: WalletIcon, label: "Wallet", to: "/wallet", testid: "profile-assets", tint: "var(--primary)" },
   { icon: Key, label: "API Binding", to: "/bind-api", testid: "profile-api", tint: "var(--primary)" },
   { icon: ArrowRightLeft, label: "Transactions", to: "/transactions", testid: "profile-tx", tint: "var(--primary)" },
   { icon: Users, label: "Team", to: "/referral", testid: "profile-team", tint: "var(--gold)" },
