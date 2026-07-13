@@ -13,6 +13,8 @@ import {
   Repeat,
   ChevronRight,
   Bell,
+  Sun,
+  Moon,
   Search,
   Bot,
   Flame,
@@ -180,9 +182,9 @@ export default function Dashboard() {
               }}
             >
               {mode === "light" ? (
-                <Bell size={16} color="var(--primary)" />
+                <Sun size={16} color="var(--gold-deep)" />
               ) : (
-                <Bell size={16} color="var(--gold)" />
+                <Moon size={16} color="var(--gold)" />
               )}
             </button>
             <Link
