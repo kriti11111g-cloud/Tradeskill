@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import {
   Wallet as WalletIcon,
   Zap,
+  Coins,
   ArrowDownToLine,
   ArrowUpToLine,
   ArrowRightLeft,
@@ -811,13 +812,25 @@ export default function BotHub() {
       {/* ========== P2P DIALOG (Email tab + Address/Scan tab) ========== */}
       {modal === "p2p" && (
         <ModalShell title="P2P Transfer" onClose={closeModal} testid="dialog-p2p">
+          {/* Balance strip */}
+          <div
+            className="rounded-xl px-3.5 py-2.5 flex items-center justify-between border mb-3"
+            style={{ background: "var(--surface-3)", borderColor: "rgba(212,160,23,0.35)" }}
+          >
+            <div className="flex items-center gap-2">
+              <Coins size={16} className="text-[color:var(--gold-deep,#D97706)]" />
+              <span className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-mute)]">Available</span>
+            </div>
+            <span className="text-[color:var(--text)] font-black text-base">{fmtUSD(balance)} <span className="text-[10px] text-[color:var(--gold-deep,#D97706)]">USDT</span></span>
+          </div>
+
           {/* Tabs */}
-          <div className="flex gap-1.5 rounded-lg bg-[var(--surface)] p-1 mb-3">
+          <div className="flex gap-1.5 rounded-xl bg-[var(--surface-3)] p-1 mb-3 border" style={{ borderColor: "var(--border-soft)" }}>
             <button
               onClick={() => setP2pMode("email")}
-              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+              className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "email"
-                  ? "bg-[color:var(--gold)] text-black"
+                  ? "bg-[color:var(--gold)] text-black shadow-[0_2px_10px_rgba(245,158,11,0.35)]"
                   : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
               }`}
               data-testid="tab-p2p-email"
@@ -826,9 +839,9 @@ export default function BotHub() {
             </button>
             <button
               onClick={() => setP2pMode("address")}
-              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+              className={`flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition ${
                 p2pMode === "address"
-                  ? "bg-[color:var(--gold)] text-black"
+                  ? "bg-[color:var(--gold)] text-black shadow-[0_2px_10px_rgba(245,158,11,0.35)]"
                   : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
               }`}
               data-testid="tab-p2p-address"
@@ -843,7 +856,7 @@ export default function BotHub() {
                 <Users size={12} className="text-[color:var(--warn)]" />
                 <span>Send USDT directly to another TGX BOT user</span>
               </div>
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mb-1">
+              <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mb-1.5">
                 Recipient Email
               </label>
               <input
@@ -851,7 +864,7 @@ export default function BotHub() {
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="user@example.com"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--warn)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[color:var(--surface-3)] border border-[color:var(--gold)]/25 text-[color:var(--text)] text-[13px] focus:border-[color:var(--gold)] focus:shadow-[0_0_12px_rgba(245,158,11,0.2)] outline-none transition"
                 data-testid="input-p2p-recipient"
               />
             </>
@@ -861,7 +874,7 @@ export default function BotHub() {
                 <Users size={12} className="text-[color:var(--warn)]" />
                 <span>Send to another HUBXBOT user's deposit address (BSC / Polygon) — instant & free</span>
               </div>
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mb-1">
+              <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mb-1.5">
                 Recipient Deposit Address
               </label>
               <div className="flex gap-2">
@@ -870,12 +883,12 @@ export default function BotHub() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Paste address or scan QR"
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--warn)] outline-none"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-[color:var(--surface-3)] border border-[color:var(--gold)]/25 text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--gold)] focus:shadow-[0_0_12px_rgba(245,158,11,0.2)] outline-none transition"
                   data-testid="input-p2p-address"
                 />
                 <button
                   onClick={startScan}
-                  className="px-3 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/40 text-[color:var(--warn)] hover:bg-[color:var(--gold)]/20 transition"
+                  className="px-3.5 rounded-xl bg-[color:var(--gold)]/10 border border-[color:var(--gold)]/40 text-[color:var(--gold-deep,#D97706)] hover:bg-[color:var(--gold)]/20 transition"
                   data-testid="btn-scan-p2p-qr"
                   type="button"
                 >
@@ -900,7 +913,7 @@ export default function BotHub() {
           {/* Amount + Send */}
           {(
             <>
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
+              <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mt-3 mb-1.5">
                 Amount (USDT)
               </label>
               <input
@@ -908,7 +921,7 @@ export default function BotHub() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--warn)] outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[color:var(--surface-3)] border border-[color:var(--gold)]/25 text-[color:var(--text)] text-lg font-bold focus:border-[color:var(--gold)] focus:shadow-[0_0_12px_rgba(245,158,11,0.2)] outline-none transition"
                 data-testid="input-p2p-amount"
               />
               <div className="text-[10px] text-[color:var(--text-mute)] mt-1">
@@ -917,7 +930,7 @@ export default function BotHub() {
               <button
                 onClick={doP2P}
                 disabled={loading}
-                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--gold)] text-black font-bold text-sm disabled:opacity-40"
+                className="mt-4 w-full py-3 rounded-2xl text-black font-black text-sm uppercase tracking-wider disabled:opacity-40 transition active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #F5C518, #E8A804)", boxShadow: "0 6px 18px rgba(245,158,11,0.35)" }}
                 data-testid="btn-confirm-p2p"
               >
                 {loading ? "Sending..." : "Send"}
@@ -940,14 +953,22 @@ function ModalShell({ title, children, onClose, testid }) {
       data-testid={testid}
     >
       <div
-        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto bg-[color:var(--surface)] border border-[color:var(--primary)]/25 rounded-2xl p-5"
-        style={{ boxShadow: "0 0 30px rgba(22,163,74,0.15)" }}
+        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto bg-[color:var(--surface)] rounded-3xl p-5 border"
+        style={{
+          borderColor: "rgba(212,160,23,0.45)",
+          boxShadow: "0 18px 50px rgba(22,163,74,0.18), 0 0 24px rgba(245,158,11,0.12)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className="text-lg font-bold text-[color:var(--text)]">{title}</div>
-          <button onClick={onClose} className="text-[color:var(--text-mute)] hover:text-[color:var(--text)]" data-testid="btn-close-dialog">
-            <X size={20} />
+          <div className="text-xl font-black text-[color:var(--text)]">{title}</div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center border text-[color:var(--gold-deep,#D97706)] hover:bg-[color:var(--gold)]/10"
+            style={{ borderColor: "rgba(212,160,23,0.45)" }}
+            data-testid="btn-close-dialog"
+          >
+            <X size={16} />
           </button>
         </div>
         {children}
