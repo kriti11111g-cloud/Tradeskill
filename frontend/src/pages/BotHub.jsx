@@ -363,28 +363,7 @@ export default function BotHub() {
           )}
         </div>
 
-        {/* Balance card — thin, balance only */}
-        <div
-          className="rounded-xl border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/5 to-[#16A34A]/5 px-4 py-2.5 mb-3"
-          style={{ boxShadow: "0 0 16px rgba(22,163,74,0.06)" }}
-          data-testid="bot-wallet-balance-card"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <WalletIcon size={14} className="text-[color:var(--primary)]" />
-              <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Wallet Balance</span>
-            </div>
-            <div className="text-xl font-bold text-[color:var(--text)] tabular-nums" data-testid="bot-wallet-balance">
-              {fmtUSD(balance)}
-            </div>
-          </div>
-          {lowFuel && (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-[color:var(--bad)]">
-              <AlertTriangle size={12} />
-              <span>Fuel below ${minFuel} — bots paused. Deposit to resume.</span>
-            </div>
-          )}
-        </div>
+        {/* Wallet balance moved to Asset section — see Asset tab */}
 
         {/* Actions moved to Asset section — see Asset tab */}
 
