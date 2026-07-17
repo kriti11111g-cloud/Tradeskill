@@ -34,6 +34,19 @@ const items = [
 
 export default function Profile() {
   const { user, logout } = useAuth();
+  const menuItems =
+    user?.role === "admin"
+      ? [
+          {
+            icon: Shield,
+            label: "Withdrawals Admin",
+            to: "/admin/withdrawals",
+            testid: "profile-admin-withdrawals",
+            tint: "var(--gold)",
+          },
+          ...items,
+        ]
+      : items;
 
   const doLogout = async () => {
     await logout();
@@ -171,7 +184,7 @@ export default function Profile() {
           className="mt-3 backdrop-blur-xl rounded-2xl overflow-hidden"
           style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
         >
-          {items.map((it, i) => (
+          {menuItems.map((it, i) => (
             <Link
               key={it.label}
               to={it.to}

@@ -16,8 +16,10 @@ import {
   QrCode,
   Users,
   Trophy,
+  Copy,
   X,
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
@@ -45,6 +47,11 @@ export default function BotHub() {
   const [network, setNetwork] = useState("BEP20");
   const [recipient, setRecipient] = useState("");
   const [p2pMode, setP2pMode] = useState("email"); // 'email' | 'address'
+  const [depositTab, setDepositTab] = useState("crypto"); // 'crypto' | 'main'
+  const [depNet, setDepNet] = useState("BEP20");
+  const [depositInfo, setDepositInfo] = useState(null);
+  const [password, setPassword] = useState("");
+  const [withdrawals, setWithdrawals] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [txns, setTxns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -70,10 +77,28 @@ export default function BotHub() {
     }
   }, []);
 
+  const loadWithdrawals = useCallback(async () => {
+    try {
+      const { data } = await api.get("/bot-wallet/withdrawals");
+      setWithdrawals(data || []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     loadStatus();
     loadTxns();
-  }, [loadStatus, loadTxns]);
+    loadWithdrawals();
+  }, [loadStatus, loadTxns, loadWithdrawals]);
+
+  useEffect(() => {
+    if (modal === "deposit" && !depositInfo) {
+      api.get("/bot-wallet/deposit-address")
+        .then(({ data }) => setDepositInfo(data))
+        .catch(() => toast.error("Could not load deposit address"));
+    }
+  }, [modal, depositInfo]);
 
   const closeModal = () => {
     stopScan();
@@ -83,6 +108,8 @@ export default function BotHub() {
     setNetwork("BEP20");
     setRecipient("");
     setP2pMode("email");
+    setPassword("");
+    setDepositTab("crypto");
   };
 
   const doActivate = async () => {
@@ -159,20 +186,23 @@ export default function BotHub() {
   const doWithdraw = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
+    if (address && !password) return toast.error("Enter your login password to confirm");
     setLoading(true);
     try {
       await api.post("/bot-wallet/withdraw", {
         amount: amt,
         address: address || null,
         network: address ? network : null,
+        password: address ? password : null,
       });
       toast.success(
         address
-          ? `Sent $${amt.toFixed(2)} to ${address.slice(0, 8)}…`
+          ? "Withdrawal request submitted — pending admin approval"
           : `Withdrew $${amt.toFixed(2)} to Main Wallet`,
       );
       await loadStatus();
       await loadTxns();
+      await loadWithdrawals();
       await refresh?.();
       closeModal();
     } catch (e) {
@@ -182,20 +212,31 @@ export default function BotHub() {
     }
   };
 
+  const cancelWithdrawal = async (id) => {
+    try {
+      await api.post(`/bot-wallet/withdrawals/${id}/cancel`);
+      toast.success("Withdrawal cancelled — amount refunded");
+      await loadStatus();
+      await loadTxns();
+      await loadWithdrawals();
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
   const doP2P = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
     const isAddressMode = p2pMode === "address";
     if (isAddressMode) {
       if (!address.trim()) return toast.error("Paste or scan an address");
-      if (network !== "BEP20") return toast.error(`${network} coming soon — only BEP20 supported`);
     } else if (!recipient.trim()) {
       return toast.error("Enter recipient email");
     }
     setLoading(true);
     try {
       const payload = isAddressMode
-        ? { recipient_address: address.trim(), network, amount: amt }
+        ? { recipient_address: address.trim(), amount: amt }
         : { recipient_email: recipient.trim(), amount: amt };
       const { data } = await api.post("/bot-wallet/p2p", payload);
       toast.success(
@@ -380,6 +421,63 @@ export default function BotHub() {
           </button>
         </div>
 
+        {/* Withdrawal requests */}
+        {withdrawals.length > 0 && (
+          <div className="mt-4" data-testid="withdrawal-requests-section">
+            <div className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)] mb-2 px-1">
+              Withdrawal Requests
+            </div>
+            <div className="space-y-1.5">
+              {withdrawals.slice(0, 5).map((r) => (
+                <div
+                  key={r.id}
+                  className="rounded-lg border border-[color:var(--border)] bg-[var(--surface)]/70 px-3 py-2"
+                  data-testid="withdrawal-request-row"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-semibold text-[color:var(--text)]">
+                        {fmtUSD(r.amount)} · {r.network}
+                      </div>
+                      <div className="text-[9px] text-[color:var(--text-mute)]">
+                        {r.address.slice(0, 10)}…{r.address.slice(-6)} · {fmtTime(r.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span
+                        className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                          r.status === "pending"
+                            ? "bg-[color:var(--gold)]/15 text-[color:var(--warn)]"
+                            : r.status === "completed"
+                            ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
+                            : "bg-[color:var(--bad)]/15 text-[color:var(--bad)]"
+                        }`}
+                        data-testid="withdrawal-status"
+                      >
+                        {r.status}
+                      </span>
+                      {r.status === "pending" && (
+                        <button
+                          onClick={() => cancelWithdrawal(r.id)}
+                          className="text-[9px] font-semibold text-[color:var(--bad)] border border-[color:var(--bad)]/40 rounded-md px-2 py-0.5"
+                          data-testid="btn-cancel-withdrawal"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {r.tx_hash && (
+                    <div className="text-[9px] font-mono text-[color:var(--text-mute)] mt-1 truncate">
+                      tx: {r.tx_hash}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* How it works — thin card, tap ⓘ to see conditions */}
         <button
           onClick={() => setModal("info")}
@@ -522,37 +620,143 @@ export default function BotHub() {
 
       {/* ========== DEPOSIT DIALOG ========== */}
       {modal === "deposit" && (
-        <ModalShell title="Deposit to Wallet" onClose={closeModal} testid="dialog-deposit">
-          <div className="text-xs text-[color:var(--text-mute)] mb-2">
-            From Main Wallet ({fmtUSD(mainBal)}) → Wallet
+        <ModalShell title="Deposit" onClose={closeModal} testid="dialog-deposit">
+          <div className="flex gap-1.5 rounded-lg bg-[var(--surface)] p-1 mb-3">
+            <button
+              onClick={() => setDepositTab("crypto")}
+              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                depositTab === "crypto"
+                  ? "bg-[color:var(--good)] text-black"
+                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
+              }`}
+              data-testid="tab-deposit-crypto"
+            >
+              Crypto (USDT)
+            </button>
+            <button
+              onClick={() => setDepositTab("main")}
+              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                depositTab === "main"
+                  ? "bg-[color:var(--good)] text-black"
+                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
+              }`}
+              data-testid="tab-deposit-main"
+            >
+              Main Wallet
+            </button>
           </div>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount in USDT"
-            className="w-full px-4 py-3 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--good)] outline-none"
-            data-testid="input-deposit-amount"
-          />
-          <div className="flex gap-2 mt-2">
-            {[50, 100, 500, 1000].map((v) => (
+
+          {depositTab === "crypto" ? (
+            <>
+              <div className="flex gap-1.5 mb-3">
+                {[
+                  { id: "BEP20", label: "BSC · BEP20" },
+                  { id: "POLYGON", label: "Polygon" },
+                  { id: "TRC20", label: "TRC20", soon: true },
+                ].map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => setDepNet(n.id)}
+                    className={`flex-1 py-2 rounded-md text-[10px] font-bold border transition ${
+                      depNet === n.id
+                        ? "border-[color:var(--good)] bg-[color:var(--good)]/10 text-[color:var(--good)]"
+                        : "border-[color:var(--border-soft)] text-[color:var(--text-mute)]"
+                    }`}
+                    data-testid={`deposit-net-${n.id.toLowerCase()}`}
+                  >
+                    {n.label}
+                    {n.soon && <span className="block text-[8px] text-[color:var(--warn)]">Soon</span>}
+                  </button>
+                ))}
+              </div>
+
+              {depNet === "TRC20" ? (
+                <div
+                  className="rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-4 text-center"
+                  data-testid="deposit-coming-soon"
+                >
+                  <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
+                  <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
+                    TRC20 deposits are not available yet. Use BSC or Polygon.
+                  </div>
+                </div>
+              ) : !depositInfo ? (
+                <div className="text-center text-[12px] text-[color:var(--text-mute)] py-6">
+                  Generating your deposit address…
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-center my-3">
+                    <div className="bg-white p-2.5 rounded-xl" data-testid="deposit-qr">
+                      <QRCodeCanvas value={depositInfo.address} size={150} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] px-3 py-2.5">
+                    <div
+                      className="flex-1 text-[11px] font-mono break-all text-[color:var(--text)]"
+                      data-testid="deposit-address-text"
+                    >
+                      {depositInfo.address}
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(depositInfo.address);
+                        toast.success("Address copied");
+                      }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-md bg-[color:var(--good)]/10 border border-[color:var(--good)]/40 text-[color:var(--good)]"
+                      data-testid="btn-copy-deposit-address"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <ul className="mt-3 text-[10px] text-[color:var(--text-mute)] space-y-1 list-disc pl-4">
+                    <li>
+                      Send only <span className="text-[color:var(--text)] font-semibold">USDT</span> on{" "}
+                      <span className="text-[color:var(--text)] font-semibold">
+                        {depNet === "BEP20" ? "BNB Smart Chain (BEP20)" : "Polygon"}
+                      </span>{" "}
+                      to this address.
+                    </li>
+                    <li>Same address works on both BSC & Polygon networks.</li>
+                    <li>Funds auto-credit to your Bot Wallet within ~1 minute of confirmation.</li>
+                  </ul>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-xs text-[color:var(--text-mute)] mb-2">
+                From Main Wallet ({fmtUSD(mainBal)}) → Wallet
+              </div>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Amount in USDT"
+                className="w-full px-4 py-3 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--good)] outline-none"
+                data-testid="input-deposit-amount"
+              />
+              <div className="flex gap-2 mt-2">
+                {[50, 100, 500, 1000].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setAmount(String(v))}
+                    className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--good)]/40"
+                  >
+                    ${v}
+                  </button>
+                ))}
+              </div>
               <button
-                key={v}
-                onClick={() => setAmount(String(v))}
-                className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--good)]/40"
+                onClick={doDeposit}
+                disabled={loading}
+                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
+                data-testid="btn-confirm-deposit"
               >
-                ${v}
+                {loading ? "Processing..." : "Confirm Deposit"}
               </button>
-            ))}
-          </div>
-          <button
-            onClick={doDeposit}
-            disabled={loading}
-            className="mt-4 w-full py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
-            data-testid="btn-confirm-deposit"
-          >
-            {loading ? "Processing..." : "Confirm Deposit"}
-          </button>
+            </>
+          )}
         </ModalShell>
       )}
 
@@ -574,20 +778,20 @@ export default function BotHub() {
             data-testid="select-withdraw-network"
           >
             <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
-            <option value="ERC20">ERC20 (Ethereum)</option>
-            <option value="TRC20">TRC20 (Tron)</option>
-            <option value="SOL">Solana</option>
             <option value="POLYGON">Polygon</option>
+            <option value="TRC20">TRC20 (Tron)</option>
+            <option value="ERC20">ERC20 (Ethereum)</option>
+            <option value="SOL">Solana</option>
           </select>
 
-          {network !== "BEP20" ? (
+          {!["BEP20", "POLYGON"].includes(network) ? (
             <div
               className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-3 text-center"
               data-testid="withdraw-coming-soon"
             >
               <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
               <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
-                {network} liquidity is not available yet. Only BEP20 is supported today.
+                {network} liquidity is not available yet. Only BEP20 & Polygon are supported today.
               </div>
             </div>
           ) : (
@@ -650,13 +854,41 @@ export default function BotHub() {
                   Max ({fmtUSD(balance)})
                 </button>
               </div>
+              {address && (
+                <>
+                  <div
+                    className="mt-3 rounded-lg border border-[color:var(--warn)]/30 bg-[color:var(--gold)]/5 px-3 py-2 text-[11px] text-[color:var(--text-soft)] space-y-0.5"
+                    data-testid="withdraw-fee-info"
+                  >
+                    <div>Network fee: <span className="font-semibold text-[color:var(--text)]">2 USDT</span> · Minimum: <span className="font-semibold text-[color:var(--text)]">$10</span></div>
+                    <div>
+                      You will receive:{" "}
+                      <span className="font-bold text-[color:var(--good)]">
+                        {Math.max(0, (parseFloat(amount) || 0) - 2).toFixed(2)} USDT
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[color:var(--text-mute)]">External withdrawals require manual admin approval.</div>
+                  </div>
+                  <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
+                    Login Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Confirm with your password"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
+                    data-testid="input-withdraw-password"
+                  />
+                </>
+              )}
               <button
                 onClick={doWithdraw}
                 disabled={loading}
                 className="mt-4 w-full py-3 rounded-lg bg-[color:var(--bad)] text-white font-bold text-sm disabled:opacity-40"
                 data-testid="btn-confirm-withdraw"
               >
-                {loading ? "Processing..." : address ? `Send ${network}` : "Withdraw to Main Wallet"}
+                {loading ? "Processing..." : address ? "Submit Withdrawal Request" : "Withdraw to Main Wallet"}
               </button>
             </>
           )}

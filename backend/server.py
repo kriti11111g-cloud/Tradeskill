@@ -23,6 +23,8 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from starlette.concurrency import run_in_threadpool
 from binance.client import Client as BinanceClient
 from binance.exceptions import BinanceAPIException, BinanceRequestException
+import re
+import chain_wallet
 
 
 class _SafeBinanceClient(BinanceClient):
@@ -201,6 +203,10 @@ RANK_BONUS_BY_TITLE = {r["title"].upper(): float(r["direct_income"]) for r in RA
 MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
+WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
+WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
+DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "45"))
+ADMIN_WALLET_ADDRESS = os.environ.get("ADMIN_WALLET_ADDRESS", "")
 
 BINANCE_PUBLIC = "https://data-api.binance.vision"
 ALLOWED_SYMBOLS = {
@@ -2131,6 +2137,7 @@ class BotWalletWithdrawIn(BaseModel):
     amount: float = Field(gt=0)
     address: Optional[str] = None
     network: Optional[str] = None
+    password: Optional[str] = None
 
 
 class BotWalletP2PIn(BaseModel):
@@ -2140,7 +2147,7 @@ class BotWalletP2PIn(BaseModel):
     amount: float = Field(gt=0)
 
 
-ALLOWED_EXTERNAL_NETWORKS = {"BEP20"}  # others show "coming soon" in UI
+ALLOWED_EXTERNAL_NETWORKS = {"BEP20", "POLYGON"}  # others show "coming soon" in UI
 
 
 @api.get("/bot-wallet/status")
@@ -2239,28 +2246,53 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     bal = float(w.get("balance", 0.0) or 0.0)
     if amount > bal:
         raise HTTPException(400, "Insufficient bot wallet balance")
+    address = (body.address or "").strip()
+    network = ((body.network or "").strip() or "BEP20").upper()
+
+    if address:
+        # ---- External on-chain withdrawal → manual admin approval queue ----
+        if network not in ALLOWED_EXTERNAL_NETWORKS:
+            raise HTTPException(400, f"{network} withdrawals are coming soon. Only BEP20 and Polygon are supported today.")
+        if not (address.startswith("0x") and len(address) == 42):
+            raise HTTPException(400, "Invalid wallet address")
+        if amount < WITHDRAW_MIN_USDT:
+            raise HTTPException(400, f"Minimum withdrawal is ${WITHDRAW_MIN_USDT:.0f} USDT")
+        udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1})
+        if not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
+            raise HTTPException(401, "Incorrect password")
+        net_amount = round(amount - WITHDRAW_FEE_USDT, 4)
+        new_balance = round(bal - amount, 4)
+        await db.bot_wallets.update_one(
+            {"user_id": user["id"]}, {"$set": {"balance": new_balance}})
+        req = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "email": user.get("email"),
+            "amount": amount,
+            "fee": WITHDRAW_FEE_USDT,
+            "net_amount": net_amount,
+            "address": address,
+            "network": network,
+            "status": "pending",
+            "created_at": iso(now_utc()),
+        }
+        await db.withdrawal_requests.insert_one(dict(req))
+        await _log_bot_txn(user["id"], "withdraw_request", -amount,
+                           note=f"Withdrawal request → {address[:8]}…{address[-6:]} · {network} (fee ${WITHDRAW_FEE_USDT:.0f})",
+                           balance_after=new_balance)
+        return {"ok": True, "balance": new_balance, "kind": "withdraw_request",
+                "request_id": req["id"], "fee": WITHDRAW_FEE_USDT,
+                "net_amount": net_amount}
+
+    # ---- Internal transfer back to main wallet ----
     new_balance = round(bal - amount, 4)
     await db.bot_wallets.update_one(
-        {"user_id": user["id"]}, {"$set": {"balance": new_balance}},
-    )
-    address = (body.address or "").strip()
-    network = (body.network or "").strip() or "BEP20"
-    if address:
-        if network not in ALLOWED_EXTERNAL_NETWORKS:
-            raise HTTPException(400, f"{network} withdrawals are coming soon. Only BEP20 is supported today.")
-        # External withdrawal → funds leave the system (mocked; real chain
-        # transfer would happen here). Do NOT credit main wallet.
-        note = f"External → {address[:8]}…{address[-6:]} · {network}"
-        kind = "external_withdraw"
-    else:
-        # Internal transfer back to main wallet.
-        await db.users.update_one({"id": user["id"]},
-                                  {"$inc": {"wallet_usdt": amount}})
-        note = "Withdraw to main wallet"
-        kind = "withdraw"
-    await _log_bot_txn(user["id"], kind, -amount,
-                       note=note, balance_after=new_balance)
-    return {"ok": True, "balance": new_balance, "kind": kind}
+        {"user_id": user["id"]}, {"$set": {"balance": new_balance}})
+    await db.users.update_one({"id": user["id"]},
+                              {"$inc": {"wallet_usdt": amount}})
+    await _log_bot_txn(user["id"], "withdraw", -amount,
+                       note="Withdraw to main wallet", balance_after=new_balance)
+    return {"ok": True, "balance": new_balance, "kind": "withdraw"}
 
 
 @api.post("/bot-wallet/p2p")
@@ -2278,20 +2310,31 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     if amount > sender_bal:
         raise HTTPException(400, "Insufficient bot wallet balance")
 
-    # ---- Address (external) mode ----
+    # ---- Address (internal HUBXBOT deposit-address lookup) mode ----
     if recipient_address:
-        network = (body.network or "").strip() or "BEP20"
-        if network not in ALLOWED_EXTERNAL_NETWORKS:
-            raise HTTPException(400, f"{network} transfers are coming soon. Only BEP20 is supported today.")
+        rw = await db.bot_wallets.find_one(
+            {"chain_deposit_address": {"$regex": f"^{re.escape(recipient_address)}$", "$options": "i"}},
+            {"_id": 0, "user_id": 1})
+        if not rw:
+            raise HTTPException(404, "This address does not belong to any HUBXBOT user")
+        if rw["user_id"] == user["id"]:
+            raise HTTPException(400, "Cannot send to your own wallet")
         new_sender_bal = round(sender_bal - amount, 4)
         await db.bot_wallets.update_one(
             {"user_id": user["id"]}, {"$set": {"balance": new_sender_bal}},
         )
-        note = f"P2P → {recipient_address[:8]}…{recipient_address[-6:]} · {network}"
+        r_after = await db.bot_wallets.find_one_and_update(
+            {"user_id": rw["user_id"]}, {"$inc": {"balance": amount}},
+            return_document=True)
+        r_bal = round(float(r_after.get("balance", 0.0) or 0.0), 4)
+        short = f"{recipient_address[:8]}…{recipient_address[-6:]}"
         await _log_bot_txn(user["id"], "p2p_sent", -amount,
-                           note=note, balance_after=new_sender_bal)
+                           note=f"P2P → {short}", balance_after=new_sender_bal)
+        await _log_bot_txn(rw["user_id"], "p2p_received", amount,
+                           note=f"P2P ← {user.get('email') or user['id'][:8]}",
+                           balance_after=r_bal)
         return {"ok": True, "balance": new_sender_bal,
-                "recipient": recipient_address, "mode": "address"}
+                "recipient": short, "mode": "address"}
 
     # ---- Email (user-to-user) mode ----
     recipient = await db.users.find_one({"email": recipient_email}, {"_id": 0})
@@ -2329,6 +2372,200 @@ async def bot_wallet_transactions(user: dict = Depends(get_current_user),
         {"user_id": user["id"]}, {"_id": 0},
     ).sort("created_at", -1).to_list(limit)
     return rows
+
+
+# ==== On-chain Deposit / Withdrawal (BSC + Polygon HD Wallet) ====
+_watcher_task = None
+
+
+async def _assign_deposit_address(user_id: str) -> dict:
+    w = await _get_or_create_bot_wallet(user_id)
+    if w.get("deposit_index") is not None and w.get("chain_deposit_address"):
+        return w
+    ctr = await db.counters.find_one_and_update(
+        {"_id": "deposit_index"}, {"$inc": {"seq": 1}},
+        upsert=True, return_document=True)
+    idx = int(ctr["seq"])  # starts at 1; index 0 reserved for master/gas wallet
+    addr = await asyncio.to_thread(chain_wallet.derive_address, idx)
+    await db.bot_wallets.update_one(
+        {"user_id": user_id},
+        {"$set": {"deposit_index": idx, "chain_deposit_address": addr,
+                  "onchain_credited": {}}})
+    w.update({"deposit_index": idx, "chain_deposit_address": addr,
+              "onchain_credited": {}})
+    return w
+
+
+@api.get("/bot-wallet/deposit-address")
+async def bot_wallet_deposit_address(user: dict = Depends(get_current_user)):
+    try:
+        w = await _assign_deposit_address(user["id"])
+    except Exception as e:
+        logger.error(f"deposit address generation failed: {e}")
+        raise HTTPException(500, "Could not generate deposit address. Try again later.")
+    return {
+        "address": w["chain_deposit_address"],
+        "networks": [
+            {"id": "BEP20", "label": "BNB Smart Chain (BEP20)", "token": "USDT", "active": True},
+            {"id": "POLYGON", "label": "Polygon", "token": "USDT", "active": True},
+            {"id": "TRC20", "label": "Tron (TRC20)", "token": "USDT", "active": False, "note": "Coming Soon"},
+        ],
+        "min_deposit": 1.0,
+    }
+
+
+async def deposit_watcher_loop():
+    """Polls BSC + Polygon USDT balances of every user deposit address and
+    auto-credits new funds to the user's Bot Wallet."""
+    await asyncio.sleep(10)
+    while True:
+        try:
+            wallets = await db.bot_wallets.find(
+                {"chain_deposit_address": {"$exists": True, "$ne": None}},
+                {"_id": 0, "user_id": 1, "chain_deposit_address": 1,
+                 "onchain_credited": 1}).to_list(2000)
+            for w in wallets:
+                for net in ("BEP20", "POLYGON"):
+                    try:
+                        chain_bal = await asyncio.to_thread(
+                            chain_wallet.get_usdt_balance, net,
+                            w["chain_deposit_address"])
+                    except Exception:
+                        continue
+                    credited = float((w.get("onchain_credited") or {}).get(net, 0.0))
+                    diff = round(chain_bal - credited, 4)
+                    if diff >= 0.01:
+                        res = await db.bot_wallets.find_one_and_update(
+                            {"user_id": w["user_id"]},
+                            {"$inc": {"balance": diff,
+                                      "total_deposited_onchain": diff},
+                             "$set": {f"onchain_credited.{net}": chain_bal}},
+                            return_document=True)
+                        await _log_bot_txn(
+                            w["user_id"], "deposit_onchain", diff,
+                            note=f"On-chain USDT deposit · {net}",
+                            balance_after=round(float(res.get("balance", 0.0)), 4))
+                        logger.info(f"On-chain deposit credited: {diff} USDT ({net}) -> {w['user_id']}")
+        except Exception as e:
+            logger.warning(f"deposit watcher error: {e}")
+        await asyncio.sleep(DEPOSIT_WATCH_INTERVAL)
+
+
+@api.get("/bot-wallet/withdrawals")
+async def my_withdrawals(user: dict = Depends(get_current_user), limit: int = 50):
+    return await db.withdrawal_requests.find(
+        {"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+
+@api.post("/bot-wallet/withdrawals/{req_id}/cancel")
+async def cancel_withdrawal(req_id: str, user: dict = Depends(get_current_user)):
+    req = await db.withdrawal_requests.find_one_and_update(
+        {"id": req_id, "user_id": user["id"], "status": "pending"},
+        {"$set": {"status": "cancelled", "resolved_at": iso(now_utc())}},
+        return_document=True)
+    if not req:
+        raise HTTPException(404, "Pending withdrawal request not found")
+    res = await db.bot_wallets.find_one_and_update(
+        {"user_id": user["id"]}, {"$inc": {"balance": float(req["amount"])}},
+        return_document=True)
+    await _log_bot_txn(user["id"], "withdraw_refund", float(req["amount"]),
+                       note="Withdrawal cancelled — amount refunded",
+                       balance_after=round(float(res.get("balance", 0.0)), 4))
+    return {"ok": True}
+
+
+# ==== Admin: Withdrawal Approval Queue + Treasury ====
+async def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    return user
+
+
+class AdminApproveIn(BaseModel):
+    manual: bool = False
+
+
+class AdminRejectIn(BaseModel):
+    reason: Optional[str] = None
+
+
+@api.get("/admin/withdrawals")
+async def admin_withdrawals(status: Optional[str] = None,
+                            admin: dict = Depends(require_admin),
+                            limit: int = 100):
+    q = {"status": status} if status else {}
+    return await db.withdrawal_requests.find(
+        q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+
+@api.post("/admin/withdrawals/{req_id}/approve")
+async def admin_approve_withdrawal(req_id: str, body: AdminApproveIn,
+                                   admin: dict = Depends(require_admin)):
+    req = await db.withdrawal_requests.find_one(
+        {"id": req_id, "status": "pending"}, {"_id": 0})
+    if not req:
+        raise HTTPException(404, "Pending withdrawal request not found")
+    if body.manual:
+        await db.withdrawal_requests.update_one(
+            {"id": req_id},
+            {"$set": {"status": "completed", "method": "manual",
+                      "resolved_at": iso(now_utc()), "resolved_by": admin["id"]}})
+        await _log_bot_txn(req["user_id"], "withdraw_paid", 0.0,
+                           note=f"Withdrawal paid manually · {req['network']}")
+        return {"ok": True, "method": "manual"}
+    try:
+        tx_hash = await asyncio.to_thread(
+            chain_wallet.send_usdt, req["network"], req["address"],
+            float(req["net_amount"]))
+    except Exception as e:
+        raise HTTPException(400, f"On-chain send failed: {e}")
+    if not tx_hash.startswith("0x"):
+        tx_hash = "0x" + tx_hash
+    await db.withdrawal_requests.update_one(
+        {"id": req_id},
+        {"$set": {"status": "completed", "method": "onchain", "tx_hash": tx_hash,
+                  "resolved_at": iso(now_utc()), "resolved_by": admin["id"]}})
+    await _log_bot_txn(req["user_id"], "withdraw_paid", 0.0,
+                       note=f"Withdrawal paid on-chain · {req['network']} · tx {tx_hash[:12]}…")
+    return {"ok": True, "method": "onchain", "tx_hash": tx_hash}
+
+
+@api.post("/admin/withdrawals/{req_id}/reject")
+async def admin_reject_withdrawal(req_id: str, body: AdminRejectIn,
+                                  admin: dict = Depends(require_admin)):
+    req = await db.withdrawal_requests.find_one_and_update(
+        {"id": req_id, "status": "pending"},
+        {"$set": {"status": "rejected", "reject_reason": body.reason or "",
+                  "resolved_at": iso(now_utc()), "resolved_by": admin["id"]}},
+        return_document=True)
+    if not req:
+        raise HTTPException(404, "Pending withdrawal request not found")
+    res = await db.bot_wallets.find_one_and_update(
+        {"user_id": req["user_id"]}, {"$inc": {"balance": float(req["amount"])}},
+        return_document=True)
+    await _log_bot_txn(req["user_id"], "withdraw_refund", float(req["amount"]),
+                       note=f"Withdrawal rejected — refund. {body.reason or ''}".strip(),
+                       balance_after=round(float(res.get("balance", 0.0)), 4))
+    return {"ok": True}
+
+
+@api.get("/admin/treasury")
+async def admin_treasury(admin: dict = Depends(require_admin)):
+    master = await asyncio.to_thread(chain_wallet.derive_address, 0)
+    out = {"master_address": master, "admin_wallet": ADMIN_WALLET_ADDRESS,
+           "networks": {}}
+    for net, cfg in chain_wallet.NETWORKS.items():
+        try:
+            usdt = await asyncio.to_thread(chain_wallet.get_usdt_balance, net, master)
+            native = await asyncio.to_thread(chain_wallet.get_native_balance, net, master)
+            out["networks"][net] = {"usdt": round(usdt, 4),
+                                    "native": round(native, 6),
+                                    "native_symbol": cfg["native"],
+                                    "label": cfg["label"]}
+        except Exception as e:
+            out["networks"][net] = {"error": str(e), "label": cfg["label"],
+                                    "native_symbol": cfg["native"]}
+    return out
 
 
 # ==== Startup Seeding ====
@@ -2406,9 +2643,11 @@ async def startup():
         logger.warning(f"Could not load Binance exchangeInfo at startup: {e}. Using fallback list.")
 
     # Launch the background bot engine
-    global _engine_task
+    global _engine_task, _watcher_task
     if _engine_task is None or _engine_task.done():
         _engine_task = asyncio.create_task(bot_engine_loop())
+    if _watcher_task is None or _watcher_task.done():
+        _watcher_task = asyncio.create_task(deposit_watcher_loop())
 
 
 # ==== CORS + Include ====
@@ -2424,7 +2663,9 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown():
-    global _engine_task
+    global _engine_task, _watcher_task
     if _engine_task and not _engine_task.done():
         _engine_task.cancel()
+    if _watcher_task and not _watcher_task.done():
+        _watcher_task.cancel()
     client.close()

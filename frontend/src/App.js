@@ -24,6 +24,7 @@ import Profile from "@/pages/Profile";
 import Market from "@/pages/Market";
 import BotHub from "@/pages/BotHub";
 import Rank from "@/pages/Rank";
+import AdminWithdrawals from "@/pages/AdminWithdrawals";
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/bot" element={<BotHub />} />
             <Route path="/rank" element={<Rank />} />
+            <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/trades" element={<Trades />} />
             <Route path="/revenue" element={<Revenue />} />

@@ -1,0 +1,46 @@
+{
+  "summary": "Full backend + frontend testing of HD-wallet crypto integration (deposit address, external withdrawals with password, cancel, P2P by address, admin approval queue + treasury). 20/20 pytest cases pass. All frontend flows work (deposit modal both tabs, network chips, TRC20 coming-soon, QR + copy, withdraw with fee-info + password + pending row + cancel, unknown-address P2P error, valid-address P2P success, non-admin has no admin menu, admin page treasury + Mark Paid + Reject + Pay-on-chain fail as expected).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "P2P → By Address tab",
+        "issue": "Spec says 'By Address tab now shows single address input with hint about HUBXBOT deposit address (NO network select)'. Actual UI still renders <select data-testid=\"select-p2p-network\"> with options BEP20/ERC20/TRC20/SOL/POLYGON and shows 'Coming Soon' box (data-testid=\"p2p-coming-soon\") for anything other than BEP20. Default BEP20 works fine (unknown address 404 toast + valid address success toast both verified), but the spec requires the network select to be removed for By Address mode since HUBXBOT deposit addresses are chain-agnostic (single EVM address).",
+        "affected_selectors": ["select-p2p-network", "p2p-coming-soon", "input-p2p-address"]
+      },
+      {
+        "flow": "Non-admin directly navigating to /admin/withdrawals",
+        "issue": "Route is client-side reachable for non-admin. Backend correctly returns 403 (verified) and shows two 'Admin access required' error toasts, but the page still renders the Treasury card wrapper + Pending/History tabs (with empty state). No route guard / redirect. Non-blocking (user cannot perform admin actions), but poor UX and route-level admin guard should redirect non-admins away.",
+        "affected_selectors": ["admin-withdrawals-page", "admin-treasury-card"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_hd_wallet.py",
+    "/app/test_reports/pytest/hd_wallet_results.xml"
+  ],
+  "action_items": [
+    "Remove <select data-testid='select-p2p-network'> from P2P By Address tab and drop the 'Coming Soon' guard (backend p2p handler already treats deposit addresses as chain-agnostic).",
+    "Add route-level admin guard on /admin/withdrawals (redirect to /profile or /home if user.role !== 'admin') to avoid rendering the admin shell + double error toasts for non-admins."
+  ],
+  "critical_code_review_comments": [
+    "server.py bot_wallet_p2p already ignores the network field for address mode (only uses recipient_address regex against chain_deposit_address). Removing the network select from the FE is purely cosmetic and matches backend contract.",
+    "server.py line 2251 defaults network to BEP20 if empty — external withdraw without an explicit network still works. Good defensive default.",
+    "server.py admin_approve_withdrawal correctly catches send_usdt exceptions and returns 400 with the error message — verified live: 400 'insufficient' when master has 0 gas (expected).",
+    "AdminWithdrawals.jsx has no client-side role gate; add a hook like `if (user?.role !== 'admin') navigate('/')`. Two duplicate toasts fire because both /admin/withdrawals and /admin/treasury 403 on mount.",
+    "BotHub.jsx By-Address P2P still has legacy network dropdown + p2p-coming-soon guard from earlier iteration; the new backend feature (address = HUBXBOT deposit lookup) doesn't need it.",
+    "server.py is now 2672 lines — modularisation still pending from prior iterations."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_hd_wallet.py (new pytest suite — 20 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (20/20 pytest)", "frontend": "95% (all critical flows pass; 2 spec deviations noted)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 ; mlm.newbie@tgxbot.com / Test@12345 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "During testing created multiple pending withdrawal requests (all cleaned up via cancel/reject/manual-approve). Admin wallet balance verified restored via bot-wallet/deposit at end of pytest.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "HD-wallet flow verified end-to-end. Master gas wallet address: 0x5aA5004E23B39D0368b765e4FDF47f6747F7e84F (0 USDT / 0 BNB / 0 POL — 'Pay On-chain' will always return backend 400 until master is funded). Admin's HD deposit address rotates as counters advance (was 0xd71578… during this iteration; NOT stable across regenerations — it IS stable per-user once assigned). mlm.newbie address is stable at 0xa92392993a3EB73EB5C76f010486aEA5e16f4acC. When testing admin actions in future, the reject button triggers a native window.prompt — Playwright must register `page.on('dialog', lambda d: asyncio.create_task(d.accept('reason')))` BEFORE clicking the reject button, and asyncio must be imported at top of the script. Also `/api/bot-wallet` alone doesn't exist — use `/api/bot-wallet/status` to read the balance.",
+  "rca of the issue": "No functional RCA needed. The two issues found are UI-spec deviations, not bugs — the underlying backend and frontend flows work. Main agent can remove the P2P network select and add an admin route guard as quick follow-ups."
+}
