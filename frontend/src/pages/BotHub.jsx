@@ -944,75 +944,48 @@ export default function BotHub() {
             </>
           ) : (
             <>
-              {/* Network */}
+              <div className="flex items-center gap-2 text-[11px] text-[color:var(--text-mute)] mb-2">
+                <Users size={12} className="text-[color:var(--warn)]" />
+                <span>Send to another HUBXBOT user's deposit address (BSC / Polygon) — instant & free</span>
+              </div>
               <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mb-1">
-                Network
+                Recipient Deposit Address
               </label>
-              <select
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--warn)] outline-none"
-                data-testid="select-p2p-network"
-              >
-                <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
-                <option value="ERC20">ERC20 (Ethereum)</option>
-                <option value="TRC20">TRC20 (Tron)</option>
-                <option value="SOL">Solana</option>
-                <option value="POLYGON">Polygon</option>
-              </select>
-
-              {network !== "BEP20" ? (
-                <div
-                  className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-3 text-center"
-                  data-testid="p2p-coming-soon"
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Paste address or scan QR"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--warn)] outline-none"
+                  data-testid="input-p2p-address"
+                />
+                <button
+                  onClick={startScan}
+                  className="px-3 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/40 text-[color:var(--warn)] hover:bg-[color:var(--gold)]/20 transition"
+                  data-testid="btn-scan-p2p-qr"
+                  type="button"
                 >
-                  <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
-                  <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
-                    {network} liquidity is not available yet. Only BEP20 is supported today.
-                  </div>
+                  <QrCode size={18} />
+                </button>
+              </div>
+              {scanning && (
+                <div className="mt-2 rounded-lg overflow-hidden border border-[color:var(--warn)]/40 bg-black">
+                  <div id="qr-reader" ref={qrRef} className="w-full" />
+                  <button
+                    onClick={stopScan}
+                    className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[color:var(--bad)] border-t border-[color:var(--border-soft)]"
+                    data-testid="btn-stop-scan-p2p"
+                  >
+                    Cancel scan
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
-                    Recipient Address
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Paste address or scan QR"
-                      className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--warn)] outline-none"
-                      data-testid="input-p2p-address"
-                    />
-                    <button
-                      onClick={startScan}
-                      className="px-3 rounded-lg bg-[color:var(--gold)]/10 border border-[color:var(--warn)]/40 text-[color:var(--warn)] hover:bg-[color:var(--gold)]/20 transition"
-                      data-testid="btn-scan-p2p-qr"
-                      type="button"
-                    >
-                      <QrCode size={18} />
-                    </button>
-                  </div>
-                  {scanning && (
-                    <div className="mt-2 rounded-lg overflow-hidden border border-[color:var(--warn)]/40 bg-black">
-                      <div id="qr-reader" ref={qrRef} className="w-full" />
-                      <button
-                        onClick={stopScan}
-                        className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[color:var(--bad)] border-t border-[color:var(--border-soft)]"
-                        data-testid="btn-stop-scan-p2p"
-                      >
-                        Cancel scan
-                      </button>
-                    </div>
-                  )}
-                </>
               )}
             </>
           )}
 
-          {/* Amount + Send (shown unless coming-soon banner is active) */}
-          {!(p2pMode === "address" && network !== "BEP20") && (
+          {/* Amount + Send */}
+          {(
             <>
               <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
                 Amount (USDT)

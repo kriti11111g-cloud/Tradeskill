@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
+import { useAuth } from "@/context/AuthContext";
 
 const EXPLORERS = {
   BEP20: "https://bscscan.com/tx/",
@@ -19,28 +21,37 @@ const EXPLORERS = {
 };
 
 export default function AdminWithdrawals() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === "admin";
   const [requests, setRequests] = useState([]);
   const [treasury, setTreasury] = useState(null);
   const [busy, setBusy] = useState(null); // request id being processed
   const [tab, setTab] = useState("pending");
 
+  useEffect(() => {
+    if (user && !isAdmin) navigate("/", { replace: true });
+  }, [user, isAdmin, navigate]);
+
   const load = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       const { data } = await api.get("/admin/withdrawals");
       setRequests(data || []);
     } catch (e) {
       toast.error(formatApiError(e));
     }
-  }, []);
+  }, [isAdmin]);
 
   const loadTreasury = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       const { data } = await api.get("/admin/treasury");
       setTreasury(data);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     load();
@@ -69,6 +80,8 @@ export default function AdminWithdrawals() {
     tab === "pending" ? r.status === "pending" : r.status !== "pending",
   );
   const pendingCount = requests.filter((r) => r.status === "pending").length;
+
+  if (!isAdmin) return null;
 
   return (
     <div className="pb-40" data-testid="admin-withdrawals-page">
