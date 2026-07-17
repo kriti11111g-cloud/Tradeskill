@@ -123,6 +123,7 @@ export default function BotHub() {
 
   const closeModal = () => {
     stopScan();
+    const wasWalletAction = ["deposit", "withdraw", "p2p"].includes(modal);
     setModal(null);
     setAmount("");
     setAddress("");
@@ -131,6 +132,7 @@ export default function BotHub() {
     setP2pMode("email");
     setPassword("");
     setCopied(false);
+    if (wasWalletAction) navigate("/wallet");
   };
 
   const copyDepositAddress = () => {
