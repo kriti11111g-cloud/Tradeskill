@@ -386,36 +386,7 @@ export default function BotHub() {
           )}
         </div>
 
-        {/* Actions row — thin inline buttons */}
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            disabled={!activated}
-            onClick={() => setModal("deposit")}
-            className="rounded-lg border border-[color:var(--good)]/30 bg-[color:var(--good)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--good)]/10 transition"
-            data-testid="btn-open-deposit"
-          >
-            <ArrowDownToLine size={14} className="text-[color:var(--good)]" />
-            <span className="text-[11px] font-semibold text-[color:var(--text)]">Deposit</span>
-          </button>
-          <button
-            disabled={!activated || balance <= 0}
-            onClick={() => setModal("withdraw")}
-            className="rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--bad)]/10 transition"
-            data-testid="btn-open-withdraw"
-          >
-            <ArrowUpToLine size={14} className="text-[color:var(--bad)]" />
-            <span className="text-[11px] font-semibold text-[color:var(--text)]">Withdraw</span>
-          </button>
-          <button
-            onClick={() => setModal("p2p")}
-            disabled={!activated || balance <= 0}
-            className="rounded-lg border border-[color:var(--warn)]/30 bg-[color:var(--gold)]/5 py-2 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[color:var(--gold)]/10 transition"
-            data-testid="btn-open-p2p"
-          >
-            <ArrowRightLeft size={14} className="text-[color:var(--warn)]" />
-            <span className="text-[11px] font-semibold text-[color:var(--text)]">P2P</span>
-          </button>
-        </div>
+        {/* Actions moved to Asset section — see Asset tab */}
 
         {/* Withdrawal requests */}
         {withdrawals.length > 0 && (
