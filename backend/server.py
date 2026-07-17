@@ -53,14 +53,14 @@ RANKS = [
     {
         "level": 1, "code": "STAR1", "title": "STARTER",
         "color": "#39FF14", "glow": "#7FFF00",
-        "direct_income": 8, "commission_pct": 3.50, "support_pct": 10,
+        "direct_income": 6, "commission_pct": 3.5, "support_pct": 10,
         "direct_users": 0, "team_size": 0,
         "downline_requirement": None,
     },
     {
         "level": 2, "code": "STAR2", "title": "1 STAR",
         "color": "#00BFFF", "glow": "#1E90FF",
-        "direct_income": 12, "commission_pct": 5, "support_pct": 10,
+        "direct_income": 9, "commission_pct": 4.5, "support_pct": 10,
         "direct_users": 2, "team_size": 15,
         "downline_requirement": None,
         "team_note": "10+5 in 2 legs",
@@ -68,56 +68,56 @@ RANKS = [
     {
         "level": 3, "code": "STAR3", "title": "2 STAR",
         "color": "#9D3FE0", "glow": "#C77DFF",
-        "direct_income": 15, "commission_pct": 6.50, "support_pct": 10,
+        "direct_income": 12, "commission_pct": 5.5, "support_pct": 10,
         "direct_users": 4, "team_size": 80,
         "downline_requirement": {"count": 2, "min_level": 2, "label": "2× 1 Star"},
     },
     {
         "level": 4, "code": "STAR4", "title": "3 STAR",
         "color": "#FF8C00", "glow": "#FFA500",
-        "direct_income": 18, "commission_pct": 7.50, "support_pct": 10,
+        "direct_income": 15, "commission_pct": 6.5, "support_pct": 10,
         "direct_users": 6, "team_size": 250,
         "downline_requirement": {"count": 2, "min_level": 3, "label": "2× 2 Star"},
     },
     {
         "level": 5, "code": "STAR5", "title": "4 STAR",
         "color": "#DC143C", "glow": "#FF4444",
-        "direct_income": 22, "commission_pct": 8.50, "support_pct": 10,
+        "direct_income": 18, "commission_pct": 7.5, "support_pct": 10,
         "direct_users": 8, "team_size": 500,
         "downline_requirement": {"count": 2, "min_level": 4, "label": "2× 3 Star"},
     },
     {
         "level": 6, "code": "STAR6", "title": "5 STAR",
         "color": "#FFD700", "glow": "#FFC500",
-        "direct_income": 26, "commission_pct": 9.50, "support_pct": 10,
+        "direct_income": 21, "commission_pct": 8.5, "support_pct": 10,
         "direct_users": 10, "team_size": 1000,
         "downline_requirement": {"count": 2, "min_level": 5, "label": "2× 4 Star"},
     },
     {
         "level": 7, "code": "STAR7", "title": "6 STAR",
         "color": "#00FFFF", "glow": "#40E0D0",
-        "direct_income": 30, "commission_pct": 10.50, "support_pct": 10,
+        "direct_income": 24, "commission_pct": 9.5, "support_pct": 10,
         "direct_users": 12, "team_size": 2000,
         "downline_requirement": {"count": 2, "min_level": 6, "label": "2× 5 Star"},
     },
     {
         "level": 8, "code": "STAR8", "title": "7 STAR",
         "color": "#1E40FF", "glow": "#4169E1",
-        "direct_income": 34, "commission_pct": 11.50, "support_pct": 10,
+        "direct_income": 27, "commission_pct": 10.5, "support_pct": 10,
         "direct_users": 14, "team_size": 3500,
         "downline_requirement": {"count": 2, "min_level": 7, "label": "2× 6 Star"},
     },
     {
         "level": 9, "code": "STAR9", "title": "8 STAR",
         "color": "#FF1493", "glow": "#FF69B4",
-        "direct_income": 38, "commission_pct": 12.50, "support_pct": 10,
+        "direct_income": 30, "commission_pct": 11.5, "support_pct": 10,
         "direct_users": 16, "team_size": 5500,
         "downline_requirement": {"count": 2, "min_level": 8, "label": "2× 7 Star"},
     },
     {
         "level": 10, "code": "STAR10", "title": "9 STAR",
         "color": "#FFD700", "glow": "#FFF8DC",
-        "direct_income": 42, "commission_pct": 14, "support_pct": 10,
+        "direct_income": 33, "commission_pct": 12.0, "support_pct": 10,
         "direct_users": 20, "team_size": 10000,
         "downline_requirement": {"count": 2, "min_level": 9, "label": "2× 8 Star"},
         "crown": True,
@@ -185,9 +185,20 @@ def _rank_qualifies(stats: dict, rank: dict) -> bool:
 # One-time activation fee (USDT) charged from user's demo/main wallet the first
 # time they enable trading. After activation, a % of every SELL's profit is
 # auto-deducted from the pre-funded Bot Wallet. If balance runs out, bots pause.
-BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "70"))
+BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "50"))
 BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "25"))  # % of profit → fuel
 BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "10"))  # bot pauses below this
+
+# ---- MLM Trading Commission Structure (of PROFIT, totals BOT_TRADING_FEE_PCT=25%) ----
+COMPANY_FEE_PCT = 5.0        # Company / Bot fee
+ROYALTY_POOL_PCT = 1.0       # Bonanza / Royalty pool
+RANK_BUDGET_PCT = 19.0       # Differential rank commissions (max 12% paid, >=7% reserve)
+ROYALTY_PER_ACTIVATION = 2.0 # $ per bot activation into royalty pool
+SUPPORT_INCOME_PCT = 10.0    # % of direct bonus to sponsor's immediate upline
+
+RANK_PCT_BY_TITLE = {r["title"].upper(): float(r["commission_pct"]) for r in RANKS}
+RANK_BONUS_BY_TITLE = {r["title"].upper(): float(r["direct_income"]) for r in RANKS}
+MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 
@@ -1021,34 +1032,6 @@ async def place_order(body: OrderIn, user: dict = Depends(get_current_user)):
     return txn
 
 
-async def _credit_referral_commission(user_id: str, profit: float, symbol: str):
-    """When a user with a referrer books a profitable SELL, credit 10% of the profit
-    to the referrer as a claimable 'referral' reward. Silently no-op on any error."""
-    if profit <= 0:
-        return
-    try:
-        u = await db.users.find_one({"id": user_id}, {"_id": 0, "referred_by": 1, "name": 1, "email": 1})
-        ref_id = u and u.get("referred_by")
-        if not ref_id:
-            return
-        commission = round(profit * 0.10, 4)
-        if commission <= 0:
-            return
-        await db.rewards.insert_one({
-            "id": str(uuid.uuid4()),
-            "user_id": ref_id,
-            "type": "referral",
-            "amount": commission,
-            "status": "claimable",
-            "note": f"10% from {u.get('name') or u.get('email','team')} · {symbol}",
-            "from_user_id": user_id,
-            "symbol": symbol,
-            "created_at": iso(now_utc()),
-        })
-    except Exception as e:
-        logger.warning(f"referral commission failed: {e}")
-
-
 # ---------- Shared trade execution engine ----------
 class _TradeError(Exception):
     def __init__(self, status_code: int, msg: str):
@@ -1161,7 +1144,6 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         }
         await db.transactions.insert_one(txn)
         if side == "SELL":
-            await _credit_referral_commission(user_id, profit, symbol)
             if profit > 0:
                 await _charge_trading_fee(user_id, profit, symbol)
         txn.pop("_id", None)
@@ -1254,7 +1236,6 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
     }
     await db.transactions.insert_one(txn)
     if side == "SELL":
-        await _credit_referral_commission(user_id, profit, symbol)
         if profit > 0:
             await _charge_trading_fee(user_id, profit, symbol)
     txn.pop("_id", None)
@@ -1984,6 +1965,107 @@ async def _log_bot_txn(user_id: str, kind: str, amount: float, note: str = "",
     })
 
 
+def _rank_pct_of(user_doc) -> float:
+    return RANK_PCT_BY_TITLE.get(((user_doc or {}).get("rank") or "").strip().upper(), 0.0)
+
+
+async def _company_ledger(kind: str, amount: float, from_user_id: str, note: str = "", symbol: str = None):
+    if amount <= 0:
+        return
+    await db.company_ledger.insert_one({
+        "id": str(uuid.uuid4()), "kind": kind, "amount": round(amount, 4),
+        "from_user_id": from_user_id, "note": note, "symbol": symbol,
+        "created_at": iso(now_utc()),
+    })
+
+
+async def _credit_commission(user_id: str, amount: float, kind: str, note: str,
+                             from_user_id: str = None, symbol: str = None):
+    """Credit an MLM earning to a user's Bot Wallet + reward record (shows on Referral page)."""
+    if amount <= 0:
+        return False
+    w = await _get_or_create_bot_wallet(user_id)
+    if not w.get("activated"):
+        return False
+    new_balance = round(float(w.get("balance", 0.0) or 0.0) + amount, 4)
+    await db.bot_wallets.update_one({"user_id": user_id},
+                                    {"$set": {"balance": new_balance},
+                                     "$inc": {"total_commission_earned": round(amount, 4)}})
+    await _log_bot_txn(user_id, kind, amount, note=note, symbol=symbol,
+                       balance_after=new_balance)
+    await db.rewards.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user_id, "type": "referral",
+        "amount": round(amount, 4), "status": "claimed", "note": note,
+        "from_user_id": from_user_id, "symbol": symbol, "created_at": iso(now_utc()),
+    })
+    return True
+
+
+async def _distribute_trading_deduction(user_id: str, profit: float, deducted: float, symbol: str):
+    """Split the 25% profit deduction: 5% company fee, 1% royalty pool,
+    19% differential rank commissions (self + upline, capped at 12%), leftover -> company reserve.
+    All amounts scale down proportionally if only partial fuel was deducted."""
+    try:
+        fee_expected = profit * BOT_TRADING_FEE_PCT / 100.0
+        if fee_expected <= 0 or deducted <= 0:
+            return
+        scale = min(1.0, deducted / fee_expected)
+
+        company_fee = round(profit * COMPANY_FEE_PCT / 100.0 * scale, 4)
+        royalty = round(profit * ROYALTY_POOL_PCT / 100.0 * scale, 4)
+        await _credit_admin_revenue(company_fee, "company_fee", user_id,
+                                    note=f"Company fee {COMPANY_FEE_PCT}% of ${profit:.2f} on {symbol}",
+                                    symbol=symbol)
+        await _company_ledger("royalty_pool", royalty, user_id,
+                              note=f"Royalty {ROYALTY_POOL_PCT}% of ${profit:.2f}", symbol=symbol)
+
+        trader = await db.users.find_one({"id": user_id},
+                                         {"_id": 0, "id": 1, "referred_by": 1, "rank": 1,
+                                          "email": 1, "name": 1})
+        trader_label = (trader or {}).get("name") or (trader or {}).get("email", "trader")
+        highest = 0.0
+
+        # Self commission at trader's own rank
+        self_pct = _rank_pct_of(trader)
+        if self_pct > 0:
+            amt = round(profit * self_pct / 100.0 * scale, 4)
+            ok = await _credit_commission(user_id, amt, "trade_commission",
+                                          f"Self commission {self_pct}% · {symbol}",
+                                          from_user_id=user_id, symbol=symbol)
+            if ok:
+                highest = self_pct
+
+        # Differential up the sponsor line
+        seen = {user_id}
+        cur = (trader or {}).get("referred_by")
+        hops = 0
+        while cur and cur not in seen and hops < 20 and highest < MAX_RANK_PCT:
+            seen.add(cur)
+            anc = await db.users.find_one({"id": cur},
+                                          {"_id": 0, "id": 1, "referred_by": 1, "rank": 1, "email": 1})
+            if not anc:
+                break
+            pct = _rank_pct_of(anc)
+            if pct > highest:
+                diff = round(pct - highest, 4)
+                amt = round(profit * diff / 100.0 * scale, 4)
+                ok = await _credit_commission(anc["id"], amt, "team_commission",
+                                              f"Differential {diff}% from {trader_label} · {symbol}",
+                                              from_user_id=user_id, symbol=symbol)
+                if ok:
+                    highest = pct
+            cur = anc.get("referred_by")
+            hops += 1
+
+        reserve_pct = max(0.0, RANK_BUDGET_PCT - highest)
+        reserve = round(profit * reserve_pct / 100.0 * scale, 4)
+        await _credit_admin_revenue(reserve, "company_reserve", user_id,
+                                    note=f"Rank budget reserve {reserve_pct:.1f}% of ${profit:.2f} on {symbol}",
+                                    symbol=symbol)
+    except Exception as e:
+        logger.warning(f"MLM distribution failed: {e}")
+
+
 async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
     """Called after every profitable SELL. Deducts BOT_TRADING_FEE_PCT% of the
     profit ("fuel") from the user's Bot Wallet AND immediately credits it to
@@ -2023,10 +2105,8 @@ async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
     await _log_bot_txn(user_id, "fuel", -deducted,
                        note=f"Fuel · {BOT_TRADING_FEE_PCT}% of ${profit:.2f} profit",
                        symbol=symbol, balance_after=new_balance)
-    # Fuel deducted → immediately credit admin wallet (platform revenue)
-    await _credit_admin_revenue(deducted, "fuel", user_id,
-                                note=f"Fuel {BOT_TRADING_FEE_PCT}% of ${profit:.2f} on {symbol}",
-                                symbol=symbol)
+    # Fuel deducted → distribute: 5% company, 1% royalty, 19% differential ranks
+    await _distribute_trading_deduction(user_id, profit, deducted, symbol)
     result["deducted"] = deducted
     result["balance_after"] = new_balance
     if new_balance < BOT_MIN_FUEL_BALANCE:
@@ -2098,9 +2178,35 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
                        note="One-time bot activation fee",
                        balance_after=float(w.get("balance", 0.0)))
-    # Credit platform revenue to admin wallet
-    await _credit_admin_revenue(BOT_ACTIVATION_FEE, "activation", user["id"],
-                                note=f"Activation fee from {user.get('email','user')}")
+    # ---- MLM activation distribution ----
+    distributed = 0.0
+    sponsor = None
+    if user.get("referred_by"):
+        sponsor = await db.users.find_one({"id": user["referred_by"]},
+                                          {"_id": 0, "id": 1, "rank": 1, "referred_by": 1,
+                                           "email": 1, "name": 1})
+    if sponsor:
+        bonus = RANK_BONUS_BY_TITLE.get((sponsor.get("rank") or "").strip().upper(), 0.0)
+        if bonus > 0:
+            ok = await _credit_commission(sponsor["id"], bonus, "direct_bonus",
+                                          f"Direct bonus · {user.get('name') or user.get('email','user')} activated",
+                                          from_user_id=user["id"])
+            if ok:
+                distributed += bonus
+                support = round(bonus * SUPPORT_INCOME_PCT / 100.0, 4)
+                if support > 0 and sponsor.get("referred_by"):
+                    ok2 = await _credit_commission(sponsor["referred_by"], support, "support_income",
+                                                   f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${bonus:.2f} direct bonus",
+                                                   from_user_id=user["id"])
+                    if ok2:
+                        distributed += support
+    await _company_ledger("royalty_pool", ROYALTY_PER_ACTIVATION, user["id"],
+                          note="Royalty pool · per bot activation")
+    distributed += ROYALTY_PER_ACTIVATION
+    remainder = round(BOT_ACTIVATION_FEE - distributed, 4)
+    if remainder > 0:
+        await _credit_admin_revenue(remainder, "activation", user["id"],
+                                    note=f"Activation fee (net) from {user.get('email','user')}")
     return {"ok": True, "activation_fee": BOT_ACTIVATION_FEE}
 
 

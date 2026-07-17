@@ -61,7 +61,7 @@ class TestBotWalletStatusDefaults:
         data = r.json()
         assert data["activated"] is False
         assert data["balance"] == 0
-        assert data["activation_fee"] == 70
+        assert data["activation_fee"] == 50
         assert data["trading_fee_pct"] == 25
         assert data["min_fuel_balance"] == 10
         assert "deposit_address" in data
@@ -97,14 +97,14 @@ class TestBotWalletActivate:
         assert r.status_code == 200, r.text
         data = r.json()
         assert data.get("ok") is True
-        assert data.get("activation_fee") == 70
+        assert data.get("activation_fee") == 50
 
         # Verify status now
         s = requests.get(f"{BASE_URL}/api/bot-wallet/status",
                         headers=_headers(fresh_user["token"]), timeout=15).json()
         assert s["activated"] is True
         assert s["balance"] == 0
-        assert s["main_wallet_usdt"] == round(before - 70, 4)
+        assert s["main_wallet_usdt"] == round(before - 50, 4)
 
     def test_activate_idempotent(self, fresh_user):
         r = requests.post(f"{BASE_URL}/api/bot-wallet/activate",
@@ -123,18 +123,18 @@ class TestBotWalletActivate:
 
 class TestActivateInsufficientBalance:
     def test_insufficient_main_wallet_returns_400(self):
-        """Register a new user, drain wallet to <$70, try to activate."""
+        """Register a new user, drain wallet to <$50, try to activate."""
         token, user, _, _ = _register_fresh()
         # Drain: buy some BTC to spend most of the balance.
         r = requests.post(f"{BASE_URL}/api/trade/order",
                           headers=_headers(token),
                           json={"symbol": "BTCUSDT", "side": "BUY",
-                                "usdt_amount": 950.0}, timeout=30)
+                                "usdt_amount": 960.0}, timeout=30)
         # accept 200 or skip if trade path unavailable
         if r.status_code != 200:
             pytest.skip(f"Could not drain wallet via /trade/order: {r.status_code} {r.text}")
 
-        # Now try to activate — main wallet < 70
+        # Now try to activate — main wallet < 50
         act = requests.post(f"{BASE_URL}/api/bot-wallet/activate",
                             headers=_headers(token), timeout=15)
         assert act.status_code == 400
@@ -278,7 +278,8 @@ class TestTradingFeeDeduction:
         # Verify bot wallet balance decreased by 25% of profit
         s = requests.get(f"{BASE_URL}/api/bot-wallet/status", headers=h, timeout=15).json()
         expected_fee = round(profit * 0.25, 4)
-        expected_new = round(bot_bal_before - expected_fee, 4)
+        self_commission = round(profit * 0.035, 4)  # Starter self commission (MLM)
+        expected_new = round(bot_bal_before - expected_fee + self_commission, 4)
         # Allow small rounding tolerance
         assert abs(s["balance"] - expected_new) < 0.02, (
             f"expected balance≈{expected_new}, got {s['balance']} (profit={profit}, fee={expected_fee})"
@@ -342,10 +343,11 @@ class TestTradingFeeDeduction:
 
         time.sleep(0.5)
 
-        # Balance should be 0 (drained down to 0, not negative)
+        # Balance drained to 0, then scaled Starter self-commission credited back
         s = requests.get(f"{BASE_URL}/api/bot-wallet/status",
                          headers=h, timeout=15).json()
-        assert s["balance"] == 0.0, f"expected 0, got {s['balance']}"
+        expected_back = round(11.0 * 0.035 / 0.25, 4)  # deducted * (3.5/25)
+        assert abs(s["balance"] - expected_back) < 0.02, f"expected ≈{expected_back}, got {s['balance']}"
 
         # Bot for BTCUSDT should now be stopped (paused)
         bots = requests.get(f"{BASE_URL}/api/bots", headers=h, timeout=15).json()
@@ -376,5 +378,5 @@ class TestAdminActivated:
         # Admin was pre-activated in earlier iterations
         # It may or may not still be activated depending on DB state.
         if data["activated"]:
-            assert data["activation_fee"] == 70
+            assert data["activation_fee"] == 50
             assert data["trading_fee_pct"] == 25

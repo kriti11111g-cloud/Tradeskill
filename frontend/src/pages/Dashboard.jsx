@@ -217,8 +217,7 @@ export default function Dashboard() {
           rankTitle={currentRank.title}
           onAction={(t) => {
             if (t === "swap") return toast("Swap — Coming Soon 🚀");
-            if (t === "p2p") return navigate("/bot");
-            navigate(`/wallet?action=${t === "send" ? "withdraw" : "deposit"}`);
+            navigate("/wallet");
           }}
         />
 
