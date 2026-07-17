@@ -367,6 +367,25 @@ export default function BotHub() {
 
         {/* Wallet balance moved to Asset section — see Asset tab */}
 
+        {/* Social Media Bonus entry */}
+        <button
+          onClick={() => navigate("/social-bonus")}
+          className="mb-3 w-full flex items-center justify-between rounded-xl border px-4 py-3 transition hover:opacity-90"
+          style={{ borderColor: "rgba(212,160,23,0.45)", background: "linear-gradient(135deg, rgba(22,163,74,0.08), rgba(245,158,11,0.06))" }}
+          data-testid="btn-social-bonus"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(212,160,23,0.45)" }}>
+              <Gift size={16} className="text-[color:var(--gold-deep,#D97706)]" />
+            </div>
+            <div className="text-left">
+              <div className="text-[12px] font-black text-[color:var(--text)]">Social Media Bonus</div>
+              <div className="text-[9px] text-[color:var(--text-mute)]">Follow & earn up to $1.00 USDT</div>
+            </div>
+          </div>
+          <span className="text-[11px] font-black text-[color:var(--gold-deep,#D97706)]">EARN ›</span>
+        </button>
+
         {/* Actions moved to Asset section — see Asset tab */}
 
         {/* Withdrawal requests */}

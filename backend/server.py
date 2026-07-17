@@ -2650,6 +2650,75 @@ async def withdraw_otp_verify(body: OtpVerifyIn,
     return {"ok": True, "verified": True}
 
 
+SOCIAL_BONUS_AMOUNT = float(os.environ.get("SOCIAL_BONUS_AMOUNT", "0.20"))
+SOCIAL_PLATFORMS = [
+    {"id": "telegram", "name": "Telegram", "desc": "Join our Telegram channel", "url": "https://t.me/hubxbot", "action": "Join our Telegram channel"},
+    {"id": "instagram", "name": "Instagram", "desc": "Follow our Instagram page", "url": "https://instagram.com/hubxbot", "action": "Follow our Instagram page"},
+    {"id": "x", "name": "X (Twitter)", "desc": "Follow us on X (Twitter)", "url": "https://x.com/hubxbot", "action": "Follow us on X"},
+    {"id": "youtube", "name": "YouTube", "desc": "Subscribe our YouTube channel", "url": "https://youtube.com/@hubxbot", "action": "Subscribe our YouTube channel"},
+    {"id": "facebook", "name": "Facebook", "desc": "Follow our Facebook page", "url": "https://facebook.com/hubxbot", "action": "Follow our Facebook page"},
+]
+_SOCIAL_IDS = {p["id"] for p in SOCIAL_PLATFORMS}
+
+
+@api.get("/social-bonus/status")
+async def social_bonus_status(user: dict = Depends(get_current_user)):
+    doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    claims = doc.get("claims", {})
+    platforms = []
+    earned = 0.0
+    for p in SOCIAL_PLATFORMS:
+        c = claims.get(p["id"], {})
+        if c.get("claimed"):
+            earned += SOCIAL_BONUS_AMOUNT
+        platforms.append({**p, "reward": SOCIAL_BONUS_AMOUNT,
+                          "followed": bool(c.get("followed")),
+                          "claimed": bool(c.get("claimed"))})
+    return {"platforms": platforms, "reward": SOCIAL_BONUS_AMOUNT,
+            "total_available": round(SOCIAL_BONUS_AMOUNT * len(SOCIAL_PLATFORMS), 2),
+            "total_earned": round(earned, 2)}
+
+
+@api.post("/social-bonus/follow/{platform}")
+async def social_bonus_follow(platform: str, user: dict = Depends(get_current_user)):
+    if platform not in _SOCIAL_IDS:
+        raise HTTPException(404, "Unknown platform")
+    await db.social_bonus.update_one(
+        {"user_id": user["id"]},
+        {"$set": {f"claims.{platform}.followed": True}}, upsert=True)
+    return {"ok": True, "followed": True}
+
+
+@api.post("/social-bonus/claim/{platform}")
+async def social_bonus_claim(platform: str, user: dict = Depends(get_current_user)):
+    if platform not in _SOCIAL_IDS:
+        raise HTTPException(404, "Unknown platform")
+    doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    c = (doc.get("claims") or {}).get(platform, {})
+    if c.get("claimed"):
+        raise HTTPException(400, "Reward already claimed")
+    if not c.get("followed"):
+        raise HTTPException(400, "Please follow first, then claim")
+    # Atomic guard against double-claim
+    res = await db.social_bonus.update_one(
+        {"user_id": user["id"], f"claims.{platform}.claimed": {"$ne": True}},
+        {"$set": {f"claims.{platform}.claimed": True,
+                  f"claims.{platform}.claimed_at": iso(now_utc())}},
+        upsert=True)
+    if res.modified_count == 0 and res.upserted_id is None:
+        raise HTTPException(400, "Reward already claimed")
+    await _get_or_create_bot_wallet(user["id"])
+    w = await db.bot_wallets.find_one_and_update(
+        {"user_id": user["id"]},
+        {"$inc": {"balance": SOCIAL_BONUS_AMOUNT}}, return_document=True)
+    new_bal = round(float(w.get("balance", 0.0) or 0.0), 4)
+    pname = next(p["name"] for p in SOCIAL_PLATFORMS if p["id"] == platform)
+    await _log_bot_txn(user["id"], "social_bonus", SOCIAL_BONUS_AMOUNT,
+                       note=f"{pname} Follow Reward", balance_after=new_bal)
+    return {"ok": True, "claimed": True, "balance": new_bal,
+            "amount": SOCIAL_BONUS_AMOUNT}
+
+
 # ==== Startup Seeding ====
 @app.on_event("startup")
 async def startup():

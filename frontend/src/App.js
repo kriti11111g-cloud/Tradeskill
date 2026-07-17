@@ -25,6 +25,7 @@ import Market from "@/pages/Market";
 import BotHub from "@/pages/BotHub";
 import Rank from "@/pages/Rank";
 import AdminWithdrawals from "@/pages/AdminWithdrawals";
+import SocialBonus from "@/pages/SocialBonus";
 
 export default function App() {
   return (
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/bot" element={<BotHub />} />
             <Route path="/rank" element={<Rank />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+            <Route path="/social-bonus" element={<SocialBonus />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/trades" element={<Trades />} />
             <Route path="/revenue" element={<Revenue />} />
