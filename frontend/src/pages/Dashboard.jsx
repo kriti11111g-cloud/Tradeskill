@@ -52,7 +52,7 @@ export default function Dashboard() {
     api.get("/ranks/me").then(({ data }) => setRank(data)).catch(() => {});
   }, []);
 
-  const totalBalance = wallet?.total_usdt ?? user?.wallet_usdt ?? 0;
+  const totalBalance = wallet?.total_usdt ?? 0;
 
   const currentRank = rank
     ? { level: rank.current_level || 1, title: rank.current_title || "STARTER" }
@@ -217,6 +217,9 @@ export default function Dashboard() {
           rankTitle={currentRank.title}
           onAction={(t) => {
             if (t === "swap") return toast("Swap — Coming Soon 🚀");
+            if (t === "deposit") return navigate("/bot?action=deposit");
+            if (t === "send") return navigate("/bot?action=withdraw");
+            if (t === "p2p") return navigate("/bot?action=p2p");
             navigate("/wallet");
           }}
         />

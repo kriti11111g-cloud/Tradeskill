@@ -1597,10 +1597,19 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
                 if "restricted location" in msg.lower() or "eligibility" in msg.lower()
                 else f"Binance connection failed: {msg[:120]}"
             )
+    # ---- Unified balance: Bot Wallet is THE single balance source (demo mode).
+    bw = await _get_or_create_bot_wallet(user["id"])
+    unified = round(float(bw.get("balance", 0.0) or 0.0), 4)
+    if wallet_mode == "demo":
+        wallet_usdt = unified
+        total = unified
+    else:
+        total = round(wallet_usdt + positions_value, 4)
     return {
         "wallet_usdt": round(wallet_usdt, 4),
         "positions_value_usdt": round(positions_value, 4),
-        "total_usdt": round(wallet_usdt + positions_value, 4),
+        "total_usdt": total,
+        "bot_wallet_balance": unified,
         "positions": positions,
         "wallet_mode": wallet_mode,
         "wallet_connected": wallet_connected,
@@ -1924,8 +1933,13 @@ async def _credit_admin_revenue(amount: float, kind: str, from_user_id: str,
     if admin_id == from_user_id:
         # Self-transfer (admin activating own bot) — net zero, skip.
         return admin_id
-    await db.users.update_one({"id": admin_id},
-                              {"$inc": {"wallet_usdt": round(amount, 4)}})
+    await _get_or_create_bot_wallet(admin_id)
+    res = await db.bot_wallets.find_one_and_update(
+        {"user_id": admin_id}, {"$inc": {"balance": round(amount, 4)}},
+        return_document=True)
+    await _log_bot_txn(admin_id, "revenue", round(amount, 4),
+                       note=note or kind, symbol=symbol,
+                       balance_after=round(float(res.get("balance", 0.0) or 0.0), 4))
     await db.admin_revenue.insert_one({
         "id": str(uuid.uuid4()),
         "admin_id": admin_id,
@@ -2162,7 +2176,7 @@ async def bot_wallet_status(user: dict = Depends(get_current_user)):
         "activated_at": w.get("activated_at"),
         "total_fees_paid": round(float(w.get("total_fees_paid", 0.0) or 0.0), 4),
         "deposit_address": w.get("deposit_address") or BOT_WALLET_DEPOSIT_ADDRESS,
-        "main_wallet_usdt": round(float(user.get("wallet_usdt", 0.0) or 0.0), 4),
+        "main_wallet_usdt": round(float(w.get("balance", 0.0) or 0.0), 4),
     }
 
 
@@ -2172,19 +2186,19 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     if w.get("activated"):
         return {"ok": True, "already": True,
                 "balance": round(float(w.get("balance", 0.0)), 4)}
-    main_bal = float(user.get("wallet_usdt", 0.0) or 0.0)
-    if main_bal < BOT_ACTIVATION_FEE:
-        raise HTTPException(400, f"Insufficient main wallet balance. Need ${BOT_ACTIVATION_FEE:.2f} USDT to activate.")
-    await db.users.update_one({"id": user["id"]},
-                              {"$inc": {"wallet_usdt": -BOT_ACTIVATION_FEE}})
+    bal = float(w.get("balance", 0.0) or 0.0)
+    if bal < BOT_ACTIVATION_FEE:
+        raise HTTPException(400, f"Insufficient wallet balance. Deposit at least ${BOT_ACTIVATION_FEE:.2f} USDT to activate.")
+    new_bal = round(bal - BOT_ACTIVATION_FEE, 4)
     await db.bot_wallets.update_one(
         {"user_id": user["id"]},
         {"$set": {"activated": True, "activated_at": iso(now_utc()),
-                  "activation_fee_paid": BOT_ACTIVATION_FEE}},
+                  "activation_fee_paid": BOT_ACTIVATION_FEE,
+                  "balance": new_bal}},
     )
     await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
                        note="One-time bot activation fee",
-                       balance_after=float(w.get("balance", 0.0)))
+                       balance_after=new_bal)
     # ---- MLM activation distribution ----
     distributed = 0.0
     sponsor = None
@@ -2220,22 +2234,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
 @api.post("/bot-wallet/deposit")
 async def bot_wallet_deposit(body: BotWalletAmountIn,
                              user: dict = Depends(get_current_user)):
-    w = await _get_or_create_bot_wallet(user["id"])
-    if not w.get("activated"):
-        raise HTTPException(400, "Bot wallet not activated. Please activate first.")
-    amount = round(float(body.amount), 4)
-    main_bal = float(user.get("wallet_usdt", 0.0) or 0.0)
-    if amount > main_bal:
-        raise HTTPException(400, "Insufficient main wallet balance")
-    await db.users.update_one({"id": user["id"]},
-                              {"$inc": {"wallet_usdt": -amount}})
-    new_balance = round(float(w.get("balance", 0.0) or 0.0) + amount, 4)
-    await db.bot_wallets.update_one(
-        {"user_id": user["id"]}, {"$set": {"balance": new_balance}},
-    )
-    await _log_bot_txn(user["id"], "deposit", amount,
-                       note="Transfer from main wallet", balance_after=new_balance)
-    return {"ok": True, "balance": new_balance}
+    raise HTTPException(400, "Internal transfers are disabled — the app uses one unified wallet. Deposit USDT via crypto (BSC/Polygon) instead.")
 
 
 @api.post("/bot-wallet/withdraw")
@@ -2249,50 +2248,42 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     address = (body.address or "").strip()
     network = ((body.network or "").strip() or "BEP20").upper()
 
-    if address:
-        # ---- External on-chain withdrawal → manual admin approval queue ----
-        if network not in ALLOWED_EXTERNAL_NETWORKS:
-            raise HTTPException(400, f"{network} withdrawals are coming soon. Only BEP20 and Polygon are supported today.")
-        if not (address.startswith("0x") and len(address) == 42):
-            raise HTTPException(400, "Invalid wallet address")
-        if amount < WITHDRAW_MIN_USDT:
-            raise HTTPException(400, f"Minimum withdrawal is ${WITHDRAW_MIN_USDT:.0f} USDT")
-        udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1})
-        if not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
-            raise HTTPException(401, "Incorrect password")
-        net_amount = round(amount - WITHDRAW_FEE_USDT, 4)
-        new_balance = round(bal - amount, 4)
-        await db.bot_wallets.update_one(
-            {"user_id": user["id"]}, {"$set": {"balance": new_balance}})
-        req = {
-            "id": str(uuid.uuid4()),
-            "user_id": user["id"],
-            "email": user.get("email"),
-            "amount": amount,
-            "fee": WITHDRAW_FEE_USDT,
-            "net_amount": net_amount,
-            "address": address,
-            "network": network,
-            "status": "pending",
-            "created_at": iso(now_utc()),
-        }
-        await db.withdrawal_requests.insert_one(dict(req))
-        await _log_bot_txn(user["id"], "withdraw_request", -amount,
-                           note=f"Withdrawal request → {address[:8]}…{address[-6:]} · {network} (fee ${WITHDRAW_FEE_USDT:.0f})",
-                           balance_after=new_balance)
-        return {"ok": True, "balance": new_balance, "kind": "withdraw_request",
-                "request_id": req["id"], "fee": WITHDRAW_FEE_USDT,
-                "net_amount": net_amount}
+    if not address:
+        raise HTTPException(400, "Withdrawal address required. The app uses one unified wallet — withdraw externally or use P2P.")
 
-    # ---- Internal transfer back to main wallet ----
+    # ---- External on-chain withdrawal → manual admin approval queue ----
+    if network not in ALLOWED_EXTERNAL_NETWORKS:
+        raise HTTPException(400, f"{network} withdrawals are coming soon. Only BEP20 and Polygon are supported today.")
+    if not (address.startswith("0x") and len(address) == 42):
+        raise HTTPException(400, "Invalid wallet address")
+    if amount < WITHDRAW_MIN_USDT:
+        raise HTTPException(400, f"Minimum withdrawal is ${WITHDRAW_MIN_USDT:.0f} USDT")
+    udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1})
+    if not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
+        raise HTTPException(401, "Incorrect password")
+    net_amount = round(amount - WITHDRAW_FEE_USDT, 4)
     new_balance = round(bal - amount, 4)
     await db.bot_wallets.update_one(
         {"user_id": user["id"]}, {"$set": {"balance": new_balance}})
-    await db.users.update_one({"id": user["id"]},
-                              {"$inc": {"wallet_usdt": amount}})
-    await _log_bot_txn(user["id"], "withdraw", -amount,
-                       note="Withdraw to main wallet", balance_after=new_balance)
-    return {"ok": True, "balance": new_balance, "kind": "withdraw"}
+    req = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "email": user.get("email"),
+        "amount": amount,
+        "fee": WITHDRAW_FEE_USDT,
+        "net_amount": net_amount,
+        "address": address,
+        "network": network,
+        "status": "pending",
+        "created_at": iso(now_utc()),
+    }
+    await db.withdrawal_requests.insert_one(dict(req))
+    await _log_bot_txn(user["id"], "withdraw_request", -amount,
+                       note=f"Withdrawal request → {address[:8]}…{address[-6:]} · {network} (fee ${WITHDRAW_FEE_USDT:.0f})",
+                       balance_after=new_balance)
+    return {"ok": True, "balance": new_balance, "kind": "withdraw_request",
+            "request_id": req["id"], "fee": WITHDRAW_FEE_USDT,
+            "net_amount": net_amount}
 
 
 @api.post("/bot-wallet/p2p")

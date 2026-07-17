@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Wallet as WalletIcon,
@@ -49,6 +49,7 @@ const TRACES = [
 export default function BotHub() {
   const { refresh } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState(null);
   const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'p2p' | 'info' | null
   const [amount, setAmount] = useState("");
@@ -56,7 +57,6 @@ export default function BotHub() {
   const [network, setNetwork] = useState("BEP20");
   const [recipient, setRecipient] = useState("");
   const [p2pMode, setP2pMode] = useState("email"); // 'email' | 'address'
-  const [depositTab, setDepositTab] = useState("crypto"); // 'crypto' | 'main'
   const [depNet, setDepNet] = useState("BEP20");
   const [depositInfo, setDepositInfo] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -110,6 +110,15 @@ export default function BotHub() {
     }
   }, [modal, depositInfo]);
 
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (["deposit", "withdraw", "p2p"].includes(action)) {
+      setModal(action);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const closeModal = () => {
     stopScan();
     setModal(null);
@@ -119,7 +128,6 @@ export default function BotHub() {
     setRecipient("");
     setP2pMode("email");
     setPassword("");
-    setDepositTab("crypto");
     setCopied(false);
   };
 
@@ -160,23 +168,6 @@ export default function BotHub() {
     }
   };
 
-  const doDeposit = async () => {
-    const amt = parseFloat(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    setLoading(true);
-    try {
-      await api.post("/bot-wallet/deposit", { amount: amt });
-      toast.success(`Deposited $${amt.toFixed(2)} to Bot Wallet`);
-      await loadStatus();
-      await loadTxns();
-      await refresh?.();
-      closeModal();
-    } catch (e) {
-      toast.error(formatApiError(e));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const stopScan = useCallback(async () => {
     if (qrScannerRef.current) {
@@ -218,20 +209,17 @@ export default function BotHub() {
   const doWithdraw = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    if (address && !password) return toast.error("Enter your login password to confirm");
+    if (!address) return toast.error("Enter the withdrawal address");
+    if (!password) return toast.error("Enter your login password to confirm");
     setLoading(true);
     try {
       await api.post("/bot-wallet/withdraw", {
         amount: amt,
-        address: address || null,
-        network: address ? network : null,
-        password: address ? password : null,
+        address,
+        network,
+        password,
       });
-      toast.success(
-        address
-          ? "Withdrawal request submitted — pending admin approval"
-          : `Withdrew $${amt.toFixed(2)} to Main Wallet`,
-      );
+      toast.success("Withdrawal request submitted — pending admin approval");
       await loadStatus();
       await loadTxns();
       await loadWithdrawals();
@@ -288,7 +276,6 @@ export default function BotHub() {
 
   const activated = !!status?.activated;
   const balance = status?.balance ?? 0;
-  const mainBal = status?.main_wallet_usdt ?? 0;
   const feePct = status?.trading_fee_pct ?? 25;
   const actFee = status?.activation_fee ?? 70;
   const minFuel = status?.min_fuel_balance ?? 10;
@@ -623,8 +610,8 @@ export default function BotHub() {
             <div className="text-sm text-[color:var(--text-mute)]">One-time Activation Fee</div>
             <div className="text-4xl font-bold text-[color:var(--text)] mt-1">${actFee}</div>
             <p className="text-xs text-[color:var(--text-mute)] text-center mt-3 leading-relaxed">
-              This fee will be deducted from your <span className="text-[color:var(--text)]">Main Wallet</span> (${fmtUSD(mainBal).replace("$","")}).
-              After activation, you can deposit funds to your Bot Wallet and start trading.
+              This fee will be deducted from your <span className="text-[color:var(--text)]">Wallet balance</span> ({fmtUSD(balance)}).
+              After activation, your bot can start trading using this wallet.
             </p>
           </div>
           <div className="mt-4 flex gap-2">
@@ -637,15 +624,15 @@ export default function BotHub() {
             </button>
             <button
               onClick={doActivate}
-              disabled={loading || mainBal < actFee}
+              disabled={loading || balance < actFee}
               className="flex-1 py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
               data-testid="btn-confirm-activate"
             >
               {loading ? "Processing..." : `Pay $${actFee}`}
             </button>
           </div>
-          {mainBal < actFee && (
-            <p className="text-xs text-[color:var(--bad)] text-center mt-2">Insufficient main wallet balance.</p>
+          {balance < actFee && (
+            <p className="text-xs text-[color:var(--bad)] text-center mt-2">Insufficient balance — deposit USDT first to activate.</p>
           )}
         </ModalShell>
       )}
@@ -653,33 +640,7 @@ export default function BotHub() {
       {/* ========== DEPOSIT DIALOG ========== */}
       {modal === "deposit" && (
         <ModalShell title="Deposit" onClose={closeModal} testid="dialog-deposit">
-          <div className="flex gap-1.5 rounded-lg bg-[var(--surface)] p-1 mb-2.5">
-            <button
-              onClick={() => setDepositTab("crypto")}
-              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
-                depositTab === "crypto"
-                  ? "bg-[color:var(--good)] text-black"
-                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
-              }`}
-              data-testid="tab-deposit-crypto"
-            >
-              Crypto (USDT)
-            </button>
-            <button
-              onClick={() => setDepositTab("main")}
-              className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
-                depositTab === "main"
-                  ? "bg-[color:var(--good)] text-black"
-                  : "text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
-              }`}
-              data-testid="tab-deposit-main"
-            >
-              Main Wallet
-            </button>
-          </div>
-
-          {depositTab === "crypto" ? (
-            <>
+          <>
               {/* Network cards with official logos */}
               <div className="grid grid-cols-3 gap-1.5 mb-2.5">
                 {DEPOSIT_NETWORKS.map((n) => {
@@ -845,41 +806,7 @@ export default function BotHub() {
                   );
                 })()
               )}
-            </>
-          ) : (
-            <>
-              <div className="text-xs text-[color:var(--text-mute)] mb-2">
-                From Main Wallet ({fmtUSD(mainBal)}) → Wallet
-              </div>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Amount in USDT"
-                className="w-full px-4 py-3 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--good)] outline-none"
-                data-testid="input-deposit-amount"
-              />
-              <div className="flex gap-2 mt-2">
-                {[50, 100, 500, 1000].map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setAmount(String(v))}
-                    className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--good)]/40"
-                  >
-                    ${v}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={doDeposit}
-                disabled={loading}
-                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--good)] text-black font-bold text-sm disabled:opacity-40"
-                data-testid="btn-confirm-deposit"
-              >
-                {loading ? "Processing..." : "Confirm Deposit"}
-              </button>
-            </>
-          )}
+          </>
         </ModalShell>
       )}
 
@@ -953,9 +880,6 @@ export default function BotHub() {
                   </button>
                 </div>
               )}
-              <div className="text-[10px] text-[color:var(--text-mute)] mt-1">
-                Leave empty to withdraw to your Main Wallet instead.
-              </div>
 
               {/* Amount */}
               <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
@@ -992,26 +916,26 @@ export default function BotHub() {
                     </div>
                     <div className="text-[10px] text-[color:var(--text-mute)]">External withdrawals require manual admin approval.</div>
                   </div>
-                  <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
-                    Login Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Confirm with your password"
-                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
-                    data-testid="input-withdraw-password"
-                  />
                 </>
               )}
+              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
+                Login Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Confirm with your password"
+                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
+                data-testid="input-withdraw-password"
+              />
               <button
                 onClick={doWithdraw}
                 disabled={loading}
                 className="mt-4 w-full py-3 rounded-lg bg-[color:var(--bad)] text-white font-bold text-sm disabled:opacity-40"
                 data-testid="btn-confirm-withdraw"
               >
-                {loading ? "Processing..." : address ? "Submit Withdrawal Request" : "Withdraw to Main Wallet"}
+                {loading ? "Processing..." : "Submit Withdrawal Request"}
               </button>
             </>
           )}

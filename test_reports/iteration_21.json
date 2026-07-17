@@ -1,0 +1,37 @@
+{
+  "summary": "Backend + Frontend testing of UNIFIED WALLET SYSTEM. All 9 new pytest cases in test_unified_wallet.py PASS (equality of wallet_summary total_usdt == wallet_usdt == bot_wallet_balance; deposit disabled; withdraw address-required; external withdraw deducts unified balance + cancel refund; wrong password 401; fresh user activate 400; P2P email funds new user then activation succeeds and admin bot wallet gets revenue txn; P2P by address). Frontend: hero balances match across Dashboard/Wallet/BotHub (all $106.76), Dashboard/Wallet action buttons deep-link to /bot?action=deposit|withdraw|p2p and auto-open the correct modal, BotHub Deposit modal is crypto-only (tab-deposit-main and tab-deposit-crypto testids GONE, BEP20/Polygon/TRC20-Soon network cards + QR visible), Withdraw modal only has External flow with address+password+'Submit Withdrawal Request' text (no 'Main Wallet' text), Wallet History renders bot wallet txns (p2p received, p2p sent, revenue, withdraw refund, withdraw request, bot fuel, trade commission). Admin withdrawals + Referral + Rank pages load without errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Wallet page History", "issues": ["Positive amounts render without a '+' prefix (e.g., Trade Commission shows '$2.83'), while negative ones already carry the '-' sign. Sign styling logic at Wallet.jsx:437-490 uses `h.type` (deposit/withdraw) which never matches bot txn kinds like p2p_received / revenue / trade_commission, so isIn/isOut are always false and the '+' sign is never prepended. Cosmetic only — amount value itself is correct."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_unified_wallet.py",
+    "/app/test_reports/pytest/unified_wallet.xml"
+  ],
+  "action_items": [
+    "(Optional cosmetic) In /app/frontend/src/pages/Wallet.jsx history renderer, derive the sign from `h.amount` (or bot txn kind whitelist) instead of `h.type === 'deposit'` so credits show a green '+' prefix.",
+    "(Housekeeping) /app/backend/tests/test_bot_wallet.py still asserts pre-unified behavior (main->bot deposit succeeds, internal withdraw returns 200, activation deducts from main wallet). Those tests are now outdated and will fail — recommend deleting the file or updating to match unified rules. This iteration's new test_unified_wallet.py fully replaces its coverage of the changed endpoints."
+  ],
+  "critical_code_review_comments": [
+    "wallet_summary at server.py:1546 correctly forces total_usdt == wallet_usdt == bot_wallet_balance in demo mode (line 1603-1605). Field `demo_wallet_usdt` is still returned as a debug/backing value; it is NOT surfaced anywhere in the UI (verified) — this is fine but the payload could be trimmed to avoid confusion.",
+    "bot_wallet_withdraw at server.py:2240 checks balance BEFORE address+password — so a caller with insufficient balance sees 'Insufficient bot wallet balance' even if they also omitted the address. Not a bug, but slightly misleading. Consider re-ordering to validate inputs first.",
+    "BotHub.jsx auto-open effect at line 113-120 calls setSearchParams({}, { replace: true }) which strips ?action= after mount. This is intentional but means the URL shown in the browser after the deep-link no longer reflects state (both /wallet Deposit and /home Deposit end up at /bot). Acceptable UX."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_unified_wallet.py (new)"
+  ],
+  "success_rate": {"backend": "100% (9/9 unified wallet tests pass)", "frontend": "100% (all deep-link + modal + history + regression checks pass)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (unified balance ~$106.76 after test P2P transfers); mlm.newbie@tgxbot.com / Test@12345 (unified balance ~$4-7).",
+  "seed_data_creation": "Registered 2 fresh TEST_unified_* users during pytest (one used to verify activation-insufficient, other funded by admin P2P then activated). New user's bot wallet balance ends at ~$10 (60 received - 50 activation fee).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Unified wallet system verified end-to-end. Admin balance drifted from ~$130 (main agent's baseline) to ~$106.76 due to a $10 external withdrawal test that got cancelled+refunded (balance restored) and a $60 P2P sent to test user for activation (test user is TEST_unified_* — not cleaned up). Admin also gained ~$4-8 in revenue from that activation. mlm.newbie balance decreased from earlier iterations due to trading fees / bot fuel deductions accumulating; if a future test needs mlm.newbie to have >$15, top it up via admin P2P. The bot-wallet/deposit endpoint is now HARD-DISABLED (returns 400) — do not attempt main->bot transfers in future tests. The bot-wallet/withdraw endpoint REQUIRES `address` — omitting it returns 400 by design.",
+  "rca of the issue": "N/A — no bugs blocking. Only a cosmetic sign-prefix miss in Wallet history renderer."
+}

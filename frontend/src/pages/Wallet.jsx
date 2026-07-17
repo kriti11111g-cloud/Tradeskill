@@ -16,11 +16,8 @@ const actions = [
 ];
 
 export default function Wallet() {
-  const { refresh } = useAuth();
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
-  const [modal, setModal] = useState(null);
-  const [amount, setAmount] = useState("");
   const [bind, setBind] = useState(null);
   const [live, setLive] = useState(null);
   const [liveErr, setLiveErr] = useState(null);
@@ -30,7 +27,7 @@ export default function Wallet() {
   const [rankTitle, setRankTitle] = useState("STARTER");
   const [change24h, setChange24h] = useState(0);
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
 
   const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
 
@@ -61,7 +58,7 @@ export default function Wallet() {
   const load = async () => {
     const [s, h, bd] = await Promise.all([
       api.get("/wallet/summary").then((r) => r.data),
-      api.get("/wallet/history").then((r) => r.data),
+      api.get("/bot-wallet/transactions").then((r) => r.data).catch(() => []),
       api.get("/binance/bind").then((r) => r.data).catch(() => null),
     ]);
     setSummary(s);
@@ -83,24 +80,9 @@ export default function Wallet() {
     }).catch(() => {});
     const action = params.get("action");
     if (action === "deposit" || action === "withdraw" || action === "transfer") {
-      setModal(action);
-      setParams({}, { replace: true });
+      navigate(`/bot?action=${action === "transfer" ? "p2p" : action}`, { replace: true });
     }
   }, []);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post("/wallet/transaction", { type: modal, amount: parseFloat(amount), asset: "USDT" });
-      toast.success(`${modal} · ${fmtUSD(amount)} processed`);
-      setModal(null);
-      setAmount("");
-      load();
-      refresh();
-    } catch (err) {
-      toast.error(formatApiError(err));
-    }
-  };
 
   return (
     <div className="pb-4">
@@ -115,8 +97,8 @@ export default function Wallet() {
             rankTitle={rankTitle}
             onAction={(t) => {
               if (t === "swap") return toast("Swap — Coming Soon 🚀");
-              if (t === "p2p") return navigate("/bot");
-              setModal(t === "send" ? "withdraw" : "deposit");
+              if (t === "p2p") return navigate("/bot?action=p2p");
+              navigate(t === "send" ? "/bot?action=withdraw" : "/bot?action=deposit");
             }}
           >
             <div className="grid grid-cols-2 gap-3 mt-3">
@@ -316,7 +298,7 @@ export default function Wallet() {
         {actions.map((a) => (
           <button
             key={a.type}
-            onClick={() => setModal(a.type)}
+            onClick={() => navigate(a.type === "transfer" ? "/bot?action=p2p" : `/bot?action=${a.type}`)}
             data-testid={a.testid}
             className="flex flex-col items-center gap-2 py-4 app-card rounded-2xl hover:border-[color:var(--primary)]/30 transition"
           >
@@ -482,7 +464,7 @@ export default function Wallet() {
                       className="text-sm font-black capitalize"
                       style={{ color: "var(--text)" }}
                     >
-                      {h.type}
+                      {(h.kind === "fuel" ? "Bot Fuel" : (h.kind || h.type || "")).replace(/_/g, " ")}
                     </div>
                     <div
                       className="text-[10px] mt-0.5"
@@ -496,11 +478,11 @@ export default function Wallet() {
                       className="text-sm font-mono font-black tabular-nums"
                       style={{ color: isIn ? "var(--good)" : isOut ? "var(--bad)" : "var(--text)" }}
                     >
-                      {isOut ? "-" : "+"}
+                      {isIn ? "+" : ""}
                       {fmtUSD(h.amount)}
                     </div>
                     <div className="text-[10px]" style={{ color: "var(--text-mute)" }}>
-                      Bal {fmtUSD(h.balance_after)}
+                      {h.balance_after != null ? `Bal ${fmtUSD(h.balance_after)}` : ""}
                     </div>
                   </div>
                 </div>
@@ -510,51 +492,7 @@ export default function Wallet() {
         )}
       </div>
 
-      {/* Modal */}
-      {modal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center"
-          onClick={() => setModal(null)}
-        >
-          <div
-            className="w-full max-w-md bg-[color:var(--surface)] border border-[color:var(--border)] rounded-t-3xl sm:rounded-3xl p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="font-display font-bold text-xl capitalize mb-4">{modal}</div>
-            <form onSubmit={submit} className="space-y-3">
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">Amount (USDT)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  autoFocus
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 font-display font-bold text-xl tabular-nums focus:outline-none focus:border-[color:var(--primary)]"
-                  data-testid="wallet-amount-input"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModal(null)}
-                  className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="py-3 rounded-xl bg-[color:var(--primary)] text-white font-display font-bold"
-                  data-testid="wallet-submit"
-                >
-                  Confirm
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal removed — unified wallet actions live on /bot */}
     </div>
   );
 }
