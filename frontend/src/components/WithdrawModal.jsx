@@ -511,23 +511,6 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                   <ShieldCheck size={17} className="text-[#FFE9A8]" />
                   {loading ? "Processing..." : "Submit Withdrawal Request"}
                 </button>
-                <div className="text-center text-[9px] text-[color:var(--text-mute)] mt-1.5">Review details and submit your request</div>
-
-                {/* Security badges */}
-                <div className="grid grid-cols-4 gap-1.5 mt-3 pt-2.5 border-t" style={{ borderColor: "var(--border-soft)" }} data-testid="withdraw-security-badges">
-                  {[
-                    { Icon: Lock, t: "Secure", s: "256-bit SSL" },
-                    { Icon: Zap, t: "Fast", s: "1–5 Minutes" },
-                    { Icon: Headphones, t: "Reliable", s: "24/7 Support" },
-                    { Icon: Shield, t: "Protected", s: "Funds Safe" },
-                  ].map(({ Icon, t, s }) => (
-                    <div key={t} className="flex flex-col items-center text-center gap-0.5">
-                      <Icon size={14} className="text-[color:var(--gold-deep,#D97706)]" />
-                      <div className="text-[9px] font-black text-[color:var(--text)]">{t}</div>
-                      <div className="text-[8px] text-[color:var(--text-mute)] leading-tight">{s}</div>
-                    </div>
-                  ))}
-                </div>
               </>
             )}
           </>
