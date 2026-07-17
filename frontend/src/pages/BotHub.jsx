@@ -653,7 +653,7 @@ export default function BotHub() {
       {/* ========== DEPOSIT DIALOG ========== */}
       {modal === "deposit" && (
         <ModalShell title="Deposit" onClose={closeModal} testid="dialog-deposit">
-          <div className="flex gap-1.5 rounded-lg bg-[var(--surface)] p-1 mb-3">
+          <div className="flex gap-1.5 rounded-lg bg-[var(--surface)] p-1 mb-2.5">
             <button
               onClick={() => setDepositTab("crypto")}
               className={`flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
@@ -681,21 +681,21 @@ export default function BotHub() {
           {depositTab === "crypto" ? (
             <>
               {/* Network cards with official logos */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-3 gap-1.5 mb-2.5">
                 {DEPOSIT_NETWORKS.map((n) => {
                   const active = depNet === n.id;
                   return (
                     <button
                       key={n.id}
                       onClick={() => setDepNet(n.id)}
-                      className={`relative flex flex-col items-center gap-1.5 rounded-2xl py-3 px-1 border transition-all duration-300 active:scale-95 ${
+                      className={`relative flex flex-col items-center gap-1 rounded-xl py-2 px-1 border transition-all duration-300 active:scale-95 ${
                         active
                           ? "border-[color:var(--gold)] bg-[color:var(--good)]/5 net-glow"
                           : "border-[color:var(--border-soft)] bg-[var(--surface)] hover:border-[color:var(--good)]/40"
                       }`}
                       data-testid={`deposit-net-${n.id.toLowerCase()}`}
                     >
-                      <n.Logo size={26} />
+                      <n.Logo size={22} />
                       <span
                         className={`text-[10px] font-bold leading-tight ${
                           active ? "text-[color:var(--good)]" : "text-[color:var(--text-soft)]"
@@ -737,66 +737,66 @@ export default function BotHub() {
                     <>
                       {/* Selected network header */}
                       <div
-                        className="flex items-center justify-center gap-2 mb-3"
+                        className="flex items-center justify-center gap-2 mb-2"
                         data-testid="deposit-selected-network"
                       >
-                        <net.Logo size={20} />
-                        <span className="text-[13px] font-bold text-[color:var(--text)]">
+                        <net.Logo size={16} />
+                        <span className="text-[12px] font-bold text-[color:var(--text)]">
                           {net.name} <span className="text-[color:var(--text-mute)] font-semibold">({net.tag})</span>
                         </span>
                       </div>
 
                       {/* Premium QR with green→gold gradient border + USDT center logo */}
-                      <div className="flex justify-center mb-4">
+                      <div className="flex justify-center mb-2.5">
                         <div
-                          className="qr-float rounded-3xl p-[3px]"
+                          className="qr-float rounded-2xl p-[2.5px]"
                           style={{
                             background: "linear-gradient(135deg, var(--good) 0%, var(--gold) 100%)",
                             boxShadow: "0 12px 34px rgba(22,163,74,0.28), 0 4px 14px rgba(245,158,11,0.18)",
                           }}
                           data-testid="deposit-qr"
                         >
-                          <div className="bg-white rounded-[21px] p-3.5">
+                          <div className="bg-white rounded-[13px] p-2.5">
                             <QRCodeCanvas
                               value={depositInfo.address}
-                              size={168}
+                              size={130}
                               level="H"
-                              imageSettings={{ src: TETHER_LOGO, height: 40, width: 40, excavate: true }}
+                              imageSettings={{ src: TETHER_LOGO, height: 32, width: 32, excavate: true }}
                             />
                           </div>
                         </div>
                       </div>
 
                       {/* Wallet address */}
-                      <div className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-soft)] px-3.5 py-3">
-                        <div className="text-[9px] tracking-[0.25em] uppercase font-bold text-[color:var(--good)] mb-1.5">
+                      <div className="rounded-xl bg-[var(--surface)] border border-[color:var(--border-soft)] px-3 py-2">
+                        <div className="text-[9px] tracking-[0.25em] uppercase font-bold text-[color:var(--good)] mb-1">
                           Wallet Address ({net.tag})
                         </div>
                         <div className="flex items-center gap-2.5">
                           <div
-                            className="flex-1 text-[12px] font-mono break-all text-[color:var(--text)] leading-relaxed"
+                            className="flex-1 text-[11px] font-mono break-all text-[color:var(--text)] leading-snug"
                             data-testid="deposit-address-text"
                           >
                             {depositInfo.address}
                           </div>
                           <button
                             onClick={copyDepositAddress}
-                            className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
+                            className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border transition-all duration-300 active:scale-90 ${
                               copied
                                 ? "bg-[color:var(--good)] border-[color:var(--good)] text-white copy-pop"
                                 : "bg-[color:var(--good)]/10 border-[color:var(--good)]/40 text-[color:var(--good)] hover:bg-[color:var(--good)]/20"
                             }`}
                             data-testid="btn-copy-deposit-address"
                           >
-                            {copied ? <Check size={17} /> : <Copy size={15} />}
+                            {copied ? <Check size={16} /> : <Copy size={14} />}
                           </button>
                         </div>
                       </div>
 
                       {/* Notices */}
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-start gap-2 text-[11px] text-[color:var(--text-soft)]">
-                          <CheckCircle2 size={13} className="text-[color:var(--good)] shrink-0 mt-0.5" />
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-start gap-2 text-[10px] text-[color:var(--text-soft)]">
+                          <CheckCircle2 size={12} className="text-[color:var(--good)] shrink-0 mt-0.5" />
                           <span>
                             Send only <span className="font-bold text-[color:var(--text)]">USDT</span> on{" "}
                             <span className="font-bold text-[color:var(--text)]">
@@ -805,8 +805,8 @@ export default function BotHub() {
                             to this address.
                           </span>
                         </div>
-                        <div className="flex items-start gap-2 text-[11px] text-[color:var(--text-soft)]" data-testid="deposit-confirm-note">
-                          <CheckCircle2 size={13} className="text-[color:var(--good)] shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2 text-[10px] text-[color:var(--text-soft)]" data-testid="deposit-confirm-note">
+                          <CheckCircle2 size={12} className="text-[color:var(--good)] shrink-0 mt-0.5" />
                           <span>
                             Funds are automatically credited to your Bot Wallet within approximately{" "}
                             <span className="font-bold text-[color:var(--text)]">1 minute</span> after blockchain
@@ -816,28 +816,28 @@ export default function BotHub() {
                       </div>
 
                       {/* Coin / Network / Secure info row */}
-                      <div className="grid grid-cols-3 gap-2 mt-4">
-                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
-                          <TetherLogo size={22} />
+                      <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+                        <div className="flex items-center gap-1.5 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface)] px-2 py-1.5">
+                          <TetherLogo size={18} />
                           <div className="min-w-0">
                             <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Coin</div>
-                            <div className="text-[11px] font-bold text-[color:var(--text)]">USDT</div>
+                            <div className="text-[10px] font-bold text-[color:var(--text)]">USDT</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
-                          <net.Logo size={22} />
+                        <div className="flex items-center gap-1.5 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface)] px-2 py-1.5">
+                          <net.Logo size={18} />
                           <div className="min-w-0">
                             <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Network</div>
-                            <div className="text-[11px] font-bold text-[color:var(--text)]">{net.tag}</div>
+                            <div className="text-[10px] font-bold text-[color:var(--text)]">{net.tag}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
-                          <span className="w-[22px] h-[22px] rounded-full bg-[color:var(--good)] flex items-center justify-center shrink-0">
-                            <ShieldCheck size={13} className="text-white" />
+                        <div className="flex items-center gap-1.5 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface)] px-2 py-1.5">
+                          <span className="w-[18px] h-[18px] rounded-full bg-[color:var(--good)] flex items-center justify-center shrink-0">
+                            <ShieldCheck size={11} className="text-white" />
                           </span>
                           <div className="min-w-0">
                             <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Secure</div>
-                            <div className="text-[11px] font-bold text-[color:var(--text)]">100% Safe</div>
+                            <div className="text-[10px] font-bold text-[color:var(--text)]">100% Safe</div>
                           </div>
                         </div>
                       </div>
