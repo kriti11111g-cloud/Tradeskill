@@ -10,6 +10,8 @@ import {
   History,
   Lock,
   CheckCircle2,
+  ShieldCheck,
+  Check,
   AlertTriangle,
   Info,
   Calendar,
@@ -22,12 +24,19 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
 import PageHeader from "@/components/PageHeader";
+import { BnbLogo, PolygonLogo, TronLogo, TetherLogo, TETHER_LOGO } from "@/components/CryptoLogos";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 
 const HERO_IMAGE =
   "https://customer-assets.emergentagent.com/job_tgx-api-gateway/artifacts/v63grioq_file_000000003580720b84b6c5daae428f49.png";
+
+const DEPOSIT_NETWORKS = [
+  { id: "BEP20", name: "BNB Smart Chain", tag: "BEP20", Logo: BnbLogo },
+  { id: "POLYGON", name: "Polygon", tag: "POS", Logo: PolygonLogo },
+  { id: "TRC20", name: "TRON", tag: "TRC20", Logo: TronLogo, soon: true },
+];
 
 const TRACES = [
   { d: "M 40,42 L 30,52 L 18,58", delay: "0s" },
@@ -50,6 +59,7 @@ export default function BotHub() {
   const [depositTab, setDepositTab] = useState("crypto"); // 'crypto' | 'main'
   const [depNet, setDepNet] = useState("BEP20");
   const [depositInfo, setDepositInfo] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [password, setPassword] = useState("");
   const [withdrawals, setWithdrawals] = useState([]);
   const [scanning, setScanning] = useState(false);
@@ -110,6 +120,28 @@ export default function BotHub() {
     setP2pMode("email");
     setPassword("");
     setDepositTab("crypto");
+    setCopied(false);
+  };
+
+  const copyDepositAddress = () => {
+    if (!depositInfo?.address) return;
+    const text = depositInfo.address;
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* ignore */ }
+      document.body.removeChild(ta);
+    };
+    try {
+      navigator.clipboard.writeText(text).catch(fallback);
+    } catch {
+      fallback();
+    }
+    setCopied(true);
+    toast.success("Address copied");
+    setTimeout(() => setCopied(false), 1800);
   };
 
   const doActivate = async () => {
@@ -648,33 +680,47 @@ export default function BotHub() {
 
           {depositTab === "crypto" ? (
             <>
-              <div className="flex gap-1.5 mb-3">
-                {[
-                  { id: "BEP20", label: "BSC · BEP20" },
-                  { id: "POLYGON", label: "Polygon" },
-                  { id: "TRC20", label: "TRC20", soon: true },
-                ].map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => setDepNet(n.id)}
-                    className={`flex-1 py-2 rounded-md text-[10px] font-bold border transition ${
-                      depNet === n.id
-                        ? "border-[color:var(--good)] bg-[color:var(--good)]/10 text-[color:var(--good)]"
-                        : "border-[color:var(--border-soft)] text-[color:var(--text-mute)]"
-                    }`}
-                    data-testid={`deposit-net-${n.id.toLowerCase()}`}
-                  >
-                    {n.label}
-                    {n.soon && <span className="block text-[8px] text-[color:var(--warn)]">Soon</span>}
-                  </button>
-                ))}
+              {/* Network cards with official logos */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {DEPOSIT_NETWORKS.map((n) => {
+                  const active = depNet === n.id;
+                  return (
+                    <button
+                      key={n.id}
+                      onClick={() => setDepNet(n.id)}
+                      className={`relative flex flex-col items-center gap-1.5 rounded-2xl py-3 px-1 border transition-all duration-300 active:scale-95 ${
+                        active
+                          ? "border-[color:var(--gold)] bg-[color:var(--good)]/5 net-glow"
+                          : "border-[color:var(--border-soft)] bg-[var(--surface)] hover:border-[color:var(--good)]/40"
+                      }`}
+                      data-testid={`deposit-net-${n.id.toLowerCase()}`}
+                    >
+                      <n.Logo size={26} />
+                      <span
+                        className={`text-[10px] font-bold leading-tight ${
+                          active ? "text-[color:var(--good)]" : "text-[color:var(--text-soft)]"
+                        }`}
+                      >
+                        {n.id === "BEP20" ? "BSC · BEP20" : n.name}
+                      </span>
+                      {n.soon && (
+                        <span className="absolute -top-1.5 right-1.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[color:var(--gold)] text-black">
+                          Soon
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {depNet === "TRC20" ? (
                 <div
-                  className="rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-4 text-center"
+                  className="rounded-2xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-5 text-center"
                   data-testid="deposit-coming-soon"
                 >
+                  <div className="flex justify-center mb-2">
+                    <TronLogo size={34} />
+                  </div>
                   <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
                   <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
                     TRC20 deposits are not available yet. Use BSC or Polygon.
@@ -685,42 +731,119 @@ export default function BotHub() {
                   Generating your deposit address…
                 </div>
               ) : (
-                <>
-                  <div className="flex justify-center my-3">
-                    <div className="bg-white p-2.5 rounded-xl" data-testid="deposit-qr">
-                      <QRCodeCanvas value={depositInfo.address} size={150} />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] px-3 py-2.5">
-                    <div
-                      className="flex-1 text-[11px] font-mono break-all text-[color:var(--text)]"
-                      data-testid="deposit-address-text"
-                    >
-                      {depositInfo.address}
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(depositInfo.address);
-                        toast.success("Address copied");
-                      }}
-                      className="shrink-0 px-2.5 py-1.5 rounded-md bg-[color:var(--good)]/10 border border-[color:var(--good)]/40 text-[color:var(--good)]"
-                      data-testid="btn-copy-deposit-address"
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                  <ul className="mt-3 text-[10px] text-[color:var(--text-mute)] space-y-1 list-disc pl-4">
-                    <li>
-                      Send only <span className="text-[color:var(--text)] font-semibold">USDT</span> on{" "}
-                      <span className="text-[color:var(--text)] font-semibold">
-                        {depNet === "BEP20" ? "BNB Smart Chain (BEP20)" : "Polygon"}
-                      </span>{" "}
-                      to this address.
-                    </li>
-                    <li>Same address works on both BSC & Polygon networks.</li>
-                    <li>Funds auto-credit to your Bot Wallet within ~1 minute of confirmation.</li>
-                  </ul>
-                </>
+                (() => {
+                  const net = DEPOSIT_NETWORKS.find((n) => n.id === depNet);
+                  return (
+                    <>
+                      {/* Selected network header */}
+                      <div
+                        className="flex items-center justify-center gap-2 mb-3"
+                        data-testid="deposit-selected-network"
+                      >
+                        <net.Logo size={20} />
+                        <span className="text-[13px] font-bold text-[color:var(--text)]">
+                          {net.name} <span className="text-[color:var(--text-mute)] font-semibold">({net.tag})</span>
+                        </span>
+                      </div>
+
+                      {/* Premium QR with green→gold gradient border + USDT center logo */}
+                      <div className="flex justify-center mb-4">
+                        <div
+                          className="qr-float rounded-3xl p-[3px]"
+                          style={{
+                            background: "linear-gradient(135deg, var(--good) 0%, var(--gold) 100%)",
+                            boxShadow: "0 12px 34px rgba(22,163,74,0.28), 0 4px 14px rgba(245,158,11,0.18)",
+                          }}
+                          data-testid="deposit-qr"
+                        >
+                          <div className="bg-white rounded-[21px] p-3.5">
+                            <QRCodeCanvas
+                              value={depositInfo.address}
+                              size={168}
+                              level="H"
+                              imageSettings={{ src: TETHER_LOGO, height: 40, width: 40, excavate: true }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Wallet address */}
+                      <div className="rounded-2xl bg-[var(--surface)] border border-[color:var(--border-soft)] px-3.5 py-3">
+                        <div className="text-[9px] tracking-[0.25em] uppercase font-bold text-[color:var(--good)] mb-1.5">
+                          Wallet Address ({net.tag})
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="flex-1 text-[12px] font-mono break-all text-[color:var(--text)] leading-relaxed"
+                            data-testid="deposit-address-text"
+                          >
+                            {depositInfo.address}
+                          </div>
+                          <button
+                            onClick={copyDepositAddress}
+                            className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-90 ${
+                              copied
+                                ? "bg-[color:var(--good)] border-[color:var(--good)] text-white copy-pop"
+                                : "bg-[color:var(--good)]/10 border-[color:var(--good)]/40 text-[color:var(--good)] hover:bg-[color:var(--good)]/20"
+                            }`}
+                            data-testid="btn-copy-deposit-address"
+                          >
+                            {copied ? <Check size={17} /> : <Copy size={15} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Notices */}
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-start gap-2 text-[11px] text-[color:var(--text-soft)]">
+                          <CheckCircle2 size={13} className="text-[color:var(--good)] shrink-0 mt-0.5" />
+                          <span>
+                            Send only <span className="font-bold text-[color:var(--text)]">USDT</span> on{" "}
+                            <span className="font-bold text-[color:var(--text)]">
+                              {net.name} ({net.tag})
+                            </span>{" "}
+                            to this address.
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-[11px] text-[color:var(--text-soft)]" data-testid="deposit-confirm-note">
+                          <CheckCircle2 size={13} className="text-[color:var(--good)] shrink-0 mt-0.5" />
+                          <span>
+                            Funds are automatically credited to your Bot Wallet within approximately{" "}
+                            <span className="font-bold text-[color:var(--text)]">1 minute</span> after blockchain
+                            confirmation.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Coin / Network / Secure info row */}
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
+                          <TetherLogo size={22} />
+                          <div className="min-w-0">
+                            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Coin</div>
+                            <div className="text-[11px] font-bold text-[color:var(--text)]">USDT</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
+                          <net.Logo size={22} />
+                          <div className="min-w-0">
+                            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Network</div>
+                            <div className="text-[11px] font-bold text-[color:var(--text)]">{net.tag}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)] px-2.5 py-2">
+                          <span className="w-[22px] h-[22px] rounded-full bg-[color:var(--good)] flex items-center justify-center shrink-0">
+                            <ShieldCheck size={13} className="text-white" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)]">Secure</div>
+                            <div className="text-[11px] font-bold text-[color:var(--text)]">100% Safe</div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()
               )}
             </>
           ) : (
@@ -1027,7 +1150,7 @@ function ModalShell({ title, children, onClose, testid }) {
       data-testid={testid}
     >
       <div
-        className="w-full max-w-[440px] bg-[color:var(--surface)] border border-[color:var(--primary)]/25 rounded-2xl p-5"
+        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto bg-[color:var(--surface)] border border-[color:var(--primary)]/25 rounded-2xl p-5"
         style={{ boxShadow: "0 0 30px rgba(22,163,74,0.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
