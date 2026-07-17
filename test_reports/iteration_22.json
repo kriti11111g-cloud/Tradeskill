@@ -1,0 +1,42 @@
+{
+  "summary": "End-to-end testing of HUBXBOT Social Media Bonus Center (5 platforms, $0.20 each, credits Unified Wallet). Backend: created /app/backend/tests/test_social_bonus.py with 10 pytest cases — ALL PASS (status shape/5 platforms/reward 0.20/total_available 1.00, claim-before-follow => 400, unknown platform => 404 on both follow and claim, follow marks followed=true, claim credits +0.20 to wallet_summary.wallet_usdt AND returns amount 0.20, status reflects claimed=true and total_earned=0.20, duplicate claim => 400 'Reward already claimed', bot_transactions has kind='social_bonus' with note 'Telegram Follow Reward', second-platform instagram flow works and total_earned=0.40). Frontend: fixed CRITICAL runtime bug (Gift icon not imported in BotHub.jsx caused whole BotHub page to crash with 'Gift is not defined'). After fix, /bot page renders 'Social Media Bonus' entry card, btn-social-bonus navigates to /social-bonus, page shows social-bonus-page + social-total-earned + social-hero + all 5 social-card-{id}, FOLLOW opens external URL in new tab (https://t.me/hubxbot verified), FOLLOW button turns into green CLAIM (btn-claim-{id}), CLAIM triggers success toast '+$0.20 USDT credited to your wallet! 🎉', card switches to CLAIMED badge (claimed-{id}), Total Earned $0.00 -> $0.20 -> $0.40 for 2 claims. Wallet (/wallet) page reflects new balance $0.40 and shows 2 History rows labeled 'Social Bonus' with +$0.20 each and 'Bal $0.20'/'Bal $0.40'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BotHub.jsx", "issue": "Missing import for Gift icon from lucide-react (used at line 380 for the Social Media Bonus entry). Caused Uncaught ReferenceError: 'Gift is not defined' and the entire /bot page failed to render with a red error overlay. FIXED by adding Gift to the lucide-react import list.", "selector": "[data-testid='btn-social-bonus']", "priority": "CRITICAL (fixed)"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Wallet /wallet history rows for social bonus claims", "issues": ["Row title renders h.kind ('social_bonus' -> 'Social Bonus') but the informative bot-txn note ('Telegram Follow Reward' / 'Instagram Follow Reward') is not shown. Cosmetic only — amount and balance are correct. Consider showing h.note under the kind label for clarity."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_social_bonus.py",
+    "/app/test_reports/pytest/social_bonus.xml"
+  ],
+  "action_items": [
+    "(Optional cosmetic) Wallet.jsx history renderer at line 439 could display h.note underneath h.kind so users see 'Telegram Follow Reward' instead of just 'Social Bonus'.",
+    "(Nice-to-have) Consider adding a fallback if window.open() is blocked so the user still gets marked followed even when the popup is blocked (currently the follow API is still called after window.open, so this already works — no action needed unless product wants a visible indicator)."
+  ],
+  "critical_code_review_comments": [
+    "BotHub.jsx imports were missing `Gift` (lucide-react) even though it is used at line 380 — a hard crash. Please add lint/CI step that catches undefined identifiers before shipping.",
+    "server.py:2692 social_bonus_claim() correctly uses atomic $set with a $ne guard (line 2703) to prevent race-condition double credit. Good.",
+    "server.py:2711 uses find_one_and_update with return_document=True but omits ReturnDocument.AFTER import — motor default is BEFORE. Verified via test that new_bal == old + 0.20, so motor's default here is AFTER. To be explicit, prefer `from pymongo import ReturnDocument; return_document=ReturnDocument.AFTER`.",
+    "social_bonus_claim() bumps wallet balance BUT does not check activation state of bot_wallet — this is intentional (welcome/social bonus available pre-activation). Confirmed by fresh-registered non-activated user successfully claiming. OK.",
+    "SocialBonus.jsx catches error inside doClaim but does NOT roll back local state on error — because it only calls load() on success and toasts error otherwise. No local state to rollback. OK."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/BotHub.jsx (added `Gift` to lucide-react imports — fixes runtime crash)",
+    "/app/backend/tests/test_social_bonus.py (new — 10 test cases covering all 7 backend acceptance criteria)"
+  ],
+  "success_rate": {"backend": "100% (10/10 pytest cases pass)", "frontend": "100% (all UI acceptance criteria pass after Gift import fix)"},
+  "test_credentials": "TEST_socialbonus_ui_2@tgxbot.com / Test@12345 (registered via /api/auth/register). Admin@tgxbot.com / Admin@12345 available but was NOT used for claim tests (may already have claimed some platforms). pytest fixture registers a fresh TEST_socialbonus_<uuid>@tgxbot.com user per test module for a clean slate.",
+  "seed_data_creation": "Two TEST_socialbonus_* users created during this run (test_socialbonus_ui_1 and test_socialbonus_ui_2 + one pytest-generated TEST_socialbonus_<uuid>). Each has telegram+instagram claimed, wallet balance $0.40 (plus $1000 demo credit shown as 0 in unified balance since unified=bot_wallet=0.40 after 2 claims — activation not performed).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Social Bonus feature is fully working end-to-end. CRITICAL FIX: added missing `Gift` import to BotHub.jsx — without it /bot page crashes. If next iteration ever tests /bot, verify this is still present. When testing claim flow, use a FRESH user (register new one) because existing test users may have telegram/instagram already claimed. Backend endpoints used: GET /api/social-bonus/status, POST /api/social-bonus/follow/{id}, POST /api/social-bonus/claim/{id}. Verify via GET /api/wallet/summary (wallet_usdt increment) and GET /api/bot-wallet/transactions (kind='social_bonus', note='<Platform> Follow Reward'). All 5 platform IDs: telegram, instagram, x, youtube, facebook.",
+  "rca of the issue": "Runtime crash on /bot page — RCA: BotHub.jsx line 380 references <Gift .../> from lucide-react but the import statement at lines 4-24 did not include Gift in the destructured names. Result: ReferenceError at render time -> React error boundary shows 'Uncaught runtime errors: Gift is not defined'. Mitigation applied: added `Gift,` to the lucide-react import list. Confirmed fix by re-running UI flow — /bot renders correctly and btn-social-bonus is present + clickable."
+}

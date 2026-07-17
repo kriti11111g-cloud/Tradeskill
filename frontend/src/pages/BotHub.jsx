@@ -21,6 +21,7 @@ import {
   Trophy,
   Copy,
   X,
+  Gift,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
