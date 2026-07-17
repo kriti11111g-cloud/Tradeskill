@@ -24,6 +24,8 @@ from starlette.concurrency import run_in_threadpool
 from binance.client import Client as BinanceClient
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 import re
+import random
+import hashlib
 import chain_wallet
 
 
@@ -207,6 +209,9 @@ WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
 DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "45"))
 ADMIN_WALLET_ADDRESS = os.environ.get("ADMIN_WALLET_ADDRESS", "")
+EMAIL_OTP_MODE = os.environ.get("EMAIL_OTP_MODE", "demo")
+OTP_TTL_SECONDS = 300
+OTP_RESEND_COOLDOWN = 60
 
 BINANCE_PUBLIC = "https://data-api.binance.vision"
 ALLOWED_SYMBOLS = {
@@ -2261,6 +2266,13 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1})
     if not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
         raise HTTPException(401, "Incorrect password")
+    otp = await db.withdraw_otps.find_one({"user_id": user["id"]}, {"_id": 0})
+    otp_ok = (otp and otp.get("verified") and not otp.get("used")
+              and datetime.fromisoformat(otp["created_at"]) > now_utc() - timedelta(minutes=15))
+    if not otp_ok:
+        raise HTTPException(400, "Email OTP verification required")
+    await db.withdraw_otps.update_one({"user_id": user["id"]},
+                                      {"$set": {"used": True}})
     net_amount = round(amount - WITHDRAW_FEE_USDT, 4)
     new_balance = round(bal - amount, 4)
     await db.bot_wallets.update_one(
@@ -2557,6 +2569,85 @@ async def admin_treasury(admin: dict = Depends(require_admin)):
             out["networks"][net] = {"error": str(e), "label": cfg["label"],
                                     "native_symbol": cfg["native"]}
     return out
+
+
+# ==== Withdrawal Email OTP ====
+def _mask_email(e: str) -> str:
+    name, _, dom = (e or "").partition("@")
+    return f"{name[:2]}***@{dom}" if dom else "***"
+
+
+def _send_otp_email(to_email: str, code: str) -> bool:
+    if EMAIL_OTP_MODE == "smtp":
+        import smtplib
+        from email.mime.text import MIMEText
+        gm_user = os.environ["GMAIL_USER"]
+        gm_pass = os.environ["GMAIL_APP_PASSWORD"]
+        msg = MIMEText(f"Your HUBXBOT withdrawal OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
+        msg["Subject"] = "HUBXBOT Withdrawal Verification Code"
+        msg["From"] = gm_user
+        msg["To"] = to_email
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            s.login(gm_user, gm_pass)
+            s.send_message(msg)
+        return True
+    logger.info(f"[DEMO OTP] Withdrawal OTP for {to_email}: {code}")
+    return False
+
+
+@api.post("/bot-wallet/withdraw/otp/request")
+async def withdraw_otp_request(user: dict = Depends(get_current_user)):
+    now = now_utc()
+    existing = await db.withdraw_otps.find_one({"user_id": user["id"]}, {"_id": 0})
+    if existing and existing.get("created_at"):
+        elapsed = (now - datetime.fromisoformat(existing["created_at"])).total_seconds()
+        if elapsed < OTP_RESEND_COOLDOWN:
+            raise HTTPException(429, f"Please wait {int(OTP_RESEND_COOLDOWN - elapsed)}s before requesting another OTP")
+    code = f"{random.randint(0, 999999):06d}"
+    await db.withdraw_otps.replace_one(
+        {"user_id": user["id"]},
+        {"user_id": user["id"],
+         "code_hash": hashlib.sha256(code.encode()).hexdigest(),
+         "created_at": iso(now),
+         "expires_at": iso(now + timedelta(seconds=OTP_TTL_SECONDS)),
+         "attempts": 0, "verified": False, "used": False},
+        upsert=True)
+    try:
+        await asyncio.to_thread(_send_otp_email, user.get("email", ""), code)
+    except Exception as e:
+        logger.error(f"OTP email send failed: {e}")
+        raise HTTPException(500, "Could not send OTP email. Try again later.")
+    resp = {"ok": True, "email_masked": _mask_email(user.get("email", "")),
+            "expires_in": OTP_TTL_SECONDS, "resend_in": OTP_RESEND_COOLDOWN,
+            "mode": EMAIL_OTP_MODE}
+    if EMAIL_OTP_MODE == "demo":
+        resp["demo_otp"] = code
+    return resp
+
+
+class OtpVerifyIn(BaseModel):
+    code: str
+
+
+@api.post("/bot-wallet/withdraw/otp/verify")
+async def withdraw_otp_verify(body: OtpVerifyIn,
+                              user: dict = Depends(get_current_user)):
+    doc = await db.withdraw_otps.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(400, "Request an OTP first")
+    if doc.get("used"):
+        raise HTTPException(400, "OTP already used — request a new one")
+    if datetime.fromisoformat(doc["expires_at"]) < now_utc():
+        raise HTTPException(400, "OTP expired — request a new one")
+    if doc.get("attempts", 0) >= 5:
+        raise HTTPException(429, "Too many wrong attempts — request a new OTP")
+    if hashlib.sha256(body.code.strip().encode()).hexdigest() != doc["code_hash"]:
+        await db.withdraw_otps.update_one({"user_id": user["id"]},
+                                          {"$inc": {"attempts": 1}})
+        raise HTTPException(400, "Incorrect OTP")
+    await db.withdraw_otps.update_one({"user_id": user["id"]},
+                                      {"$set": {"verified": True}})
+    return {"ok": True, "verified": True}
 
 
 # ==== Startup Seeding ====

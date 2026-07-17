@@ -24,6 +24,7 @@ import {
 import { QRCodeCanvas } from "qrcode.react";
 import { Html5Qrcode } from "html5-qrcode";
 import PageHeader from "@/components/PageHeader";
+import WithdrawModal from "@/components/WithdrawModal";
 import { BnbLogo, PolygonLogo, TronLogo, TetherLogo, TETHER_LOGO } from "@/components/CryptoLogos";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -206,31 +207,6 @@ export default function BotHub() {
     }, 80);
   };
 
-  const doWithdraw = async () => {
-    const amt = parseFloat(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    if (!address) return toast.error("Enter the withdrawal address");
-    if (!password) return toast.error("Enter your login password to confirm");
-    setLoading(true);
-    try {
-      await api.post("/bot-wallet/withdraw", {
-        amount: amt,
-        address,
-        network,
-        password,
-      });
-      toast.success("Withdrawal request submitted — pending admin approval");
-      await loadStatus();
-      await loadTxns();
-      await loadWithdrawals();
-      await refresh?.();
-      closeModal();
-    } catch (e) {
-      toast.error(formatApiError(e));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cancelWithdrawal = async (id) => {
     try {
@@ -818,136 +794,18 @@ export default function BotHub() {
         </ModalShell>
       )}
 
-      {/* ========== WITHDRAW DIALOG ========== */}
+      {/* ========== WITHDRAW DIALOG (premium green+gold) ========== */}
       {modal === "withdraw" && (
-        <ModalShell title="Withdraw" onClose={closeModal} testid="dialog-withdraw">
-          <div className="text-[11px] text-[color:var(--text-mute)] mb-3">
-            Wallet Balance: <span className="text-[color:var(--text)] font-semibold">{fmtUSD(balance)}</span>
-          </div>
-
-          {/* Network first */}
-          <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mb-1">
-            Network
-          </label>
-          <select
-            value={network}
-            onChange={(e) => setNetwork(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
-            data-testid="select-withdraw-network"
-          >
-            <option value="BEP20">BEP20 (BSC · Binance Smart Chain)</option>
-            <option value="POLYGON">Polygon</option>
-            <option value="TRC20">TRC20 (Tron)</option>
-            <option value="ERC20">ERC20 (Ethereum)</option>
-            <option value="SOL">Solana</option>
-          </select>
-
-          {!["BEP20", "POLYGON"].includes(network) ? (
-            <div
-              className="mt-3 rounded-lg border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-3 text-center"
-              data-testid="withdraw-coming-soon"
-            >
-              <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
-              <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
-                {network} liquidity is not available yet. Only BEP20 & Polygon are supported today.
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Address */}
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
-                Recipient Address
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Paste USDT address or scan"
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] font-mono focus:border-[color:var(--bad)] outline-none"
-                  data-testid="input-withdraw-address"
-                />
-                <button
-                  onClick={startScan}
-                  className="px-3 rounded-lg bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/40 text-[color:var(--bad)] hover:bg-[color:var(--bad)]/20 transition"
-                  data-testid="btn-scan-qr"
-                  type="button"
-                >
-                  <QrCode size={18} />
-                </button>
-              </div>
-              {scanning && (
-                <div className="mt-2 rounded-lg overflow-hidden border border-[color:var(--bad)]/40 bg-black">
-                  <div id="qr-reader" ref={qrRef} className="w-full" />
-                  <button
-                    onClick={stopScan}
-                    className="w-full py-1.5 text-[11px] font-semibold bg-[var(--surface)] text-[color:var(--bad)] border-t border-[color:var(--border-soft)]"
-                    data-testid="btn-stop-scan"
-                  >
-                    Cancel scan
-                  </button>
-                </div>
-              )}
-
-              {/* Amount */}
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
-                Amount (USDT)
-              </label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="How much to send"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-lg font-semibold focus:border-[color:var(--bad)] outline-none"
-                data-testid="input-withdraw-amount"
-              />
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setAmount(String(balance))}
-                  className="flex-1 py-1.5 text-xs rounded-md border border-[color:var(--border-soft)] text-[color:var(--text-soft)] hover:border-[color:var(--bad)]/40"
-                >
-                  Max ({fmtUSD(balance)})
-                </button>
-              </div>
-              {address && (
-                <>
-                  <div
-                    className="mt-3 rounded-lg border border-[color:var(--warn)]/30 bg-[color:var(--gold)]/5 px-3 py-2 text-[11px] text-[color:var(--text-soft)] space-y-0.5"
-                    data-testid="withdraw-fee-info"
-                  >
-                    <div>Network fee: <span className="font-semibold text-[color:var(--text)]">2 USDT</span> · Minimum: <span className="font-semibold text-[color:var(--text)]">$10</span></div>
-                    <div>
-                      You will receive:{" "}
-                      <span className="font-bold text-[color:var(--good)]">
-                        {Math.max(0, (parseFloat(amount) || 0) - 2).toFixed(2)} USDT
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-[color:var(--text-mute)]">External withdrawals require manual admin approval.</div>
-                  </div>
-                </>
-              )}
-              <label className="block text-[10px] tracking-[0.2em] uppercase text-[color:var(--text-mute)] mt-3 mb-1">
-                Login Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Confirm with your password"
-                className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[color:var(--border-soft)] text-[color:var(--text)] text-[13px] focus:border-[color:var(--bad)] outline-none"
-                data-testid="input-withdraw-password"
-              />
-              <button
-                onClick={doWithdraw}
-                disabled={loading}
-                className="mt-4 w-full py-3 rounded-lg bg-[color:var(--bad)] text-white font-bold text-sm disabled:opacity-40"
-                data-testid="btn-confirm-withdraw"
-              >
-                {loading ? "Processing..." : "Submit Withdrawal Request"}
-              </button>
-            </>
-          )}
-        </ModalShell>
+        <WithdrawModal
+          balance={balance}
+          onClose={closeModal}
+          onSubmitted={async () => {
+            await loadStatus();
+            await loadTxns();
+            await loadWithdrawals();
+            await refresh?.();
+          }}
+        />
       )}
 
       {/* ========== P2P DIALOG (Email tab + Address/Scan tab) ========== */}
