@@ -492,69 +492,18 @@ export default function BotHub() {
           />
         </button>
 
-        {/* ===== History section (Choose Date filter + inline list) ===== */}
-        <div
-          className="mt-4 flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)]/60 px-4 py-2.5"
-          data-testid="bot-history-filter"
+        {/* Transaction history moved to the Asset page — see Asset tab */}
+        <button
+          onClick={() => navigate("/wallet")}
+          className="mt-3 w-full flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)]/60 px-4 py-2.5 hover:border-[color:var(--warn)]/30 transition"
+          data-testid="bot-view-history"
         >
           <div className="flex items-center gap-2">
             <History size={12} className="text-[color:var(--warn)]" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">History Record</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Transaction History</span>
           </div>
-          <label className="relative flex items-center gap-1 cursor-pointer text-[11px] text-[color:var(--primary)] font-semibold">
-            <Calendar size={12} />
-            <span>{filterDate || "Choose Date"}</span>
-            {filterDate && (
-              <button
-                onClick={(e) => { e.preventDefault(); setFilterDate(""); }}
-                className="ml-1 text-[color:var(--text-mute)] hover:text-[color:var(--text)]"
-                data-testid="btn-clear-date"
-              >
-                <X size={11} />
-              </button>
-            )}
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              data-testid="input-history-date"
-            />
-          </label>
-        </div>
-
-        <div className="mt-2 space-y-1.5" data-testid="bot-history-list">
-          {visibleTxns.length === 0 ? (
-            <div className="text-center text-[11px] text-[color:var(--text-mute)] py-3 rounded-lg border border-[color:var(--border-soft)] bg-[var(--surface)]/40">
-              {filterDate ? "No transactions on this date." : "No transactions yet."}
-            </div>
-          ) : (
-            visibleTxns.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--surface)]/70 border border-[color:var(--border)] shadow-[inset_0_0_10px_rgba(22,163,74,0.03)]"
-                data-testid="bot-txn-row"
-              >
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-[color:var(--text)] capitalize tracking-wide leading-tight">
-                    {t.kind === "fuel" ? "Bot Fuel" : t.kind.replace("_", " ")}
-                  </div>
-                  <div className="text-[9px] text-[color:var(--text-mute)] leading-tight">{fmtTime(t.created_at)}</div>
-                </div>
-                <div className="text-right shrink-0 ml-2">
-                  <div
-                    className={`text-[12px] font-bold leading-tight ${
-                      t.amount > 0 ? "text-[color:var(--good)]" : t.amount < 0 ? "text-[color:var(--bad)]" : "text-[color:var(--text-mute)]"
-                    }`}
-                  >
-                    {t.amount > 0 ? "+" : ""}
-                    {fmtUSD(t.amount)}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+          <span className="text-[11px] font-semibold text-[color:var(--warn)]">View in Asset ›</span>
+        </button>
       </div>
 
       {/* ========== INFO DIALOG (Conditions) ========== */}
