@@ -224,7 +224,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
 
   const label = "block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mb-1.5";
   const inputCls =
-    "w-full px-3.5 py-2.5 rounded-xl bg-[color:var(--surface-3)] border text-[color:var(--text)] text-[13px] placeholder:text-[color:var(--text-mute)] outline-none transition focus:shadow-[0_0_14px_rgba(245,158,11,0.22)]";
+    "w-full px-3.5 py-3 rounded-xl bg-[color:var(--surface-3)] border text-[color:var(--text)] text-[13px] placeholder:text-[color:var(--text-mute)] outline-none transition focus:shadow-[0_0_14px_rgba(245,158,11,0.22)]";
   const inputStyle = { borderColor: GOLD_SOFT };
 
   return (
@@ -271,21 +271,21 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
             {/* Header */}
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-[color:var(--text)] font-black text-xl">Withdraw</div>
+                <div className="text-[color:var(--text)] font-black text-2xl">Withdraw</div>
                 <div className="text-[color:var(--text-mute)] text-[11px]">Withdraw your funds to your wallet</div>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border text-[color:var(--gold-deep,#D97706)] hover:bg-[color:var(--gold)]/10"
+                className="w-9 h-9 rounded-xl flex items-center justify-center border text-[color:var(--gold-deep,#D97706)] hover:bg-[color:var(--gold)]/10"
                 style={{ borderColor: GOLD_BORDER }}
                 data-testid="btn-close-withdraw"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
             {/* Stepper */}
-            <div className="flex items-center mt-3 mb-3" data-testid="withdraw-stepper">
+            <div className="flex items-center mt-4 mb-4" data-testid="withdraw-stepper">
               {STEPS.map((s, i) => {
                 const n = i + 1;
                 const active = step >= n;
@@ -319,7 +319,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
               <Globe size={12} className="text-[color:var(--gold-deep,#D97706)]" />
               <span className={label + " mb-0"}>Network</span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+            <div className="grid grid-cols-3 gap-1.5 mb-3.5">
               {NETWORKS.map((n) => {
                 const active = network === n.id;
                 return (
@@ -356,7 +356,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                   <User size={12} className="text-[color:var(--gold-deep,#D97706)]" />
                   <span className={label + " mb-0"}>Recipient Address</span>
                 </div>
-                <div className="flex gap-2 mb-2.5">
+                <div className="flex gap-2 mb-3.5">
                   <input
                     value={address}
                     onChange={(e) => setAddress(e.target.value.trim())}
@@ -422,7 +422,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                     </button>
                   ))}
                 </div>
-                <div className="text-[10px] text-[color:var(--text-mute)] mb-2.5">
+                <div className="text-[10px] text-[color:var(--text-mute)] mb-3.5">
                   Maximum Available: <span className="text-[color:var(--good)] font-bold">{Number(balance).toFixed(2)} USDT</span>
                   {amt >= 10 && (
                     <span> · You receive: <span className="text-[color:var(--gold-deep,#D97706)] font-bold">{Math.max(0, amt - 2).toFixed(2)} USDT</span> (fee 2 USDT)</span>
@@ -449,7 +449,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                     {otpSent ? (resendIn > 0 ? `${resendIn}s` : "Resend") : "Get OTP"}
                   </button>
                 </div>
-                <div className="text-[9px] text-[color:var(--text-mute)] mb-2">ⓘ OTP will be sent to your Gmail address</div>
+                <div className="text-[9px] text-[color:var(--text-mute)] mb-3">ⓘ OTP will be sent to your Gmail address</div>
                 {demoOtp && !otpVerified && (
                   <div className="mb-3 rounded-lg border px-3 py-2 text-[11px] font-bold text-[color:var(--gold-deep,#D97706)]" style={{ borderColor: GOLD_BORDER, background: "rgba(245,158,11,0.08)" }} data-testid="demo-otp-note">
                     DEMO MODE — Your OTP: <span className="font-mono text-[color:var(--text)] tracking-[0.3em]">{demoOtp}</span>
@@ -457,7 +457,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                 )}
 
                 {otpSent && (
-                  <div className="mb-2.5">
+                  <div className="mb-3.5">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Shield size={12} className="text-[color:var(--gold-deep,#D97706)]" />
                       <span className={label + " mb-0"}>Enter OTP</span>
@@ -476,7 +476,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                   <Lock size={12} className="text-[color:var(--gold-deep,#D97706)]" />
                   <span className={label + " mb-0"}>Login / Transaction Password</span>
                 </div>
-                <div className="relative mb-3">
+                <div className="relative mb-4">
                   <input
                     type={showPass ? "text" : "password"}
                     value={password}
@@ -500,7 +500,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                 <button
                   onClick={submit}
                   disabled={loading || !validAddress || amt < 10 || !otpVerified || !password}
-                  className="w-full py-3 rounded-2xl font-black text-[14px] uppercase tracking-wider text-white transition active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-2xl font-black text-[14px] uppercase tracking-wider text-white transition active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2"
                   style={{
                     background: "linear-gradient(135deg, #1DB954, #0E8A3C)",
                     border: "1.5px solid var(--gold)",
