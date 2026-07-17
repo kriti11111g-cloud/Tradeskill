@@ -674,26 +674,17 @@ export default function BotHub() {
                 })}
               </div>
 
-              {depNet === "TRC20" ? (
-                <div
-                  className="rounded-2xl border border-[color:var(--warn)]/40 bg-[color:var(--gold)]/5 p-5 text-center"
-                  data-testid="deposit-coming-soon"
-                >
-                  <div className="flex justify-center mb-2">
-                    <TronLogo size={34} />
-                  </div>
-                  <div className="text-[color:var(--warn)] font-bold text-sm">Coming Soon</div>
-                  <div className="text-[11px] text-[color:var(--text-mute)] mt-1">
-                    TRC20 deposits are not available yet. Use BSC or Polygon.
-                  </div>
-                </div>
-              ) : !depositInfo ? (
+              {!depositInfo ? (
                 <div className="text-center text-[12px] text-[color:var(--text-mute)] py-6">
                   Generating your deposit address…
                 </div>
               ) : (
                 (() => {
                   const net = DEPOSIT_NETWORKS.find((n) => n.id === depNet);
+                  const isSoon = depNet === "TRC20";
+                  const shownAddress = isSoon
+                    ? "TN3W4H8mP9QkX5vR2LcD7sJ4fA6bE1gYhU"
+                    : depositInfo.address;
                   return (
                     <>
                       {/* Selected network header */}
@@ -710,21 +701,33 @@ export default function BotHub() {
                       {/* Premium QR with green→gold gradient border + USDT center logo */}
                       <div className="flex justify-center mb-2.5">
                         <div
-                          className="qr-float rounded-2xl p-[2.5px]"
+                          className="qr-float relative rounded-2xl p-[2.5px]"
                           style={{
                             background: "linear-gradient(135deg, var(--good) 0%, var(--gold) 100%)",
                             boxShadow: "0 12px 34px rgba(22,163,74,0.28), 0 4px 14px rgba(245,158,11,0.18)",
                           }}
                           data-testid="deposit-qr"
                         >
-                          <div className="bg-white rounded-[13px] p-2.5">
-                            <QRCodeCanvas
-                              value={depositInfo.address}
-                              size={130}
-                              level="H"
-                              imageSettings={{ src: TETHER_LOGO, height: 32, width: 32, excavate: true }}
-                            />
+                          <div className="bg-white rounded-[13px] p-2.5 overflow-hidden">
+                            <div className={isSoon ? "blur-[7px] opacity-60 select-none pointer-events-none" : ""}>
+                              <QRCodeCanvas
+                                value={shownAddress}
+                                size={130}
+                                level="H"
+                                imageSettings={{ src: TETHER_LOGO, height: 32, width: 32, excavate: true }}
+                              />
+                            </div>
                           </div>
+                          {isSoon && (
+                            <div className="absolute inset-0 flex items-center justify-center" data-testid="deposit-coming-soon">
+                              <span
+                                className="px-4 py-1.5 rounded-full bg-[#EF0027] text-white text-[11px] font-black uppercase tracking-[0.18em] shadow-lg animate-pulse"
+                                style={{ boxShadow: "0 6px 20px rgba(239,0,39,0.45)" }}
+                              >
+                                Coming Soon
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -735,21 +738,26 @@ export default function BotHub() {
                         </div>
                         <div className="flex items-center gap-2.5">
                           <div
-                            className="flex-1 text-[11px] font-mono break-all text-[color:var(--text)] leading-snug"
+                            className={`flex-1 text-[11px] font-mono break-all text-[color:var(--text)] leading-snug ${
+                              isSoon ? "blur-[5px] opacity-60 select-none" : ""
+                            }`}
                             data-testid="deposit-address-text"
                           >
-                            {depositInfo.address}
+                            {shownAddress}
                           </div>
                           <button
                             onClick={copyDepositAddress}
+                            disabled={isSoon}
                             className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border transition-all duration-300 active:scale-90 ${
-                              copied
+                              isSoon
+                                ? "bg-[var(--surface)] border-[color:var(--border-soft)] text-[color:var(--text-mute)] opacity-50"
+                                : copied
                                 ? "bg-[color:var(--good)] border-[color:var(--good)] text-white copy-pop"
                                 : "bg-[color:var(--good)]/10 border-[color:var(--good)]/40 text-[color:var(--good)] hover:bg-[color:var(--good)]/20"
                             }`}
                             data-testid="btn-copy-deposit-address"
                           >
-                            {copied ? <Check size={16} /> : <Copy size={14} />}
+                            {copied && !isSoon ? <Check size={16} /> : <Copy size={14} />}
                           </button>
                         </div>
                       </div>
