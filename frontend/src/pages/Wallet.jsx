@@ -435,8 +435,8 @@ export default function Wallet() {
             }}
           >
             {history.map((h, i) => {
-              const isIn = h.type === "deposit";
-              const isOut = h.type === "withdraw";
+              const isIn = (h.amount ?? 0) > 0;
+              const isOut = (h.amount ?? 0) < 0;
               return (
                 <div
                   key={h.id}
