@@ -293,34 +293,6 @@ export default function Wallet() {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="grid grid-cols-3 gap-3 px-4 mt-4">
-        {actions.map((a) => (
-          <button
-            key={a.type}
-            onClick={() => navigate(a.type === "transfer" ? "/bot?action=p2p" : `/bot?action=${a.type}`)}
-            data-testid={a.testid}
-            className="flex flex-col items-center gap-2 py-4 app-card rounded-2xl hover:border-[color:var(--primary)]/30 transition"
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{
-                background: `color-mix(in srgb, ${a.tint} 12%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${a.tint} 28%, transparent)`,
-              }}
-            >
-              <a.icon size={20} strokeWidth={1.8} color={a.tint} />
-            </div>
-            <span
-              className="text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: "var(--text-soft)" }}
-            >
-              {a.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
       {/* Positions */}
       {summary?.positions?.length > 0 && (
         <div className="px-4 mt-5">
