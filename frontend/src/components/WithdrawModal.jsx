@@ -242,7 +242,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
       data-testid="dialog-withdraw"
     >
       <div
-        className="w-full max-w-[440px] my-auto rounded-2xl p-4 border bg-[color:var(--surface)]"
+        className="w-full max-w-[440px] mt-6 mb-auto rounded-2xl p-4 border bg-[color:var(--surface)]"
         style={{
           borderColor: GOLD_BORDER,
           boxShadow: "0 18px 50px rgba(22,163,74,0.18), 0 0 24px rgba(245,158,11,0.12)",
