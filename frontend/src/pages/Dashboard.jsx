@@ -406,9 +406,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ============ PREMIUM PROMO BANNER ============ */}
+        {/* ============ SOCIAL MEDIA BONUS BANNER ============ */}
         <Link
-          to="/rewards"
+          to="/social-bonus"
           data-testid="promo-banner"
           className="block rounded-2xl p-4 mb-5 relative overflow-hidden"
           style={{
@@ -421,12 +421,12 @@ export default function Dashboard() {
               <div className="flex items-center gap-1 mb-0.5">
                 <Gift size={10} className="text-white/90" />
                 <div className="text-[9px] uppercase tracking-[0.3em] font-black text-white/95">
-                  Premium Reward
+                  Social Media Bonus
                 </div>
               </div>
-              <div className="text-white font-black text-base">Win $100 Fuel Bonus</div>
+              <div className="text-white font-black text-base">Earn $1.20 USDT Free</div>
               <div className="text-white/90 text-[10px] mt-0.5">
-                Complete 10 trades this week
+                Follow our 6 official channels & claim rewards
               </div>
             </div>
             <div
@@ -436,7 +436,7 @@ export default function Dashboard() {
                 border: "1px solid rgba(255,255,255,0.4)",
               }}
             >
-              Claim →
+              Earn →
             </div>
           </div>
           <div
