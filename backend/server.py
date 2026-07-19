@@ -2661,11 +2661,29 @@ SOCIAL_PLATFORMS = [
 ]
 _SOCIAL_IDS = {p["id"] for p in SOCIAL_PLATFORMS}
 
+SOCIAL_VERIFY_DELAY = int(os.environ.get("SOCIAL_VERIFY_DELAY", "15"))
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")
+TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "hubx-tg-hook")
+_TG_BOT_USERNAME = ""
+_HANDLE_RE = re.compile(r"^@?[A-Za-z0-9_.]{3,32}$")
+
+
+def _tg_real_mode() -> bool:
+    return bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL)
+
+
+async def _tg_api(method: str, **params):
+    async with httpx.AsyncClient(timeout=15) as c:
+        r = await c.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}", json=params)
+        return r.json()
+
 
 @api.get("/social-bonus/status")
 async def social_bonus_status(user: dict = Depends(get_current_user)):
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims", {})
+    tg = doc.get("telegram") or {}
     platforms = []
     earned = 0.0
     for p in SOCIAL_PLATFORMS:
@@ -2674,20 +2692,110 @@ async def social_bonus_status(user: dict = Depends(get_current_user)):
             earned += SOCIAL_BONUS_AMOUNT
         platforms.append({**p, "reward": SOCIAL_BONUS_AMOUNT,
                           "followed": bool(c.get("followed")),
-                          "claimed": bool(c.get("claimed"))})
+                          "claimed": bool(c.get("claimed")),
+                          "handle": c.get("handle"),
+                          "follow_started_at": c.get("follow_started_at"),
+                          "verify_mode": "real" if (p["id"] == "telegram" and _tg_real_mode()) else "timer"})
     return {"platforms": platforms, "reward": SOCIAL_BONUS_AMOUNT,
             "total_available": round(SOCIAL_BONUS_AMOUNT * len(SOCIAL_PLATFORMS), 2),
-            "total_earned": round(earned, 2)}
+            "total_earned": round(earned, 2),
+            "verify_delay": SOCIAL_VERIFY_DELAY,
+            "telegram_linked": bool(tg.get("tg_user_id")),
+            "server_time": iso(now_utc())}
+
+
+class SocialFollowIn(BaseModel):
+    handle: str
 
 
 @api.post("/social-bonus/follow/{platform}")
-async def social_bonus_follow(platform: str, user: dict = Depends(get_current_user)):
+async def social_bonus_follow(platform: str, body: SocialFollowIn,
+                              user: dict = Depends(get_current_user)):
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
+    doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    c = (doc.get("claims") or {}).get(platform, {})
+    if c.get("claimed"):
+        raise HTTPException(400, "Reward already claimed")
+    handle = body.handle.strip()
+    if not _HANDLE_RE.match(handle):
+        raise HTTPException(400, "Enter a valid username (3-32 letters/numbers)")
     await db.social_bonus.update_one(
         {"user_id": user["id"]},
-        {"$set": {f"claims.{platform}.followed": True}}, upsert=True)
-    return {"ok": True, "followed": True}
+        {"$set": {f"claims.{platform}.handle": handle.lstrip("@"),
+                  f"claims.{platform}.follow_started_at": iso(now_utc()),
+                  f"claims.{platform}.followed": False}}, upsert=True)
+    return {"ok": True, "verify_after": SOCIAL_VERIFY_DELAY}
+
+
+@api.post("/social-bonus/verify/{platform}")
+async def social_bonus_verify(platform: str, user: dict = Depends(get_current_user)):
+    if platform not in _SOCIAL_IDS:
+        raise HTTPException(404, "Unknown platform")
+    doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    c = (doc.get("claims") or {}).get(platform, {})
+    if c.get("claimed"):
+        raise HTTPException(400, "Reward already claimed")
+    if c.get("followed"):
+        return {"ok": True, "verified": True}
+    if not c.get("follow_started_at") or not c.get("handle"):
+        raise HTTPException(400, "Follow first — tap the FOLLOW button")
+    if platform == "telegram" and _tg_real_mode():
+        tg = doc.get("telegram") or {}
+        if not tg.get("tg_user_id"):
+            raise HTTPException(428, "TG_CONNECT_REQUIRED")
+        res = await _tg_api("getChatMember", chat_id=TELEGRAM_CHANNEL,
+                            user_id=tg["tg_user_id"])
+        st = (res.get("result") or {}).get("status")
+        if not (res.get("ok") and st in ("member", "administrator", "creator")):
+            raise HTTPException(400, "You haven't joined the channel yet — join first, then verify")
+    else:
+        elapsed = (now_utc() - datetime.fromisoformat(c["follow_started_at"])).total_seconds()
+        if elapsed < SOCIAL_VERIFY_DELAY:
+            raise HTTPException(400, f"Verification failed — complete the follow first ({int(SOCIAL_VERIFY_DELAY - elapsed)}s)")
+    await db.social_bonus.update_one(
+        {"user_id": user["id"]},
+        {"$set": {f"claims.{platform}.followed": True,
+                  f"claims.{platform}.verified_at": iso(now_utc())}}, upsert=True)
+    return {"ok": True, "verified": True}
+
+
+@api.get("/social-bonus/telegram/link")
+async def social_bonus_tg_link(user: dict = Depends(get_current_user)):
+    global _TG_BOT_USERNAME
+    if not _tg_real_mode():
+        raise HTTPException(400, "Telegram verification not configured")
+    code = pysecrets.token_hex(6)
+    await db.tg_link_codes.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"code": code, "created_at": iso(now_utc())}}, upsert=True)
+    if not _TG_BOT_USERNAME:
+        me = await _tg_api("getMe")
+        _TG_BOT_USERNAME = (me.get("result") or {}).get("username", "")
+    return {"url": f"https://t.me/{_TG_BOT_USERNAME}?start={code}"}
+
+
+@api.post("/telegram/webhook/{secret}")
+async def telegram_webhook(secret: str, request: Request):
+    if secret != TELEGRAM_WEBHOOK_SECRET:
+        raise HTTPException(403, "Forbidden")
+    upd = await request.json()
+    msg = upd.get("message") or {}
+    text = msg.get("text") or ""
+    frm = msg.get("from") or {}
+    if text.startswith("/start") and frm.get("id"):
+        parts = text.split()
+        code = parts[1] if len(parts) > 1 else ""
+        link = await db.tg_link_codes.find_one({"code": code}) if code else None
+        if link:
+            await db.social_bonus.update_one(
+                {"user_id": link["user_id"]},
+                {"$set": {"telegram": {"tg_user_id": frm["id"],
+                                       "tg_username": frm.get("username"),
+                                       "linked_at": iso(now_utc())}}}, upsert=True)
+            await _tg_api("sendMessage", chat_id=msg.get("chat", {}).get("id"),
+                          text="✅ Account linked! Now join our channel and tap VERIFY in the app.")
+    return {"ok": True}
 
 
 @api.post("/social-bonus/claim/{platform}")
@@ -2699,7 +2807,7 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
     if not c.get("followed"):
-        raise HTTPException(400, "Please follow first, then claim")
+        raise HTTPException(400, "Please follow & verify first, then claim")
     # Atomic guard against double-claim
     res = await db.social_bonus.update_one(
         {"user_id": user["id"], f"claims.{platform}.claimed": {"$ne": True}},
@@ -2774,6 +2882,13 @@ async def startup():
         await db.guide.insert_many(guide_items)
 
     logger.info("TGX BOT startup complete")
+
+    if _tg_real_mode() and os.environ.get("PUBLIC_BASE_URL"):
+        try:
+            await _tg_api("setWebhook", url=f"{os.environ['PUBLIC_BASE_URL'].rstrip('/')}/api/telegram/webhook/{TELEGRAM_WEBHOOK_SECRET}")
+            logger.info("Telegram webhook registered")
+        except Exception as e:
+            logger.warning(f"Telegram webhook setup failed: {e}")
 
     # Populate ALLOWED_SYMBOLS from Binance's live USDT pair list (fallback to the hardcoded set)
     try:

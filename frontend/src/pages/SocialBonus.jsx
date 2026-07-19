@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Gift, ShieldCheck, Wallet, UserPlus, DollarSign, ExternalLink, CheckCircle2, Info } from "lucide-react";
+import { Gift, ShieldCheck, Wallet, UserPlus, BadgeCheck, DollarSign, ExternalLink, CheckCircle2, Info, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -28,14 +28,30 @@ const Logos = {
   ),
 };
 
+const GoldBtn = ({ children, testid, ...props }) => (
+  <button
+    {...props}
+    className="px-3.5 py-2 rounded-xl text-[11px] font-black text-black flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
+    style={{ background: "linear-gradient(135deg, #F5C518, #E8A804)", boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}
+    data-testid={testid}
+  >
+    {children}
+  </button>
+);
+
 export default function SocialBonus() {
   const { refresh } = useAuth();
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [open, setOpen] = useState(null);
+  const [handles, setHandles] = useState({});
+  const [, setTick] = useState(0);
+  const offsetRef = useRef(0);
 
   const load = useCallback(async () => {
     try {
       const { data } = await api.get("/social-bonus/status");
+      if (data.server_time) offsetRef.current = Date.now() - new Date(data.server_time).getTime();
       setData(data);
     } catch (e) {
       toast.error(formatApiError(e));
@@ -44,17 +60,53 @@ export default function SocialBonus() {
 
   useEffect(() => {
     load();
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
   }, [load]);
 
+  const remaining = (p) => {
+    if (!p.follow_started_at) return null;
+    const started = new Date(p.follow_started_at + (p.follow_started_at.endsWith("Z") || p.follow_started_at.includes("+") ? "" : "Z")).getTime();
+    const nowSrv = Date.now() - offsetRef.current;
+    return Math.ceil((started + (data?.verify_delay ?? 15) * 1000 - nowSrv) / 1000);
+  };
+
   const doFollow = async (p) => {
-    window.open(p.url, "_blank", "noopener");
+    const handle = (handles[p.id] || "").trim();
+    if (handle.replace("@", "").length < 3) return toast.error("Pehle apna username daalein (min 3 chars)");
     setBusy(p.id);
     try {
-      await api.post(`/social-bonus/follow/${p.id}`);
+      await api.post(`/social-bonus/follow/${p.id}`, { handle });
+      window.open(p.url, "_blank", "noopener");
+      setOpen(null);
       await load();
-      toast.success(`${p.name} follow verified — tap CLAIM to get $${p.reward.toFixed(2)}`);
+      toast.info(`${p.name} follow karke wapas aayen — verification chal raha hai…`);
     } catch (e) {
       toast.error(formatApiError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const doTgConnect = async () => {
+    try {
+      const { data: r } = await api.get("/social-bonus/telegram/link");
+      window.open(r.url, "_blank", "noopener");
+      toast.info("Telegram me START dabayen, phir wapas aakar VERIFY karein");
+    } catch (e) {
+      toast.error(formatApiError(e));
+    }
+  };
+
+  const doVerify = async (p) => {
+    setBusy(p.id);
+    try {
+      await api.post(`/social-bonus/verify/${p.id}`);
+      await load();
+      toast.success(`${p.name} follow verified ✅ — ab CLAIM dabayen`);
+    } catch (e) {
+      if (e?.response?.status === 428) doTgConnect();
+      else toast.error(formatApiError(e));
     } finally {
       setBusy(null);
     }
@@ -72,6 +124,57 @@ export default function SocialBonus() {
     } finally {
       setBusy(null);
     }
+  };
+
+  const renderAction = (p) => {
+    if (p.claimed)
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-black text-[color:var(--good)]" data-testid={`claimed-${p.id}`}>
+          <CheckCircle2 size={14} /> CLAIMED
+        </span>
+      );
+    if (p.followed)
+      return (
+        <button
+          onClick={() => doClaim(p)}
+          disabled={busy === p.id}
+          className="px-4 py-2 rounded-xl text-[11px] font-black text-white transition active:scale-95 disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", border: `1px solid ${GOLD_BORDER}`, boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+          data-testid={`btn-claim-${p.id}`}
+        >
+          {busy === p.id ? "..." : "CLAIM"}
+        </button>
+      );
+    if (p.follow_started_at) {
+      if (p.verify_mode === "real" && !data.telegram_linked)
+        return (
+          <GoldBtn onClick={doTgConnect} testid={`btn-connect-${p.id}`}>
+            CONNECT <ExternalLink size={11} />
+          </GoldBtn>
+        );
+      const rem = remaining(p);
+      if (rem > 0)
+        return (
+          <button
+            disabled
+            className="px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 opacity-80"
+            style={{ background: "rgba(245,158,11,0.12)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
+            data-testid={`btn-verifying-${p.id}`}
+          >
+            <Loader2 size={12} className="animate-spin" /> VERIFYING {rem}s
+          </button>
+        );
+      return (
+        <GoldBtn onClick={() => doVerify(p)} disabled={busy === p.id} testid={`btn-verify-${p.id}`}>
+          {busy === p.id ? "..." : "VERIFY"} <BadgeCheck size={12} />
+        </GoldBtn>
+      );
+    }
+    return (
+      <GoldBtn onClick={() => setOpen(open === p.id ? null : p.id)} testid={`btn-follow-${p.id}`}>
+        FOLLOW <ExternalLink size={11} />
+      </GoldBtn>
+    );
   };
 
   const earned = data?.total_earned ?? 0;
@@ -98,7 +201,7 @@ export default function SocialBonus() {
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-mute)]">Available</div>
-            <div className="text-base font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</div>
+            <div className="text-base font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1.2).toFixed(2)}</div>
           </div>
         </div>
 
@@ -115,11 +218,11 @@ export default function SocialBonus() {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-black text-lg text-[color:var(--text)]">
-                FOLLOW. <span className="text-[color:var(--gold-deep,#D97706)]">EARN.</span> GROW.
+                FOLLOW. <span className="text-[color:var(--gold-deep,#D97706)]">VERIFY.</span> EARN.
               </div>
               <p className="text-[11px] text-[color:var(--text-soft)] mt-1 leading-relaxed max-w-[220px]">
-                Follow all our official social media channels and earn up to{" "}
-                <span className="font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</span> directly in your wallet.
+                Follow all our official social media channels, verify & earn up to{" "}
+                <span className="font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1.2).toFixed(2)}</span> directly in your wallet.
               </p>
             </div>
             <div
@@ -142,53 +245,52 @@ export default function SocialBonus() {
             data.platforms.map((p, i) => (
               <div
                 key={p.id}
-                className="rounded-2xl border p-3 flex items-center gap-3 bg-[color:var(--surface)] transition-all duration-300"
+                className="rounded-2xl border bg-[color:var(--surface)] transition-all duration-300"
                 style={{
                   borderColor: p.claimed ? "rgba(22,163,74,0.5)" : GOLD_BORDER,
                   boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : "0 4px 16px rgba(22,163,74,0.08)",
                 }}
                 data-testid={`social-card-${p.id}`}
               >
-                <div className="shrink-0">{Logos[p.id]?.(38)}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
-                    {String(i + 1).padStart(2, "0")}. {p.name}
-                  </div>
-                  <div className="text-[10px] text-[color:var(--text-mute)] truncate">{p.desc}</div>
-                  <div
-                    className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
-                    style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
-                  >
-                    REWARD ${p.reward.toFixed(2)}
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  {p.claimed ? (
-                    <span className="flex items-center gap-1 text-[11px] font-black text-[color:var(--good)]" data-testid={`claimed-${p.id}`}>
-                      <CheckCircle2 size={14} /> CLAIMED
-                    </span>
-                  ) : p.followed ? (
-                    <button
-                      onClick={() => doClaim(p)}
-                      disabled={busy === p.id}
-                      className="px-4 py-2 rounded-xl text-[11px] font-black text-white transition active:scale-95 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", border: `1px solid ${GOLD_BORDER}`, boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
-                      data-testid={`btn-claim-${p.id}`}
+                <div className="p-3 flex items-center gap-3">
+                  <div className="shrink-0">{Logos[p.id]?.(38)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
+                      {String(i + 1).padStart(2, "0")}. {p.name}
+                    </div>
+                    <div className="text-[10px] text-[color:var(--text-mute)] truncate">{p.desc}</div>
+                    <div
+                      className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
+                      style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
                     >
-                      {busy === p.id ? "..." : "CLAIM"}
-                    </button>
-                  ) : (
+                      REWARD ${p.reward.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="shrink-0">{renderAction(p)}</div>
+                </div>
+
+                {/* Username input (expanded on FOLLOW tap) */}
+                {open === p.id && !p.follow_started_at && !p.followed && !p.claimed && (
+                  <div className="px-3 pb-3 flex items-center gap-2" data-testid={`follow-form-${p.id}`}>
+                    <input
+                      value={handles[p.id] || ""}
+                      onChange={(e) => setHandles((h) => ({ ...h, [p.id]: e.target.value }))}
+                      placeholder={`Apna ${p.name} username (@...)`}
+                      className="flex-1 min-w-0 px-3 py-2 rounded-xl text-[12px] font-bold outline-none bg-transparent"
+                      style={{ border: `1px solid ${GOLD_BORDER}`, color: "var(--text)" }}
+                      data-testid={`input-handle-${p.id}`}
+                    />
                     <button
                       onClick={() => doFollow(p)}
                       disabled={busy === p.id}
-                      className="px-3.5 py-2 rounded-xl text-[11px] font-black text-black flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #F5C518, #E8A804)", boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}
-                      data-testid={`btn-follow-${p.id}`}
+                      className="px-3.5 py-2 rounded-xl text-[10px] font-black text-white shrink-0 transition active:scale-95 disabled:opacity-50"
+                      style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+                      data-testid={`btn-openfollow-${p.id}`}
                     >
-                      FOLLOW <ExternalLink size={11} />
+                      {busy === p.id ? "..." : "OPEN & FOLLOW"}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -200,11 +302,12 @@ export default function SocialBonus() {
             <Info size={12} className="text-[color:var(--gold-deep,#D97706)]" />
             <span className="text-[10px] tracking-[0.25em] uppercase font-bold text-[color:var(--gold-deep,#D97706)]">How it works</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             {[
-              { Icon: UserPlus, t: "1. Follow", s: "Follow our official channels" },
-              { Icon: DollarSign, t: "2. Earn", s: "$0.20 for each channel" },
-              { Icon: Wallet, t: "3. Claim", s: "Instantly in your wallet" },
+              { Icon: UserPlus, t: "1. Follow", s: "Username daal kar follow karein" },
+              { Icon: BadgeCheck, t: "2. Verify", s: "System follow verify karega" },
+              { Icon: DollarSign, t: "3. Earn", s: "$0.20 per channel" },
+              { Icon: Wallet, t: "4. Claim", s: "Instantly in wallet" },
             ].map(({ Icon, t, s }) => (
               <div key={t} className="flex flex-col items-center text-center gap-1">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(22,163,74,0.08)", border: `1px solid ${GOLD_BORDER}` }}>
@@ -220,7 +323,7 @@ export default function SocialBonus() {
         {/* Footer note */}
         <div className="rounded-xl border px-3 py-2.5 flex items-center justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-3)" }}>
           <div className="text-[9px] text-[color:var(--text-mute)] leading-snug pr-2">
-            <span className="font-bold text-[color:var(--gold-deep,#D97706)]">Important:</span> Reward milta hai follow complete karne ke baad. Har platform sirf ek baar claim ho sakta hai.
+            <span className="font-bold text-[color:var(--gold-deep,#D97706)]">Important:</span> Reward milta hai follow verify hone ke baad. Har platform sirf ek baar claim ho sakta hai.
           </div>
           <div className="flex items-center gap-1 shrink-0 text-[9px] font-black text-[color:var(--good)]">
             <ShieldCheck size={12} /> 100% SAFE
