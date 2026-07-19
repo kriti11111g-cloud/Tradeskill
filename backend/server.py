@@ -2657,6 +2657,7 @@ SOCIAL_PLATFORMS = [
     {"id": "x", "name": "X (Twitter)", "desc": "Follow us on X (Twitter)", "url": "https://x.com/hubxbot", "action": "Follow us on X"},
     {"id": "youtube", "name": "YouTube", "desc": "Subscribe our YouTube channel", "url": "https://youtube.com/@hubxbot", "action": "Subscribe our YouTube channel"},
     {"id": "facebook", "name": "Facebook", "desc": "Follow our Facebook page", "url": "https://facebook.com/hubxbot", "action": "Follow our Facebook page"},
+    {"id": "whatsapp", "name": "WhatsApp", "desc": "Join our WhatsApp channel", "url": "https://whatsapp.com/channel/hubxbot", "action": "Join our WhatsApp channel"},
 ]
 _SOCIAL_IDS = {p["id"] for p in SOCIAL_PLATFORMS}
 

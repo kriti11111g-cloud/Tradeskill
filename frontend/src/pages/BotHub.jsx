@@ -381,7 +381,7 @@ export default function BotHub() {
             </div>
             <div className="text-left">
               <div className="text-[12px] font-black text-[color:var(--text)]">Social Media Bonus</div>
-              <div className="text-[9px] text-[color:var(--text-mute)]">Follow & earn up to $1.00 USDT</div>
+              <div className="text-[9px] text-[color:var(--text-mute)]">Follow & earn up to $1.20 USDT</div>
             </div>
           </div>
           <span className="text-[11px] font-black text-[color:var(--gold-deep,#D97706)]">EARN ›</span>

@@ -55,13 +55,18 @@ export default function Wallet() {
     }
   };
 
-  const load = async () => {
-    const [s, h, bd] = await Promise.all([
-      api.get("/wallet/summary").then((r) => r.data),
+  const load = async (retry = 1) => {
+    let s = null;
+    try {
+      s = await api.get("/wallet/summary").then((r) => r.data);
+    } catch {
+      if (retry > 0) return setTimeout(() => load(retry - 1), 1500);
+    }
+    const [h, bd] = await Promise.all([
       api.get("/bot-wallet/transactions").then((r) => r.data).catch(() => []),
       api.get("/binance/bind").then((r) => r.data).catch(() => null),
     ]);
-    setSummary(s);
+    if (s) setSummary(s);
     setHistory(h);
     setBind(bd);
     if (bd?.mode === "real" || bd?.mode === "testnet") {
@@ -438,6 +443,11 @@ export default function Wallet() {
                     >
                       {(h.kind === "fuel" ? "Bot Fuel" : (h.kind || h.type || "")).replace(/_/g, " ")}
                     </div>
+                    {h.note ? (
+                      <div className="text-[10px] mt-0.5 truncate font-semibold" style={{ color: "var(--text-soft)" }}>
+                        {h.note}
+                      </div>
+                    ) : null}
                     <div
                       className="text-[10px] mt-0.5"
                       style={{ color: "var(--text-mute)" }}
