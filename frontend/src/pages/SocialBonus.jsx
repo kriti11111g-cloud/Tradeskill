@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Gift, ShieldCheck, Wallet, UserPlus, BadgeCheck, DollarSign, ExternalLink, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { Gift, ShieldCheck, Wallet, UserPlus, BadgeCheck, DollarSign, ExternalLink, CheckCircle2, Info, Loader2, Lock } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -11,20 +11,17 @@ const Logos = {
   telegram: (s = 34) => (
     <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#29A9EB" /><path fill="#fff" d="M34.9 14.6 30.7 34c-.3 1.3-1.1 1.6-2.2 1l-6.1-4.5-3 2.9c-.3.3-.6.6-1.2.6l.4-6.2L30 17.6c.5-.4-.1-.7-.8-.3l-14 8.8-6-1.9c-1.3-.4-1.3-1.3.3-1.9l23.5-9c1.1-.4 2.1.3 1.9 1.3z" /></svg>
   ),
+  whatsapp: (s = 34) => (
+    <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#25D366" /><path fill="#fff" d="M24 11.5c-6.9 0-12.5 5.6-12.5 12.5 0 2.2.6 4.3 1.7 6.2L11.5 36.5l6.5-1.7c1.8 1 3.9 1.6 6 1.6 6.9 0 12.5-5.6 12.5-12.5S30.9 11.5 24 11.5zm0 22.8c-1.9 0-3.7-.5-5.3-1.5l-.4-.2-3.9 1 1-3.8-.2-.4c-1-1.6-1.6-3.5-1.6-5.5 0-5.7 4.7-10.3 10.4-10.3s10.4 4.6 10.4 10.3-4.7 10.4-10.4 10.4zm5.7-7.7c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.6-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.4-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.8.4-.3.3-1.1 1.1-1.1 2.6s1.1 3 1.3 3.2c.2.2 2.2 3.4 5.4 4.8.8.3 1.3.5 1.8.7.8.2 1.5.2 2 .1.6-.1 1.8-.8 2.1-1.5.3-.7.3-1.3.2-1.5-.1-.1-.3-.2-.6-.4z" /></svg>
+  ),
   instagram: (s = 34) => (
     <svg width={s} height={s} viewBox="0 0 48 48"><defs><radialGradient id="ig" cx="30%" cy="107%" r="150%"><stop offset="0%" stopColor="#fdf497" /><stop offset="5%" stopColor="#fdf497" /><stop offset="45%" stopColor="#fd5949" /><stop offset="60%" stopColor="#d6249f" /><stop offset="90%" stopColor="#285AEB" /></radialGradient></defs><rect width="48" height="48" rx="12" fill="url(#ig)" /><rect x="12" y="12" width="24" height="24" rx="7" fill="none" stroke="#fff" strokeWidth="3" /><circle cx="24" cy="24" r="6" fill="none" stroke="#fff" strokeWidth="3" /><circle cx="31.5" cy="16.5" r="1.8" fill="#fff" /></svg>
-  ),
-  x: (s = 34) => (
-    <svg width={s} height={s} viewBox="0 0 48 48"><rect width="48" height="48" rx="10" fill="#000" /><path fill="#fff" d="M27.4 21.9 36.6 11h-2.8l-7.7 9.1L20 11h-8l9.6 14.1L12 36h2.8l8.2-9.7 6.6 9.7h8L27.4 21.9zm-2.9 3.4-1-1.4-7.6-10.9h3.3l6.1 8.8 1 1.4 8 11.5H31l-6.5-9.4z" /></svg>
-  ),
-  youtube: (s = 34) => (
-    <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#FF0000" /><path fill="#fff" d="M20 17.5v13l11-6.5-11-6.5z" /></svg>
   ),
   facebook: (s = 34) => (
     <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#1877F2" /><path fill="#fff" d="M31 24h-5v14h-6V24h-3v-5h3v-3.5C20 11.6 21.8 9 26.2 9H31v5h-3c-1.3 0-2 .5-2 2v3h5l-1 5z" /></svg>
   ),
-  whatsapp: (s = 34) => (
-    <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#25D366" /><path fill="#fff" d="M24 11.5c-6.9 0-12.5 5.6-12.5 12.5 0 2.2.6 4.3 1.7 6.2L11.5 36.5l6.5-1.7c1.8 1 3.9 1.6 6 1.6 6.9 0 12.5-5.6 12.5-12.5S30.9 11.5 24 11.5zm0 22.8c-1.9 0-3.7-.5-5.3-1.5l-.4-.2-3.9 1 1-3.8-.2-.4c-1-1.6-1.6-3.5-1.6-5.5 0-5.7 4.7-10.3 10.4-10.3s10.4 4.6 10.4 10.3-4.7 10.4-10.4 10.4zm5.7-7.7c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.6-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.4-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.8.4-.3.3-1.1 1.1-1.1 2.6s1.1 3 1.3 3.2c.2.2 2.2 3.4 5.4 4.8.8.3 1.3.5 1.8.7.8.2 1.5.2 2 .1.6-.1 1.8-.8 2.1-1.5.3-.7.3-1.3.2-1.5-.1-.1-.3-.2-.6-.4z" /></svg>
+  youtube: (s = 34) => (
+    <svg width={s} height={s} viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#FF0000" /><path fill="#fff" d="M20 17.5v13l11-6.5-11-6.5z" /></svg>
   ),
 };
 
@@ -43,8 +40,6 @@ export default function SocialBonus() {
   const { refresh } = useAuth();
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
-  const [open, setOpen] = useState(null);
-  const [handles, setHandles] = useState({});
   const [, setTick] = useState(0);
   const offsetRef = useRef(0);
 
@@ -66,19 +61,17 @@ export default function SocialBonus() {
 
   const remaining = (p) => {
     if (!p.follow_started_at) return null;
-    const started = new Date(p.follow_started_at + (p.follow_started_at.endsWith("Z") || p.follow_started_at.includes("+") ? "" : "Z")).getTime();
+    const raw = p.follow_started_at;
+    const started = new Date(raw + (raw.endsWith("Z") || raw.includes("+") ? "" : "Z")).getTime();
     const nowSrv = Date.now() - offsetRef.current;
     return Math.ceil((started + (data?.verify_delay ?? 15) * 1000 - nowSrv) / 1000);
   };
 
   const doFollow = async (p) => {
-    const handle = (handles[p.id] || "").trim();
-    if (handle.replace("@", "").length < 3) return toast.error("Pehle apna username daalein (min 3 chars)");
     setBusy(p.id);
     try {
-      await api.post(`/social-bonus/follow/${p.id}`, { handle });
+      await api.post(`/social-bonus/follow/${p.id}`);
       window.open(p.url, "_blank", "noopener");
-      setOpen(null);
       await load();
       toast.info(`${p.name} follow karke wapas aayen — verification chal raha hai…`);
     } catch (e) {
@@ -133,6 +126,16 @@ export default function SocialBonus() {
           <CheckCircle2 size={14} /> CLAIMED
         </span>
       );
+    if (p.locked)
+      return (
+        <span
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase"
+          style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-mute)" }}
+          data-testid={`locked-${p.id}`}
+        >
+          <Lock size={12} /> Locked
+        </span>
+      );
     if (p.followed)
       return (
         <button
@@ -171,8 +174,8 @@ export default function SocialBonus() {
       );
     }
     return (
-      <GoldBtn onClick={() => setOpen(open === p.id ? null : p.id)} testid={`btn-follow-${p.id}`}>
-        FOLLOW <ExternalLink size={11} />
+      <GoldBtn onClick={() => doFollow(p)} disabled={busy === p.id} testid={`btn-follow-${p.id}`}>
+        {busy === p.id ? "..." : "FOLLOW"} <ExternalLink size={11} />
       </GoldBtn>
     );
   };
@@ -201,7 +204,7 @@ export default function SocialBonus() {
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-mute)]">Available</div>
-            <div className="text-base font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1.2).toFixed(2)}</div>
+            <div className="text-base font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</div>
           </div>
         </div>
 
@@ -221,8 +224,8 @@ export default function SocialBonus() {
                 FOLLOW. <span className="text-[color:var(--gold-deep,#D97706)]">VERIFY.</span> EARN.
               </div>
               <p className="text-[11px] text-[color:var(--text-soft)] mt-1 leading-relaxed max-w-[220px]">
-                Follow all our official social media channels, verify & earn up to{" "}
-                <span className="font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1.2).toFixed(2)}</span> directly in your wallet.
+                Ek-ek karke sabhi official channels follow karein aur{" "}
+                <span className="font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</span> tak seedha wallet me kamayein.
               </p>
             </div>
             <div
@@ -245,52 +248,30 @@ export default function SocialBonus() {
             data.platforms.map((p, i) => (
               <div
                 key={p.id}
-                className="rounded-2xl border bg-[color:var(--surface)] transition-all duration-300"
+                className="rounded-2xl border p-3 flex items-center gap-3 bg-[color:var(--surface)] transition-all duration-300"
                 style={{
-                  borderColor: p.claimed ? "rgba(22,163,74,0.5)" : GOLD_BORDER,
-                  boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : "0 4px 16px rgba(22,163,74,0.08)",
+                  borderColor: p.claimed ? "rgba(22,163,74,0.5)" : p.locked ? "var(--border)" : GOLD_BORDER,
+                  boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : p.locked ? "none" : "0 4px 16px rgba(22,163,74,0.08)",
+                  opacity: p.locked ? 0.6 : 1,
                 }}
                 data-testid={`social-card-${p.id}`}
               >
-                <div className="p-3 flex items-center gap-3">
-                  <div className="shrink-0">{Logos[p.id]?.(38)}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
-                      {String(i + 1).padStart(2, "0")}. {p.name}
-                    </div>
-                    <div className="text-[10px] text-[color:var(--text-mute)] truncate">{p.desc}</div>
-                    <div
-                      className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
-                      style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
-                    >
-                      REWARD ${p.reward.toFixed(2)}
-                    </div>
+                <div className="shrink-0" style={{ filter: p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(38)}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
+                    {String(i + 1).padStart(2, "0")}. {p.name}
                   </div>
-                  <div className="shrink-0">{renderAction(p)}</div>
+                  <div className="text-[10px] text-[color:var(--text-mute)] truncate">
+                    {p.locked ? `Pehle ${data.platforms[i - 1]?.name} claim karein` : p.desc}
+                  </div>
+                  <div
+                    className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
+                    style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
+                  >
+                    REWARD ${p.reward.toFixed(2)}
+                  </div>
                 </div>
-
-                {/* Username input (expanded on FOLLOW tap) */}
-                {open === p.id && !p.follow_started_at && !p.followed && !p.claimed && (
-                  <div className="px-3 pb-3 flex items-center gap-2" data-testid={`follow-form-${p.id}`}>
-                    <input
-                      value={handles[p.id] || ""}
-                      onChange={(e) => setHandles((h) => ({ ...h, [p.id]: e.target.value }))}
-                      placeholder={`Apna ${p.name} username (@...)`}
-                      className="flex-1 min-w-0 px-3 py-2 rounded-xl text-[12px] font-bold outline-none bg-transparent"
-                      style={{ border: `1px solid ${GOLD_BORDER}`, color: "var(--text)" }}
-                      data-testid={`input-handle-${p.id}`}
-                    />
-                    <button
-                      onClick={() => doFollow(p)}
-                      disabled={busy === p.id}
-                      className="px-3.5 py-2 rounded-xl text-[10px] font-black text-white shrink-0 transition active:scale-95 disabled:opacity-50"
-                      style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
-                      data-testid={`btn-openfollow-${p.id}`}
-                    >
-                      {busy === p.id ? "..." : "OPEN & FOLLOW"}
-                    </button>
-                  </div>
-                )}
+                <div className="shrink-0">{renderAction(p)}</div>
               </div>
             ))
           )}
@@ -304,10 +285,10 @@ export default function SocialBonus() {
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {[
-              { Icon: UserPlus, t: "1. Follow", s: "Username daal kar follow karein" },
+              { Icon: UserPlus, t: "1. Follow", s: "Channel follow karein" },
               { Icon: BadgeCheck, t: "2. Verify", s: "System follow verify karega" },
-              { Icon: DollarSign, t: "3. Earn", s: "$0.20 per channel" },
-              { Icon: Wallet, t: "4. Claim", s: "Instantly in wallet" },
+              { Icon: DollarSign, t: "3. Claim", s: "$0.20 wallet me instantly" },
+              { Icon: Lock, t: "4. Unlock", s: "Agla platform khulega" },
             ].map(({ Icon, t, s }) => (
               <div key={t} className="flex flex-col items-center text-center gap-1">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(22,163,74,0.08)", border: `1px solid ${GOLD_BORDER}` }}>
@@ -323,7 +304,7 @@ export default function SocialBonus() {
         {/* Footer note */}
         <div className="rounded-xl border px-3 py-2.5 flex items-center justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-3)" }}>
           <div className="text-[9px] text-[color:var(--text-mute)] leading-snug pr-2">
-            <span className="font-bold text-[color:var(--gold-deep,#D97706)]">Important:</span> Reward milta hai follow verify hone ke baad. Har platform sirf ek baar claim ho sakta hai.
+            <span className="font-bold text-[color:var(--gold-deep,#D97706)]">Important:</span> Order me claim karein — Telegram se shuru. Har platform sirf ek baar claim ho sakta hai.
           </div>
           <div className="flex items-center gap-1 shrink-0 text-[9px] font-black text-[color:var(--good)]">
             <ShieldCheck size={12} /> 100% SAFE

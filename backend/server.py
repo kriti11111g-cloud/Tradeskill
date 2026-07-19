@@ -2653,20 +2653,27 @@ async def withdraw_otp_verify(body: OtpVerifyIn,
 SOCIAL_BONUS_AMOUNT = float(os.environ.get("SOCIAL_BONUS_AMOUNT", "0.20"))
 SOCIAL_PLATFORMS = [
     {"id": "telegram", "name": "Telegram", "desc": "Join our Telegram channel", "url": "https://t.me/hubxbot", "action": "Join our Telegram channel"},
-    {"id": "instagram", "name": "Instagram", "desc": "Follow our Instagram page", "url": "https://instagram.com/hubxbot", "action": "Follow our Instagram page"},
-    {"id": "x", "name": "X (Twitter)", "desc": "Follow us on X (Twitter)", "url": "https://x.com/hubxbot", "action": "Follow us on X"},
-    {"id": "youtube", "name": "YouTube", "desc": "Subscribe our YouTube channel", "url": "https://youtube.com/@hubxbot", "action": "Subscribe our YouTube channel"},
-    {"id": "facebook", "name": "Facebook", "desc": "Follow our Facebook page", "url": "https://facebook.com/hubxbot", "action": "Follow our Facebook page"},
     {"id": "whatsapp", "name": "WhatsApp", "desc": "Join our WhatsApp channel", "url": "https://whatsapp.com/channel/hubxbot", "action": "Join our WhatsApp channel"},
+    {"id": "instagram", "name": "Instagram", "desc": "Follow our Instagram page", "url": "https://instagram.com/hubxbot", "action": "Follow our Instagram page"},
+    {"id": "facebook", "name": "Facebook", "desc": "Follow our Facebook page", "url": "https://facebook.com/hubxbot", "action": "Follow our Facebook page"},
+    {"id": "youtube", "name": "YouTube", "desc": "Subscribe our YouTube channel", "url": "https://youtube.com/@hubxbot", "action": "Subscribe our YouTube channel"},
 ]
 _SOCIAL_IDS = {p["id"] for p in SOCIAL_PLATFORMS}
+_SOCIAL_ORDER = [p["id"] for p in SOCIAL_PLATFORMS]
+
+
+def _social_locked(claims: dict, platform: str) -> bool:
+    idx = _SOCIAL_ORDER.index(platform)
+    if idx == 0:
+        return False
+    prev = _SOCIAL_ORDER[idx - 1]
+    return not (claims.get(prev) or {}).get("claimed")
 
 SOCIAL_VERIFY_DELAY = int(os.environ.get("SOCIAL_VERIFY_DELAY", "15"))
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")
 TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "hubx-tg-hook")
 _TG_BOT_USERNAME = ""
-_HANDLE_RE = re.compile(r"^@?[A-Za-z0-9_.]{3,32}$")
 
 
 def _tg_real_mode() -> bool:
@@ -2693,7 +2700,7 @@ async def social_bonus_status(user: dict = Depends(get_current_user)):
         platforms.append({**p, "reward": SOCIAL_BONUS_AMOUNT,
                           "followed": bool(c.get("followed")),
                           "claimed": bool(c.get("claimed")),
-                          "handle": c.get("handle"),
+                          "locked": _social_locked(claims, p["id"]),
                           "follow_started_at": c.get("follow_started_at"),
                           "verify_mode": "real" if (p["id"] == "telegram" and _tg_real_mode()) else "timer"})
     return {"platforms": platforms, "reward": SOCIAL_BONUS_AMOUNT,
@@ -2704,26 +2711,21 @@ async def social_bonus_status(user: dict = Depends(get_current_user)):
             "server_time": iso(now_utc())}
 
 
-class SocialFollowIn(BaseModel):
-    handle: str
-
-
 @api.post("/social-bonus/follow/{platform}")
-async def social_bonus_follow(platform: str, body: SocialFollowIn,
+async def social_bonus_follow(platform: str,
                               user: dict = Depends(get_current_user)):
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
-    c = (doc.get("claims") or {}).get(platform, {})
+    claims = doc.get("claims") or {}
+    c = claims.get(platform, {})
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
-    handle = body.handle.strip()
-    if not _HANDLE_RE.match(handle):
-        raise HTTPException(400, "Enter a valid username (3-32 letters/numbers)")
+    if _social_locked(claims, platform):
+        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
     await db.social_bonus.update_one(
         {"user_id": user["id"]},
-        {"$set": {f"claims.{platform}.handle": handle.lstrip("@"),
-                  f"claims.{platform}.follow_started_at": iso(now_utc()),
+        {"$set": {f"claims.{platform}.follow_started_at": iso(now_utc()),
                   f"claims.{platform}.followed": False}}, upsert=True)
     return {"ok": True, "verify_after": SOCIAL_VERIFY_DELAY}
 
@@ -2733,12 +2735,15 @@ async def social_bonus_verify(platform: str, user: dict = Depends(get_current_us
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
-    c = (doc.get("claims") or {}).get(platform, {})
+    claims = doc.get("claims") or {}
+    c = claims.get(platform, {})
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
     if c.get("followed"):
         return {"ok": True, "verified": True}
-    if not c.get("follow_started_at") or not c.get("handle"):
+    if _social_locked(claims, platform):
+        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
+    if not c.get("follow_started_at"):
         raise HTTPException(400, "Follow first — tap the FOLLOW button")
     if platform == "telegram" and _tg_real_mode():
         tg = doc.get("telegram") or {}
@@ -2803,9 +2808,12 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
-    c = (doc.get("claims") or {}).get(platform, {})
+    claims = doc.get("claims") or {}
+    c = claims.get(platform, {})
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
+    if _social_locked(claims, platform):
+        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
     if not c.get("followed"):
         raise HTTPException(400, "Please follow & verify first, then claim")
     # Atomic guard against double-claim

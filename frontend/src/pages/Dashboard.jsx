@@ -424,9 +424,9 @@ export default function Dashboard() {
                   Social Media Bonus
                 </div>
               </div>
-              <div className="text-white font-black text-base">Earn $1.20 USDT Free</div>
+              <div className="text-white font-black text-base">Earn $1.00 USDT Free</div>
               <div className="text-white/90 text-[10px] mt-0.5">
-                Follow our 6 official channels & claim rewards
+                Follow our 5 official channels & claim rewards
               </div>
             </div>
             <div
