@@ -1,16 +1,37 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Flame, ChevronsUpDown } from "lucide-react";
+import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
 import api from "@/lib/api";
-import { fmtUSD, fmtPct } from "@/lib/format";
+
+const TABS = [
+  { id: "hot", label: "Hot" },
+  { id: "gainers", label: "Gainers" },
+  { id: "losers", label: "Losers" },
+  { id: "new", label: "New", dot: true },
+  { id: "volume", label: "24h Vol" },
+  { id: "market", label: "Market" },
+];
+
+const fmtPrice = (v) => {
+  if (v == null) return "—";
+  const d = v >= 100 ? 2 : v >= 1 ? 4 : 5;
+  return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+};
+
+const fmtInr = (v) => {
+  const d = v >= 1 ? 2 : 4;
+  return "₹" + v.toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
+};
 
 export default function Market() {
   const [coins, setCoins] = useState([]);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("rank");
+  const [tab, setTab] = useState("hot");
+  const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
+  const [inrRate, setInrRate] = useState(86);
   const wsRef = useRef(null);
 
   const load = () =>
@@ -18,35 +39,30 @@ export default function Market() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 60000); // refresh coingecko meta every 60s
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then((r) => r.json())
+      .then((d) => d?.rates?.INR && setInrRate(d.rates.INR))
+      .catch(() => {});
+    const id = setInterval(load, 60000);
     return () => clearInterval(id);
   }, []);
 
-  // Subscribe to Binance's official combined ticker stream once we know the symbols.
+  // Live ticker stream
   useEffect(() => {
     if (!coins.length) return;
     const streams = coins.map((c) => `${c.symbol.toLowerCase()}@ticker`).join("/");
-    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
     let ws;
     try {
-      ws = new WebSocket(url);
+      ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
       wsRef.current = ws;
       ws.onmessage = (evt) => {
         try {
-          const msg = JSON.parse(evt.data);
-          const t = msg.data;
+          const t = JSON.parse(evt.data).data;
           if (!t || !t.s) return;
           setCoins((prev) =>
             prev.map((c) =>
               c.symbol === t.s
-                ? {
-                    ...c,
-                    last_price: parseFloat(t.c),
-                    change_pct: parseFloat(t.P),
-                    volume: parseFloat(t.q),
-                    high: parseFloat(t.h),
-                    low: parseFloat(t.l),
-                  }
+                ? { ...c, last_price: parseFloat(t.c), change_pct: parseFloat(t.P), volume: parseFloat(t.q) }
                 : c,
             ),
           );
@@ -55,148 +71,161 @@ export default function Market() {
     } catch {}
     return () => {
       if (ws) {
-        try {
-          ws.onmessage = null;
-          ws.close();
-        } catch {}
+        try { ws.onmessage = null; ws.close(); } catch {}
       }
     };
-    // Re-subscribe only when the list of symbols actually changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coins.map((c) => c.symbol).join(",")]);
 
-  const q = search.trim().toLowerCase();
-  const filtered = coins
-    .filter((c) =>
-      q ? c.symbol.toLowerCase().includes(q) || (c.name || "").toLowerCase().includes(q) : true,
-    )
-    .sort((a, b) => {
-      if (sort === "gainers") return b.change_pct - a.change_pct;
-      if (sort === "losers") return a.change_pct - b.change_pct;
-      if (sort === "volume") return b.volume - a.volume;
-      return (a.rank || 999) - (b.rank || 999);
-    });
+  const sorted = [...coins].sort((a, b) => {
+    if (colSort) {
+      const va = colSort.col === "price" ? a.last_price : a.change_pct;
+      const vb = colSort.col === "price" ? b.last_price : b.change_pct;
+      return colSort.dir * (vb - va);
+    }
+    if (tab === "gainers") return b.change_pct - a.change_pct;
+    if (tab === "losers") return a.change_pct - b.change_pct;
+    if (tab === "new") return (b.rank || 999) - (a.rank || 999);
+    if (tab === "volume") return b.volume - a.volume;
+    return (a.rank || 999) - (b.rank || 999); // hot & market
+  });
 
-  const sorts = [
-    { id: "rank", label: "Market Cap" },
-    { id: "volume", label: "Volume" },
-    { id: "gainers", label: "Gainers" },
-    { id: "losers", label: "Losers" },
-  ];
+  const toggleCol = (col) =>
+    setColSort((s) => (s?.col === col ? (s.dir === 1 ? { col, dir: -1 } : null) : { col, dir: 1 }));
 
   return (
     <div className="pb-4">
-      <PageHeader
-        title="Market"
-        subtitle="Top 50 · Binance-listed"
-        showBack={false}
-        right={
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--good)] animate-tgx-pulse" />
-            <span className="text-[10px] uppercase tracking-widest text-[color:var(--good)] font-bold">LIVE</span>
-          </div>
-        }
-      />
+      <PageHeader title="Ranking" subtitle="" showBack={false} />
 
-      <div className="px-4">
-        <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[color:var(--text-mute)]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search coin (BTC, ETH, Solana, ...)"
-            className="w-full app-card rounded-2xl pl-10 pr-3 py-3 text-sm focus:outline-none focus:border-[color:var(--primary)] placeholder:text-[color:var(--text-mute)]"
-            data-testid="market-search"
-          />
-        </div>
-      </div>
-
-      <div className="px-4 mt-3 flex gap-2 overflow-x-auto pb-1">
-        {sorts.map((s) => (
+      {/* Tabs */}
+      <div className="px-4 flex gap-5 overflow-x-auto no-scrollbar border-b" style={{ borderColor: "var(--border)" }}>
+        {TABS.map((t) => (
           <button
-            key={s.id}
-            onClick={() => setSort(s.id)}
-            data-testid={`sort-${s.id}`}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition ${
-              sort === s.id
-                ? "bg-[color:var(--primary)] text-white border-[color:var(--primary)]"
-                : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border-[color:var(--border)] hover:bg-[color:var(--text)]/10"
-            }`}
+            key={t.id}
+            onClick={() => { setTab(t.id); setColSort(null); }}
+            className="relative flex-shrink-0 pb-2.5 pt-1 text-[15px] transition-colors"
+            style={{
+              color: tab === t.id ? "var(--text)" : "var(--text-mute)",
+              fontWeight: tab === t.id ? 800 : 600,
+            }}
+            data-testid={`tab-${t.id}`}
           >
-            {s.label}
+            {t.label}
+            {t.dot && (
+              <span className="absolute -top-0 -right-2 w-1.5 h-1.5 rounded-full" style={{ background: "var(--text)" }} />
+            )}
+            {tab === t.id && (
+              <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full" style={{ background: "var(--text)" }} />
+            )}
           </button>
         ))}
       </div>
 
-      <div className="px-4 mt-3">
-        <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
-          {filtered.length} of {coins.length} coins · Tap to trade
+      {/* Crypto / Futures pills */}
+      <div className="px-4 mt-3 flex gap-2.5">
+        <button
+          className="px-5 py-2 rounded-full text-[14px] font-bold text-white"
+          style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
+          data-testid="pill-crypto"
+        >
+          Crypto
+        </button>
+        <button
+          onClick={() => toast("Futures — Coming Soon 🚀")}
+          className="px-5 py-2 rounded-full text-[14px] font-semibold"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+          data-testid="pill-futures"
+        >
+          Futures
+        </button>
+      </div>
+
+      {/* Column headers */}
+      <div className="px-4 mt-3 flex items-center justify-between">
+        <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Name</span>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => toggleCol("price")}
+            className="flex items-center gap-0.5 text-[13px] font-semibold"
+            style={{ color: colSort?.col === "price" ? "var(--text)" : "var(--text-soft)" }}
+            data-testid="col-sort-price"
+          >
+            Last Price <ChevronsUpDown size={13} />
+          </button>
+          <button
+            onClick={() => toggleCol("chg")}
+            className="flex items-center gap-0.5 text-[13px] font-semibold"
+            style={{ color: colSort?.col === "chg" ? "var(--text)" : "var(--text-soft)" }}
+            data-testid="col-sort-chg"
+          >
+            24h chg% <ChevronsUpDown size={13} />
+          </button>
         </div>
       </div>
 
+      {/* Coin rows */}
       <div className="px-4 mt-2 space-y-2" data-testid="market-list">
-        {filtered.map((p, i) => (
-          <motion.div
-            key={p.symbol}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(i * 0.015, 0.4) }}
-          >
-            <Link
-              to={`/pair/${p.symbol}`}
-              data-testid={`market-pair-${p.symbol}`}
-              className="flex items-center justify-between app-card rounded-2xl p-3.5 hover:border-[color:var(--primary)]/50 hover:bg-[color:var(--surface-3)]/60 transition-all"
+        {sorted.map((p, i) => {
+          const up = p.change_pct >= 0;
+          return (
+            <motion.div
+              key={p.symbol}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.012, 0.35) }}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-7 text-[10px] tabular-nums font-bold text-right"
-                  style={{ color: i < 3 ? "var(--gold)" : "var(--text-mute)" }}
-                >
-                  #{p.rank}
-                </div>
+              <Link
+                to={`/pair/${p.symbol}`}
+                data-testid={`market-pair-${p.symbol}`}
+                className="flex items-center gap-3 rounded-2xl px-3.5 py-3 transition-all"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+                }}
+              >
                 {p.image ? (
                   <img
                     src={p.image}
                     alt={p.asset}
-                    width={36}
-                    height={36}
-                    className="rounded-full bg-[color:var(--text)]/5"
-                    onError={(e) => {
-                      e.currentTarget.outerHTML = "";
-                    }}
+                    width={42}
+                    height={42}
+                    className="rounded-full shrink-0"
+                    onError={(e) => { e.currentTarget.outerHTML = ""; }}
                   />
                 ) : (
-                  <CoinIcon symbol={p.asset} size={36} />
+                  <CoinIcon symbol={p.asset} size={42} />
                 )}
-                <div>
-                  <div className="font-display font-bold text-sm">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span className="text-[17px] font-black truncate" style={{ color: "var(--text)" }}>
                     {p.asset}
-                    <span className="text-[color:var(--text-mute)]">/USDT</span>
-                  </div>
-                  <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5 truncate max-w-[140px]">
-                    {p.name}
-                  </div>
+                  </span>
+                  {tab === "hot" && !colSort && i < 3 && (
+                    <Flame size={16} fill="#F59E0B" color="#F59E0B" className="shrink-0" />
+                  )}
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="font-display font-bold tabular-nums text-sm">
-                  {fmtUSD(p.last_price, p.last_price > 100 ? 2 : p.last_price > 1 ? 4 : 6)}
+                <div className="text-right shrink-0">
+                  <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--text)" }}>
+                    {fmtPrice(p.last_price)}
+                  </div>
+                  <div className="text-[12px] tabular-nums mt-0.5" style={{ color: "var(--text-mute)" }}>
+                    {fmtInr((p.last_price || 0) * inrRate)}
+                  </div>
                 </div>
                 <div
-                  className={`text-xs font-bold tabular-nums mt-0.5 ${
-                    p.change_pct >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
-                  }`}
+                  className="w-[92px] py-2.5 rounded-xl text-center text-[14px] font-bold text-white tabular-nums shrink-0"
+                  style={{ background: up ? "var(--good)" : "#EF4444" }}
                 >
-                  {fmtPct(p.change_pct)}
+                  {up ? "+" : ""}{(p.change_pct ?? 0).toFixed(2)}%
                 </div>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
+              </Link>
+            </motion.div>
+          );
+        })}
 
-        {filtered.length === 0 && (
-          <div className="text-center text-sm text-[color:var(--text-mute)] py-16" data-testid="market-empty">
-            {coins.length === 0 ? "Loading top 50..." : `No match for "${search}"`}
+        {sorted.length === 0 && (
+          <div className="text-center text-sm py-16" style={{ color: "var(--text-mute)" }} data-testid="market-empty">
+            Loading top 50...
           </div>
         )}
       </div>
