@@ -1,13 +1,51 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
-import { ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search } from "lucide-react";
+import {
+  ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search,
+  Eye, EyeOff, CalendarDays, ChevronRight, X, Users, UserPlus, TrendingUp,
+  BarChart3, Coins, Gift, FileText, RotateCcw, Pause,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
-import { fmtUSD, fmtNum, fmtTime } from "@/lib/format";
+import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
-import WalletHeroCard from "@/components/WalletHeroCard";
+
+const KIND_META = {
+  deposit: { title: "Deposit", Icon: ArrowDownToLine },
+  deposit_onchain: { title: "Deposit", Icon: ArrowDownToLine },
+  withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
+  withdraw_request: { title: "Withdrawal", Icon: ArrowUpToLine },
+  withdraw_paid: { title: "Withdrawal Paid", Icon: ArrowUpToLine },
+  external_withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
+  withdraw_refund: { title: "Withdrawal Refund", Icon: RotateCcw },
+  p2p_received: { title: "Transfer In", Icon: ArrowRightLeft },
+  p2p_sent: { title: "Transfer Out", Icon: ArrowRightLeft },
+  activation: { title: "Activation Fee", Icon: FileText },
+  fuel: { title: "Bot Fuel", Icon: Zap },
+  pause: { title: "Bot Pause", Icon: Pause },
+  trade_commission: { title: "Trade Commission", Icon: TrendingUp },
+  team_commission: { title: "Team Commission", Icon: Users },
+  support_income: { title: "Support Income", Icon: Users },
+  direct_bonus: { title: "Direct Bonus", Icon: UserPlus },
+  revenue: { title: "Revenue", Icon: BarChart3 },
+  trading_fee: { title: "Trading Fee", Icon: Coins },
+  social_bonus: { title: "Social Bonus", Icon: Gift },
+};
+
+const fmtDT = (iso) => {
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()} ${d.getHours()}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+
+const TetherCoin = ({ s = 44 }) => (
+  <svg width={s} height={s} viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="var(--text)" />
+    <circle cx="24" cy="24" r="19" fill="none" stroke="var(--bg-base)" strokeWidth="1.5" />
+    <path fill="var(--bg-base)" d="M33.5 15h-19v4.3h7.3v3c-4.8.3-8.3 1.3-8.3 2.6s3.5 2.4 8.3 2.6V35h4.4v-7.5c4.7-.3 8.2-1.3 8.2-2.6s-3.5-2.4-8.2-2.6v-3h7.3V15zm-9.5 10.7c-4.2 0-7.6-.7-7.6-1.6 0-.8 2.8-1.4 6.4-1.6v2.3c.4 0 .8.1 1.2.1s.8 0 1.2-.1v-2.3c3.6.2 6.4.9 6.4 1.6 0 .9-3.4 1.6-7.6 1.6z" />
+  </svg>
+);
 
 const actions = [
   { type: "deposit", label: "Deposit", icon: ArrowDownToLine, testid: "wallet-deposit", tint: "var(--primary)" },
@@ -24,8 +62,8 @@ export default function Wallet() {
   const [liveLoading, setLiveLoading] = useState(false);
   const [prices, setPrices] = useState({});
   const [search, setSearch] = useState("");
-  const [rankTitle, setRankTitle] = useState("STARTER");
-  const [change24h, setChange24h] = useState(0);
+  const [hideBal, setHideBal] = useState(false);
+  const [filterDate, setFilterDate] = useState("");
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
@@ -78,49 +116,86 @@ export default function Wallet() {
   };
   useEffect(() => {
     load();
-    api.get("/ranks/me").then(({ data }) => setRankTitle(data?.current_title || "STARTER")).catch(() => {});
-    api.get("/market/top?limit=8").then(({ data }) => {
-      const coins = data.coins || [];
-      if (coins.length) setChange24h(coins.reduce((a, c) => a + (c.change_pct || 0), 0) / coins.length);
-    }).catch(() => {});
     const action = params.get("action");
     if (action === "deposit" || action === "withdraw" || action === "transfer") {
       navigate(`/bot?action=${action === "transfer" ? "p2p" : action}`, { replace: true });
     }
   }, []);
 
+  const total = summary?.total_usdt || 0;
+
   return (
     <div className="pb-4">
       <PageHeader title="Wallet" subtitle="Assets · Portfolio" />
 
-      {/* Balance card — same as Dashboard */}
+      {/* B&W Balance card */}
       {!isLiveMode && (
         <div className="px-4">
-          <WalletHeroCard
-            balance={summary?.total_usdt || 0}
-            changePct={change24h}
-            rankTitle={rankTitle}
-            onAction={(t) => {
-              if (t === "swap") return toast("Swap — Coming Soon 🚀");
-              if (t === "p2p") return navigate("/bot?action=p2p");
-              navigate(t === "send" ? "/bot?action=withdraw" : "/bot?action=deposit");
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: "var(--surface)",
+              border: "1.5px solid color-mix(in srgb, var(--text) 80%, transparent)",
+              boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
             }}
+            data-testid="assets-bw-card"
           >
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="flex items-start justify-between">
               <div>
-                <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">Available USDT</div>
-                <div className="font-display font-bold text-lg tabular-nums mt-0.5">
-                  {fmtNum(summary?.wallet_usdt || 0, 2)}
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                    Total assets converted (USDT)
+                  </span>
+                  <button
+                    onClick={() => setHideBal((v) => !v)}
+                    className="p-0.5"
+                    style={{ color: "var(--text)" }}
+                    data-testid="assets-eye-toggle"
+                  >
+                    {hideBal ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div className="flex items-baseline gap-2 mt-1.5">
+                  <span
+                    className="font-display font-black text-4xl tabular-nums leading-none"
+                    style={{ color: "var(--text)" }}
+                    data-testid="assets-total"
+                  >
+                    {hideBal ? "****" : fmtNum(total, 4)}
+                  </span>
+                  {!hideBal && (
+                    <span className="text-sm font-semibold" style={{ color: "var(--text-mute)" }}>
+                      ≈ {fmtNum(total, 2)} USDT
+                    </span>
+                  )}
                 </div>
               </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold">In Positions</div>
-                <div className="font-display font-bold text-lg tabular-nums mt-0.5" style={{ color: "#FDE68A" }}>
-                  {fmtNum(summary?.positions_value_usdt || 0, 2)}
-                </div>
-              </div>
+              <TetherCoin s={44} />
             </div>
-          </WalletHeroCard>
+
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {[
+                { t: "deposit", label: "Deposit", Icon: ArrowDownToLine, testid: "wallet-deposit" },
+                { t: "withdraw", label: "Withdraw", Icon: ArrowUpToLine, testid: "wallet-withdraw" },
+                { t: "p2p", label: "Transfer", Icon: ArrowRightLeft, testid: "wallet-transfer" },
+              ].map(({ t, label, Icon, testid }) => (
+                <button
+                  key={t}
+                  onClick={() => navigate(`/bot?action=${t}`)}
+                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition active:scale-95"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1.5px solid color-mix(in srgb, var(--text) 80%, transparent)",
+                    color: "var(--text)",
+                  }}
+                  data-testid={testid}
+                >
+                  <Icon size={22} strokeWidth={2.2} />
+                  <span className="text-[13px] font-bold">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -373,105 +448,113 @@ export default function Wallet() {
         </div>
       )}
 
-      {/* History */}
+      {/* History record — B&W style */}
       <div className="px-4 mt-5">
-        <div className="flex items-center justify-between mb-2.5">
-          <div>
-            <div className="font-display font-bold text-lg" style={{ color: "var(--text)" }}>
-              History
-            </div>
-            <div
-              className="text-[10px] uppercase tracking-widest font-bold"
-              style={{ color: "var(--text-mute)" }}
-            >
-              Recent wallet activity
-            </div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="font-display font-bold text-xl" style={{ color: "var(--text)" }}>
+            History record
           </div>
+          <label
+            className="flex items-center gap-1.5 cursor-pointer relative"
+            style={{ color: "var(--text)" }}
+            data-testid="history-choose-date"
+          >
+            <CalendarDays size={18} strokeWidth={2.2} />
+            <span className="text-[13px] font-semibold">
+              {filterDate
+                ? new Date(filterDate + "T00:00:00").toLocaleDateString()
+                : "Choose date"}
+            </span>
+            {filterDate ? (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilterDate(""); }}
+                className="p-1 relative z-10"
+                data-testid="history-clear-date"
+              >
+                <X size={14} />
+              </button>
+            ) : (
+              <ChevronRight size={16} style={{ color: "var(--text-mute)" }} />
+            )}
+            {!filterDate && (
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                data-testid="history-date-input"
+              />
+            )}
+          </label>
         </div>
-        {history.length === 0 && (
-          <div
-            className="text-center text-sm py-8 rounded-2xl"
-            style={{
-              color: "var(--text-mute)",
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-            }}
-            data-testid="empty-history"
-          >
-            No wallet activity yet
-          </div>
-        )}
-        {history.length > 0 && (
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              backdropFilter: "blur(20px)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            {history.map((h, i) => {
-              const isIn = (h.amount ?? 0) > 0;
-              const isOut = (h.amount ?? 0) < 0;
-              return (
-                <div
-                  key={h.id}
-                  className="flex items-center gap-3 px-4 py-3"
-                  style={{
-                    borderBottom: i < history.length - 1 ? "1px solid var(--border)" : "none",
-                  }}
-                >
+
+        {(() => {
+          const rows = filterDate
+            ? history.filter((h) => {
+                const d = new Date(h.created_at);
+                const f = new Date(filterDate + "T00:00:00");
+                return d.getFullYear() === f.getFullYear() && d.getMonth() === f.getMonth() && d.getDate() === f.getDate();
+              })
+            : history;
+          if (rows.length === 0)
+            return (
+              <div
+                className="text-center text-sm py-8 rounded-2xl"
+                style={{
+                  color: "var(--text-mute)",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                }}
+                data-testid="empty-history"
+              >
+                {filterDate ? "No activity on this date" : "No wallet activity yet"}
+              </div>
+            );
+          return (
+            <div className="space-y-2" data-testid="history-list">
+              {rows.map((h) => {
+                const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: Coins };
+                const isOut = (h.amount ?? 0) < 0;
+                return (
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    key={h.id}
+                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl"
                     style={{
-                      background: "var(--primary-soft-grad)",
+                      background: "var(--surface)",
                       border: "1px solid var(--border)",
+                      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
                     }}
+                    data-testid={`history-row-${h.kind}`}
                   >
-                    <span
-                      className="text-lg font-black leading-none"
-                      style={{ color: isIn ? "var(--good)" : isOut ? "var(--bad)" : "var(--primary)" }}
-                    >
-                      {isIn ? "↓" : isOut ? "↑" : "⇄"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="text-sm font-black capitalize"
-                      style={{ color: "var(--text)" }}
-                    >
-                      {(h.kind === "fuel" ? "Bot Fuel" : (h.kind || h.type || "")).replace(/_/g, " ")}
-                    </div>
-                    {h.note ? (
-                      <div className="text-[10px] mt-0.5 truncate font-semibold" style={{ color: "var(--text-soft)" }}>
-                        {h.note}
+                    <meta.Icon size={26} strokeWidth={2.2} className="shrink-0" style={{ color: "var(--text)" }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[15px] font-bold capitalize truncate" style={{ color: "var(--text)" }}>
+                        {meta.title}
                       </div>
-                    ) : null}
-                    <div
-                      className="text-[10px] mt-0.5"
-                      style={{ color: "var(--text-mute)" }}
-                    >
-                      {fmtTime(h.created_at)}
+                      {h.note ? (
+                        <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-mute)" }}>
+                          {h.note}
+                        </div>
+                      ) : null}
+                      <div className="text-[11px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                        {fmtDT(h.created_at)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className="text-[15px] font-mono font-bold tabular-nums"
+                        style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
+                      >
+                        {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
+                      </span>
+                      <ChevronRight size={16} style={{ color: "var(--text-mute)" }} />
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div
-                      className="text-sm font-mono font-black tabular-nums"
-                      style={{ color: isIn ? "var(--good)" : isOut ? "var(--bad)" : "var(--text)" }}
-                    >
-                      {isIn ? "+" : ""}
-                      {fmtUSD(h.amount)}
-                    </div>
-                    <div className="text-[10px]" style={{ color: "var(--text-mute)" }}>
-                      {h.balance_after != null ? `Bal ${fmtUSD(h.balance_after)}` : ""}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal removed — unified wallet actions live on /bot */}
