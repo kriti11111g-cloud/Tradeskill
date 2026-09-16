@@ -22,16 +22,10 @@ const fmtPrice = (v) => {
   return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 };
 
-const fmtInr = (v) => {
-  const d = v >= 1 ? 2 : 4;
-  return "₹" + v.toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
-};
-
 export default function Market() {
   const [coins, setCoins] = useState([]);
   const [tab, setTab] = useState("hot");
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
-  const [inrRate, setInrRate] = useState(86);
   const wsRef = useRef(null);
 
   const load = () =>
@@ -39,10 +33,6 @@ export default function Market() {
 
   useEffect(() => {
     load();
-    fetch("https://open.er-api.com/v6/latest/USD")
-      .then((r) => r.json())
-      .then((d) => d?.rates?.INR && setInrRate(d.rates.INR))
-      .catch(() => {});
     const id = setInterval(load, 60000);
     return () => clearInterval(id);
   }, []);
@@ -164,7 +154,7 @@ export default function Market() {
       </div>
 
       {/* Coin rows */}
-      <div className="px-4 mt-2 space-y-2" data-testid="market-list">
+      <div className="px-4 mt-2 space-y-1.5" data-testid="market-list">
         {sorted.map((p, i) => {
           const up = p.change_pct >= 0;
           return (
@@ -177,7 +167,7 @@ export default function Market() {
               <Link
                 to={`/pair/${p.symbol}`}
                 data-testid={`market-pair-${p.symbol}`}
-                className="flex items-center gap-3 rounded-2xl px-3.5 py-3 transition-all"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all"
                 style={{
                   background: "var(--surface)",
                   border: "1px solid var(--border)",
@@ -188,32 +178,32 @@ export default function Market() {
                   <img
                     src={p.image}
                     alt={p.asset}
-                    width={42}
-                    height={42}
+                    width={30}
+                    height={30}
                     className="rounded-full shrink-0"
                     onError={(e) => { e.currentTarget.outerHTML = ""; }}
                   />
                 ) : (
-                  <CoinIcon symbol={p.asset} size={42} />
+                  <CoinIcon symbol={p.asset} size={30} />
                 )}
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className="text-[17px] font-black truncate" style={{ color: "var(--text)" }}>
+                <div className="flex items-center gap-1 min-w-0 flex-1">
+                  <span className="text-[13.5px] font-black truncate" style={{ color: "var(--text)" }}>
                     {p.asset}
                   </span>
                   {tab === "hot" && !colSort && i < 3 && (
-                    <Flame size={16} fill="#F59E0B" color="#F59E0B" className="shrink-0" />
+                    <Flame size={13} fill="#F59E0B" color="#F59E0B" className="shrink-0" />
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--text)" }}>
+                  <div className="text-[13px] font-black tabular-nums leading-tight" style={{ color: "var(--text)" }}>
                     {fmtPrice(p.last_price)}
                   </div>
-                  <div className="text-[12px] tabular-nums mt-0.5" style={{ color: "var(--text-mute)" }}>
-                    {fmtInr((p.last_price || 0) * inrRate)}
+                  <div className="text-[10px] tabular-nums mt-0.5" style={{ color: "var(--text-mute)" }}>
+                    {fmtPrice(p.last_price)} USDT
                   </div>
                 </div>
                 <div
-                  className="w-[92px] py-2.5 rounded-xl text-center text-[14px] font-bold text-white tabular-nums shrink-0"
+                  className="w-[72px] py-1.5 rounded-lg text-center text-[11.5px] font-bold text-white tabular-nums shrink-0"
                   style={{ background: up ? "var(--good)" : "#EF4444" }}
                 >
                   {up ? "+" : ""}{(p.change_pct ?? 0).toFixed(2)}%
