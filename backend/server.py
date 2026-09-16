@@ -1554,22 +1554,26 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
     bots = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
     positions_value = 0.0
     positions = []
-    for b in bots:
-        if b.get("position_qty", 0) > 0:
-            try:
-                price = await fetch_price(b["symbol"])
-            except Exception:
-                price = b.get("avg_price", 0.0)
-            val = b["position_qty"] * price
-            positions_value += val
-            positions.append({
-                "symbol": b["symbol"],
-                "qty": b["position_qty"],
-                "avg_price": b.get("avg_price", 0.0),
-                "current_price": price,
-                "value": val,
-                "pnl": val - b.get("position_amount", 0.0),
-            })
+    open_bots = [b for b in bots if b.get("position_qty", 0) > 0]
+
+    async def _price_of(b):
+        try:
+            return await fetch_price(b["symbol"])
+        except Exception:
+            return b.get("avg_price", 0.0)
+
+    prices = await asyncio.gather(*[_price_of(b) for b in open_bots])
+    for b, price in zip(open_bots, prices):
+        val = b["position_qty"] * price
+        positions_value += val
+        positions.append({
+            "symbol": b["symbol"],
+            "qty": b["position_qty"],
+            "avg_price": b.get("avg_price", 0.0),
+            "current_price": price,
+            "value": val,
+            "pnl": val - b.get("position_amount", 0.0),
+        })
 
     # Determine which wallet balance to show as the "spot" cash portion.
     # In real/testnet mode we prefer the live Binance USDT balance; if Binance is

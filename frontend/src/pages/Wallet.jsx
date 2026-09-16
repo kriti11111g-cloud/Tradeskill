@@ -93,7 +93,7 @@ export default function Wallet() {
     }
   };
 
-  const load = async (retry = 1) => {
+  const load = async (retry = 2) => {
     let s = null;
     try {
       s = await api.get("/wallet/summary").then((r) => r.data);
@@ -373,80 +373,7 @@ export default function Wallet() {
         </div>
       )}
 
-      {/* Positions */}
-      {summary?.positions?.length > 0 && (
-        <div className="px-4 mt-5">
-          <div className="flex items-center justify-between mb-2.5">
-            <div>
-              <div className="font-display font-bold text-lg" style={{ color: "var(--text)" }}>
-                Open Positions
-              </div>
-              <div
-                className="text-[10px] uppercase tracking-widest font-bold"
-                style={{ color: "var(--text-mute)" }}
-              >
-                Live · Portfolio snapshot
-              </div>
-            </div>
-            <span
-              className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest text-[color:var(--text)]"
-              style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
-            >
-              {summary.positions.length}
-            </span>
-          </div>
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              backdropFilter: "blur(20px)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            {summary.positions.map((p, i) => (
-              <div
-                key={p.symbol}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{
-                  borderBottom: i < summary.positions.length - 1 ? "1px solid var(--border)" : "none",
-                }}
-                data-testid={`position-${p.symbol}`}
-              >
-                <div className="shrink-0">
-                  <CoinIcon symbol={p.symbol} size={36} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-black" style={{ color: "var(--text)" }}>
-                    {p.symbol.replace("USDT", "/USDT")}
-                  </div>
-                  <div
-                    className="text-[10px] tabular-nums mt-0.5"
-                    style={{ color: "var(--text-mute)" }}
-                  >
-                    {fmtNum(p.qty, 6)} @ {fmtNum(p.avg_price, 4)}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div
-                    className="text-sm font-mono font-black tabular-nums"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {fmtUSD(p.value)}
-                  </div>
-                  <div
-                    className="text-[10px] font-mono font-bold tabular-nums"
-                    style={{ color: p.pnl >= 0 ? "var(--good)" : "var(--bad)" }}
-                  >
-                    {p.pnl >= 0 ? "+" : ""}
-                    {fmtUSD(p.pnl)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Positions removed — Assets page shows History record only (user request) */}
 
       {/* History record — B&W style */}
       <div className="px-4 mt-5">
