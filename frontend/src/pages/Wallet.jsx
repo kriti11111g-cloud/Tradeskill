@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search,
-  Eye, EyeOff, CalendarDays, ChevronRight, X, Users, UserPlus, TrendingUp,
-  BarChart3, Coins, Gift, FileText, RotateCcw, Pause,
+  Eye, EyeOff, CalendarDays, ChevronRight, X, Users,
+  ChartNoAxesCombined, Coins, FilePlus2,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
@@ -13,23 +13,23 @@ import CoinIcon from "@/components/CoinIcon";
 const KIND_META = {
   deposit: { title: "Deposit", Icon: ArrowDownToLine },
   deposit_onchain: { title: "Deposit", Icon: ArrowDownToLine },
+  p2p_received: { title: "Deposit", Icon: ArrowDownToLine },
   withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
   withdraw_request: { title: "Withdrawal", Icon: ArrowUpToLine },
-  withdraw_paid: { title: "Withdrawal Paid", Icon: ArrowUpToLine },
+  withdraw_paid: { title: "Withdrawal", Icon: ArrowUpToLine },
   external_withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
-  withdraw_refund: { title: "Withdrawal Refund", Icon: RotateCcw },
-  p2p_received: { title: "Transfer In", Icon: ArrowRightLeft },
-  p2p_sent: { title: "Transfer Out", Icon: ArrowRightLeft },
-  activation: { title: "Activation Fee", Icon: FileText },
-  fuel: { title: "Bot Fuel", Icon: Zap },
-  pause: { title: "Bot Pause", Icon: Pause },
-  trade_commission: { title: "Trading Profit", Icon: TrendingUp },
-  team_commission: { title: "Team Commission", Icon: Users },
-  support_income: { title: "Support Income", Icon: Users },
-  direct_bonus: { title: "Direct Bonus", Icon: UserPlus },
-  revenue: { title: "Revenue", Icon: BarChart3 },
+  withdraw_refund: { title: "Withdrawal", Icon: ArrowUpToLine },
+  p2p_sent: { title: "Withdrawal", Icon: ArrowUpToLine },
+  activation: { title: "Activation Fee", Icon: FilePlus2 },
+  fuel: { title: "Trading Fee", Icon: Coins },
+  pause: { title: "Trading Fee", Icon: Coins },
   trading_fee: { title: "Trading Fee", Icon: Coins },
-  social_bonus: { title: "Social Bonus", Icon: Gift },
+  trade_commission: { title: "Trading Profit", Icon: ChartNoAxesCombined },
+  team_commission: { title: "Support Income", Icon: Users },
+  support_income: { title: "Support Income", Icon: Users },
+  direct_bonus: { title: "Support Income", Icon: Users },
+  revenue: { title: "Support Income", Icon: Users },
+  social_bonus: { title: "Support Income", Icon: Users },
 };
 
 const fmtDT = (iso) => {
