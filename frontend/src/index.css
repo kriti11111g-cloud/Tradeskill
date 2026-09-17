@@ -115,6 +115,9 @@
 :root { --ink: #000000; }
 [data-theme="dark"] { --ink: #F8FAFC; }
 
+.trade-page { background: #FFFFFF; }
+[data-theme="dark"] .trade-page { background: var(--bg-base); }
+
 
 html, body, #root {
   background: var(--bg-gradient);

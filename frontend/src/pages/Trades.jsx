@@ -1,158 +1,100 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Wallet as WalletIcon, Link2 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
-import { fmtNum, fmtUSD, shortSymbol } from "@/lib/format";
+import { fmtNum } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
 import useBinanceStream from "@/hooks/useBinanceStream";
 
-const fmtDateShortUTC = (iso) => {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "2-digit",
-    timeZone: "UTC",
-  });
+const CARD = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
 };
 
-function BotCard({ bot }) {
+const fmtD = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" }).toUpperCase();
+};
+
+const fmtPrice = (v) => {
+  if (!v) return "—";
+  const d = v >= 100 ? 2 : v >= 1 ? 4 : v >= 0.01 ? 4 : 6;
+  return "$" + v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+};
+
+function BotRow({ bot }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
-  const hasLivePrice = (ticker?.price || 0) > 0;
-  const livePrice = hasLivePrice ? ticker.price : bot.avg_price || 0;
-  const positionQty = bot.position_qty || 0;
-  const avgPrice = bot.avg_price || 0;
-  const hasPosition = positionQty > 0 && avgPrice > 0;
-  const marketValue = positionQty * livePrice;
-  const costBasis = positionQty * avgPrice;
-  const floating = hasPosition && hasLivePrice ? marketValue - costBasis : 0;
-  const floatingPct =
-    hasPosition && hasLivePrice && avgPrice > 0 ? ((livePrice - avgPrice) / avgPrice) * 100 : 0;
-  const rawState = bot.status || bot.state || "";
-  const isRunning = String(rawState).toLowerCase() === "running";
-  const cumProfit = bot.cumulative_profit || 0;
+  const isRunning = String(bot.status || "").toLowerCase() === "running";
+  const live = (ticker?.price || 0) > 0 ? ticker.price : bot.avg_price || 0;
+  const qty = bot.position_qty || 0;
+  const avg = bot.avg_price || 0;
+  const hasPos = qty > 0 && avg > 0;
+  const floating = hasPos ? qty * live - qty * avg : 0;
+  const floatPct = hasPos && avg > 0 ? ((live - avg) / avg) * 100 : 0;
+  const negative = floating < 0;
+  const round = bot.cycles_completed || 0;
 
   return (
     <button
       onClick={() => navigate(`/pair/${bot.symbol}`)}
+      className="w-full text-left rounded-xl px-3 py-2.5 transition active:scale-[0.995]"
+      style={CARD}
       data-testid={`bot-card-${bot.symbol}`}
-      className={`relative w-full text-left rounded-xl p-2.5 active:scale-[0.995] transition-all overflow-hidden ${
-        isRunning
-          ? "bg-[color:var(--surface-2)] backdrop-blur-xl border border-[color:var(--good)]/35 hover:border-[color:var(--good)]/60"
-          : "app-card hover:border-[color:var(--primary)]/40"
-      }`}
-      style={
-        isRunning
-          ? { boxShadow: "inset 0 0 12px rgba(22,163,74,0.06), 0 0 0 1px rgba(22,163,74,0.05)" }
-          : undefined
-      }
     >
-      {/* Left accent bar for live bots */}
-      {isRunning && (
-        <div
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[color:var(--good)]"
-          style={{ boxShadow: "0 0 10px rgba(22,163,74,0.7)" }}
-        />
-      )}
-      {/* Top row: coin, pair, mode, running dot */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <CoinIcon symbol={bot.symbol} size={24} />
-          <div>
-            <div className="font-bold text-[12px] leading-none">
-              {shortSymbol(bot.symbol)}/USDT
-            </div>
-            <div className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] mt-1 leading-none">
-              {(bot.trade_method || "Cycle")} · {isRunning ? "Running" : "Idle"}
-            </div>
+      <div className="flex items-center gap-2.5">
+        <CoinIcon symbol={bot.symbol.replace("USDT", "")} size={34} />
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-black leading-tight" style={{ color: "var(--ink)" }}>
+            {bot.symbol.replace(/USDT$/, "")}/USDT
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
+            {(bot.trade_method || "Cycle").toUpperCase()} ·{" "}
+            <span style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}>
+              {isRunning ? "RUNNING" : "IDLE"}
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-[color:var(--good)] shadow-[0_0_6px_var(--primary-glow)]" : "bg-[color:var(--text-mute)]"}`}
-          />
-          <span
-            className="text-[8px] uppercase tracking-widest font-bold"
-            style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}
-          >
-            {isRunning ? "Live" : "Off"}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="w-2 h-2 rounded-full" style={{ background: isRunning ? "var(--good)" : "#9CA3AF" }} />
+          <span className="text-[12.5px] font-black" style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}>
+            {isRunning ? "Live" : "Idle"}
           </span>
+          <MoreVertical size={16} style={{ color: "var(--ink)" }} />
         </div>
       </div>
 
-      {/* Middle: price + floating */}
-      <div className="flex items-end justify-between mt-2 gap-2">
+      <div className="flex items-end justify-between mt-2.5">
         <div>
-          <div className="text-[7px] uppercase tracking-widest text-[color:var(--text-mute)] leading-none">
-            Live Price
-          </div>
-          <div
-            className="font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none"
-            style={{ fontVariantNumeric: "tabular-nums" }}
-          >
-            {livePrice > 0 ? `$${fmtNum(livePrice, livePrice < 1 ? 4 : 2)}` : "—"}
+          <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live Price</div>
+          <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }}>
+            {fmtPrice(live)}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[7px] uppercase tracking-widest text-[color:var(--text-mute)] leading-none">
-            {hasPosition ? "Floating P&L" : "Position"}
+          <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Floating P&L</div>
+          <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: hasPos ? (negative ? "var(--bad)" : "var(--good)") : "var(--text-mute)" }}>
+            {hasPos ? `$${negative ? "-" : "+"}${fmtNum(Math.abs(floating), 2)}` : "—"}
+            {hasPos && (
+              <span className="text-[10.5px] font-bold"> ({negative ? "" : "+"}{fmtNum(floatPct, 2)}%)</span>
+            )}
           </div>
-          {hasPosition ? (
-            hasLivePrice ? (
-              <div
-                className={`font-mono font-bold text-[12px] tabular-nums mt-0.5 leading-none ${floating >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
-                data-testid={`bot-floating-${bot.symbol}`}
-              >
-                {floating >= 0 ? "+" : ""}${fmtNum(floating, 2)}
-                <span className="text-[8px] ml-1 opacity-80">
-                  ({floating >= 0 ? "+" : ""}
-                  {floatingPct.toFixed(2)}%)
-                </span>
-              </div>
-            ) : (
-              <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">Connecting…</div>
-            )
-          ) : (
-            <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">No open position</div>
-          )}
         </div>
       </div>
 
-      {/* Merged Buy/Sell/Profit strip with date range */}
-      <div className="mt-2 pt-2 border-t border-[color:var(--border-soft)]">
-        {(bot.first_trade_at || bot.last_trade_at) && (
-          <div
-            className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold mb-1"
-            style={{ fontVariantNumeric: "tabular-nums" }}
-            data-testid={`bot-date-range-${bot.symbol}`}
-          >
-            {fmtDateShortUTC(bot.first_trade_at)}
-            {bot.first_trade_at !== bot.last_trade_at && (
-              <> → {fmtDateShortUTC(bot.last_trade_at)}</>
-            )}
-            {(bot.margin_call_count > 0 || hasPosition) && (
-              <span className="ml-2 text-[color:var(--primary)]">· Round {(bot.margin_call_count || 0) + (hasPosition ? 1 : 0)}</span>
-            )}
-          </div>
-        )}
-        <div
-          className="flex items-center gap-2 text-[11px] font-mono"
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          <span className="text-[color:var(--good)] font-bold" data-testid={`bot-buys-${bot.symbol}`}>
-            {bot.buy_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Buys</span>
-          </span>
-          <span className="text-[color:var(--text-mute)]">·</span>
-          <span className="text-[color:var(--bad)] font-bold" data-testid={`bot-sells-${bot.symbol}`}>
-            {bot.sell_count || 0}<span className="text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] ml-1">Sells</span>
-          </span>
-          <span
-            className={`ml-auto font-extrabold ${cumProfit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
-            data-testid={`bot-profit-${bot.symbol}`}
-          >
-            {cumProfit >= 0 ? "+" : ""}${fmtNum(cumProfit, 2)}
-          </span>
+      <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
+          <CalendarDays size={13} style={{ color: "var(--ink)" }} />
+          {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
+          <span style={{ color: "var(--text-mute)" }}>·</span>
+          <span style={{ color: "var(--good)" }}>ROUND {round}</span>
+        </div>
+        <div className="text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
+          <span style={{ color: "var(--good)" }}>{bot.buy_count || 0}</span> Buys{" "}
+          <span style={{ color: "var(--text-mute)" }}>·</span>{" "}
+          <span style={{ color: "var(--bad)" }}>{bot.sell_count || 0}</span> Sells
         </div>
       </div>
     </button>
@@ -160,226 +102,149 @@ function BotCard({ bot }) {
 }
 
 export default function Trades() {
-  const [bots, setBots] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("live"); // "live" | "all" | "idle"
-  const [spot, setSpot] = useState(null);       // { mode, connected, usdt_balance, error? }
+  const [bots, setBots] = useState(null);
+  const [bind, setBind] = useState(null);
+  const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = () =>
-      api
-        .get("/bots")
-        .then(({ data }) => setBots(data || []))
-        .finally(() => setLoading(false));
-    load();
-    const t = setInterval(load, 8000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    const loadWallet = async () => {
-      try {
-        const { data } = await api.get("/wallet/spot");
-        setSpot(data);
-      } catch {
-        /* silent */
-      }
+    try {
+      const c = JSON.parse(localStorage.getItem("tgx_trade_cache") || "null");
+      if (c?.bots) setBots(c.bots);
+      if (c?.bind !== undefined) setBind(c.bind);
+    } catch {}
+    const load = async () => {
+      const [b, bd] = await Promise.all([
+        api.get("/bots").then((r) => (Array.isArray(r.data) ? r.data : r.data.bots || [])).catch(() => []),
+        api.get("/binance/bind").then((r) => r.data).catch(() => null),
+      ]);
+      setBots(b);
+      setBind(bd);
+      try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
     };
-    loadWallet();
-    const t = setInterval(loadWallet, 15000);
+    load();
+    const t = setInterval(load, 30000);
     return () => clearInterval(t);
   }, []);
 
-  const isLive = (b) => String(b.status || b.state || "").toLowerCase() === "running";
-  const totalProfit = bots.reduce((s, b) => s + (b.cumulative_profit || 0), 0);
-  const active = bots.filter(isLive).length;
-
-  // Sort: live bots first, then by profit desc
-  const sorted = [...bots].sort((a, b) => {
-    const la = isLive(a) ? 1 : 0;
-    const lb = isLive(b) ? 1 : 0;
-    if (la !== lb) return lb - la;
-    return (b.cumulative_profit || 0) - (a.cumulative_profit || 0);
-  });
-
-  const visible =
-    filter === "live"
-      ? sorted.filter(isLive)
-      : filter === "idle"
-      ? sorted.filter((b) => !isLive(b))
-      : sorted;
-
-  const idleCount = bots.length - active;
+  const list = bots || [];
+  const running = list.filter((b) => String(b.status || "").toLowerCase() === "running");
+  const idle = list.filter((b) => String(b.status || "").toLowerCase() !== "running");
+  const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0);
+  const shown = filter === "live" ? running : filter === "idle" ? idle : [...running, ...idle];
 
   return (
-    <div className="pb-24">
-      <PageHeader
-        title="Trade"
-        subtitle={`${bots.length} Bots · ${active} Running`}
-        showBack={false}
-      />
+    <div className="trade-page min-h-screen pb-24 pt-4" data-testid="trade-page">
+      {/* Header */}
+      <div className="px-4 flex items-start justify-between">
+        <div>
+          <div className="font-display font-black text-3xl leading-none" style={{ color: "var(--ink)" }}>Trade</div>
+          <div className="text-[11px] font-bold tracking-[0.18em] mt-1.5" style={{ color: "var(--text-mute)" }}>
+            {list.length} BOTS · {running.length} RUNNING
+          </div>
+        </div>
+        <button
+          onClick={() => navigate("/bot")}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12.5px] font-bold"
+          style={CARD}
+          data-testid="trade-guide-btn"
+        >
+          <BookOpen size={15} style={{ color: "var(--ink)" }} /> Guide
+        </button>
+      </div>
 
-      {/* Wallet Card — Only the connected Exchange API's USDT balance */}
-      <div className="px-4 mb-3">
+      {/* Connected exchange */}
+      <div className="px-4 mt-4">
         <button
           onClick={() => navigate("/bind-api")}
-          className="w-full text-left rounded-2xl border border-[color:var(--primary)]/25 bg-[color:var(--surface-2)] backdrop-blur-xl p-3 hover:border-[color:var(--warn)]/40 transition"
-          style={{ boxShadow: "0 0 22px rgba(22,163,74,0.08)" }}
-          data-testid="trades-wallet-card"
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition active:scale-[0.995]"
+          style={CARD}
+          data-testid="trade-exchange-card"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <WalletIcon size={14} className="text-[color:var(--gold)]" />
-            <span className="text-[10px] uppercase tracking-[0.28em] text-[color:var(--text-mute)] font-semibold">
-              Exchange Wallet
-            </span>
-            <span
-              className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded ${
-                spot?.connected
-                  ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
-                  : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)]"
-              }`}
-              data-testid="wallet-exchange-status"
-            >
-              {spot?.connected ? (spot?.mode || "LIVE").toUpperCase() : "NOT LINKED"}
-            </span>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "#111" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#F3BA2F">
+              <path d="M12 2 8.7 5.3 12 8.6l3.3-3.3L12 2zM5.3 8.7 2 12l3.3 3.3L8.6 12 5.3 8.7zm13.4 0L15.4 12l3.3 3.3L22 12l-3.3-3.3zM12 15.4l-3.3 3.3L12 22l3.3-3.3-3.3-3.3zm0-6.1L9.3 12l2.7 2.7 2.7-2.7L12 9.3z" />
+            </svg>
           </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <div
-                className="font-mono font-extrabold text-[22px] tabular-nums text-[color:var(--text)] leading-none"
-                data-testid="wallet-exchange-usdt"
-              >
-                {spot?.connected ? fmtUSD(spot?.usdt_balance || 0) : "—"}
-              </div>
-              <div className="text-[10px] text-[color:var(--text-mute)] mt-1.5 flex items-center gap-1">
-                <Link2 size={10} className={spot?.connected ? "text-[color:var(--good)]" : "text-[color:var(--text-mute)]"} />
-                {spot?.connected
-                  ? "Binance · Spot USDT (free)"
-                  : spot?.error
-                  ? "Binance geo-blocked from server region"
-                  : "Tap to bind your Binance API"}
-              </div>
-            </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-black" style={{ color: "var(--ink)" }}>Binance</div>
+            <div className="text-[11px]" style={{ color: "var(--text-mute)" }}>Tap to manage your API</div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="w-2 h-2 rounded-full" style={{ background: bind?.bound ? "var(--good)" : "#9CA3AF" }} />
+            <span className="text-[13px] font-black" style={{ color: bind?.bound ? "var(--good)" : "var(--text-mute)" }}>
+              {bind?.bound ? "Live" : "Demo"}
+            </span>
+            <ChevronRight size={16} style={{ color: "var(--ink)" }} />
           </div>
         </button>
       </div>
 
-      {/* Summary strip */}
-      <div className="px-4 grid grid-cols-3 gap-2">
-        <div className="rounded-xl app-card p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
-            Active Bots
-          </div>
-          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums text-[color:var(--good)]">{active}</div>
+      {/* Summary — 3 equal cards */}
+      <div className="px-4 mt-2.5 grid grid-cols-3 gap-2.5">
+        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-active-bots">
+          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Active Bots</div>
+          <div className="text-xl font-black mt-1" style={{ color: "var(--ink)" }}>{running.length}</div>
         </div>
-        <div className="rounded-xl app-card p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
-            Total Bots
-          </div>
-          <div className="font-mono font-extrabold text-[16px] mt-1 tabular-nums">{bots.length}</div>
+        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-total-bots">
+          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Bots</div>
+          <div className="text-xl font-black mt-1" style={{ color: "var(--ink)" }}>{list.length}</div>
         </div>
-        <div className="rounded-xl app-card p-2.5">
-          <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-semibold">
-            Total Profit
-          </div>
-          <div
-            className={`font-mono font-extrabold text-[16px] mt-1 tabular-nums ${totalProfit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
-            data-testid="trades-total-profit"
-          >
-            {totalProfit >= 0 ? "+" : ""}${fmtNum(totalProfit, 2)}
+        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-total-profit">
+          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Profit</div>
+          <div className="text-[15px] font-black mt-1 tabular-nums leading-tight" style={{ color: "var(--good)" }}>
+            +{fmtNum(totalProfit, 2)}
+            <div className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>USDT</div>
           </div>
         </div>
       </div>
 
-      {/* Filter chips: Live / All / Idle */}
-      <div className="px-4 mt-3 flex items-center gap-2" data-testid="trades-filter">
-        {[
-          { key: "live", label: "Live", count: active, color: "var(--good)" },
-          { key: "all", label: "All", count: bots.length, color: "var(--good)" },
-          { key: "idle", label: "Idle", count: idleCount, color: "var(--text-mute)" },
-        ].map((t) => {
-          const isActive = filter === t.key;
-          return (
+      {/* Filter */}
+      <div className="px-4 mt-3">
+        <div className="flex rounded-full p-1" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid="trade-filter">
+          {[
+            { id: "live", label: "Live", n: running.length, dot: true },
+            { id: "all", label: "All", n: list.length },
+            { id: "idle", label: "Idle", n: idle.length },
+          ].map((f) => (
             <button
-              key={t.key}
-              onClick={() => setFilter(t.key)}
-              data-testid={`trades-filter-${t.key}`}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-black transition-all"
-              style={{
-                background: isActive ? `${t.color}18` : "rgba(255,255,255,0.03)",
-                borderWidth: 1,
-                borderStyle: "solid",
-                borderColor: isActive ? `${t.color}80` : "rgba(255,255,255,0.15)",
-                color: isActive ? t.color : "var(--text-mute)",
-                boxShadow: isActive ? `0 0 12px ${t.color}40` : "none",
-              }}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[13px] font-bold transition-all"
+              style={filter === f.id ? { background: "var(--ink)", color: "var(--surface)" } : { color: "var(--text)" }}
+              data-testid={`trade-filter-${f.id}`}
             >
-              {t.key === "live" && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: t.color,
-                    boxShadow: isActive ? `0 0 6px ${t.color}` : "none",
-                  }}
-                />
-              )}
-              {t.label}
-              <span
-                className="tabular-nums font-mono"
-                style={{ color: isActive ? t.color : "var(--text-mute)" }}
-              >
-                {t.count}
-              </span>
+              {f.dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--good)" }} />}
+              {f.label} <span style={{ opacity: 0.7 }}>{f.n}</span>
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
-      {/* Bot cards list */}
-      <div className="px-4 mt-3 space-y-1.5" data-testid="bots-list">
-        {loading && (
-          <div className="text-center text-sm text-[color:var(--text-mute)] py-12">Loading bots…</div>
-        )}
-        {!loading && bots.length === 0 && (
-          <div
-            className="text-center text-sm text-[color:var(--text-mute)] py-16 border border-dashed border-[color:var(--border)] rounded-2xl"
-            data-testid="no-bots"
-          >
-            No bots yet. Tap the + button to start one.
+      {/* Bot cards */}
+      <div className="px-4 mt-3 space-y-2" data-testid="trade-bot-list">
+        {bots === null ? (
+          <div className="text-center text-sm py-10" style={{ color: "var(--text-mute)" }}>Loading…</div>
+        ) : shown.length === 0 ? (
+          <div className="text-center text-sm py-10 rounded-xl" style={{ ...CARD, color: "var(--text-mute)" }} data-testid="trade-empty">
+            No bots here — create one below
           </div>
+        ) : (
+          shown.map((b) => <BotRow key={b.symbol} bot={b} />)
         )}
-        {!loading && bots.length > 0 && visible.length === 0 && (
-          <div
-            className="text-center text-sm text-[color:var(--text-mute)] py-16 border border-dashed border-[color:var(--border)] rounded-2xl"
-            data-testid="no-bots-filter"
-          >
-            {filter === "live" ? (
-              <>
-                No live bots right now.<br />
-                <span className="text-[11px] text-[color:var(--text-mute)]">Switch to <b>All</b> to view idle bots.</span>
-              </>
-            ) : (
-              "No bots in this filter."
-            )}
-          </div>
-        )}
-        {visible.map((b) => (
-          <BotCard key={b.symbol} bot={b} />
-        ))}
       </div>
 
-      {/* Floating add-bot button */}
-      <button
-        onClick={() => navigate("/market")}
-        data-testid="add-bot-fab"
-        className="fixed bottom-24 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[color:var(--primary)] text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_var(--primary-glow)] hover:scale-105 active:scale-95 transition"
-        style={{ zIndex: 40, right: "calc(50vw - 220px + 20px)" }}
-        aria-label="Start new bot"
-      >
-        <Plus size={16} strokeWidth={3} />
-        New Bot
-      </button>
+      {/* New Bot */}
+      <div className="px-4 mt-4">
+        <button
+          onClick={() => navigate("/market")}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-[15px] font-black text-white transition active:scale-[0.99]"
+          style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
+          data-testid="trade-new-bot"
+        >
+          <Plus size={18} strokeWidth={3} /> New Bot
+        </button>
+      </div>
     </div>
   );
 }
