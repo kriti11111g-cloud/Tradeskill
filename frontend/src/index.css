@@ -157,6 +157,13 @@ html, body, #root {
   }
 }
 
+/* Lock horizontal pan (clip = sticky-safe, no scroll container) */
+html, body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  max-width: 100vw;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

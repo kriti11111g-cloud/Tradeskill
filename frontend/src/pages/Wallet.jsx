@@ -142,7 +142,7 @@ export default function Wallet() {
             data-testid="assets-bw-card"
           >
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
                     Total assets converted (USDT)
@@ -156,22 +156,22 @@ export default function Wallet() {
                     {hideBal ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <div className="flex items-baseline gap-2 mt-1.5">
+                <div className="flex items-baseline gap-2 mt-1.5 min-w-0">
                   <span
-                    className="font-display font-black text-4xl tabular-nums leading-none"
+                    className="font-display font-black text-4xl tabular-nums leading-none whitespace-nowrap"
                     style={{ color: "var(--good)" }}
                     data-testid="assets-total"
                   >
                     {hideBal ? "****" : fmtNum(total, 4)}
                   </span>
                   {!hideBal && (
-                    <span className="text-sm font-semibold" style={{ color: "var(--text-mute)" }}>
+                    <span className="text-sm font-semibold whitespace-nowrap truncate" style={{ color: "var(--text-mute)" }}>
                       ≈ {fmtNum(total, 2)} USDT
                     </span>
                   )}
                 </div>
               </div>
-              <TetherCoin s={44} />
+              <div className="shrink-0 ml-2"><TetherCoin s={44} /></div>
             </div>
 
             <div className="grid grid-cols-4 gap-2.5 mt-4">
