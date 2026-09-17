@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search,
-  Eye, EyeOff, CalendarDays, ChevronRight, X,
+  Eye, EyeOff, CalendarDays, ChevronRight, X, Send, Repeat,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
@@ -210,15 +211,18 @@ export default function Wallet() {
               <TetherCoin s={44} />
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-4 gap-2.5 mt-4">
               {[
                 { t: "deposit", label: "Deposit", Icon: ArrowDownToLine, testid: "wallet-deposit" },
-                { t: "withdraw", label: "Withdraw", Icon: ArrowUpToLine, testid: "wallet-withdraw" },
-                { t: "p2p", label: "Transfer", Icon: ArrowRightLeft, testid: "wallet-transfer" },
+                { t: "withdraw", label: "Send", Icon: Send, testid: "wallet-send" },
+                { t: "p2p", label: "P2P", Icon: ArrowRightLeft, testid: "wallet-p2p" },
+                { t: "swap", label: "Swap", Icon: Repeat, testid: "wallet-swap" },
               ].map(({ t, label, Icon, testid }) => (
                 <button
                   key={t}
-                  onClick={() => navigate(`/bot?action=${t}`)}
+                  onClick={() =>
+                    t === "swap" ? toast("Swap — Coming Soon 🚀") : navigate(`/bot?action=${t}`)
+                  }
                   className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition active:scale-95"
                   style={{
                     background: "var(--surface)",
@@ -227,8 +231,8 @@ export default function Wallet() {
                   }}
                   data-testid={testid}
                 >
-                  <Icon size={22} strokeWidth={2.2} />
-                  <span className="text-[13px] font-bold">{label}</span>
+                  <Icon size={20} strokeWidth={2.2} />
+                  <span className="text-[12px] font-bold">{label}</span>
                 </button>
               ))}
             </div>
