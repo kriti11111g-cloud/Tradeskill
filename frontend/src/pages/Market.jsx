@@ -95,6 +95,8 @@ export default function Market() {
 
   return (
     <div className="pb-4">
+      {/* Sticky top: header + tabs + pills + column headers (scroll par fixed) */}
+      <div className="sticky top-0 z-20 pb-1" style={{ background: "var(--bg-base)" }}>
       <PageHeader title="Ranking" subtitle="" showBack={false} />
 
       {/* Tabs */}
@@ -161,6 +163,7 @@ export default function Market() {
             24h chg% <ChevronsUpDown size={13} />
           </button>
         </div>
+      </div>
       </div>
 
       {/* Coin rows */}
