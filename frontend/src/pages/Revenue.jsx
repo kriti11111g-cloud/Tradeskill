@@ -115,7 +115,6 @@ export default function Revenue() {
           </div>
         </div>
       </div>
-      </div>
 
       {/* Income trend — MASTER (same on every tab) */}
       <div className="px-4 mt-2.5">
@@ -198,6 +197,7 @@ export default function Revenue() {
           </div>
         );
       })()}
+      </div>
 
       {/* Income history — heading sirf All tab par */}
       <div className="px-4 mt-4">
