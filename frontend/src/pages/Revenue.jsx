@@ -56,7 +56,12 @@ export default function Revenue() {
 
   const rows = useMemo(() => {
     const h = data?.history || [];
-    return tab === "all" ? h : h.filter((r) => r.category === tab);
+    if (tab === "all") return h;
+    if (tab.startsWith("global_")) {
+      const lvl = parseInt(tab.split("_")[1], 10);
+      return h.filter((r) => r.category === "trading_commission" && r.level === lvl);
+    }
+    return h.filter((r) => r.category === tab);
   }, [data, tab]);
 
   const lastVal = useMemo(() => {
@@ -199,7 +204,10 @@ export default function Revenue() {
         ) : (
           <div className="space-y-1.5" data-testid="income-history-list">
             {rows.slice(0, 100).map((r) => {
-              const meta = META[r.category] || { Icon: IconBars, title: r.category };
+              const meta =
+                tab.startsWith("global_")
+                  ? META[tab]
+                  : META[r.category] || { Icon: IconBars, title: r.category };
               const open = openRow === r.id;
               return (
                 <div

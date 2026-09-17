@@ -1442,44 +1442,53 @@ async def revenue_income(user: dict = Depends(get_current_user)):
     def cat_of(t):
         k = t["kind"]
         if k == "trade_commission":
-            return "trading_commission"
+            return "trading_profit", None  # self trading income
         if k == "direct_bonus":
-            return "direct_income"
+            return "direct_income", None
         if k in ("support_income", "social_bonus"):
-            return "support_income"
-        if k == "team_commission":
+            return "support_income", None
+        if k == "team_commission":  # team's trading commission (level/rank wise)
             m = re.search(r"· L(\d+)$", t.get("note") or "")
-            lvl = int(m.group(1)) if m else 1
-            return f"global_{min(lvl, 10)}"
-        return "other"
+            lvl = min(int(m.group(1)) if m else 1, 10)
+            return "trading_commission", lvl
+        return "other", None
 
     history = []
     for t in txns:
-        history.append({"id": t["id"], "category": cat_of(t), "amount": t["amount"],
+        c, lvl = cat_of(t)
+        history.append({"id": t["id"], "category": c, "level": lvl, "amount": t["amount"],
                         "created_at": t["created_at"], "note": t.get("note", "")})
     for s in sells:
         p = float(s.get("profit") or 0.0)
         if p <= 0:
             continue
         history.append({"id": s.get("id") or s["created_at"], "category": "trading_profit",
-                        "amount": round(p, 4), "created_at": s["created_at"],
+                        "level": None, "amount": round(p, 4), "created_at": s["created_at"],
                         "note": s.get("symbol", "")})
     history.sort(key=lambda x: x["created_at"] or "", reverse=True)
 
     today_str = now_utc().strftime("%Y-%m-%d")
     cats, trend = {}, {}
+    all_today = all_total = 0.0
     for h in history:
         d = (h["created_at"] or "")[:10]
-        cc = cats.setdefault(h["category"], {"today": 0.0, "total": 0.0})
-        cc["total"] += h["amount"]
-        if d == today_str:
-            cc["today"] += h["amount"]
+        is_today = d == today_str
+        all_total += h["amount"]
+        if is_today:
+            all_today += h["amount"]
+        buckets = [h["category"]]
+        if h.get("level"):
+            buckets.append(f"global_{h['level']}")
+        for b in buckets:
+            cc = cats.setdefault(b, {"today": 0.0, "total": 0.0})
+            cc["total"] += h["amount"]
+            if is_today:
+                cc["today"] += h["amount"]
         trend[d] = trend.get(d, 0.0) + h["amount"]
 
     days = [(now_utc() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(29, -1, -1)]
     return {
-        "all": {"today": round(sum(c["today"] for c in cats.values()), 4),
-                "total": round(sum(c["total"] for c in cats.values()), 4)},
+        "all": {"today": round(all_today, 4), "total": round(all_total, 4)},
         "categories": {k: {"today": round(v["today"], 4), "total": round(v["total"], 4)}
                        for k, v in cats.items()},
         "trend": [{"date": d, "total": round(trend.get(d, 0.0), 4)} for d in days],
