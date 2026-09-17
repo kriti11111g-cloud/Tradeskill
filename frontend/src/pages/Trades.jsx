@@ -101,6 +101,61 @@ function BotRow({ bot }) {
   );
 }
 
+/* Idle tab = read-only trade history card (no action, sirf dekhne ke liye) */
+function HistoryRow({ bot }) {
+  const isRunning = String(bot.status || "").toLowerCase() === "running";
+  const profit = bot.cumulative_profit || 0;
+  const neg = profit < 0;
+  return (
+    <div className="w-full rounded-xl px-3 py-2.5" style={CARD} data-testid={`history-card-${bot.symbol}`}>
+      <div className="flex items-center gap-2.5">
+        <CoinIcon symbol={bot.symbol.replace("USDT", "")} size={34} />
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-black leading-tight" style={{ color: "var(--ink)" }}>
+            {bot.symbol.replace(/USDT$/, "")}/USDT
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
+            TRADE HISTORY
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="w-2 h-2 rounded-full" style={{ background: isRunning ? "var(--good)" : "#9CA3AF" }} />
+          <span className="text-[12.5px] font-black" style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}>
+            {isRunning ? "Live" : "Idle"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-end justify-between mt-2.5">
+        <div>
+          <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Total Profit</div>
+          <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: neg ? "var(--bad)" : "var(--good)" }}>
+            {neg ? "-" : "+"}${fmtNum(Math.abs(profit), 2)}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Trades Done</div>
+          <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }}>
+            {bot.lifetime_sell_count || 0}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
+          <CalendarDays size={13} style={{ color: "var(--ink)" }} />
+          {fmtD(bot.lifetime_first_at)} <ArrowRight size={11} /> {fmtD(bot.lifetime_last_at)}
+        </div>
+        <div className="text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
+          <span style={{ color: "var(--good)" }}>{bot.lifetime_buy_count || 0}</span> Buys{" "}
+          <span style={{ color: "var(--text-mute)" }}>·</span>{" "}
+          <span style={{ color: "var(--bad)" }}>{bot.lifetime_sell_count || 0}</span> Sells
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
@@ -129,9 +184,9 @@ export default function Trades() {
 
   const list = bots || [];
   const running = list.filter((b) => String(b.status || "").toLowerCase() === "running");
-  const idle = list.filter((b) => String(b.status || "").toLowerCase() !== "running");
+  const traded = list.filter((b) => (b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0);
   const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0);
-  const shown = filter === "idle" ? idle : running;
+  const shown = filter === "idle" ? traded : running;
 
   return (
     <div className="trade-page min-h-screen pb-24" data-testid="trade-page">
@@ -211,7 +266,7 @@ export default function Trades() {
         <div className="flex rounded-full p-1" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid="trade-filter">
           {[
             { id: "live", label: "Live", n: running.length, dot: true },
-            { id: "idle", label: "Idle", n: idle.length },
+            { id: "idle", label: "Idle", n: traded.length },
           ].map((f) => (
             <button
               key={f.id}
@@ -234,8 +289,10 @@ export default function Trades() {
           <div className="text-center text-sm py-10" style={{ color: "var(--text-mute)" }}>Loading…</div>
         ) : shown.length === 0 ? (
           <div className="text-center text-sm py-10 rounded-xl" style={{ ...CARD, color: "var(--text-mute)" }} data-testid="trade-empty">
-            No bots here — create one below
+            {filter === "idle" ? "No trade history yet" : "No bots here — create one below"}
           </div>
+        ) : filter === "idle" ? (
+          shown.map((b) => <HistoryRow key={b.symbol} bot={b} />)
         ) : (
           shown.map((b) => <BotRow key={b.symbol} bot={b} />)
         )}

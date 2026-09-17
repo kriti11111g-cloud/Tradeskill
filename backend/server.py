@@ -725,13 +725,31 @@ def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
 @api.get("/bots")
 async def list_bots(user: dict = Depends(get_current_user)):
     rows = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
-    # Lifetime profit per symbol (Total Profit kabhi reset nahi hota)
+    # Lifetime stats per symbol (Idle/History tab ke liye — kabhi reset nahi hote)
     stats_by_sym: dict = {}
     async for a in db.transactions.aggregate([
-        {"$match": {"user_id": user["id"], "side": "SELL"}},
-        {"$group": {"_id": "$symbol", "profit_sum": {"$sum": {"$ifNull": ["$profit", 0]}}}},
+        {"$match": {"user_id": user["id"]}},
+        {"$group": {
+            "_id": {"symbol": "$symbol", "side": "$side"},
+            "count": {"$sum": 1},
+            "profit_sum": {"$sum": {"$ifNull": ["$profit", 0]}},
+            "first_at": {"$min": "$created_at"},
+            "last_at": {"$max": "$created_at"},
+        }},
     ]):
-        stats_by_sym[a["_id"]] = {"cumulative_profit": round(a["profit_sum"], 4)}
+        sym = a["_id"]["symbol"]
+        side = a["_id"]["side"]
+        s = stats_by_sym.setdefault(sym, {
+            "lifetime_buy_count": 0, "lifetime_sell_count": 0,
+            "cumulative_profit": 0.0, "first_at": None, "last_at": None,
+        })
+        if side == "BUY":
+            s["lifetime_buy_count"] = a["count"]
+        elif side == "SELL":
+            s["lifetime_sell_count"] = a["count"]
+            s["cumulative_profit"] = round(a["profit_sum"], 4)
+        s["first_at"] = min(filter(None, [s["first_at"], a["first_at"]]), default=None)
+        s["last_at"] = max(filter(None, [s["last_at"], a["last_at"]]), default=None)
 
     # Session-scoped counts + date range: har restart ke baad fresh (session_started_at se)
     sess_conds = []
@@ -778,7 +796,12 @@ async def list_bots(user: dict = Depends(get_current_user)):
         c = counts_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0})
         r["buy_count"] = c["buy_count"]
         r["sell_count"] = c["sell_count"]
-        r["cumulative_profit"] = stats_by_sym.get(r["symbol"], {}).get("cumulative_profit", 0.0)
+        lt = stats_by_sym.get(r["symbol"], {})
+        r["cumulative_profit"] = lt.get("cumulative_profit", 0.0)
+        r["lifetime_buy_count"] = lt.get("lifetime_buy_count", 0)
+        r["lifetime_sell_count"] = lt.get("lifetime_sell_count", 0)
+        r["lifetime_first_at"] = lt.get("first_at")
+        r["lifetime_last_at"] = lt.get("last_at")
         rng = range_by_sym.get(r["symbol"], {})
         r["first_trade_at"] = rng.get("first_at")
         r["last_trade_at"] = rng.get("last_at")
