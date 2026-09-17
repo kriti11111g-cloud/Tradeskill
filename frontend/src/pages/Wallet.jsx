@@ -9,8 +9,9 @@ import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
-import { IconPeople, IconProfit, IconCoins, IconDocPlus, IconDeposit, IconWithdraw } from "@/components/IncomeIcons";
+import { IconCoins, IconDocPlus, IconDeposit, IconWithdraw } from "@/components/IncomeIcons";
 
+/* Assets = wallet transactions ONLY (user lock): Deposit, Withdrawal, Activation Fee, Trading Fee */
 const KIND_META = {
   deposit: { title: "Deposit", Icon: IconDeposit },
   deposit_onchain: { title: "Deposit", Icon: IconDeposit },
@@ -25,12 +26,6 @@ const KIND_META = {
   fuel: { title: "Trading Fee", Icon: IconCoins },
   pause: { title: "Trading Fee", Icon: IconCoins },
   trading_fee: { title: "Trading Fee", Icon: IconCoins },
-  trade_commission: { title: "Trading Profit", Icon: IconProfit },
-  team_commission: { title: "Support Income", Icon: IconPeople },
-  support_income: { title: "Support Income", Icon: IconPeople },
-  direct_bonus: { title: "Support Income", Icon: IconPeople },
-  revenue: { title: "Support Income", Icon: IconPeople },
-  social_bonus: { title: "Support Income", Icon: IconPeople },
 };
 
 const fmtDT = (iso) => {
@@ -417,13 +412,14 @@ export default function Wallet() {
         </div>
 
         {(() => {
+          const walletRows = history.filter((h) => KIND_META[h.kind]);
           const rows = filterDate
-            ? history.filter((h) => {
+            ? walletRows.filter((h) => {
                 const d = new Date(h.created_at);
                 const f = new Date(filterDate + "T00:00:00");
                 return d.getFullYear() === f.getFullYear() && d.getMonth() === f.getMonth() && d.getDate() === f.getDate();
               })
-            : history;
+            : walletRows;
           if (rows.length === 0)
             return (
               <div
