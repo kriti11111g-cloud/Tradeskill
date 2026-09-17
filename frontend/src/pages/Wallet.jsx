@@ -102,6 +102,9 @@ export default function Wallet() {
     if (s) setSummary(s);
     setHistory(h);
     setBind(bd);
+    try {
+      localStorage.setItem("tgx_wallet_cache", JSON.stringify({ s, h }));
+    } catch {}
     if (bd?.mode === "real" || bd?.mode === "testnet") {
       loadLive();
     } else {
@@ -110,6 +113,11 @@ export default function Wallet() {
     }
   };
   useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("tgx_wallet_cache") || "null");
+      if (c?.s) setSummary(c.s);
+      if (Array.isArray(c?.h)) setHistory(c.h);
+    } catch {}
     load();
     const action = params.get("action");
     if (action === "deposit" || action === "withdraw" || action === "transfer") {

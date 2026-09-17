@@ -4,6 +4,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import time
 import uuid
 import asyncio
 import logging
@@ -953,6 +954,19 @@ async def fetch_price(symbol: str) -> float:
         return float(r.json()["price"])
 
 
+_PRICE_CACHE: dict = {}
+
+
+async def fetch_price_cached(symbol: str, ttl: float = 10.0) -> float:
+    now = time.time()
+    hit = _PRICE_CACHE.get(symbol)
+    if hit and now - hit[1] < ttl:
+        return hit[0]
+    p = await fetch_price(symbol)
+    _PRICE_CACHE[symbol] = (p, now)
+    return p
+
+
 async def get_user_binance(user_id: str):
     """Return (client, mode) if user has real/testnet keys, else (None, 'demo' or actual mode)."""
     row = await db.binance_keys.find_one({"user_id": user_id})
@@ -1626,7 +1640,7 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
 
     async def _price_of(b):
         try:
-            return await fetch_price(b["symbol"])
+            return await fetch_price_cached(b["symbol"])
         except Exception:
             return b.get("avg_price", 0.0)
 
