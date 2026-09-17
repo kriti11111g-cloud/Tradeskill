@@ -68,3 +68,14 @@ export const IconPercent = ({ s = 28 }) => (
     <path d="M17 20.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm0-2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
   </Ink>
 );
+
+export const IconHandDollar = ({ s = 28 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24">
+    <circle cx="12" cy="6.6" r="4.4" fill="var(--ink)" />
+    <text x="12" y="9.3" textAnchor="middle" fontSize="7.8" fontWeight="900" fill="var(--surface)" fontFamily="Arial, sans-serif">$</text>
+    <path
+      fill="var(--ink)"
+      d="M22 16.1c-.5-.45-1.28-.45-1.8-.05l-3.05 2.3c-.42.32-.94.5-1.47.5h-3.9a.68.68 0 0 1 0-1.36h2.42c.64 0 1.2-.5 1.2-1.14 0-.66-.54-1.16-1.2-1.16H9.1c-.95 0-1.87.33-2.6.94l-1.53 1.27H2.9c-.5 0-.9.4-.9.9v2.8c0 .5.4.9.9.9h12.2c.83 0 1.63-.28 2.28-.8l4.6-3.62c.62-.5.63-1.44.02-1.98z"
+    />
+  </svg>
+);

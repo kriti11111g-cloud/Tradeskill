@@ -4,12 +4,12 @@ import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconPercent } from "@/components/IncomeIcons";
+import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconHandDollar } from "@/components/IncomeIcons";
 
 const TABS = [
   { id: "all", label: "All" },
   { id: "trading_profit", label: "Trading Profit", Icon: IconProfit, title: "Trading Profit" },
-  { id: "trading_commission", label: "Trading Commission", Icon: IconPercent, title: "Trading Commission" },
+  { id: "trading_commission", label: "Trading Commission", Icon: IconHandDollar, title: "Trading Commission" },
   { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
   ...Array.from({ length: 10 }, (_, i) => ({
@@ -183,10 +183,14 @@ export default function Revenue() {
         );
       })()}
 
-      {/* Income history */}
+      {/* Income history — heading sirf All tab par */}
       <div className="px-4 mt-4">
-        <div className="font-display font-black text-2xl" style={{ color: "var(--ink)" }}>Income History</div>
-        <div className="text-[12px] mb-2.5" style={{ color: "var(--text-mute)" }}>Tap a record to see the details</div>
+        {tab === "all" && (
+          <>
+            <div className="font-display font-black text-2xl" style={{ color: "var(--ink)" }}>Income History</div>
+            <div className="text-[12px] mb-2.5" style={{ color: "var(--text-mute)" }}>Tap a record to see the details</div>
+          </>
+        )}
 
         {rows.length === 0 ? (
           <div className="text-center text-sm py-10 rounded-xl" style={{ color: "var(--text-mute)", background: "var(--surface)", border: "1px solid var(--border)" }} data-testid="income-empty">
