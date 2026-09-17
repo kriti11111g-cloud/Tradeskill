@@ -104,7 +104,7 @@ function BotRow({ bot }) {
 export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("live");
   const navigate = useNavigate();
 
   useEffect(() => {
