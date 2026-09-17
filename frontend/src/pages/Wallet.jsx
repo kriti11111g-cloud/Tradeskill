@@ -128,10 +128,10 @@ export default function Wallet() {
   const total = summary?.total_usdt || 0;
 
   return (
-    <div className="pb-4 pt-4">
-      {/* B&W Balance card */}
+    <div className="pb-4 pt-2">
+      {/* B&W Balance card — sticky (scroll par upar hi rahega) */}
       {!isLiveMode && (
-        <div className="px-4">
+        <div className="px-4 sticky top-0 z-20 pt-2 pb-2" style={{ background: "var(--bg-base)" }}>
           <div
             className="rounded-2xl p-4"
             style={{
