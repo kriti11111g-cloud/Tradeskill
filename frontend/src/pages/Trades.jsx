@@ -131,7 +131,7 @@ export default function Trades() {
   const running = list.filter((b) => String(b.status || "").toLowerCase() === "running");
   const idle = list.filter((b) => String(b.status || "").toLowerCase() !== "running");
   const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0);
-  const shown = filter === "live" ? running : filter === "idle" ? idle : [...running, ...idle];
+  const shown = filter === "idle" ? idle : running;
 
   return (
     <div className="trade-page min-h-screen pb-24 pt-4" data-testid="trade-page">
@@ -204,7 +204,6 @@ export default function Trades() {
         <div className="flex rounded-full p-1" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid="trade-filter">
           {[
             { id: "live", label: "Live", n: running.length, dot: true },
-            { id: "all", label: "All", n: list.length },
             { id: "idle", label: "Idle", n: idle.length },
           ].map((f) => (
             <button
