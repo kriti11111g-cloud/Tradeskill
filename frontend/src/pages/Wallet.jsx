@@ -2,34 +2,65 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDownToLine, ArrowUpToLine, ArrowRightLeft, RefreshCw, Zap, Search,
-  Eye, EyeOff, CalendarDays, ChevronRight, X, Users,
-  ChartNoAxesCombined, Coins, FilePlus2,
+  Eye, EyeOff, CalendarDays, ChevronRight, X,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
 
+/* Solid black icons — exact reference style (Material-filled) */
+const Svg = ({ children, s }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="var(--ink)">{children}</svg>
+);
+const IconPeople = ({ s = 28 }) => (
+  <Svg s={s}><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></Svg>
+);
+const IconProfit = ({ s = 28 }) => (
+  <Svg s={s}><path d="M3.5 20.5h3v-8h-3v8zm5.75 0h3V9h-3v11.5zm5.75 0h3v-6h-3v6z" /><path d="M13.2 2.8h7v7l-2.5-2.5-4.6 4.6-1.7-1.7 4.6-4.6-2.8-2.8z" /></Svg>
+);
+const IconCoins = ({ s = 28 }) => (
+  <Svg s={s}>
+    <ellipse cx="9.5" cy="5.5" rx="6.5" ry="2.5" />
+    <path d="M3 8.2c0 1.38 2.91 2.5 6.5 2.5s6.5-1.12 6.5-2.5V7c-1.2 1.05-3.62 1.7-6.5 1.7S4.2 8.05 3 7v1.2z" />
+    <path d="M3 11.7c0 1.38 2.91 2.5 6.5 2.5.55 0 1.08-.03 1.59-.08a5.5 5.5 0 0 1 4.91-3.36V10.5c-1.2 1.05-3.62 1.7-6.5 1.7S4.2 11.55 3 10.5v1.2z" />
+    <path d="M3 15.2c0 1.38 2.91 2.5 6.5 2.5.44 0 .87-.02 1.29-.05a5.53 5.53 0 0 1-.29-1.77c0-.16.01-.31.02-.47-.34.02-.68.04-1.02.04-2.88 0-5.3-.65-6.5-1.7v1.45z" />
+    <path d="M16.5 11.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 7.4a2.9 2.9 0 1 1 0-5.8 2.9 2.9 0 0 1 0 5.8z" />
+  </Svg>
+);
+const IconDocPlus = ({ s = 28 }) => (
+  <Svg s={s}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5.35a6.5 6.5 0 0 1-1.1-2H6V4h7v5h5v2.03c.7.04 1.37.2 2 .44V8l-6-6zM8 12h6.5c-.66.55-1.22 1.23-1.63 2H8v-2zm0 4h4.1c-.06.33-.1.66-.1 1 0 .34.04.67.1 1H8v-2zm0-8h4v2H8V8z" />
+    <path d="M18 13a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm2.7 5.2h-2v2h-1.4v-2h-2v-1.4h2v-2h1.4v2h2v1.4z" />
+  </Svg>
+);
+const IconDeposit = ({ s = 28 }) => (
+  <Svg s={s}><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" /></Svg>
+);
+const IconWithdraw = ({ s = 28 }) => (
+  <Svg s={s}><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" /></Svg>
+);
+
 const KIND_META = {
-  deposit: { title: "Deposit", Icon: ArrowDownToLine },
-  deposit_onchain: { title: "Deposit", Icon: ArrowDownToLine },
-  p2p_received: { title: "Deposit", Icon: ArrowDownToLine },
-  withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
-  withdraw_request: { title: "Withdrawal", Icon: ArrowUpToLine },
-  withdraw_paid: { title: "Withdrawal", Icon: ArrowUpToLine },
-  external_withdraw: { title: "Withdrawal", Icon: ArrowUpToLine },
-  withdraw_refund: { title: "Withdrawal", Icon: ArrowUpToLine },
-  p2p_sent: { title: "Withdrawal", Icon: ArrowUpToLine },
-  activation: { title: "Activation Fee", Icon: FilePlus2 },
-  fuel: { title: "Trading Fee", Icon: Coins },
-  pause: { title: "Trading Fee", Icon: Coins },
-  trading_fee: { title: "Trading Fee", Icon: Coins },
-  trade_commission: { title: "Trading Profit", Icon: ChartNoAxesCombined },
-  team_commission: { title: "Support Income", Icon: Users },
-  support_income: { title: "Support Income", Icon: Users },
-  direct_bonus: { title: "Support Income", Icon: Users },
-  revenue: { title: "Support Income", Icon: Users },
-  social_bonus: { title: "Support Income", Icon: Users },
+  deposit: { title: "Deposit", Icon: IconDeposit },
+  deposit_onchain: { title: "Deposit", Icon: IconDeposit },
+  p2p_received: { title: "Deposit", Icon: IconDeposit },
+  withdraw: { title: "Withdrawal", Icon: IconWithdraw },
+  withdraw_request: { title: "Withdrawal", Icon: IconWithdraw },
+  withdraw_paid: { title: "Withdrawal", Icon: IconWithdraw },
+  external_withdraw: { title: "Withdrawal", Icon: IconWithdraw },
+  withdraw_refund: { title: "Withdrawal", Icon: IconWithdraw },
+  p2p_sent: { title: "Withdrawal", Icon: IconWithdraw },
+  activation: { title: "Activation Fee", Icon: IconDocPlus },
+  fuel: { title: "Trading Fee", Icon: IconCoins },
+  pause: { title: "Trading Fee", Icon: IconCoins },
+  trading_fee: { title: "Trading Fee", Icon: IconCoins },
+  trade_commission: { title: "Trading Profit", Icon: IconProfit },
+  team_commission: { title: "Support Income", Icon: IconPeople },
+  support_income: { title: "Support Income", Icon: IconPeople },
+  direct_bonus: { title: "Support Income", Icon: IconPeople },
+  revenue: { title: "Support Income", Icon: IconPeople },
+  social_bonus: { title: "Support Income", Icon: IconPeople },
 };
 
 const fmtDT = (iso) => {
@@ -435,38 +466,38 @@ export default function Wallet() {
               </div>
             );
           return (
-            <div className="space-y-1.5" data-testid="history-list">
+            <div className="space-y-2.5" data-testid="history-list">
               {rows.map((h) => {
-                const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: Coins };
+                const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: IconCoins };
                 const isOut = (h.amount ?? 0) < 0;
                 return (
                   <div
                     key={h.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2"
+                    className="flex items-center gap-3.5 rounded-xl px-4 py-2.5"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
-                      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+                      boxShadow: "0 1px 5px rgba(0,0,0,0.04)",
                     }}
                     data-testid={`history-row-${h.kind}`}
                   >
-                    <meta.Icon size={22} strokeWidth={2.2} className="shrink-0" style={{ color: "var(--text)" }} />
+                    <div className="shrink-0"><meta.Icon s={28} /></div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13.5px] font-black capitalize truncate" style={{ color: "var(--text)" }}>
+                      <div className="text-[15px] font-bold capitalize truncate" style={{ color: "var(--ink)" }}>
                         {meta.title}
                       </div>
-                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                      <div className="text-[12px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
                         {fmtDT(h.created_at)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span
-                        className="text-[13px] font-mono font-bold tabular-nums"
+                        className="text-[15px] font-bold tabular-nums"
                         style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
                       >
                         {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
                       </span>
-                      <ChevronRight size={14} style={{ color: "var(--text-mute)" }} />
+                      <ChevronRight size={18} strokeWidth={2.4} style={{ color: "var(--ink)" }} />
                     </div>
                   </div>
                 );

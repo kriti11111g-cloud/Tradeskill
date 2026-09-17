@@ -112,6 +112,10 @@
   --text-secondary: #7FA0A8;
 }
 
+:root { --ink: #000000; }
+[data-theme="dark"] { --ink: #F8FAFC; }
+
+
 html, body, #root {
   background: var(--bg-gradient);
   color: var(--text);
