@@ -134,7 +134,9 @@ export default function Trades() {
   const shown = filter === "idle" ? idle : running;
 
   return (
-    <div className="trade-page min-h-screen pb-24 pt-4" data-testid="trade-page">
+    <div className="trade-page min-h-screen pb-24" data-testid="trade-page">
+      {/* Sticky top: header + exchange + summary + Live/Idle filter (scroll par fixed) */}
+      <div className="sticky top-0 z-20 pt-4 pb-2" style={{ background: "var(--bg-base)" }}>
       {/* Header — Revenue jaisa centered */}
       <div className="px-4 grid grid-cols-[1fr_auto_1fr] items-center">
         <button onClick={() => navigate(-1)} className="p-1 justify-self-start" style={{ color: "var(--ink)" }} data-testid="trade-back">
@@ -223,6 +225,7 @@ export default function Trades() {
             </button>
           ))}
         </div>
+      </div>
       </div>
 
       {/* Bot cards */}
