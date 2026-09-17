@@ -5,7 +5,6 @@ import {
   Eye, EyeOff, CalendarDays, ChevronRight, X, Users, UserPlus, TrendingUp,
   BarChart3, Coins, Gift, FileText, RotateCcw, Pause,
 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +23,7 @@ const KIND_META = {
   activation: { title: "Activation Fee", Icon: FileText },
   fuel: { title: "Bot Fuel", Icon: Zap },
   pause: { title: "Bot Pause", Icon: Pause },
-  trade_commission: { title: "Trade Commission", Icon: TrendingUp },
+  trade_commission: { title: "Trading Profit", Icon: TrendingUp },
   team_commission: { title: "Team Commission", Icon: Users },
   support_income: { title: "Support Income", Icon: Users },
   direct_bonus: { title: "Direct Bonus", Icon: UserPlus },
@@ -125,9 +124,7 @@ export default function Wallet() {
   const total = summary?.total_usdt || 0;
 
   return (
-    <div className="pb-4">
-      <PageHeader title="Wallet" subtitle="Assets · Portfolio" />
-
+    <div className="pb-4 pt-4">
       {/* B&W Balance card */}
       {!isLiveMode && (
         <div className="px-4">
@@ -438,14 +435,14 @@ export default function Wallet() {
               </div>
             );
           return (
-            <div className="space-y-2" data-testid="history-list">
+            <div className="space-y-1.5" data-testid="history-list">
               {rows.map((h) => {
                 const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: Coins };
                 const isOut = (h.amount ?? 0) < 0;
                 return (
                   <div
                     key={h.id}
-                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
@@ -453,28 +450,23 @@ export default function Wallet() {
                     }}
                     data-testid={`history-row-${h.kind}`}
                   >
-                    <meta.Icon size={26} strokeWidth={2.2} className="shrink-0" style={{ color: "var(--text)" }} />
+                    <meta.Icon size={22} strokeWidth={2.2} className="shrink-0" style={{ color: "var(--text)" }} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-bold capitalize truncate" style={{ color: "var(--text)" }}>
+                      <div className="text-[13.5px] font-black capitalize truncate" style={{ color: "var(--text)" }}>
                         {meta.title}
                       </div>
-                      {h.note ? (
-                        <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-mute)" }}>
-                          {h.note}
-                        </div>
-                      ) : null}
-                      <div className="text-[11px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
                         {fmtDT(h.created_at)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <span
-                        className="text-[15px] font-mono font-bold tabular-nums"
+                        className="text-[13px] font-mono font-bold tabular-nums"
                         style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
                       >
                         {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
                       </span>
-                      <ChevronRight size={16} style={{ color: "var(--text-mute)" }} />
+                      <ChevronRight size={14} style={{ color: "var(--text-mute)" }} />
                     </div>
                   </div>
                 );
