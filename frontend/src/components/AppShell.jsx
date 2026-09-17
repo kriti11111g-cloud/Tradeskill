@@ -4,7 +4,7 @@ import BottomNav from "@/components/BottomNav";
 export default function AppShell() {
   return (
     <div
-      className="min-h-screen w-full flex justify-center overflow-x-hidden relative transition-colors duration-300"
+      className="min-h-screen w-full flex justify-center relative transition-colors duration-300"
       style={{ background: "var(--bg-gradient)", color: "var(--text)" }}
     >
       <div className="grain-overlay" />

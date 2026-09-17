@@ -79,7 +79,9 @@ export default function Revenue() {
   }, [data]);
 
   return (
-    <div className="pb-24 pt-3" data-testid="revenue-page">
+    <div className="pb-24" data-testid="revenue-page">
+      {/* Sticky top: header + income cards (scroll par fixed) */}
+      <div className="sticky top-0 z-20 pt-3 pb-2" style={{ background: "var(--bg-base)" }}>
       {/* Header */}
       <div className="px-4 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="p-1" style={{ color: "var(--ink)" }} data-testid="revenue-back">
@@ -112,6 +114,7 @@ export default function Revenue() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Income trend — MASTER (same on every tab) */}
