@@ -135,22 +135,25 @@ export default function Trades() {
 
   return (
     <div className="trade-page min-h-screen pb-24 pt-4" data-testid="trade-page">
-      {/* Header */}
-      <div className="px-4 flex items-start justify-between">
-        <div>
-          <div className="font-display font-black text-3xl leading-none" style={{ color: "var(--ink)" }}>Trade</div>
-          <div className="text-[11px] font-bold tracking-[0.18em] mt-1.5" style={{ color: "var(--text-mute)" }}>
+      {/* Header — Revenue jaisa centered */}
+      <div className="px-4 grid grid-cols-[1fr_auto_1fr] items-center">
+        <span />
+        <div className="text-center">
+          <div className="font-display font-black text-2xl leading-tight" style={{ color: "var(--ink)" }}>Trade</div>
+          <div className="text-[11px] font-bold tracking-[0.18em]" style={{ color: "var(--text-mute)" }}>
             {list.length} BOTS · {running.length} RUNNING
           </div>
         </div>
-        <button
-          onClick={() => navigate("/bot")}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12.5px] font-bold"
-          style={CARD}
-          data-testid="trade-guide-btn"
-        >
-          <BookOpen size={15} style={{ color: "var(--ink)" }} /> Guide
-        </button>
+        <div className="justify-self-end">
+          <button
+            onClick={() => navigate("/bot")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold"
+            style={CARD}
+            data-testid="trade-guide-btn"
+          >
+            <BookOpen size={14} style={{ color: "var(--ink)" }} /> Guide
+          </button>
+        </div>
       </div>
 
       {/* Connected exchange */}
@@ -210,7 +213,7 @@ export default function Trades() {
               key={f.id}
               onClick={() => setFilter(f.id)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[13px] font-bold transition-all"
-              style={filter === f.id ? { background: "var(--ink)", color: "var(--surface)" } : { color: "var(--text)" }}
+              style={filter === f.id ? { background: "linear-gradient(90deg, #2563EB, #10B981)", color: "#fff" } : { color: "var(--text)" }}
               data-testid={`trade-filter-${f.id}`}
             >
               {f.dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--good)" }} />}
