@@ -475,38 +475,38 @@ export default function Wallet() {
               </div>
             );
           return (
-            <div className="space-y-2.5" data-testid="history-list">
+            <div className="space-y-1.5" data-testid="history-list">
               {rows.map((h) => {
                 const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: IconCoins };
                 const isOut = (h.amount ?? 0) < 0;
                 return (
                   <div
                     key={h.id}
-                    className="flex items-center gap-3.5 rounded-xl px-4 py-2.5"
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
-                      boxShadow: "0 1px 5px rgba(0,0,0,0.04)",
+                      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
                     }}
                     data-testid={`history-row-${h.kind}`}
                   >
-                    <div className="shrink-0"><meta.Icon s={28} /></div>
+                    <div className="shrink-0"><meta.Icon s={30} /></div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-bold capitalize truncate" style={{ color: "var(--ink)" }}>
+                      <div className="text-[13px] font-black capitalize truncate leading-tight" style={{ color: "var(--ink)" }}>
                         {meta.title}
                       </div>
-                      <div className="text-[12px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
                         {fmtDT(h.created_at)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <span
-                        className="text-[15px] font-bold tabular-nums"
+                        className="text-[13px] font-bold tabular-nums"
                         style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
                       >
                         {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
                       </span>
-                      <ChevronRight size={18} strokeWidth={2.4} style={{ color: "var(--ink)" }} />
+                      <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)" }} />
                     </div>
                   </div>
                 );
