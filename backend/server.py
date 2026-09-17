@@ -725,29 +725,45 @@ def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
 @api.get("/bots")
 async def list_bots(user: dict = Depends(get_current_user)):
     rows = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
-    # Aggregate buy/sell counts + cumulative profit per symbol from transactions
+    # Lifetime profit per symbol (Total Profit kabhi reset nahi hota)
+    stats_by_sym: dict = {}
+    async for a in db.transactions.aggregate([
+        {"$match": {"user_id": user["id"], "side": "SELL"}},
+        {"$group": {"_id": "$symbol", "profit_sum": {"$sum": {"$ifNull": ["$profit", 0]}}}},
+    ]):
+        stats_by_sym[a["_id"]] = {"cumulative_profit": round(a["profit_sum"], 4)}
+
+    # Session-scoped counts + date range: har restart ke baad fresh (session_started_at se)
+    sess_conds = []
+    for r in rows:
+        ss = r.get("session_started_at")
+        cond = {"symbol": r["symbol"]}
+        if ss:
+            cond["created_at"] = {"$gte": ss}
+        sess_conds.append(cond)
+    sess_match = {"user_id": user["id"]}
+    if sess_conds:
+        sess_match["$or"] = sess_conds
     pipeline = [
-        {"$match": {"user_id": user["id"]}},
+        {"$match": sess_match},
         {"$group": {
             "_id": {"symbol": "$symbol", "side": "$side"},
             "count": {"$sum": 1},
-            "profit_sum": {"$sum": {"$ifNull": ["$profit", 0]}},
         }},
     ]
-    stats_by_sym: dict = {}
+    counts_by_sym: dict = {}
     async for a in db.transactions.aggregate(pipeline):
         sym = a["_id"]["symbol"]
         side = a["_id"]["side"]
-        s = stats_by_sym.setdefault(sym, {"buy_count": 0, "sell_count": 0, "cumulative_profit": 0.0})
+        s = counts_by_sym.setdefault(sym, {"buy_count": 0, "sell_count": 0})
         if side == "BUY":
             s["buy_count"] = a["count"]
         elif side == "SELL":
             s["sell_count"] = a["count"]
-            s["cumulative_profit"] = round(a["profit_sum"], 4)
 
-    # First + last transaction date per symbol (for date range display)
+    # First + last transaction date per symbol (session-scoped)
     range_pipeline = [
-        {"$match": {"user_id": user["id"]}},
+        {"$match": sess_match},
         {"$group": {
             "_id": "$symbol",
             "first_at": {"$min": "$created_at"},
@@ -759,10 +775,10 @@ async def list_bots(user: dict = Depends(get_current_user)):
         range_by_sym[a["_id"]] = {"first_at": a["first_at"], "last_at": a["last_at"]}
 
     for r in rows:
-        s = stats_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0, "cumulative_profit": 0.0})
-        r["buy_count"] = s["buy_count"]
-        r["sell_count"] = s["sell_count"]
-        r["cumulative_profit"] = s["cumulative_profit"]
+        c = counts_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0})
+        r["buy_count"] = c["buy_count"]
+        r["sell_count"] = c["sell_count"]
+        r["cumulative_profit"] = stats_by_sym.get(r["symbol"], {}).get("cumulative_profit", 0.0)
         rng = range_by_sym.get(r["symbol"], {})
         r["first_trade_at"] = rng.get("first_at")
         r["last_trade_at"] = rng.get("last_at")
@@ -938,22 +954,71 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "Bot wallet not activated. Please activate your bot from the Bot tab to start trading.")
     if float(w.get("balance", 0.0) or 0.0) < BOT_MIN_FUEL_BALANCE:
         raise HTTPException(400, f"Minimum ${BOT_MIN_FUEL_BALANCE:.0f} fuel required to run the bot. Please deposit.")
+
+    # FRESH START: agar purani (stale) position padi hai to use pehle clear karo.
+    # Demo mode: cost-basis refund (no profit, no fee). Real/testnet: market sell.
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    stale_qty = float((bot or {}).get("position_qty", 0.0) or 0.0)
+    if bot and stale_qty > 0:
+        _, mode = await get_user_binance(user["id"])
+        if mode in ("real", "testnet"):
+            try:
+                await _execute_trade(user_id=user["id"], symbol=symbol, side="SELL",
+                                     quantity=stale_qty, source="fresh_start")
+            except _TradeError as e:
+                logger.warning(f"bot {symbol}: fresh-start sell failed: {e.msg}")
+        else:
+            cost = float(bot.get("position_amount", 0.0) or 0.0)
+            if cost > 0:
+                await db.users.update_one({"id": user["id"]}, {"$inc": {"wallet_usdt": cost}})
+            await db.bot_events.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+                "kind": "fresh_start_refund", "amount": cost,
+                "created_at": iso(now_utc()),
+            })
+
+    now = iso(now_utc())
     await db.bots.update_one(
         {"user_id": user["id"], "symbol": symbol},
-        {"$set": {"status": "running", "started_at": iso(now_utc())}},
+        {"$set": {
+            "status": "running", "started_at": now,
+            "session_started_at": now,
+            "position_qty": 0.0, "position_amount": 0.0, "avg_price": 0.0,
+            "margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
+            "peak_price": 0.0, "dca_bottom_price": 0.0,
+            "cycles_completed": 0, "stop_reason": "",
+        }},
         upsert=True,
     )
-    return {"status": "running", "symbol": symbol}
+    return {"status": "running", "symbol": symbol, "fresh_start": True}
 
 
 @api.post("/bots/{symbol}/stop")
 async def stop_bot(symbol: str, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()
+    # Stop = wahin par band: open position current market price par close hoti hai
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    closed_profit = None
+    qty = float((bot or {}).get("position_qty", 0.0) or 0.0)
+    if bot and qty > 0:
+        try:
+            txn = await _execute_trade(user_id=user["id"], symbol=symbol, side="SELL",
+                                       quantity=qty, source="bot_stop")
+            closed_profit = txn.get("profit")
+            await db.bot_events.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+                "kind": "stop_close", "price": txn.get("price"),
+                "amount": txn.get("amount"), "profit": closed_profit,
+                "created_at": iso(now_utc()),
+            })
+        except _TradeError as e:
+            logger.warning(f"bot {symbol}: stop-close sell failed: {e.msg}")
     await db.bots.update_one(
         {"user_id": user["id"], "symbol": symbol},
         {"$set": {"status": "stopped", "stopped_at": iso(now_utc())}},
     )
-    return {"status": "stopped", "symbol": symbol}
+    return {"status": "stopped", "symbol": symbol,
+            "position_closed": closed_profit is not None, "close_profit": closed_profit}
 
 
 # ==== Trading (Real Binance orders when bound in real/testnet; Demo simulation otherwise) ====
