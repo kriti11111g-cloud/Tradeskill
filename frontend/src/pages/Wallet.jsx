@@ -36,7 +36,7 @@ const fmtDT = (iso) => {
 
 const TetherCoin = ({ s = 44 }) => (
   <svg width={s} height={s} viewBox="0 0 48 48">
-    <circle cx="24" cy="24" r="23" fill="var(--text)" />
+    <circle cx="24" cy="24" r="23" fill="var(--good)" />
     <circle cx="24" cy="24" r="19" fill="none" stroke="var(--bg-base)" strokeWidth="1.5" />
     <path fill="var(--bg-base)" d="M33.5 15h-19v4.3h7.3v3c-4.8.3-8.3 1.3-8.3 2.6s3.5 2.4 8.3 2.6V35h4.4v-7.5c4.7-.3 8.2-1.3 8.2-2.6s-3.5-2.4-8.2-2.6v-3h7.3V15zm-9.5 10.7c-4.2 0-7.6-.7-7.6-1.6 0-.8 2.8-1.4 6.4-1.6v2.3c.4 0 .8.1 1.2.1s.8 0 1.2-.1v-2.3c3.6.2 6.4.9 6.4 1.6 0 .9-3.4 1.6-7.6 1.6z" />
   </svg>
@@ -159,7 +159,7 @@ export default function Wallet() {
                 <div className="flex items-baseline gap-2 mt-1.5">
                   <span
                     className="font-display font-black text-4xl tabular-nums leading-none"
-                    style={{ color: "var(--text)" }}
+                    style={{ color: "var(--good)" }}
                     data-testid="assets-total"
                   >
                     {hideBal ? "****" : fmtNum(total, 4)}
