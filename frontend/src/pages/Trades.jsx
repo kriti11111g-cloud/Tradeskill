@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft } from "lucide-react";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
@@ -137,7 +137,9 @@ export default function Trades() {
     <div className="trade-page min-h-screen pb-24 pt-4" data-testid="trade-page">
       {/* Header — Revenue jaisa centered */}
       <div className="px-4 grid grid-cols-[1fr_auto_1fr] items-center">
-        <span />
+        <button onClick={() => navigate(-1)} className="p-1 justify-self-start" style={{ color: "var(--ink)" }} data-testid="trade-back">
+          <ArrowLeft size={24} strokeWidth={2.4} />
+        </button>
         <div className="text-center">
           <div className="font-display font-black text-2xl leading-tight" style={{ color: "var(--ink)" }}>Trade</div>
           <div className="text-[11px] font-bold tracking-[0.18em]" style={{ color: "var(--text-mute)" }}>
