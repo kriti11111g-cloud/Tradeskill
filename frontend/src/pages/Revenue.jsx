@@ -4,31 +4,12 @@ import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-
-/* Solid black icons — 100% match with reference image */
-const Ink = ({ children, s }) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="var(--ink)">{children}</svg>
-);
-const IconBars = ({ s = 30 }) => (
-  <Ink s={s}><path d="M4 20.5h3v-7H4v7zm5 0h3V9H9v11.5zm5 0h3v-5h-3v5zm5 0h3V4h-3v16.5z" /></Ink>
-);
-const IconCoinStack = ({ s = 30 }) => (
-  <Ink s={s}><path d="M12 3C7.58 3 4 4.34 4 6s3.58 3 8 3 8-1.34 8-3-3.58-3-8-3zM4 8.5V11c0 1.66 3.58 3 8 3s8-1.34 8-3V8.5c0 1.66-3.58 3-8 3s-8-1.34-8-3zm0 5V16c0 1.66 3.58 3 8 3s8-1.34 8-3v-2.5c0 1.66-3.58 3-8 3s-8-1.34-8-3z" /></Ink>
-);
-const IconGroup = ({ s = 30 }) => (
-  <Ink s={s}><path d="M0 18v-1.575q0-1.1 1.113-1.763Q2.225 14 4 14q.325 0 .625.012.3.013.575.063-.35.5-.525 1.075-.175.575-.175 1.225V18Zm6 0v-1.625q0-.8.437-1.463.438-.662 1.238-1.162.8-.5 1.912-.75.813-.25 2.113-.25 1.325 0 2.438.25 1.112.25 1.912.75t1.225 1.162q.425.663.425 1.463V18Zm13.5 0v-1.625q0-.65-.163-1.225-.162-.575-.487-1.075.275-.05.563-.063Q19.7 14 20 14q1.775 0 2.888.65Q24 15.3 24 16.425V18ZM4 13q-.825 0-1.412-.588Q2 11.825 2 11t.588-1.413Q3.175 9 4 9t1.412.587Q6 10.175 6 11q0 .825-.588 1.412Q4.825 13 4 13Zm16 0q-.825 0-1.413-.588Q18 11.825 18 11t.587-1.413Q19.175 9 20 9q.825 0 1.413.587Q22 10.175 22 11q0 .825-.587 1.412Q20.825 13 20 13Zm-8-1q-1.25 0-2.125-.875T9 9q0-1.25.875-2.125T12 6q1.25 0 2.125.875T15 9q0 1.25-.875 2.125T12 12Z" /></Ink>
-);
-const IconPersonAdd = ({ s = 30 }) => (
-  <Ink s={s}><path d="M10 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h13.5a6.5 6.5 0 0 1-.4-6h-.02c-1.6-.6-3.6 0-5.08 0z" /><path d="M17.5 12.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm2.9 5.7h-2.2v2.2h-1.4v-2.2h-2.2v-1.4h2.2v-2.2h1.4v2.2h2.2v1.4z" /></Ink>
-);
-const IconCrown = ({ s = 30 }) => (
-  <Ink s={s}><path d="M4.5 16 2.6 5.9l5.3 4.4L12 4.2l4.1 6.1 5.3-4.4L19.5 16h-15zm0 2.2h15V20h-15v-1.8z" /></Ink>
-);
+import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconPercent } from "@/components/IncomeIcons";
 
 const TABS = [
   { id: "all", label: "All" },
-  { id: "trading_profit", label: "Trading Profit", Icon: IconBars, title: "Trading Profit" },
-  { id: "trading_commission", label: "Trading Commission", Icon: IconBars, title: "Trading Commission" },
+  { id: "trading_profit", label: "Trading Profit", Icon: IconProfit, title: "Trading Profit" },
+  { id: "trading_commission", label: "Trading Commission", Icon: IconPercent, title: "Trading Commission" },
   { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
   ...Array.from({ length: 10 }, (_, i) => ({
@@ -69,9 +50,9 @@ export default function Revenue() {
     return () => clearInterval(t);
   }, []);
 
-  const stats = tab === "all" ? data?.all : data?.categories?.[tab];
-  const today = stats?.today || 0;
-  const total = stats?.total || 0;
+  const today = data?.all?.today || 0;
+  const total = data?.all?.total || 0;
+  const catStats = tab === "all" ? null : data?.categories?.[tab] || { today: 0, total: 0 };
 
   const rows = useMemo(() => {
     const h = data?.history || [];
@@ -174,6 +155,33 @@ export default function Revenue() {
           </button>
         ))}
       </div>
+
+      {/* Selected category earning cards (not on All — overall cards upar already hain) */}
+      {catStats && (() => {
+        const CatIcon = META[tab]?.Icon || IconBars;
+        return (
+          <div className="px-4 mt-3 grid grid-cols-2 gap-2.5" data-testid="category-earning-cards">
+            <div className="rounded-xl px-3 py-3 flex items-center gap-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }} data-testid="category-today-card">
+              <CatIcon s={26} />
+              <div className="min-w-0">
+                <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Today Earning</div>
+                <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="category-today">
+                  +{fmtNum(catStats.today || 0, 2)} <span className="text-[10px]">USDT</span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl px-3 py-3 flex items-center gap-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }} data-testid="category-total-card">
+              <CatIcon s={26} />
+              <div className="min-w-0">
+                <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Earning</div>
+                <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="category-total">
+                  +{fmtNum(catStats.total || 0, 2)} <span className="text-[10px]">USDT</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Income history */}
       <div className="px-4 mt-4">
