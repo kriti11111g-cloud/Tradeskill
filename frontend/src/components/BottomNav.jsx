@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, LineChart, ArrowRightLeft, Wallet, CircleUserRound, Bot } from "lucide-react";
+import { Home, LineChart, ArrowRightLeft, Wallet, CircleUserRound, ChartNoAxesCombined } from "lucide-react";
 
 const items = [
   { to: "/", icon: Home, label: "Home", testid: "nav-home" },
   { to: "/market", icon: LineChart, label: "Market", testid: "nav-market" },
   { to: "/trades", icon: ArrowRightLeft, label: "Trade", testid: "nav-trade" },
   { to: "/wallet", icon: Wallet, label: "Asset", testid: "nav-wallet" },
-  { to: "/bot", icon: Bot, label: "Bot", testid: "nav-bot" },
+  { to: "/revenue", icon: ChartNoAxesCombined, label: "Revenue", testid: "nav-revenue" },
   { to: "/profile", icon: CircleUserRound, label: "Profile", testid: "nav-profile" },
 ];
 

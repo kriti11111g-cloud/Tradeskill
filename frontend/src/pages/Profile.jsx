@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -20,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { fmtUSD } from "@/lib/format";
 
 const items = [
+  { icon: Bot, label: "Bot", to: "/bot", testid: "profile-bot", tint: "var(--primary)" },
   { icon: Award, label: "Rank & Activation", to: "/rewards", testid: "profile-rank", tint: "var(--gold)" },
   { icon: WalletIcon, label: "Wallet", to: "/wallet", testid: "profile-assets", tint: "var(--primary)" },
   { icon: Key, label: "API Binding", to: "/bind-api", testid: "profile-api", tint: "var(--primary)" },
