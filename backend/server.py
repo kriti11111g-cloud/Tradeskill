@@ -1428,6 +1428,65 @@ async def list_transactions(
 
 
 # ==== Revenue ====
+@api.get("/revenue/income")
+async def revenue_income(user: dict = Depends(get_current_user)):
+    uid = user["id"]
+    kinds = ["trade_commission", "team_commission", "direct_bonus", "support_income", "social_bonus"]
+    txns = await db.bot_transactions.find(
+        {"user_id": uid, "kind": {"$in": kinds}, "amount": {"$gt": 0}},
+        {"_id": 0}).sort("created_at", -1).to_list(3000)
+    sells = await db.transactions.find(
+        {"user_id": uid, "side": "SELL"},
+        {"_id": 0, "id": 1, "profit": 1, "created_at": 1, "symbol": 1}).sort("created_at", -1).to_list(3000)
+
+    def cat_of(t):
+        k = t["kind"]
+        if k == "trade_commission":
+            return "trading_commission"
+        if k == "direct_bonus":
+            return "direct_income"
+        if k in ("support_income", "social_bonus"):
+            return "support_income"
+        if k == "team_commission":
+            m = re.search(r"· L(\d+)$", t.get("note") or "")
+            lvl = int(m.group(1)) if m else 1
+            return f"global_{min(lvl, 10)}"
+        return "other"
+
+    history = []
+    for t in txns:
+        history.append({"id": t["id"], "category": cat_of(t), "amount": t["amount"],
+                        "created_at": t["created_at"], "note": t.get("note", "")})
+    for s in sells:
+        p = float(s.get("profit") or 0.0)
+        if p <= 0:
+            continue
+        history.append({"id": s.get("id") or s["created_at"], "category": "trading_profit",
+                        "amount": round(p, 4), "created_at": s["created_at"],
+                        "note": s.get("symbol", "")})
+    history.sort(key=lambda x: x["created_at"] or "", reverse=True)
+
+    today_str = now_utc().strftime("%Y-%m-%d")
+    cats, trend = {}, {}
+    for h in history:
+        d = (h["created_at"] or "")[:10]
+        cc = cats.setdefault(h["category"], {"today": 0.0, "total": 0.0})
+        cc["total"] += h["amount"]
+        if d == today_str:
+            cc["today"] += h["amount"]
+        trend[d] = trend.get(d, 0.0) + h["amount"]
+
+    days = [(now_utc() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(29, -1, -1)]
+    return {
+        "all": {"today": round(sum(c["today"] for c in cats.values()), 4),
+                "total": round(sum(c["total"] for c in cats.values()), 4)},
+        "categories": {k: {"today": round(v["today"], 4), "total": round(v["total"], 4)}
+                       for k, v in cats.items()},
+        "trend": [{"date": d, "total": round(trend.get(d, 0.0), 4)} for d in days],
+        "history": history[:400],
+    }
+
+
 @api.get("/revenue/summary")
 async def revenue_summary(user: dict = Depends(get_current_user)):
     rows = await db.transactions.find(
@@ -2079,7 +2138,7 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
                 diff = round(pct - highest, 4)
                 amt = round(profit * diff / 100.0 * scale, 4)
                 ok = await _credit_commission(anc["id"], amt, "team_commission",
-                                              f"Differential {diff}% from {trader_label} · {symbol}",
+                                              f"Differential {diff}% from {trader_label} · {symbol} · L{hops + 1}",
                                               from_user_id=user_id, symbol=symbol)
                 if ok:
                     highest = pct

@@ -1,415 +1,230 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Wallet } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react";
 import api from "@/lib/api";
-import { fmtUSD } from "@/lib/format";
-import CoinIcon from "@/components/CoinIcon";
-import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
+import { fmtNum } from "@/lib/format";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 
-// Piecewise Y-axis scale: fixed positive ticks $0, $10, $50, $500, $1k
-const PROFIT_BUCKETS = [0, 10, 50, 500, 1000];
-const PROFIT_LABELS = ["$0", "$10", "$50", "$500", "$1k"];
-const MAX_TICK_INDEX = PROFIT_BUCKETS.length - 1; // 4
-
-function scaleProfit(p) {
-  if (p == null || Number.isNaN(p)) return 0;
-  // Loss days render as a tiny red marker (0.12) so they're visible for tap
-  if (p < 0) return 0.12;
-  for (let i = 0; i < MAX_TICK_INDEX; i++) {
-    const lo = PROFIT_BUCKETS[i];
-    const hi = PROFIT_BUCKETS[i + 1];
-    if (p <= hi) {
-      const t = hi === lo ? 0 : (p - lo) / (hi - lo);
-      return i + t;
-    }
-  }
-  return MAX_TICK_INDEX;
-}
-
-const BinanceLogo = ({ size = 14 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 2500" width={size} height={size} aria-hidden>
-    <path fill="#F59E0B" d="M764.48,1050.52,1250,565l485.75,485.73,282.5-282.5L1250,0,482,768l282.49,282.5M0,1250l282.51-282.51L565,1250,282.5,1532.49Zm764.48,199.51L1250,1935l485.74-485.72,282.65,282.35h0l-768,768.13L482,1732.01l-.14-.15,282.62-282.35M1935,1250l282.5-282.51L2500,1250l-282.5,282.5Z" />
-    <path fill="#F59E0B" d="M1536.52,1249.85h.12L1250,963.19,1038.13,1175h0l-24.34,24.35-50.2,50.21-.4.39.4.41L1250,1536.81l286.66-286.66.14-.16-.26-.14" />
-  </svg>
+/* Solid black icons — 100% match with reference image */
+const Ink = ({ children, s }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="var(--ink)">{children}</svg>
+);
+const IconBars = ({ s = 30 }) => (
+  <Ink s={s}><path d="M4 20.5h3v-7H4v7zm5 0h3V9H9v11.5zm5 0h3v-5h-3v5zm5 0h3V4h-3v16.5z" /></Ink>
+);
+const IconCoinStack = ({ s = 30 }) => (
+  <Ink s={s}><path d="M12 3C7.58 3 4 4.34 4 6s3.58 3 8 3 8-1.34 8-3-3.58-3-8-3zM4 8.5V11c0 1.66 3.58 3 8 3s8-1.34 8-3V8.5c0 1.66-3.58 3-8 3s-8-1.34-8-3zm0 5V16c0 1.66 3.58 3 8 3s8-1.34 8-3v-2.5c0 1.66-3.58 3-8 3s-8-1.34-8-3z" /></Ink>
+);
+const IconGroup = ({ s = 30 }) => (
+  <Ink s={s}><path d="M0 18v-1.575q0-1.1 1.113-1.763Q2.225 14 4 14q.325 0 .625.012.3.013.575.063-.35.5-.525 1.075-.175.575-.175 1.225V18Zm6 0v-1.625q0-.8.437-1.463.438-.662 1.238-1.162.8-.5 1.912-.75.813-.25 2.113-.25 1.325 0 2.438.25 1.112.25 1.912.75t1.225 1.162q.425.663.425 1.463V18Zm13.5 0v-1.625q0-.65-.163-1.225-.162-.575-.487-1.075.275-.05.563-.063Q19.7 14 20 14q1.775 0 2.888.65Q24 15.3 24 16.425V18ZM4 13q-.825 0-1.412-.588Q2 11.825 2 11t.588-1.413Q3.175 9 4 9t1.412.587Q6 10.175 6 11q0 .825-.588 1.412Q4.825 13 4 13Zm16 0q-.825 0-1.413-.588Q18 11.825 18 11t.587-1.413Q19.175 9 20 9q.825 0 1.413.587Q22 10.175 22 11q0 .825-.587 1.412Q20.825 13 20 13Zm-8-1q-1.25 0-2.125-.875T9 9q0-1.25.875-2.125T12 6q1.25 0 2.125.875T15 9q0 1.25-.875 2.125T12 12Z" /></Ink>
+);
+const IconPersonAdd = ({ s = 30 }) => (
+  <Ink s={s}><path d="M10 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h13.5a6.5 6.5 0 0 1-.4-6h-.02c-1.6-.6-3.6 0-5.08 0z" /><path d="M17.5 12.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm2.9 5.7h-2.2v2.2h-1.4v-2.2h-2.2v-1.4h2.2v-2.2h1.4v2.2h2.2v1.4z" /></Ink>
+);
+const IconCrown = ({ s = 30 }) => (
+  <Ink s={s}><path d="M4.5 16 2.6 5.9l5.3 4.4L12 4.2l4.1 6.1 5.3-4.4L19.5 16h-15zm0 2.2h15V20h-15v-1.8z" /></Ink>
 );
 
-function ProfitBarTooltip({ active, payload, trades }) {
-  if (!active || !payload || !payload.length) return null;
+const TABS = [
+  { id: "all", label: "All" },
+  { id: "trading_profit", label: "Trading Profit", Icon: IconBars, title: "Trading Profit" },
+  { id: "trading_commission", label: "Trading Commission", Icon: IconBars, title: "Trading Commission" },
+  { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
+  { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
+  ...Array.from({ length: 10 }, (_, i) => ({
+    id: `global_${i + 1}`,
+    label: `Global Level-${String(i + 1).padStart(2, "0")}`,
+    Icon: IconCrown,
+    title: `Global Royalty Level-${String(i + 1).padStart(2, "0")}`,
+  })),
+];
+const META = Object.fromEntries(TABS.filter((t) => t.id !== "all").map((t) => [t.id, t]));
+
+const fmtDate = (iso) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+function TrendTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
   const d = payload[0].payload;
-  const meta = (trades || []).find((x) => x.date === d.date);
-  const positive = d.profit >= 0;
-  const dt = new Date(d.date + "T00:00:00Z");
-  const dateLabel = dt.toLocaleDateString(undefined, {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    timeZone: "UTC",
-  });
   return (
-    <div
-      className="bg-[color:var(--surface)] border rounded-lg px-2.5 py-2 shadow-xl"
-      style={{
-        borderColor: positive ? "rgba(22,163,74,0.4)" : "rgba(248,113,113,0.4)",
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      <div className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
-        {dateLabel}
-      </div>
-      <div
-        className={`font-mono font-black text-[14px] leading-none mt-1 ${positive ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
-      >
-        {positive ? "+" : ""}${(d.profit || 0).toFixed(2)}
-      </div>
-      {meta && (
-        <div className="text-[9px] text-[color:var(--text-mute)] mt-1 leading-tight">
-          {meta.trades} sells · {meta.symbols.length} coin
-          {meta.symbols.length === 1 ? "" : "s"}
-        </div>
-      )}
-      {meta?.symbols?.length > 0 && (
-        <div className="text-[9px] text-[color:var(--text-soft)] mt-0.5 leading-tight truncate max-w-[160px]">
-          {meta.symbols.map((s) => s.replace("USDT", "")).join(" · ")}
-        </div>
-      )}
+    <div className="rounded-lg px-2.5 py-1.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 4px 14px rgba(0,0,0,0.1)" }}>
+      <div className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>{d.date.slice(5)}</div>
+      <div className="text-[13px] font-black" style={{ color: "var(--good)" }}>+{fmtNum(d.total, 2)}</div>
     </div>
   );
 }
 
 export default function Revenue() {
   const [data, setData] = useState(null);
-  const [wallet, setWallet] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [tab, setTab] = useState("all");
+  const [openRow, setOpenRow] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = () => {
-      api.get("/revenue/summary").then(({ data }) => setData(data));
-      api.get("/wallet/spot").then(({ data }) => setWallet(data)).catch(() => {
-        /* keep previous wallet value on transient failure */
-      });
-    };
+    const load = () => api.get("/revenue/income").then(({ data }) => setData(data)).catch(() => {});
     load();
-    const t = setInterval(load, 15000);
+    const t = setInterval(load, 20000);
     return () => clearInterval(t);
   }, []);
 
-  const today = data?.today_profit || 0;
-  const total = data?.total_profit || 0;
+  const stats = tab === "all" ? data?.all : data?.categories?.[tab];
+  const today = stats?.today || 0;
+  const total = stats?.total || 0;
 
-  const scaledDaily = (data?.daily || []).map((d) => ({
-    ...d,
-    scaled: scaleProfit(d.profit),
-  }));
-  const yDomain = [0, MAX_TICK_INDEX];
-  const yTicks = [0, 1, 2, 3, 4];
-  const yTickFormatter = (v) => PROFIT_LABELS[v] || "";
+  const rows = useMemo(() => {
+    const h = data?.history || [];
+    return tab === "all" ? h : h.filter((r) => r.category === tab);
+  }, [data, tab]);
+
+  const lastVal = useMemo(() => {
+    const t = data?.trend || [];
+    for (let i = t.length - 1; i >= 0; i--) if (t[i].total > 0) return t[i].total;
+    return 0;
+  }, [data]);
 
   return (
-    <div className="pb-24">
-      <PageHeader title="Revenue" subtitle="Profit & Loss · Auto-refresh 15s" />
+    <div className="pb-24 pt-3" data-testid="revenue-page">
+      {/* Header */}
+      <div className="px-4 flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="p-1" style={{ color: "var(--ink)" }} data-testid="revenue-back">
+          <ArrowLeft size={24} strokeWidth={2.4} />
+        </button>
+        <div className="text-center">
+          <div className="font-display font-black text-2xl leading-tight" style={{ color: "var(--ink)" }}>Revenue</div>
+          <div className="text-[12px]" style={{ color: "var(--text-mute)" }}>Track your income & growth</div>
+        </div>
+        <CalendarDays size={22} strokeWidth={2.2} style={{ color: "var(--ink)" }} />
+      </div>
 
-      {/* CARD 1: Wallet Balance (Spot) */}
-      <div className="px-4">
-        <div
-          className="rounded-3xl border border-[color:var(--gold)]/30 p-5 bg-[color:var(--surface-2)] backdrop-blur-xl backdrop-blur-xl relative overflow-hidden"
-          data-testid="wallet-balance-card"
-        >
-          <div
-            className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-25"
-            style={{ background: "radial-gradient(circle, #F59E0B 0%, transparent 70%)" }}
-          />
-          <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 flex items-center justify-center shrink-0">
-              <Wallet size={20} className="text-[#F59E0B]" />
+      {/* Today / Total income cards */}
+      <div className="px-4 mt-4 grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl px-3 py-3 flex items-center gap-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }} data-testid="revenue-today-card">
+          <IconBars s={28} />
+          <div className="min-w-0">
+            <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Today&apos;s Income</div>
+            <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="revenue-today">
+              +{fmtNum(today, 2)} <span className="text-[10px]">USDT</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <BinanceLogo size={12} />
-                <div className="text-[9px] uppercase tracking-[0.25em] text-[#F59E0B] font-bold">
-                  Binance Spot Wallet
-                </div>
-                {wallet?.connected ? (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
-                    Live · {wallet.mode?.toUpperCase()}
-                  </span>
-                ) : (
-                  <span className="text-[8px] uppercase tracking-widest font-bold px-1.5 py-px rounded-full bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)] leading-none">
-                    Demo
-                  </span>
-                )}
-              </div>
-              <div
-                className="font-mono font-black text-[26px] mt-1 leading-none text-[color:var(--text)]"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-                data-testid="wallet-usdt-balance"
-              >
-                {wallet == null ? "—" : fmtUSD(wallet.usdt_balance ?? 0)}
-              </div>
-              <div className="text-[9px] text-[color:var(--text-mute)] mt-1">
-                Available USDT · {wallet?.connected ? "Fetched from Binance API" : "Bind API keys for live balance"}
-              </div>
+          </div>
+        </div>
+        <div className="rounded-xl px-3 py-3 flex items-center gap-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }} data-testid="revenue-total-card">
+          <IconCoinStack s={28} />
+          <div className="min-w-0">
+            <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Income</div>
+            <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="revenue-total">
+              +{fmtNum(total, 2)} <span className="text-[10px]">USDT</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CARDS 2 & 3: Today's Profit | Cumulative Profit — thin twin cards */}
-      <div className="px-4 mt-2.5 grid grid-cols-2 gap-2.5">
-        <div
-          className="rounded-2xl app-card p-3"
-          data-testid="today-profit-card"
-        >
-          <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
-            Today&apos;s Profit
-          </div>
-          <div
-            className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
-              today >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
-            }`}
-            data-testid="today-profit"
-          >
-            {today >= 0 ? "+" : ""}
-            {fmtUSD(today)}
-          </div>
-          <div className="text-[9px] text-[color:var(--text-mute)] mt-1.5 leading-none">
-            {data?.today_trades || 0} sells today
-          </div>
-        </div>
-
-        <div
-          className="rounded-2xl app-card p-3"
-          data-testid="cumulative-profit-card"
-        >
-          <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
-            Cumulative Profit
-          </div>
-          <div
-            className={`font-mono font-bold text-[18px] tabular-nums mt-1.5 leading-none ${
-              total >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
-            }`}
-            data-testid="total-profit"
-          >
-            {total >= 0 ? "+" : ""}
-            {fmtUSD(total)}
-          </div>
-          <div className="text-[9px] text-[color:var(--text-mute)] mt-1.5 leading-none">
-            {data?.total_trades || 0} sells · {data?.by_symbol?.length || 0} symbols
-          </div>
-        </div>
-      </div>
-
-      {data?.daily?.length > 0 && (
-        <div className="px-4 mt-2.5">
-          <div className="app-card rounded-2xl p-2.5">
-            <div className="flex items-center justify-between mb-1 px-1">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-semibold">
-                Daily Profit
-              </div>
-              <div className="text-[9px] text-[color:var(--text-mute)] tabular-nums">
-                All-Time · {data.daily.length}d
-              </div>
+      {/* Income trend — MASTER (same on every tab) */}
+      <div className="px-4 mt-2.5">
+        <div className="rounded-xl p-3" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }} data-testid="income-trend">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[12px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Income Trend</div>
+            <div className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: "var(--text)" }}>
+              Last 30 Days <ChevronDown size={13} />
             </div>
-            <ResponsiveContainer width="100%" height={115}>
-              <BarChart
-                data={scaledDaily}
-                margin={{ top: 4, right: 6, left: -8, bottom: 0 }}
-                barCategoryGap="20%"
-              >
-                <CartesianGrid stroke="#ffffff08" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: "var(--text-mute)", fontSize: 8 }}
-                  tickFormatter={(v) => v.slice(5)}
-                  interval="preserveStartEnd"
-                  minTickGap={20}
-                />
-                <YAxis
-                  ticks={yTicks}
-                  domain={yDomain}
-                  tick={{ fill: "var(--text-mute)", fontSize: 8 }}
-                  tickFormatter={yTickFormatter}
-                  width={32}
-                />
-                <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
-                <Tooltip
-                  cursor={{ fill: "rgba(22,163,74,0.06)" }}
-                  content={<ProfitBarTooltip trades={data.by_date} />}
-                />
-                <Bar
-                  dataKey="scaled"
-                  radius={[3, 3, 0, 0]}
-                  maxBarSize={22}
-                  cursor="pointer"
-                  onClick={(entry) => entry?.date && setSelectedDay(entry.date)}
-                >
-                  {scaledDaily.map((d) => (
-                    <Cell
-                      key={d.date}
-                      fill={d.profit >= 0 ? "var(--good)" : "#F87171"}
-                      opacity={selectedDay && selectedDay !== d.date ? 0.35 : 1}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
+          </div>
+          <div className="relative">
+            {lastVal > 0 && (
+              <div className="absolute right-1 top-0 z-10 px-2 py-0.5 rounded-md text-[10px] font-black text-white" style={{ background: "var(--good)" }}>
+                +{fmtNum(lastVal, 2)}
+              </div>
+            )}
+            <ResponsiveContainer width="100%" height={130}>
+              <AreaChart data={data?.trend || []} margin={{ top: 10, right: 6, left: -14, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#16A34A" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#16A34A" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" tick={{ fill: "var(--text-mute)", fontSize: 8.5 }} tickFormatter={(v) => {
+                  const d = new Date(v + "T00:00:00Z");
+                  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" });
+                }} interval="preserveStartEnd" minTickGap={40} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "var(--text-mute)", fontSize: 8.5 }} tickFormatter={(v) => `$${v}`} width={38} axisLine={false} tickLine={false} />
+                <Tooltip content={<TrendTooltip />} />
+                <Area type="monotone" dataKey="total" stroke="#16A34A" strokeWidth={2.2} fill="url(#incomeGrad)" dot={false} activeDot={{ r: 4, fill: "#16A34A" }} />
+              </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
 
-            {selectedDay && (() => {
-              const sel = scaledDaily.find((x) => x.date === selectedDay);
-              const meta = (data.by_date || []).find((x) => x.date === selectedDay);
-              if (!sel) return null;
-              const pos = sel.profit >= 0;
-              const dt = new Date(selectedDay + "T00:00:00Z");
-              const label = dt.toLocaleDateString(undefined, {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-                timeZone: "UTC",
-              });
+      {/* Tabs */}
+      <div className="mt-3 px-4 flex gap-2 overflow-x-auto no-scrollbar" data-testid="revenue-tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => { setTab(t.id); setOpenRow(null); }}
+            className="flex-shrink-0 px-4 py-2 rounded-xl text-[12.5px] font-bold transition-all"
+            style={
+              tab === t.id
+                ? { background: "linear-gradient(90deg, #2563EB, #10B981)", color: "#fff" }
+                : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }
+            }
+            data-testid={`revenue-tab-${t.id}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Income history */}
+      <div className="px-4 mt-4">
+        <div className="font-display font-black text-2xl" style={{ color: "var(--ink)" }}>Income History</div>
+        <div className="text-[12px] mb-2.5" style={{ color: "var(--text-mute)" }}>Tap a record to see the details</div>
+
+        {rows.length === 0 ? (
+          <div className="text-center text-sm py-10 rounded-xl" style={{ color: "var(--text-mute)", background: "var(--surface)", border: "1px solid var(--border)" }} data-testid="income-empty">
+            No income records yet in this category
+          </div>
+        ) : (
+          <div className="space-y-1.5" data-testid="income-history-list">
+            {rows.slice(0, 100).map((r) => {
+              const meta = META[r.category] || { Icon: IconBars, title: r.category };
+              const open = openRow === r.id;
               return (
                 <div
-                  className="mt-2 rounded-xl border p-2.5 bg-[color:var(--bg-base)]/70 backdrop-blur-xl"
-                  style={{
-                    borderColor: pos ? "rgba(22,163,74,0.35)" : "rgba(248,113,113,0.35)",
-                  }}
-                  data-testid="bar-detail-panel"
+                  key={r.id}
+                  onClick={() => setOpenRow(open ? null : r.id)}
+                  className="rounded-xl px-3 py-2 cursor-pointer"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                  data-testid={`income-row-${r.category}`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div
-                        className="text-[9px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold"
-                        style={{ fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {label} · UTC
+                  <div className="flex items-center gap-2.5">
+                    <div className="shrink-0"><meta.Icon s={30} /></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>
+                        {meta.title}
                       </div>
-                      <div
-                        className={`font-mono font-black text-[20px] leading-none mt-1 ${pos ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
-                        style={{ fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {pos ? "+" : ""}${(sel.profit || 0).toFixed(2)}
+                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                        {fmtDate(r.created_at)}
                       </div>
-                      {meta && (
-                        <div className="text-[9px] text-[color:var(--text-mute)] mt-1">
-                          {meta.trades} sells · {meta.symbols.length} coin
-                          {meta.symbols.length === 1 ? "" : "s"}
-                        </div>
-                      )}
                     </div>
-                    <button
-                      onClick={() => setSelectedDay(null)}
-                      data-testid="bar-detail-close"
-                      className="w-6 h-6 rounded-full bg-[color:var(--text)]/10 hover:bg-[color:var(--text)]/15 flex items-center justify-center shrink-0"
-                      aria-label="Close"
-                    >
-                      <span className="text-[10px]">✕</span>
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
+                        +{fmtNum(r.amount, 2)} USDT
+                      </span>
+                      <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+                    </div>
                   </div>
-                  {meta?.symbols?.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {meta.symbols.map((s) => (
-                        <div
-                          key={s}
-                          className="flex items-center gap-1 rounded-full bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] pl-1 pr-2 py-0.5"
-                        >
-                          <CoinIcon symbol={s} size={14} />
-                          <span className="text-[9px] font-bold uppercase tracking-widest">
-                            {s.replace("USDT", "")}
-                          </span>
-                        </div>
-                      ))}
+                  {open && (
+                    <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="income-row-detail">
+                      {r.note || meta.title} · {new Date(r.created_at).toLocaleString()}
                     </div>
                   )}
-                  <button
-                    onClick={() => navigate(`/transactions?date=${selectedDay}`)}
-                    data-testid="bar-detail-view-trades"
-                    className="mt-2 w-full py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/30 text-[color:var(--primary)] hover:bg-[color:var(--primary)]/20 transition"
-                  >
-                    View all trades of this day →
-                  </button>
                 </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {data?.by_date?.length > 0 && (
-        <div className="px-4 mt-4">
-          <div className="font-display font-bold text-lg mb-1">Daily History</div>
-          <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] mb-2">
-            Tap a date to see the trades of that day
-          </div>
-          <div className="space-y-1.5" data-testid="by-date-list">
-            {data.by_date.map((d) => {
-              const dt = new Date(d.date + "T00:00:00Z");
-              const label = dt.toLocaleDateString(undefined, {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-                timeZone: "UTC",
-              });
-              const todayStr = new Date().toISOString().slice(0, 10);
-              const isToday = d.date === todayStr;
-              return (
-                <button
-                  key={d.date}
-                  onClick={() => navigate(`/transactions?date=${d.date}`)}
-                  data-testid={`revenue-date-${d.date}`}
-                  className="w-full app-card rounded-lg py-1.5 px-2.5 flex items-center justify-between hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--primary)]/5 active:scale-[0.99] transition text-left"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-md bg-[color:var(--primary)]/10 border border-[color:var(--primary)]/25 flex flex-col items-center justify-center shrink-0">
-                      <div className="text-[6px] uppercase tracking-wider text-[color:var(--text-mute)] font-bold leading-none">
-                        {dt.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" })}
-                      </div>
-                      <div
-                        className="font-mono font-extrabold text-[11px] leading-none mt-px text-[color:var(--primary)]"
-                        style={{ fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}
-                      >
-                        {String(dt.getUTCDate()).padStart(2, "0")}
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div
-                        className="font-bold text-[12px] flex items-center gap-1.5 leading-tight"
-                        style={{ fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {label}
-                        {isToday && (
-                          <span className="text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40 leading-none">
-                            Today
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5 truncate leading-none">
-                        {d.trades} sells · {d.symbols.length} coin{d.symbols.length === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0 pl-2">
-                    <div
-                      className={`font-display font-bold tabular-nums text-[12px] ${
-                        d.profit >= 0 ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"
-                      }`}
-                    >
-                      {d.profit >= 0 ? "+" : ""}
-                      {fmtUSD(d.profit)}
-                    </div>
-                    <ChevronRight size={12} className="text-[color:var(--text-mute)]" />
-                  </div>
-                </button>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {(!data?.total_trades) && (
-        <div className="text-center text-sm text-[color:var(--text-mute)] py-8 px-6" data-testid="empty-revenue">
-          No completed sells yet. Once your bot closes a position, profit will appear here.
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
