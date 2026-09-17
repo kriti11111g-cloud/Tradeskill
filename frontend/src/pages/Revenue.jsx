@@ -44,7 +44,15 @@ export default function Revenue() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const load = () => api.get("/revenue/income").then(({ data }) => setData(data)).catch(() => {});
+    try {
+      const c = JSON.parse(localStorage.getItem("tgx_revenue_cache") || "null");
+      if (c) setData(c);
+    } catch {}
+    const load = () =>
+      api.get("/revenue/income").then(({ data }) => {
+        setData(data);
+        try { localStorage.setItem("tgx_revenue_cache", JSON.stringify(data)); } catch {}
+      }).catch(() => {});
     load();
     const t = setInterval(load, 20000);
     return () => clearInterval(t);
