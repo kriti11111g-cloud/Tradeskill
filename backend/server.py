@@ -536,17 +536,27 @@ async def pairs_summary(limit: int = 50):
 
 # Simple in-memory cache for the top-50 list (refresh every 5 min)
 _TOP_CACHE = {"ts": 0.0, "data": None}
+_TOP_REFRESHING = {"v": False}
+
+
+async def _top_market_refresh(limit: int):
+    try:
+        await top_market(limit=limit, force=True)
+    except Exception:
+        pass
+    finally:
+        _TOP_REFRESHING["v"] = False
 _STABLE_SYMBOLS = {"USDT", "USDC", "DAI", "TUSD", "BUSD", "FDUSD", "PYUSD", "USDD", "USDS"}
 
 
 @api.get("/market/top")
 async def top_market(limit: int = 50, force: bool = False):
-    """Top-N coins by market cap (CoinGecko) intersected with Binance-listed USDT pairs.
-    Returns rank, name, symbol, image (from CoinGecko) + live price/change (from Binance).
-    Cached for 5 minutes. Pass ?force=1 to bypass cache."""
     import time as _t
     now = _t.time()
-    if not force and _TOP_CACHE["data"] and _TOP_CACHE["data"].get("count", 0) >= limit and (now - _TOP_CACHE["ts"] < 300):
+    if not force and _TOP_CACHE["data"] and _TOP_CACHE["data"].get("count", 0) >= limit:
+        if now - _TOP_CACHE["ts"] >= 300 and not _TOP_REFRESHING["v"]:
+            _TOP_REFRESHING["v"] = True
+            asyncio.create_task(_top_market_refresh(limit))
         return _TOP_CACHE["data"]
 
     async with httpx.AsyncClient(timeout=12) as c:

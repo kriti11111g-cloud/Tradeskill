@@ -29,9 +29,19 @@ export default function Market() {
   const wsRef = useRef(null);
 
   const load = () =>
-    api.get("/market/top?limit=50").then(({ data }) => setCoins(data.coins || []));
+    api.get("/market/top?limit=50").then(({ data }) => {
+      const c = data.coins || [];
+      if (c.length) {
+        setCoins(c);
+        try { localStorage.setItem("tgx_market_cache", JSON.stringify(c)); } catch {}
+      }
+    });
 
   useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("tgx_market_cache") || "null");
+      if (Array.isArray(c) && c.length) setCoins(c);
+    } catch {}
     load();
     const id = setInterval(load, 60000);
     return () => clearInterval(id);
