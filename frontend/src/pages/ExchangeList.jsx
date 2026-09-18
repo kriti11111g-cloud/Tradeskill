@@ -55,9 +55,10 @@ export default function ExchangeList() {
     api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
   }, []);
 
+  const isConnected = !!bind?.bound;
   const connected = EXCHANGES[0]; // Binance — only supported exchange
-  const others = EXCHANGES.slice(1);
-  const isLive = !!bind?.bound && (bind?.mode === "real" || bind?.mode === "testnet");
+  const others = isConnected ? EXCHANGES.slice(1) : EXCHANGES;
+  const isLive = isConnected && (bind?.mode === "real" || bind?.mode === "testnet");
 
   return (
     <div className="pb-24" data-testid="exchange-list-page">
@@ -83,7 +84,8 @@ export default function ExchangeList() {
           </div>
         </div>
 
-        {/* Connected exchange — featured card */}
+        {/* Connected exchange — sirf tab dikhe jab user ne API bind kiya ho */}
+        {isConnected && (
         <div className="relative mt-5">
           <span
             className="absolute -top-3 left-3 z-10 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide text-white"
@@ -132,10 +134,13 @@ export default function ExchangeList() {
             </div>
           </button>
         </div>
+        )}
 
         {/* Other exchanges heading */}
         <div className="mt-4 flex items-end justify-between">
-          <div className="font-display font-black text-xl leading-tight" style={{ color: "var(--ink)" }}>Other Exchanges</div>
+          <div className="font-display font-black text-xl leading-tight" style={{ color: "var(--ink)" }}>
+            {isConnected ? "Other Exchanges" : "All Exchanges"}
+          </div>
           <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>Top 25 · API supported only</div>
         </div>
       </div>
@@ -145,7 +150,11 @@ export default function ExchangeList() {
         {others.map((ex, i) => (
           <button
             key={ex.id}
-            onClick={() => toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)}
+            onClick={() =>
+              ex.id === "binance"
+                ? navigate("/bind-api/binance")
+                : toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)
+            }
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
             data-testid={`exchange-row-${ex.id}`}

@@ -460,7 +460,10 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
 @api.get("/binance/bind")
 async def get_bind(user: dict = Depends(get_current_user)):
     row = await db.binance_keys.find_one({"user_id": user["id"]}, {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0})
-    return row or {"mode": None, "api_key_mask": None}
+    if not row:
+        return {"mode": None, "api_key_mask": None, "bound": False}
+    row["bound"] = row.get("mode") in ("real", "testnet")
+    return row
 
 
 @api.delete("/binance/bind")
