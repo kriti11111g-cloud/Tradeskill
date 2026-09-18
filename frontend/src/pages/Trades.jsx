@@ -221,7 +221,7 @@ export default function Trades() {
   const traded = list
     .filter((b) => (b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0)
     .sort((a, b) => (b.cumulative_profit || 0) - (a.cumulative_profit || 0));
-  const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0);
+  const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0); // eslint-disable-line no-unused-vars
   const shown = filter === "idle" ? traded : runningSorted;
 
   return (
@@ -259,10 +259,14 @@ export default function Trades() {
           style={CARD}
           data-testid="trade-exchange-card"
         >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "#111" }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#F3BA2F">
-              <path d="M12 2 8.7 5.3 12 8.6l3.3-3.3L12 2zM5.3 8.7 2 12l3.3 3.3L8.6 12 5.3 8.7zm13.4 0L15.4 12l3.3 3.3L22 12l-3.3-3.3zM12 15.4l-3.3 3.3L12 22l3.3-3.3-3.3-3.3zm0-6.1L9.3 12l2.7 2.7 2.7-2.7L12 9.3z" />
-            </svg>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: "#F3BA2F" }}>
+            <span className="text-[13px] font-black text-white">B</span>
+            <img
+              src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
+              alt="Binance"
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[14px] font-black" style={{ color: "var(--ink)" }}>Binance</div>
@@ -276,25 +280,6 @@ export default function Trades() {
             <ChevronRight size={16} style={{ color: "var(--ink)" }} />
           </div>
         </button>
-      </div>
-
-      {/* Summary — 3 equal cards */}
-      <div className="px-4 mt-2.5 grid grid-cols-3 gap-2.5">
-        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-active-bots">
-          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Active Bots</div>
-          <div className="text-xl font-black mt-1" style={{ color: "var(--ink)" }}>{running.length}</div>
-        </div>
-        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-total-bots">
-          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Bots</div>
-          <div className="text-xl font-black mt-1" style={{ color: "var(--ink)" }}>{list.length}</div>
-        </div>
-        <div className="rounded-xl px-3 py-3" style={CARD} data-testid="trade-total-profit">
-          <div className="text-[10px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Profit</div>
-          <div className="text-[15px] font-black mt-1 tabular-nums leading-tight" style={{ color: "var(--good)" }}>
-            +{fmtNum(totalProfit, 2)}
-            <div className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>USDT</div>
-          </div>
-        </div>
       </div>
 
       {/* Filter */}
