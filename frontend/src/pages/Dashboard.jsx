@@ -29,6 +29,8 @@ import {
   Trophy,
   BookOpen,
   Newspaper,
+  UserPlus,
+  Globe,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum } from "@/lib/format";
@@ -317,78 +319,36 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        {/* ============ FEATURE TILES ============ */}
-        <div className="grid grid-cols-4 gap-3 mb-5" data-testid="dash-feature-tiles">
-          {[
-            { icon: Bot, label: "Auto Bot", to: "/bot", tint: "var(--primary)", testid: "tile-bot" },
-            { icon: Flame, label: "Hot Pairs", to: "/market", tint: "var(--gold)", testid: "tile-hot" },
-            { icon: Award, label: "Rank", to: "/rank", tint: "var(--gold)", testid: "tile-rank" },
-            { icon: WalletIcon, label: "Wallet", to: "/wallet", tint: "var(--primary)", testid: "tile-wallet" },
-          ].map((f) => (
-            <Link
-              key={f.label}
-              to={f.to}
-              data-testid={f.testid}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{
-                    background: `color-mix(in srgb, ${f.tint} 15%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${f.tint} 30%, transparent)`,
-                  }}
-                >
-                  <f.icon size={18} color={f.tint} strokeWidth={2} />
-                </div>
-              </div>
-              <span
-                className="text-[10px] font-bold text-center"
-                style={{ color: "var(--text-soft)" }}
-              >
-                {f.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        {/* ============ QUICK ACCESS GRID (6 cards) ============ */}
+        {/* ============ 8 CARDS — B&W (photo reference: black icons) ============ */}
         <div className="grid grid-cols-4 gap-2.5 mb-5" data-testid="dash-quick-grid">
           {[
-            { icon: Key, label: "Bind API", to: "/bind-api", tint: "var(--primary)", testid: "quick-bind-api" },
-            { icon: ArrowRightLeft, label: "Transactions", to: "/transactions", tint: "var(--gold)", testid: "quick-transactions" },
-            { icon: BarChart3, label: "Revenue", to: "/revenue", tint: "var(--primary)", testid: "quick-revenue" },
-            { icon: Users, label: "Referral", to: "/referral", tint: "var(--gold)", testid: "quick-referral" },
-            { icon: Gift, label: "Rewards Joining", to: "/rewards", tint: "var(--primary)", testid: "quick-rewards-joining" },
-            { icon: Trophy, label: "Rewards Trading", to: "/rewards", tint: "var(--gold)", testid: "quick-rewards-trading" },
-            { icon: BookOpen, label: "User Guide", to: "/guide", tint: "var(--primary)", testid: "quick-guide" },
-            { icon: Newspaper, label: "News", to: "/news", tint: "var(--gold)", testid: "quick-news" },
+            { icon: Key, label: "Bind API", to: "/bind-api", testid: "quick-bind-api" },
+            { icon: Bot, label: "Bot", to: "/bot", testid: "tile-bot" },
+            { icon: UserPlus, label: "Refer", to: "/referral", testid: "quick-referral" },
+            { icon: Users, label: "Team", to: "/referral", testid: "quick-team" },
+            { icon: Award, label: "Rank", to: "/rank", testid: "tile-rank" },
+            { icon: Globe, label: "Pool", to: "/rewards", testid: "quick-pool" },
+            { icon: BookOpen, label: "User Guide", to: "/guide", testid: "quick-guide" },
+            { icon: Newspaper, label: "News", to: "/news", testid: "quick-news" },
           ].map((c) => (
             <Link
               key={c.label}
               to={c.to}
               data-testid={c.testid}
-              className="app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 hover:border-[color:var(--primary)]/40 transition"
+              className="app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition"
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
                 style={{
-                  background: `color-mix(in srgb, ${c.tint} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${c.tint} 28%, transparent)`,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
-                <c.icon size={16} color={c.tint} strokeWidth={1.9} />
+                <c.icon size={17} strokeWidth={2} style={{ color: "var(--ink)" }} />
               </div>
               <span
-                className="text-[9px] font-bold text-center leading-tight"
-                style={{ color: "var(--text-soft)" }}
+                className="text-[9.5px] font-bold text-center leading-tight"
+                style={{ color: "var(--ink)" }}
               >
                 {c.label}
               </span>
