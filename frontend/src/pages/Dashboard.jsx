@@ -397,106 +397,15 @@ export default function Dashboard() {
           />
         </Link>
 
-        {/* ============ MARKET LIST ============ */}
-        <div className="flex items-center justify-between mb-2.5">
-          <div>
-            <div className="text-base font-black" style={{ color: "var(--text)" }}>
-              Market
-            </div>
-            <div
-              className="text-[10px] uppercase tracking-widest font-bold"
-              style={{ color: "var(--text-mute)" }}
-            >
-              Real-time · Top movers
-            </div>
-          </div>
-          <Link
-            to="/market"
-            data-testid="see-all-market"
-            className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider"
-            style={{ color: "var(--primary)" }}
-          >
-            See all <ChevronRight size={12} />
-          </Link>
-        </div>
-
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-          data-testid="market-list"
-        >
-          {pairs.slice(0, 4).map((p, i) => {
-            const spark = Array.from({ length: 8 }, (_, k) => 4 + Math.sin(k + i) * 3 + (p.change_pct || 0) * 0.5);
-            const up = (p.change_pct || 0) >= 0;
-            return (
-              <Link
-                key={p.symbol}
-                to={`/pair/${p.symbol}`}
-                data-testid={`mover-${p.symbol}`}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{
-                  borderBottom: i < 3 ? "1px solid var(--border)" : "none",
-                }}
-              >
-                <div className="shrink-0">
-                  <CoinIcon symbol={p.symbol} size={40} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="text-sm font-black"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {p.symbol.replace("USDT", "")}/USDT
-                  </div>
-                  <div className="text-[10px]" style={{ color: "var(--text-mute)" }}>
-                    {p.asset || p.symbol.replace("USDT", "")}
-                  </div>
-                </div>
-
-                <svg width="46" height="20" viewBox="0 0 46 20" className="shrink-0">
-                  <polyline
-                    fill="none"
-                    stroke={up ? "var(--good)" : "var(--bad)"}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={spark.map((v, k) => `${k * 6.5},${20 - Math.max(1, Math.min(9, v)) * 2}`).join(" ")}
-                  />
-                </svg>
-
-                <div className="text-right shrink-0">
-                  <div
-                    className="text-sm font-mono font-black tabular-nums"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {fmtUSD(p.last_price, p.last_price > 100 ? 0 : 2)}
-                  </div>
-                  <div
-                    className="text-[10px] font-mono font-bold tabular-nums flex items-center justify-end gap-0.5"
-                    style={{ color: up ? "var(--good)" : "var(--bad)" }}
-                  >
-                    {up ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                    {fmtPct(p.change_pct)}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-          {!pairs.length && (
-            <div
-              className="px-4 py-6 text-center text-xs"
-              style={{ color: "var(--text-mute)" }}
-            >
-              Loading market data...
-            </div>
-          )}
-        </div>
+        {/* ============ TRADE SKILL SHOWCASE IMAGE (market ki jagah) ============ */}
+        <img
+          src="https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/yohyuz3i_file_000000009b4081f5a8ad892ef6e3f993.png"
+          alt="Trade Skill"
+          className="w-full rounded-2xl"
+          style={{ aspectRatio: "1 / 1", objectFit: "cover", boxShadow: "var(--shadow-sm)" }}
+          loading="lazy"
+          data-testid="home-showcase-image"
+        />
 
         {/* ============ START BOT CTA ============ */}
         <div className="mt-5 relative">
