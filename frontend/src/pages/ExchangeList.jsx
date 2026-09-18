@@ -4,40 +4,35 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 
+const IMG = "https://coin-images.coingecko.com/markets/images";
 /* Top 25 spot exchanges (CMC rank order) — sabhi me trading API facility available hai */
 const EXCHANGES = [
-  { id: "binance", name: "Binance", tag: "Trade Smarter", color: "#F3BA2F", mono: "◆" },
-  { id: "bybit", name: "Bybit", tag: "Next Level Trading", color: "#17181E", mono: "BB" },
-  { id: "coinbase", name: "Coinbase", tag: "The Future of Money", color: "#0052FF", mono: "C" },
-  { id: "okx", name: "OKX", tag: "Trade Like a Pro", color: "#000000", mono: "OK" },
-  { id: "upbit", name: "Upbit", tag: "Korea's #1 Exchange", color: "#093687", mono: "U" },
-  { id: "bitget", name: "Bitget", tag: "Trade Better", color: "#00F0FF", mono: "BG" },
-  { id: "mexc", name: "MEXC", tag: "More Tokens, Lower Fees", color: "#1972E2", mono: "M" },
-  { id: "gate", name: "Gate", tag: "Your Gateway to Crypto", color: "#2354E6", mono: "G" },
-  { id: "kucoin", name: "KuCoin", tag: "People's Exchange", color: "#24AE8F", mono: "K" },
-  { id: "kraken", name: "Kraken", tag: "Crypto Securely", color: "#5741D9", mono: "KR" },
-  { id: "htx", name: "HTX", tag: "Global Crypto Exchange", color: "#2B3BD8", mono: "H" },
-  { id: "cryptocom", name: "Crypto.com", tag: "Fortune Favours the Brave", color: "#03316C", mono: "CR" },
-  { id: "bingx", name: "BingX", tag: "Broader View, Better Trade", color: "#2A54FF", mono: "BX" },
-  { id: "bitmart", name: "BitMart", tag: "Trade Digital Assets", color: "#22A079", mono: "BM" },
-  { id: "lbank", name: "LBank", tag: "Global Digital Asset Hub", color: "#FFB800", mono: "LB" },
-  { id: "bitfinex", name: "Bitfinex", tag: "Advanced Trading", color: "#16B157", mono: "BF" },
-  { id: "whitebit", name: "WhiteBIT", tag: "European Exchange", color: "#252525", mono: "W" },
-  { id: "bithumb", name: "Bithumb", tag: "Trusted in Korea", color: "#F37321", mono: "BH" },
-  { id: "bitstamp", name: "Bitstamp", tag: "Original Since 2011", color: "#12A05C", mono: "BS" },
-  { id: "xt", name: "XT.com", tag: "Trade Anything", color: "#E9BB41", mono: "XT" },
-  { id: "coinw", name: "CoinW", tag: "Worldwide Trading", color: "#3D6DEB", mono: "CW" },
-  { id: "phemex", name: "Phemex", tag: "Trade Simple", color: "#1B6EF3", mono: "P" },
-  { id: "pionex", name: "Pionex", tag: "Built-in Trading Bots", color: "#F7A600", mono: "PX" },
-  { id: "bitvavo", name: "Bitvavo", tag: "Digital Assets, Simplified", color: "#2A46FF", mono: "BV" },
-  { id: "gemini", name: "Gemini", tag: "Crypto Without Chaos", color: "#00DCFA", mono: "GE" },
+  { id: "binance", name: "Binance", tag: "Trade Smarter", color: "#F3BA2F", mono: "B", logo: `${IMG}/52/small/binance.jpg` },
+  { id: "bybit", name: "Bybit", tag: "Next Level Trading", color: "#17181E", mono: "BB", logo: `${IMG}/698/small/bybit_spot.png` },
+  { id: "coinbase", name: "Coinbase", tag: "The Future of Money", color: "#0052FF", mono: "C", logo: `${IMG}/23/small/Coinbase_Coin_Primary.png` },
+  { id: "okx", name: "OKX", tag: "Trade Like a Pro", color: "#000000", mono: "OK", logo: `${IMG}/96/small/WeChat_Image_20220117220452.png` },
+  { id: "upbit", name: "Upbit", tag: "Korea's #1 Exchange", color: "#093687", mono: "U", logo: `${IMG}/117/small/upbit.png` },
+  { id: "bitget", name: "Bitget", tag: "Trade Better", color: "#00F0FF", mono: "BG", logo: `${IMG}/540/small/2023-07-25_21.47.43.jpg` },
+  { id: "mexc", name: "MEXC", tag: "More Tokens, Lower Fees", color: "#1972E2", mono: "M", logo: `${IMG}/409/small/164286be-32a5-4b58-978c-d072eea00eb9.jpeg` },
+  { id: "gate", name: "Gate", tag: "Your Gateway to Crypto", color: "#2354E6", mono: "G", logo: `${IMG}/60/small/Frame_1.png` },
+  { id: "kucoin", name: "KuCoin", tag: "People's Exchange", color: "#24AE8F", mono: "K", logo: `${IMG}/61/small/kucoin.png` },
+  { id: "kraken", name: "Kraken", tag: "Crypto Securely", color: "#5741D9", mono: "KR", logo: `${IMG}/29/small/kraken.jpg` },
+  { id: "htx", name: "HTX", tag: "Global Crypto Exchange", color: "#2B3BD8", mono: "H", logo: `${IMG}/25/small/htx.png` },
+  { id: "cryptocom", name: "Crypto.com", tag: "Fortune Favours the Brave", color: "#03316C", mono: "CR", logo: `${IMG}/589/small/h2oMjPp6_400x400.jpg` },
+  { id: "bingx", name: "BingX", tag: "Broader View, Better Trade", color: "#2A54FF", mono: "BX", logo: `${IMG}/812/small/YtFwQwJr_400x400.jpg` },
+  { id: "bitmart", name: "BitMart", tag: "Trade Digital Assets", color: "#22A079", mono: "BM", logo: `${IMG}/239/small/Bitmart.png` },
+  { id: "lbank", name: "LBank", tag: "Global Digital Asset Hub", color: "#FFB800", mono: "LB", logo: `${IMG}/118/small/LBank_200_200.png` },
+  { id: "bitfinex", name: "Bitfinex", tag: "Advanced Trading", color: "#16B157", mono: "BF", logo: `${IMG}/4/small/BItfinex.png` },
+  { id: "whitebit", name: "WhiteBIT", tag: "European Exchange", color: "#252525", mono: "W", logo: `${IMG}/418/small/800_800.jpg` },
+  { id: "bithumb", name: "Bithumb", tag: "Trusted in Korea", color: "#F37321", mono: "BH", logo: `${IMG}/6/small/bithumb_BI.png` },
+  { id: "bitstamp", name: "Bitstamp", tag: "Original Since 2011", color: "#12A05C", mono: "BS", logo: `${IMG}/9/small/bitstamp.jpg` },
+  { id: "xt", name: "XT.com", tag: "Trade Anything", color: "#E9BB41", mono: "XT", logo: `${IMG}/404/small/xt_logo_%E7%BB%BF.png` },
+  { id: "coinw", name: "CoinW", tag: "Worldwide Trading", color: "#3D6DEB", mono: "CW", logo: `${IMG}/1172/small/coinw_new_logo.png` },
+  { id: "phemex", name: "Phemex", tag: "Trade Simple", color: "#1B6EF3", mono: "P", logo: `${IMG}/564/small/phemex-exchange-new-logo.png` },
+  { id: "pionex", name: "Pionex", tag: "Built-in Trading Bots", color: "#F7A600", mono: "PX", logo: `${IMG}/1026/small/pionex.png` },
+  { id: "bitvavo", name: "Bitvavo", tag: "Digital Assets, Simplified", color: "#2A46FF", mono: "BV", logo: `${IMG}/714/small/bitvavo-mark-square-black.png` },
+  { id: "gemini", name: "Gemini", tag: "Crypto Without Chaos", color: "#00DCFA", mono: "GE", logo: `${IMG}/50/small/gemini.png` },
 ];
-
-const BinanceLogo = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff">
-    <path d="M12 2 8.7 5.3 12 8.6l3.3-3.3L12 2zM5.3 8.7 2 12l3.3 3.3L8.6 12 5.3 8.7zm13.4 0L15.4 12l3.3 3.3L22 12l-3.3-3.3zM12 15.4l-3.3 3.3L12 22l3.3-3.3-3.3-3.3zm0-6.1L9.3 12l2.7 2.7 2.7-2.7L12 9.3z" />
-  </svg>
-);
 
 export default function ExchangeList() {
   const [bind, setBind] = useState(null);
@@ -82,14 +77,15 @@ export default function ExchangeList() {
               <span className="w-6 text-[12px] font-black tabular-nums text-center shrink-0" style={{ color: "var(--text-mute)" }}>
                 {i + 1}
               </span>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: ex.color }}>
-                {isBinance ? (
-                  <BinanceLogo />
-                ) : (
-                  <span className="text-[13px] font-black text-white" style={ex.color === "#00F0FF" || ex.color === "#FFB800" || ex.color === "#E9BB41" || ex.color === "#00DCFA" || ex.color === "#F7A600" ? { color: "#111" } : {}}>
-                    {ex.mono}
-                  </span>
-                )}
+              <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: ex.color }}>
+                <span className="text-[13px] font-black text-white">{ex.mono}</span>
+                <img
+                  src={ex.logo}
+                  alt={ex.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-black truncate" style={{ color: "var(--ink)" }}>{ex.name}</div>
