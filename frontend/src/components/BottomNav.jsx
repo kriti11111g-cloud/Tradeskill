@@ -5,8 +5,8 @@ const items = [
   { to: "/", icon: Home, label: "Home", testid: "nav-home" },
   { to: "/market", icon: LineChart, label: "Market", testid: "nav-market" },
   { to: "/trades", icon: ArrowRightLeft, label: "Trade", testid: "nav-trade" },
-  { to: "/wallet", icon: Wallet, label: "Asset", testid: "nav-wallet" },
   { to: "/revenue", icon: ChartNoAxesCombined, label: "Revenue", testid: "nav-revenue" },
+  { to: "/wallet", icon: Wallet, label: "Asset", testid: "nav-wallet" },
   { to: "/profile", icon: CircleUserRound, label: "Profile", testid: "nav-profile" },
 ];
 

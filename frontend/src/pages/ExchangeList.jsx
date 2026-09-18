@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, BookOpen, BadgeCheck, KeyRound, ShieldCheck, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 
@@ -34,6 +34,19 @@ const EXCHANGES = [
   { id: "gemini", name: "Gemini", tag: "Crypto Without Chaos", color: "#00DCFA", mono: "GE", logo: `${IMG}/50/small/gemini.png` },
 ];
 
+const Logo = ({ ex, s = 30, ts = "text-[11px]" }) => (
+  <div className={`relative rounded-full overflow-hidden flex items-center justify-center shrink-0 ${ts}`} style={{ width: s, height: s, background: ex.color }}>
+    <span className="font-black text-white">{ex.mono}</span>
+    <img
+      src={ex.logo}
+      alt={ex.name}
+      className="absolute inset-0 w-full h-full object-cover"
+      loading="lazy"
+      onError={(e) => { e.currentTarget.style.display = "none"; }}
+    />
+  </div>
+);
+
 export default function ExchangeList() {
   const [bind, setBind] = useState(null);
   const navigate = useNavigate();
@@ -42,74 +55,117 @@ export default function ExchangeList() {
     api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
   }, []);
 
-  const binanceBound = !!bind?.bound && bind?.mode !== "demo";
+  const connected = EXCHANGES[0]; // Binance — only supported exchange
+  const others = EXCHANGES.slice(1);
+  const isLive = !!bind?.bound && (bind?.mode === "real" || bind?.mode === "testnet");
 
   return (
     <div className="pb-24" data-testid="exchange-list-page">
+      {/* Sticky top: header + connected exchange card (scroll par fixed) */}
       <div className="sticky top-0 z-20 pt-3 pb-2 px-4" style={{ background: "var(--bg-base)" }}>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <button onClick={() => navigate(-1)} className="p-1 justify-self-start" style={{ color: "var(--ink)" }} data-testid="exchange-back">
             <ArrowLeft size={24} strokeWidth={2.4} />
           </button>
           <div className="text-center">
-            <div className="font-display font-black text-2xl leading-tight" style={{ color: "var(--ink)" }}>Api Binding Exchange</div>
+            <div className="font-display font-black text-[17px] leading-tight whitespace-nowrap" style={{ color: "var(--ink)" }}>Api Binding Exchange</div>
             <div className="text-[11px]" style={{ color: "var(--text-mute)" }}>Top 25 · API supported only</div>
           </div>
-          <span />
+          <div className="justify-self-end">
+            <button
+              onClick={() => navigate("/bot")}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", color: "var(--ink)" }}
+              data-testid="exchange-guide-btn"
+            >
+              <BookOpen size={14} style={{ color: "var(--ink)" }} /> Guide
+            </button>
+          </div>
+        </div>
+
+        {/* Connected exchange — featured card */}
+        <div className="relative mt-5">
+          <span
+            className="absolute -top-3 left-3 z-10 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide text-white"
+            style={{ background: "#16A34A" }}
+          >
+            Connected Exchange
+          </span>
+          <button
+            onClick={() => navigate("/bind-api/binance")}
+            className="w-full rounded-2xl px-4 pt-5 pb-3 text-left transition active:scale-[0.995]"
+            style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC", boxShadow: "0 2px 12px rgba(22,163,74,0.10)" }}
+            data-testid="connected-exchange-card"
+          >
+            <div className="flex items-center gap-3">
+              <Logo ex={connected} s={44} ts="text-[14px]" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[17px] font-black leading-tight" style={{ color: "var(--ink)" }}>{connected.name}</span>
+                  <BadgeCheck size={17} fill="#16A34A" color="#F0FDF4" className="shrink-0" />
+                </div>
+                <div className="text-[11.5px] mt-0.5" style={{ color: "var(--text-mute)" }}>{connected.tag}</div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full" style={{ background: "#16A34A" }} />
+                <span className="text-[15px] font-black" style={{ color: "#16A34A" }} data-testid="connected-status">
+                  {isLive ? "Live" : "Demo"}
+                </span>
+                <ChevronRight size={18} style={{ color: "var(--ink)" }} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 mt-3 pt-2.5" style={{ borderTop: "1px solid #BBF7D0" }}>
+              {[
+                { Icon: KeyRound, t: "API Connected", d: "Read / Trade Enabled" },
+                { Icon: ShieldCheck, t: "Secure & Safe", d: "Your API is encrypted" },
+                { Icon: BarChart3, t: "Real-Time Data", d: "Live market access" },
+              ].map(({ Icon, t, d }, idx) => (
+                <div key={t} className="flex items-start gap-1.5 px-1.5" style={idx > 0 ? { borderLeft: "1px solid #BBF7D0" } : {}}>
+                  <Icon size={15} className="shrink-0 mt-0.5" style={{ color: "#16A34A" }} />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black leading-tight" style={{ color: "var(--ink)" }}>{t}</div>
+                    <div className="text-[8.5px] leading-tight mt-0.5" style={{ color: "var(--text-mute)" }}>{d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </button>
+        </div>
+
+        {/* Other exchanges heading */}
+        <div className="mt-4 flex items-end justify-between">
+          <div className="font-display font-black text-xl leading-tight" style={{ color: "var(--ink)" }}>Other Exchanges</div>
+          <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>Top 25 · API supported only</div>
         </div>
       </div>
 
+      {/* Scrollable list — sirf ye scroll hota hai */}
       <div className="px-4 mt-1 space-y-1.5">
-        {EXCHANGES.map((ex, i) => {
-          const isBinance = ex.id === "binance";
-          return (
-            <button
-              key={ex.id}
-              onClick={() =>
-                isBinance
-                  ? navigate("/bind-api/binance")
-                  : toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)
-              }
-              className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
-              data-testid={`exchange-row-${ex.id}`}
-            >
-              <span className="w-5 text-[12px] font-black tabular-nums text-center shrink-0" style={{ color: "var(--text-mute)" }}>
-                {i + 1}
+        {others.map((ex, i) => (
+          <button
+            key={ex.id}
+            onClick={() => toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)}
+            className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+            data-testid={`exchange-row-${ex.id}`}
+          >
+            <span className="w-5 text-[12px] font-black tabular-nums text-center shrink-0" style={{ color: "var(--text-mute)" }}>
+              {i + 1}
+            </span>
+            <Logo ex={ex} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13.5px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{ex.name}</div>
+              <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{ex.tag}</div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: "var(--surface-3)", color: "var(--text-mute)" }}>
+                Not Bound
               </span>
-              <div className="relative w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: ex.color }}>
-                <span className="text-[11px] font-black text-white">{ex.mono}</span>
-                <img
-                  src={ex.logo}
-                  alt={ex.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13.5px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{ex.name}</div>
-                <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{ex.tag}</div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {isBinance && binanceBound ? (
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black" style={{ background: "#DCFCE7", color: "#15803D" }}>
-                    Bound · Live
-                  </span>
-                ) : isBinance && bind?.bound ? (
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black" style={{ background: "#DCFCE7", color: "#15803D" }}>
-                    Bound · Demo
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: "var(--surface-3)", color: "var(--text-mute)" }}>
-                    Not Bound
-                  </span>
-                )}
-                <ChevronRight size={16} style={{ color: "var(--ink)" }} />
-              </div>
-            </button>
-          );
-        })}
+              <ChevronRight size={16} style={{ color: "var(--ink)" }} />
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
