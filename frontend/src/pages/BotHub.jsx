@@ -349,7 +349,8 @@ export default function BotHub() {
             )}
             <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Bot Status</span>
             <span
-              className={`text-sm font-bold tracking-wider ${activated ? "text-[color:var(--good)]" : "text-[color:var(--bad)]"}`}
+              className={`text-sm font-bold tracking-wider ${activated ? "" : "text-[color:var(--bad)]"}`}
+              style={activated ? { background: "linear-gradient(90deg, #2563EB, #10B981)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } : {}}
               data-testid="bot-status-text"
             >
               {activated ? "ACTIVE" : "DEACTIVATE"}
@@ -358,7 +359,8 @@ export default function BotHub() {
           {!activated && (
             <button
               onClick={() => setModal("activate")}
-              className="mt-2 w-full py-2 rounded-md text-xs font-bold bg-[color:var(--good)] text-black hover:bg-[color:var(--good)]/90 transition"
+              className="mt-2 w-full py-2 rounded-md text-xs font-bold text-white transition"
+              style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
               data-testid="btn-open-activate"
             >
               ACTIVATE • ${actFee}
