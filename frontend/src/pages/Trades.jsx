@@ -160,6 +160,7 @@ export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
   const [filter, setFilter] = useState("live");
+  const [prices, setPrices] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -184,9 +185,44 @@ export default function Trades() {
 
   const list = bots || [];
   const running = list.filter((b) => String(b.status || "").toLowerCase() === "running");
-  const traded = list.filter((b) => (b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0);
+
+  // Live prices stream for running symbols — profit% ke hisab se sorting
+  const runningKey = running.map((b) => b.symbol).sort().join(",");
+  useEffect(() => {
+    if (!runningKey) return;
+    // REST seed (WS blocked ho tab bhi sorting kaam kare)
+    api.get("/market/pairs?limit=200").then(({ data }) => {
+      const map = {};
+      (data.pairs || []).forEach((p) => { map[p.symbol] = p.last_price; });
+      setPrices((prev) => ({ ...map, ...prev }));
+    }).catch(() => {});
+    const streams = runningKey.split(",").map((s) => `${s.toLowerCase()}@ticker`).join("/");
+    let ws;
+    try {
+      ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      ws.onmessage = (evt) => {
+        try {
+          const t = JSON.parse(evt.data).data;
+          if (t?.s) setPrices((p) => ({ ...p, [t.s]: parseFloat(t.c) }));
+        } catch {}
+      };
+    } catch {}
+    return () => { if (ws) { try { ws.onmessage = null; ws.close(); } catch {} } };
+  }, [runningKey]);
+
+  const floatPct = (b) => {
+    const avg = b.avg_price || 0;
+    const qty = b.position_qty || 0;
+    if (!(qty > 0 && avg > 0)) return -Infinity;
+    const live = prices[b.symbol] || avg;
+    return ((live - avg) / avg) * 100;
+  };
+  const runningSorted = [...running].sort((a, b) => floatPct(b) - floatPct(a));
+  const traded = list
+    .filter((b) => (b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0)
+    .sort((a, b) => (b.cumulative_profit || 0) - (a.cumulative_profit || 0));
   const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0);
-  const shown = filter === "idle" ? traded : running;
+  const shown = filter === "idle" ? traded : runningSorted;
 
   return (
     <div className="trade-page min-h-screen pb-24" data-testid="trade-page">
