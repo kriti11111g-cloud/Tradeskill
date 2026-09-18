@@ -3024,6 +3024,47 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
 
 
 # ==== Startup Seeding ====
+# ---------- Home Banners (admin-managed, auto-slide on Home) ----------
+DEFAULT_BANNERS = [
+    "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/kre3ls7n_f25808ab5bb943bf789b34c63a8ce4e0b5489ca1b979414142526e683afc4250.png",
+    "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/m7uuu8he_85a8c5c47de1b09cc583e27b5fe7c1d8aa5b80483e17ec8912a7ac45a6577f6b.png",
+]
+
+
+@api.get("/banners")
+async def list_banners():
+    rows = await db.banners.find({}, {"_id": 0}).sort("order", 1).to_list(20)
+    return {"banners": rows}
+
+
+class BannerIn(BaseModel):
+    image_url: str
+
+
+def _require_admin(user: dict):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+
+
+@api.post("/admin/banners")
+async def add_banner(body: BannerIn, user: dict = Depends(get_current_user)):
+    _require_admin(user)
+    count = await db.banners.count_documents({})
+    row = {"id": str(uuid.uuid4()), "image_url": body.image_url,
+           "order": count + 1, "created_at": iso(now_utc())}
+    await db.banners.insert_one({**row})
+    return row
+
+
+@api.delete("/admin/banners/{banner_id}")
+async def delete_banner(banner_id: str, user: dict = Depends(get_current_user)):
+    _require_admin(user)
+    res = await db.banners.delete_one({"id": banner_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Banner not found")
+    return {"ok": True}
+
+
 @app.on_event("startup")
 async def startup():
     # Indexes
@@ -3033,6 +3074,14 @@ async def startup():
     await db.transactions.create_index([("user_id", 1), ("created_at", -1)])
     await db.bot_wallets.create_index("user_id", unique=True)
     await db.bot_transactions.create_index([("user_id", 1), ("created_at", -1)])
+
+    # Seed home banners (idempotent)
+    if await db.banners.count_documents({}) == 0:
+        for i, url in enumerate(DEFAULT_BANNERS):
+            await db.banners.insert_one({
+                "id": str(uuid.uuid4()), "image_url": url,
+                "order": i + 1, "created_at": iso(now_utc()),
+            })
 
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@tgxbot.com")

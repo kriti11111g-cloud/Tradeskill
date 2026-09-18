@@ -35,7 +35,8 @@ import { fmtUSD, fmtPct, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import CoinIcon from "@/components/CoinIcon";
-import WalletHeroCard from "@/components/WalletHeroCard";
+import WalletHeroCard from "@/components/WalletHeroCard"; // eslint-disable-line no-unused-vars
+import { BannerCarousel } from "@/components/BannerCarousel";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -210,19 +211,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ============ BALANCE HERO ============ */}
-        <WalletHeroCard
-          balance={totalBalance}
-          changePct={change24h}
-          rankTitle={currentRank.title}
-          onAction={(t) => {
-            if (t === "swap") return toast("Swap — Coming Soon 🚀");
-            if (t === "deposit") return navigate("/bot?action=deposit");
-            if (t === "send") return navigate("/bot?action=withdraw");
-            if (t === "p2p") return navigate("/bot?action=p2p");
-            navigate("/wallet");
-          }}
-        />
+        {/* ============ TOP BANNER SLIDER (balance hero ki jagah) ============ */}
+        <BannerCarousel />
 
         {/* ============ SEARCH BAR ============ */}
         <Link
