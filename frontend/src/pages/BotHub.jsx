@@ -33,7 +33,7 @@ import { fmtUSD, fmtTime } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 
 const HERO_IMAGE =
-  "https://customer-assets.emergentagent.com/job_tgx-api-gateway/artifacts/v63grioq_file_000000003580720b84b6c5daae428f49.png";
+  "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/yohyuz3i_file_000000009b4081f5a8ad892ef6e3f993.png";
 
 const DEPOSIT_NETWORKS = [
   { id: "BEP20", name: "BNB Smart Chain", tag: "BEP20", Logo: BnbLogo },
@@ -372,62 +372,7 @@ export default function BotHub() {
 
         {/* Actions moved to Asset section — see Asset tab */}
 
-        {/* Withdrawal requests */}
-        {withdrawals.length > 0 && (
-          <div className="mt-4" data-testid="withdrawal-requests-section">
-            <div className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)] mb-2 px-1">
-              Withdrawal Requests
-            </div>
-            <div className="space-y-1.5">
-              {withdrawals.slice(0, 5).map((r) => (
-                <div
-                  key={r.id}
-                  className="rounded-lg border border-[color:var(--border)] bg-[var(--surface)]/70 px-3 py-2"
-                  data-testid="withdrawal-request-row"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <div className="text-[11px] font-semibold text-[color:var(--text)]">
-                        {fmtUSD(r.amount)} · {r.network}
-                      </div>
-                      <div className="text-[9px] text-[color:var(--text-mute)]">
-                        {r.address.slice(0, 10)}…{r.address.slice(-6)} · {fmtTime(r.created_at)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span
-                        className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                          r.status === "pending"
-                            ? "bg-[color:var(--gold)]/15 text-[color:var(--warn)]"
-                            : r.status === "completed"
-                            ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
-                            : "bg-[color:var(--bad)]/15 text-[color:var(--bad)]"
-                        }`}
-                        data-testid="withdrawal-status"
-                      >
-                        {r.status}
-                      </span>
-                      {r.status === "pending" && (
-                        <button
-                          onClick={() => cancelWithdrawal(r.id)}
-                          className="text-[9px] font-semibold text-[color:var(--bad)] border border-[color:var(--bad)]/40 rounded-md px-2 py-0.5"
-                          data-testid="btn-cancel-withdrawal"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {r.tx_hash && (
-                    <div className="text-[9px] font-mono text-[color:var(--text-mute)] mt-1 truncate">
-                      tx: {r.tx_hash}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Withdrawal requests history removed from Bot page (user request) */}
 
         {/* How it works — thin card, tap ⓘ to see conditions */}
         <button
@@ -447,18 +392,7 @@ export default function BotHub() {
           />
         </button>
 
-        {/* Transaction history moved to the Asset page — see Asset tab */}
-        <button
-          onClick={() => navigate("/wallet")}
-          className="mt-3 w-full flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface)]/60 px-4 py-2.5 hover:border-[color:var(--warn)]/30 transition"
-          data-testid="bot-view-history"
-        >
-          <div className="flex items-center gap-2">
-            <History size={12} className="text-[color:var(--warn)]" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--text-mute)]">Transaction History</span>
-          </div>
-          <span className="text-[11px] font-semibold text-[color:var(--warn)]">View in Asset ›</span>
-        </button>
+        {/* Transaction history intentionally removed from Bot page (user request) */}
       </div>
 
       {/* ========== INFO DIALOG (Conditions) ========== */}
