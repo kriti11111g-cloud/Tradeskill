@@ -59,7 +59,7 @@ export default function ExchangeList() {
         </div>
       </div>
 
-      <div className="px-4 mt-1 space-y-2">
+      <div className="px-4 mt-1 space-y-1.5">
         {EXCHANGES.map((ex, i) => {
           const isBinance = ex.id === "binance";
           return (
@@ -70,15 +70,15 @@ export default function ExchangeList() {
                   ? navigate("/bind-api/binance")
                   : toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)
               }
-              className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition active:scale-[0.995]"
+              className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
               style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
               data-testid={`exchange-row-${ex.id}`}
             >
-              <span className="w-6 text-[12px] font-black tabular-nums text-center shrink-0" style={{ color: "var(--text-mute)" }}>
+              <span className="w-5 text-[12px] font-black tabular-nums text-center shrink-0" style={{ color: "var(--text-mute)" }}>
                 {i + 1}
               </span>
-              <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: ex.color }}>
-                <span className="text-[13px] font-black text-white">{ex.mono}</span>
+              <div className="relative w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: ex.color }}>
+                <span className="text-[11px] font-black text-white">{ex.mono}</span>
                 <img
                   src={ex.logo}
                   alt={ex.name}
@@ -88,8 +88,8 @@ export default function ExchangeList() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-black truncate" style={{ color: "var(--ink)" }}>{ex.name}</div>
-                <div className="text-[11px] truncate" style={{ color: "var(--text-mute)" }}>{ex.tag}</div>
+                <div className="text-[13.5px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{ex.name}</div>
+                <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{ex.tag}</div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {isBinance && binanceBound ? (
