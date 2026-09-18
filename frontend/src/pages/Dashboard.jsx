@@ -101,7 +101,7 @@ export default function Dashboard() {
         >
           <div
             className="w-full max-w-xs rounded-3xl p-6 text-center text-white relative overflow-hidden"
-            style={{ background: "var(--hero-grad)", border: "1px solid rgba(245,158,11,0.5)", boxShadow: "0 0 60px rgba(245,158,11,0.35)" }}
+            style={{ background: "var(--hero-grad)", border: "1px solid rgba(37,99,235,0.5)", boxShadow: "0 0 60px rgba(37,99,235,0.30)" }}
           >
             <div className="text-5xl mb-2">🎉</div>
             <div className="text-[10px] uppercase tracking-[0.35em] font-bold" style={{ color: "#FBBF24" }}>
@@ -115,7 +115,7 @@ export default function Dashboard() {
             </div>
             <button
               className="mt-4 px-6 py-2 rounded-full text-[12px] font-black uppercase tracking-widest"
-              style={{ background: "rgba(10,10,10,0.85)", border: "1px solid rgba(245,158,11,0.65)", color: "#FBBF24" }}
+              style={{ background: "rgba(10,10,10,0.85)", border: "1px solid rgba(37,99,235,0.65)", color: "#60A5FA" }}
               onClick={() => setRankUp(null)}
               data-testid="rankup-close"
             >
@@ -136,9 +136,9 @@ export default function Dashboard() {
               <div
                 className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
                 style={{
-                  background: "var(--gold)",
+                  background: "#2563EB",
                   borderColor: "var(--surface)",
-                  boxShadow: "0 0 8px var(--gold-glow)",
+                  boxShadow: "0 0 8px rgba(37,99,235,0.30)",
                 }}
               >
                 <Crown size={7} className="text-white" strokeWidth={3} />
@@ -163,8 +163,8 @@ export default function Dashboard() {
                   <span
                     className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest text-white"
                     style={{
-                      background: "var(--gold-grad)",
-                      boxShadow: "0 0 8px var(--gold-glow)",
+                      background: "linear-gradient(90deg, #2563EB, #10B981)",
+                      boxShadow: "0 0 8px rgba(37,99,235,0.30)",
                     }}
                   >
                     PRO
@@ -182,15 +182,15 @@ export default function Dashboard() {
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{
                 background: "var(--surface-2)",
-                border: "1.5px solid color-mix(in srgb, var(--gold) 60%, transparent)",
-                boxShadow: "0 0 10px rgba(245,158,11,0.18)",
+                border: "1.5px solid color-mix(in srgb, #2563EB 60%, transparent)",
+                boxShadow: "0 0 10px rgba(37,99,235,0.18)",
                 backdropFilter: "blur(12px)",
               }}
             >
               {mode === "light" ? (
-                <Sun size={16} color="var(--gold-deep)" />
+                <Sun size={16} color="#1D4ED8" />
               ) : (
-                <Moon size={16} color="var(--gold)" />
+                <Moon size={16} color="#2563EB" />
               )}
             </button>
             <Link
@@ -198,8 +198,8 @@ export default function Dashboard() {
               className="w-10 h-10 rounded-full flex items-center justify-center relative"
               style={{
                 background: "var(--surface-2)",
-                border: "1.5px solid color-mix(in srgb, var(--gold) 60%, transparent)",
-                boxShadow: "0 0 10px rgba(245,158,11,0.18)",
+                border: "1.5px solid color-mix(in srgb, #2563EB 60%, transparent)",
+                boxShadow: "0 0 10px rgba(37,99,235,0.18)",
                 backdropFilter: "blur(12px)",
               }}
               data-testid="dash-notif-btn"
@@ -207,7 +207,7 @@ export default function Dashboard() {
               <Bell size={16} color="var(--text-soft)" />
               <span
                 className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                style={{ background: "var(--gold)", boxShadow: "0 0 8px var(--gold-glow)" }}
+                style={{ background: "#2563EB", boxShadow: "0 0 8px rgba(37,99,235,0.30)" }}
               />
             </Link>
           </div>
@@ -250,8 +250,8 @@ export default function Dashboard() {
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{
-                  background: "var(--gold-grad)",
-                  boxShadow: "0 0 10px var(--gold-glow)",
+                  background: "linear-gradient(90deg, #2563EB, #10B981)",
+                  boxShadow: "0 0 10px rgba(37,99,235,0.30)",
                 }}
               >
                 <Crown size={14} className="text-white" strokeWidth={2.5} />
@@ -259,7 +259,7 @@ export default function Dashboard() {
               <div>
                 <div
                   className="text-[9px] uppercase tracking-widest font-black"
-                  style={{ color: "var(--gold)" }}
+                  style={{ color: "#2563EB" }}
                 >
                   Your Rank
                 </div>
@@ -276,7 +276,7 @@ export default function Dashboard() {
                 >
                   Next
                 </div>
-                <div className="text-xs font-black" style={{ color: "var(--gold)" }}>
+                <div className="text-xs font-black" style={{ color: "#2563EB" }}>
                   {nextRank.title}
                 </div>
               </div>
@@ -290,8 +290,8 @@ export default function Dashboard() {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${progressPct}%`,
-                background: "var(--gold-grad)",
-                boxShadow: "0 0 8px var(--gold-glow)",
+                background: "linear-gradient(90deg, #2563EB, #10B981)",
+                boxShadow: "0 0 8px rgba(37,99,235,0.30)",
               }}
             />
           </div>
@@ -313,7 +313,7 @@ export default function Dashboard() {
               </span>
               {rank?.progress?.team_needed ? `/${rank.progress.team_needed}` : ""}
             </span>
-            <span className="font-black" style={{ color: "var(--gold)" }}>
+            <span className="font-black" style={{ color: "#2563EB" }}>
               {progressPct}%
             </span>
           </div>
@@ -362,8 +362,8 @@ export default function Dashboard() {
           data-testid="promo-banner"
           className="block rounded-2xl p-4 mb-5 relative overflow-hidden"
           style={{
-            background: "var(--premium-grad)",
-            boxShadow: "0 0 20px var(--gold-glow)",
+            background: "linear-gradient(90deg, #2563EB, #10B981)",
+            boxShadow: "0 0 20px rgba(37,99,235,0.30)",
           }}
         >
           <div className="flex items-center justify-between relative z-10">
@@ -515,8 +515,8 @@ export default function Dashboard() {
           <div
             className="absolute -bottom-1 left-6 right-6 h-1 rounded-full opacity-70 pointer-events-none"
             style={{
-              background: "var(--gold-grad)",
-              boxShadow: "0 0 8px var(--gold-glow)",
+              background: "linear-gradient(90deg, #2563EB, #10B981)",
+              boxShadow: "0 0 8px rgba(37,99,235,0.30)",
               filter: "blur(3px)",
             }}
           />
