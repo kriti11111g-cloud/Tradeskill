@@ -365,6 +365,15 @@ class PositionOverrideIn(BaseModel):
 
 
 # ==== Auth Routes ====
+async def _next_uid() -> str:
+    from pymongo import ReturnDocument
+    c = await db.counters.find_one_and_update(
+        {"_id": "uid"}, {"$inc": {"seq": 1}},
+        upsert=True, return_document=ReturnDocument.AFTER,
+    )
+    return f"TSK{100000 + int(c['seq']) - 1}"
+
+
 @api.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
     email = body.email.lower()
@@ -385,6 +394,7 @@ async def register(body: RegisterIn, response: Response):
 
     doc = {
         "id": user_id,
+        "uid": await _next_uid(),
         "email": email,
         "password_hash": hash_password(body.password),
         "name": body.name or email.split("@")[0],
@@ -3083,6 +3093,10 @@ async def startup():
                 "id": str(uuid.uuid4()), "image_url": url,
                 "order": i + 1, "created_at": iso(now_utc()),
             })
+
+    # Migrate: sabhi purane users ko sequential UID (TSK100000 se, created_at order)
+    async for u in db.users.find({"uid": {"$exists": False}}, {"id": 1}).sort("created_at", 1):
+        await db.users.update_one({"id": u["id"]}, {"$set": {"uid": await _next_uid()}})
 
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@tgxbot.com")
