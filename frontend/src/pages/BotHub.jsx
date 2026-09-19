@@ -269,7 +269,7 @@ export default function BotHub() {
 
   return (
     <div className="pb-40" data-testid="bothub-page">
-      <PageHeader title="Welcome to TGX BOT" subtitle="AI Powered Exchange" showBack={false} />
+      <PageHeader title="Welcome to Trade Skill" subtitle="AI Powered Exchange" showBack={false} />
 
       {/* Hero image with animated overlays */}
       <div className="px-4 mt-2">
@@ -282,7 +282,7 @@ export default function BotHub() {
         >
           <img
             src={HERO_IMAGE}
-            alt="TGX BOT — AI Powered Exchange"
+            alt="Trade Skill — AI Powered Exchange"
             className="w-full h-auto block select-none"
             loading="eager"
             draggable={false}
@@ -694,7 +694,7 @@ export default function BotHub() {
             <>
               <div className="flex items-center gap-2 text-[11px] text-[color:var(--text-mute)] mb-2">
                 <Users size={12} className="text-[color:var(--warn)]" />
-                <span>Send USDT directly to another TGX BOT user</span>
+                <span>Send USDT directly to another Trade Skill user</span>
               </div>
               <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mb-1.5">
                 Recipient Email
@@ -712,7 +712,7 @@ export default function BotHub() {
             <>
               <div className="flex items-center gap-2 text-[11px] text-[color:var(--text-mute)] mb-2">
                 <Users size={12} className="text-[color:var(--warn)]" />
-                <span>Send to another HUBXBOT user's deposit address (BSC / Polygon) — instant & free</span>
+                <span>Send to another Trade Skill user's deposit address (BSC / Polygon) — instant & free</span>
               </div>
               <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mb-1.5">
                 Recipient Deposit Address

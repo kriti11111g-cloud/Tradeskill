@@ -228,7 +228,7 @@ ALLOWED_SYMBOLS = {
     "STRKUSDT", "LDOUSDT", "RENDERUSDT", "TIAUSDT", "JUPUSDT",
 }
 
-app = FastAPI(title="TGX BOT API")
+app = FastAPI(title="Trade Skill API")
 api = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -281,7 +281,7 @@ def mask(v: str) -> str:
 
 
 def gen_ref_code() -> str:
-    return "TGX" + pysecrets.token_hex(3).upper()
+    return "TS" + pysecrets.token_hex(3).upper()
 
 
 async def get_current_user(request: Request) -> dict:
@@ -405,7 +405,7 @@ async def register(body: RegisterIn, response: Response):
         "type": "joining",
         "amount": 5.0,
         "status": "claimable",
-        "note": "Welcome bonus for joining TGX BOT",
+        "note": "Welcome bonus for joining Trade Skill",
         "created_at": iso(now_utc()),
     })
 
@@ -2055,7 +2055,7 @@ async def list_guide():
 # ==== Health ====
 @api.get("/")
 async def root():
-    return {"app": "TGX BOT", "status": "ok"}
+    return {"app": "Trade Skill", "status": "ok"}
 
 
 # ==== Rank endpoints ====
@@ -2501,13 +2501,13 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     if amount > sender_bal:
         raise HTTPException(400, "Insufficient bot wallet balance")
 
-    # ---- Address (internal HUBXBOT deposit-address lookup) mode ----
+    # ---- Address (internal Trade Skill deposit-address lookup) mode ----
     if recipient_address:
         rw = await db.bot_wallets.find_one(
             {"chain_deposit_address": {"$regex": f"^{re.escape(recipient_address)}$", "$options": "i"}},
             {"_id": 0, "user_id": 1})
         if not rw:
-            raise HTTPException(404, "This address does not belong to any HUBXBOT user")
+            raise HTTPException(404, "This address does not belong to any Trade Skill user")
         if rw["user_id"] == user["id"]:
             raise HTTPException(400, "Cannot send to your own wallet")
         new_sender_bal = round(sender_bal - amount, 4)
@@ -2771,8 +2771,8 @@ def _send_otp_email(to_email: str, code: str) -> bool:
         from email.mime.text import MIMEText
         gm_user = os.environ["GMAIL_USER"]
         gm_pass = os.environ["GMAIL_APP_PASSWORD"]
-        msg = MIMEText(f"Your HUBXBOT withdrawal OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
-        msg["Subject"] = "HUBXBOT Withdrawal Verification Code"
+        msg = MIMEText(f"Your Trade Skill withdrawal OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
+        msg["Subject"] = "Trade Skill Withdrawal Verification Code"
         msg["From"] = gm_user
         msg["To"] = to_email
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
@@ -3108,7 +3108,7 @@ async def startup():
     # Seed news
     if await db.news.count_documents({}) == 0:
         news_items = [
-            {"id": str(uuid.uuid4()), "title": "TGX BOT Launches Automated Cycle Trading", "summary": "The new Cycle mode uses grid + DCA strategies to catch every dip.", "category": "Platform", "created_at": iso(now_utc())},
+            {"id": str(uuid.uuid4()), "title": "Trade Skill Launches Automated Cycle Trading", "summary": "The new Cycle mode uses grid + DCA strategies to catch every dip.", "category": "Platform", "created_at": iso(now_utc())},
             {"id": str(uuid.uuid4()), "title": "Bitcoin ETF Inflows Hit New Record", "summary": "Institutional demand pushes BTC to fresh highs this quarter.", "category": "Market", "created_at": iso(now_utc() - timedelta(hours=6))},
             {"id": str(uuid.uuid4()), "title": "Referral 2.0 Rewards Live", "summary": "Earn 10% commission on every trade your team executes.", "category": "Rewards", "created_at": iso(now_utc() - timedelta(days=1))},
             {"id": str(uuid.uuid4()), "title": "Solana Ecosystem Update", "summary": "New DEX integrations expand SOL/USDT liquidity across venues.", "category": "Market", "created_at": iso(now_utc() - timedelta(days=2))},
@@ -3119,14 +3119,14 @@ async def startup():
     if await db.guide.count_documents({}) == 0:
         guide_items = [
             {"id": str(uuid.uuid4()), "order": 1, "title": "1. Bind Your Binance API", "body": "Go to Binance API management and generate a key with Spot Trading permission. Paste the API Key and Secret in the Bind API screen. Choose Demo to try risk-free.", "created_at": iso(now_utc())},
-            {"id": str(uuid.uuid4()), "order": 2, "title": "2. Choose a Trading Pair", "body": "Select from BTC, ETH, SOL, BNB, and more. TGX BOT works best with USDT pairs.", "created_at": iso(now_utc())},
+            {"id": str(uuid.uuid4()), "order": 2, "title": "2. Choose a Trading Pair", "body": "Select from BTC, ETH, SOL, BNB, and more. Trade Skill works best with USDT pairs.", "created_at": iso(now_utc())},
             {"id": str(uuid.uuid4()), "order": 3, "title": "3. Configure Your Strategy", "body": "Set First Buy Amount, Margin Call Limit, and Take Profit ratio. Use Cycle for repeated grid trades, One-Shot for single-shot swing entries.", "created_at": iso(now_utc())},
             {"id": str(uuid.uuid4()), "order": 4, "title": "4. Start the Bot", "body": "Press Start BOT to activate. Monitor position and P&L from your Dashboard.", "created_at": iso(now_utc())},
             {"id": str(uuid.uuid4()), "order": 5, "title": "5. Invite Friends & Earn", "body": "Share your unique referral code and earn a % of every trade your team makes.", "created_at": iso(now_utc())},
         ]
         await db.guide.insert_many(guide_items)
 
-    logger.info("TGX BOT startup complete")
+    logger.info("Trade Skill startup complete")
 
     if _tg_real_mode() and os.environ.get("PUBLIC_BASE_URL"):
         try:

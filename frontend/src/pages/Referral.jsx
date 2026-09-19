@@ -32,7 +32,7 @@ export default function Referral() {
   };
   const share = () => {
     const url = `${window.location.origin}/register?ref=${data.referral_code}`;
-    if (navigator.share) navigator.share({ title: "Join TGX BOT", url });
+    if (navigator.share) navigator.share({ title: "Join Trade Skill", url });
     else {
       navigator.clipboard.writeText(url);
       toast.success("Referral link copied!");

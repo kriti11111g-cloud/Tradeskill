@@ -232,7 +232,7 @@ export default function BindAPI() {
               <li>• Losses from market moves or misconfigured strategy are <span className="text-[color:var(--bad)] font-bold">irreversible</span>.</li>
               <li>• You are responsible for enabling only <span className="text-[color:var(--primary)]">Read Info + Spot Trading</span> permissions on your key.</li>
               <li>• Turn on <span className="text-[color:var(--primary)]">IP whitelist</span> in Binance for extra safety.</li>
-              <li>• TGX BOT will never withdraw funds — that permission is not requested.</li>
+              <li>• Trade Skill will never withdraw funds — that permission is not requested.</li>
             </ul>
           </div>
         </div>

@@ -10,7 +10,7 @@ export default function Guide() {
 
   return (
     <div className="pb-4">
-      <PageHeader title="User Guide" subtitle="Get started with TGX BOT" />
+      <PageHeader title="User Guide" subtitle="Get started with Trade Skill" />
       <div className="px-4 space-y-3" data-testid="guide-list">
         {rows.map((g, i) => (
           <div

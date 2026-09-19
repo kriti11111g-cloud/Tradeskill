@@ -43,7 +43,7 @@ export default function Register() {
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary-deep)] flex items-center justify-center glow-gold">
               <Zap size={22} className="text-[color:var(--text)]" strokeWidth={2.5} />
             </div>
-            <div className="font-display font-black text-3xl tracking-tight">TGX BOT</div>
+            <div className="font-display font-black text-3xl tracking-tight">Trade Skill</div>
           </div>
           <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-mute)]">Join the new era of crypto</div>
         </div>
@@ -57,7 +57,7 @@ export default function Register() {
               { key: "name", label: "Name", type: "text", placeholder: "Satoshi", testid: "reg-name" },
               { key: "email", label: "Email", type: "email", placeholder: "you@email.com", testid: "reg-email", required: true },
               { key: "password", label: "Password", type: "password", placeholder: "Min 6 chars", testid: "reg-password", required: true },
-              { key: "referral_code", label: "Referral code (optional)", type: "text", placeholder: "TGX...", testid: "reg-referral" },
+              { key: "referral_code", label: "Referral code (optional)", type: "text", placeholder: "TS...", testid: "reg-referral" },
             ].map((f) => (
               <div key={f.key}>
                 <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">{f.label}</label>

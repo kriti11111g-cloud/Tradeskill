@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      toast.success("Welcome back to TGX BOT");
+      toast.success("Welcome back to Trade Skill");
       nav("/");
     } catch (err) {
       toast.error(formatApiError(err));
@@ -44,7 +44,7 @@ export default function Login() {
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary-deep)] flex items-center justify-center glow-primary">
               <Zap size={22} className="text-[color:var(--text)]" strokeWidth={2.5} />
             </div>
-            <div className="font-display font-black text-3xl tracking-tight">TGX BOT</div>
+            <div className="font-display font-black text-3xl tracking-tight">Trade Skill</div>
           </div>
           <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-mute)]">
             Quantitative Auto Trading
@@ -99,7 +99,7 @@ export default function Login() {
         </div>
 
         <div className="text-center mt-6 text-[10px] text-[color:var(--text-mute)] uppercase tracking-widest">
-          New era of crypto · Powered by TGX
+          New era of crypto · Powered by Trade Skill
         </div>
       </div>
     </div>

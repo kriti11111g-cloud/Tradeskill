@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 const ThemeContext = createContext(null);
 
 /**
- * Theme provider for HUBXBOT — Green brand with Day/Night modes.
+ * Theme provider for Trade Skill — Green brand with Day/Night modes.
  * Persists mode to localStorage. Sets `data-theme` on <html>.
  */
 export function ThemeProvider({ children }) {
