@@ -125,13 +125,20 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
     # BSC/Polygon validators minimum gas price enforce karte hain — floor lagao (underpriced reject fix)
     _floor = {"BEP20": Web3.to_wei(3, "gwei"), "POLYGON": Web3.to_wei(30, "gwei")}
     gas_price = max(int(w3.eth.gas_price * 1.15), int(_floor.get(network, 0)))
-    gas_limit = 100000
+
+    # Exact gas estimate (USDT transfer ~35k) — sirf utna hi bhejo jitna lagega
+    to_checksum = Web3.to_checksum_address(to_address)
+    try:
+        gas_limit = int(contract.functions.transfer(to_checksum, raw_bal)
+                        .estimate_gas({"from": acct.address}) * 1.15)
+    except Exception:
+        gas_limit = 60000
     gas_needed = gas_limit * gas_price
     native_bal = w3.eth.get_balance(acct.address)
     gas_tx = None
     if native_bal < gas_needed:
         master = w3.eth.account.from_key(_derive_privkey(0))
-        topup = int(gas_needed * 1.25) - native_bal
+        topup = int(gas_needed * 1.05) - native_bal
         master_native = w3.eth.get_balance(master.address)
         if master_native < topup + 21000 * gas_price:
             raise ValueError(
@@ -148,7 +155,7 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
         w3.eth.wait_for_transaction_receipt(gas_tx, timeout=60)
 
     tx = contract.functions.transfer(
-        Web3.to_checksum_address(to_address), raw_bal
+        to_checksum, raw_bal
     ).build_transaction({
         "from": acct.address,
         "nonce": w3.eth.get_transaction_count(acct.address),
