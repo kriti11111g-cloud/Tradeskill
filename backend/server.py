@@ -385,9 +385,8 @@ async def register(body: RegisterIn, response: Response):
         raise HTTPException(400, "Email already registered")
 
     user_id = str(uuid.uuid4())
-    ref_code = gen_ref_code()
-    while await db.users.find_one({"referral_code": ref_code}):
-        ref_code = gen_ref_code()
+    uid = await _next_uid()
+    ref_code = uid  # referral code = UID (TSK100000 style)
 
     referred_by = None
     if body.referral_code:
@@ -397,7 +396,7 @@ async def register(body: RegisterIn, response: Response):
 
     doc = {
         "id": user_id,
-        "uid": await _next_uid(),
+        "uid": uid,
         "email": email,
         "password_hash": hash_password(body.password),
         "name": body.name or email.split("@")[0],
@@ -3135,7 +3134,7 @@ async def startup():
             "password_hash": hash_password(admin_password),
             "name": "Admin",
             "role": "admin",
-            "referral_code": "TGXADMIN",
+            "referral_code": "TSKADMIN",
             "referred_by": None,
             "rank": "Diamond",
             "activated": True,
@@ -3148,6 +3147,13 @@ async def startup():
     # Migrate: sabhi users (admin included) ko sequential UID (TSK100000 se, created_at order)
     async for u in db.users.find({"uid": {"$exists": False}}, {"id": 1}).sort("created_at", 1):
         await db.users.update_one({"id": u["id"]}, {"$set": {"uid": await _next_uid()}})
+
+    # Migrate: referral_code = UID (admin = TSKADMIN)
+    await db.users.update_many({"role": "admin"}, {"$set": {"referral_code": "TSKADMIN"}})
+    async for u in db.users.find(
+            {"role": {"$ne": "admin"}, "uid": {"$exists": True},
+             "$expr": {"$ne": ["$referral_code", "$uid"]}}, {"id": 1, "uid": 1}):
+        await db.users.update_one({"id": u["id"]}, {"$set": {"referral_code": u["uid"]}})
 
     # Seed news
     if await db.news.count_documents({}) == 0:

@@ -61,7 +61,7 @@ export default function Register() {
               { key: "name", label: "Name", type: "text", placeholder: "Satoshi", testid: "reg-name" },
               { key: "email", label: "Email", type: "email", placeholder: "you@email.com", testid: "reg-email", required: true },
               { key: "password", label: "Password", type: "password", placeholder: "Min 6 chars", testid: "reg-password", required: true },
-              { key: "referral_code", label: "Referral code (optional)", type: "text", placeholder: "TS...", testid: "reg-referral" },
+              { key: "referral_code", label: "Referral code (optional)", type: "text", placeholder: "TSK...", testid: "reg-referral" },
             ].map((f) => (
               <div key={f.key}>
                 <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">{f.label}</label>
