@@ -122,9 +122,9 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
     if amount < min_amount:
         return {"swept": False, "reason": f"balance {amount:.4f} < min {min_amount}"}
 
-    # BSC/Polygon validators minimum gas price enforce karte hain — floor lagao (underpriced reject fix)
-    _floor = {"BEP20": Web3.to_wei(3, "gwei"), "POLYGON": Web3.to_wei(30, "gwei")}
-    gas_price = max(int(w3.eth.gas_price * 1.15), int(_floor.get(network, 0)))
+    # Node ka live gas price + 20% buffer (BSC ab ~0.05 gwei chalta hai — koi bada floor NahI)
+    _floor = {"BEP20": Web3.to_wei(0.05, "gwei"), "POLYGON": Web3.to_wei(25, "gwei")}
+    gas_price = max(int(w3.eth.gas_price * 1.2), int(_floor.get(network, 0)))
 
     # Exact gas estimate (USDT transfer ~35k) — sirf utna hi bhejo jitna lagega
     to_checksum = Web3.to_checksum_address(to_address)
