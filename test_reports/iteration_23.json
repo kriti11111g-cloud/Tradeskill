@@ -1,0 +1,37 @@
+{
+  "summary": "Backend-only regression + sweep code-path verification for Trade Skill auto-sweep bug fix (gas price floor 3 gwei BEP20 / 30 gwei POLYGON + detailed sweep logging). Created /app/backend/tests/test_sweep_and_regression.py — 10 pytest cases, ALL PASS. Covered: (1) GET /api/ health returns {app:'Trade Skill', status:'ok'}, (2) chain_wallet.sweep_usdt('BEP20', 1, 0x07fE...7559, 1.0) dry-run returns {swept:False, reason:'balance 0.0000 < min 1.0'} WITHOUT raising — validates HD derivation + BSC RPC + min-balance guard end-to-end, (3) sweep_usdt source contains BEP20 3 gwei floor, POLYGON 30 gwei floor, and gas_price=max(node*1.15, floor) logic, (4) HD deterministic derivation: index 0 = 0x5aA5004E23B39D0368b765e4FDF47f6747F7e84F (matches expected master), index 1 derivable, (5) Admin login (admin@tgxbot.com / Admin@12345) returns user.referral_code='TSKADMIN' and user.uid='TSK100000', (6) Register creates fresh user with uid TSK1xxxxx (9 chars, sequential — currently at TSK100101) and referral_code == uid, (7) /api/bots list works with Bearer auth (returns list), (8) /api/wallet/summary works, (9) POST /api/bots/BTCUSDT + /start + /stop respond with expected codes, (10) Supervisor backend.err.log tail (last 200KB) contains NO tracebacks referencing deposit_watcher_loop / sweep_usdt / chain_wallet — deposit watcher stable, no exceptions after the new gas floor + logging patch. As noted by main agent, no real on-chain funds are available in preview, so absence of actual 'sweep attempt' log lines is expected — only code stability was verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sweep_and_regression.py",
+    "/app/test_reports/pytest/sweep_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "chain_wallet.sweep_usdt (line 113-162): gas floor applied ONLY to the USDT transfer tx, but the gas top-up tx (line 140-147, master -> deposit address) uses the SAME gas_price already-floored — good, consistent. However the top-up affordability check at line 136 (`master_native < topup + 21000 * gas_price`) uses gas_price for a 21000-gas value-transfer only; correct.",
+    "server.py:2655 SWEEP guard uses `chain_bal >= SWEEP_MIN_USDT` (i.e. the NEW on-chain balance right now) — good; means retry-safe even if credited already happened. Combined with `deposit_index missing` skip (line 2656) + try/except around sweep_usdt (line 2659-2683), watcher is defensive.",
+    "server.py:2630 SWEEP destination resolution: `os.environ.get('SWEEP_ADDRESS') or os.environ.get('ADMIN_WALLET_ADDRESS')` — if both are empty, sweep block is silently skipped (no log). Suggest a one-time WARN at startup if SWEEP_ENABLED=1 but sweep_to is empty, so misconfiguration is obvious.",
+    "server.py:2686 sleep = DEPOSIT_WATCH_INTERVAL (default 45s). For a $1 deposit test, expect up to ~45s delay before sweep_attempt log appears — user should wait > 60s before reporting 'sweep did nothing'.",
+    "chain_wallet.py:148 waits synchronously (`wait_for_transaction_receipt(gas_tx, timeout=180)`) inside an asyncio.to_thread — that is fine because it's off-loop, but a 3-minute stall on a slow BSC block will block one iteration of the watcher for that single user. Acceptable, but consider reducing timeout to 60s (BSC block time ~3s so 60s = 20 blocks, safely enough).",
+    "chain_wallet.py:120 `raw_bal / (10 ** cfg['decimals'])` uses float division for 18-dec BEP20 — precision loss for large balances. Not a bug for $1 sweeps but note for future.",
+    "server.py:2670 after successful sweep, resets `onchain_credited.{net}` to 0.0 but the user's Bot Wallet `balance` was already incremented at line 2644 — correct (sweep moves the on-chain USDT, credit to internal ledger remains). Good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sweep_and_regression.py (new — 10 cases)",
+    "/app/backend/tests/conftest.py (added _load_backend_env so chain_wallet.MASTER_MNEMONIC + RPC URLs load during pytest)"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "not tested (backend-only run per request)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (used). Test register creates TEST_sweep_<uuid>@tgxbot.com / Test@12345 fresh per run.",
+  "seed_data_creation": "One TEST_sweep_* user per run (TSK1001xx). No withdrawal/bot activation performed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Auto-sweep sweep_usdt path is code-verified: HD derivation works, BSC RPC connects, gas floor logic in place, min-balance guard returns cleanly, deposit_watcher_loop runs without exceptions in preview. REAL on-chain sweep (production tradeskill.in) cannot be verified from this preview because deposit addresses have no USDT — only the user's production server has the actual $1 USDT test deposit. To verify end-to-end on prod: (a) user should check prod backend logs for 'sweep attempt', 'sweep skipped', 'SWEEP OK' lines around the deposit time, (b) check db.sweeps collection for a doc matching user_id, (c) if 'sweep skip deposit_index missing' appears -> old wallet doc created before HD upgrade; main agent must backfill deposit_index for that wallet, (d) if 'sweep failed ... transaction underpriced' STILL appears -> BSC minimum has risen above 3 gwei; bump floor.",
+  "rca of the issue": "Original bug: $1 USDT BEP20 deposit not swept despite $10 BNB in gas wallet. Two root causes hypothesized and patched by main agent: (1) BSC validators started rejecting txs below 3 gwei with 'transaction underpriced' — fix: max(node_price*1.15, 3 gwei) floor in chain_wallet.sweep_usdt; POLYGON 30 gwei floor for the same reason. (2) Silent failure in watcher — fix: added structured logs 'sweep attempt / skipped / SWEEP OK / failed' + explicit `deposit_index missing` guard so ops can immediately see WHY a deposit was not swept. Preview verification: all code paths execute cleanly, no tracebacks, no exceptions. Reproduction of the actual on-chain sweep requires real USDT on a derived address which is not present in preview — user must retest on tradeskill.in production after the deploy."
+}

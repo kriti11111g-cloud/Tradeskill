@@ -20,6 +20,19 @@ def _load_frontend_env():
 _load_frontend_env()
 
 
+# Also load backend/.env so chain_wallet (MASTER_MNEMONIC, RPC URLs) works.
+def _load_backend_env():
+    be_env = pathlib.Path(__file__).resolve().parents[1] / ".env"
+    if be_env.exists():
+        for line in be_env.read_text().splitlines():
+            if "=" in line and not line.strip().startswith("#"):
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_load_backend_env()
+
+
 # Serialize all async tests onto the same event loop so the motor client
 # (initialized at module import) stays valid across tests.
 @pytest_asyncio.fixture(scope="session", autouse=True)

@@ -3181,6 +3181,8 @@ async def startup():
         ]
         await db.guide.insert_many(guide_items)
 
+    if SWEEP_ENABLED and not (os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")):
+        logger.warning("SWEEP_ENABLED=1 but no SWEEP_ADDRESS/ADMIN_WALLET_ADDRESS set — auto-sweep will not run")
     logger.info("Trade Skill startup complete")
 
     if _tg_real_mode() and os.environ.get("PUBLIC_BASE_URL"):
