@@ -357,7 +357,7 @@ export default function TradingPair() {
               </div>
             </div>
 
-            {shortfall > 0 && bot.position_qty > 0 && (
+            {shortfall > 0 && bot.position_qty > 0 && shortfall / bot.position_qty > 0.01 && (
               <div className="px-4 mt-3">
                 <div
                   className="bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/40 rounded-2xl p-3 flex items-start gap-3"
