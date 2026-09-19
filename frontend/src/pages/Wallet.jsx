@@ -62,7 +62,8 @@ export default function Wallet() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const isLiveMode = bind?.mode === "real" || bind?.mode === "testnet";
+  // Asset page hamesha bot-wallet view dikhaye — Binance coins yahan nahi (user request)
+  const isLiveMode = false;
 
   const loadLive = async () => {
     setLiveLoading(true);
@@ -105,12 +106,6 @@ export default function Wallet() {
     try {
       localStorage.setItem("tgx_wallet_cache", JSON.stringify({ s, h }));
     } catch {}
-    if (bd?.mode === "real" || bd?.mode === "testnet") {
-      loadLive();
-    } else {
-      setLive(null);
-      setLiveErr(null);
-    }
   };
   useEffect(() => {
     try {

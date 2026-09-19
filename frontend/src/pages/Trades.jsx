@@ -159,6 +159,7 @@ function HistoryRow({ bot }) {
 export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
+  const [exUsdt, setExUsdt] = useState(null);
   const [filter, setFilter] = useState("live");
   const [prices, setPrices] = useState({});
   const navigate = useNavigate();
@@ -177,6 +178,15 @@ export default function Trades() {
       setBots(b);
       setBind(bd);
       try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
+      // Exchange card par user ka live Binance USDT balance
+      if (bd?.bound) {
+        api.get("/binance/account").then(({ data }) => {
+          const u = (data.balances || []).find((x) => x.asset === "USDT");
+          setExUsdt(u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0);
+        }).catch(() => setExUsdt(null));
+      } else {
+        setExUsdt(null);
+      }
     };
     load();
     const t = setInterval(load, 30000);
@@ -272,12 +282,19 @@ export default function Trades() {
             <div className="text-[14px] font-black" style={{ color: "var(--ink)" }}>Binance</div>
             <div className="text-[11px]" style={{ color: "var(--text-mute)" }}>Tap to manage your API</div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-2 h-2 rounded-full" style={{ background: bind?.bound ? "var(--good)" : "#9CA3AF" }} />
-            <span className="text-[13px] font-black" style={{ color: bind?.bound ? "var(--good)" : "var(--text-mute)" }}>
-              {bind?.bound ? "Live" : "Demo"}
-            </span>
-            <ChevronRight size={16} style={{ color: "var(--ink)" }} />
+          <div className="flex flex-col items-end shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: bind?.bound ? "var(--good)" : "#9CA3AF" }} />
+              <span className="text-[13px] font-black" style={{ color: bind?.bound ? "var(--good)" : "var(--text-mute)" }}>
+                {bind?.bound ? "Live" : "Demo"}
+              </span>
+              <ChevronRight size={16} style={{ color: "var(--ink)" }} />
+            </div>
+            {bind?.bound && exUsdt !== null && (
+              <div className="text-[12px] font-black tabular-nums mt-0.5" style={{ color: "var(--ink)" }} data-testid="exchange-usdt-balance">
+                {exUsdt.toFixed(2)} <span className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>USDT</span>
+              </div>
+            )}
           </div>
         </button>
       </div>
