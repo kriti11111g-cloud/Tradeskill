@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -8,7 +8,11 @@ import { formatApiError } from "@/lib/api";
 export default function Register() {
   const nav = useNavigate();
   const { register } = useAuth();
-  const [form, setForm] = useState({ name: "", email: "", password: "", referral_code: "" });
+  const [params] = useSearchParams();
+  const [form, setForm] = useState({
+    name: "", email: "", password: "",
+    referral_code: (params.get("ref") || "").toUpperCase(),
+  });
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
