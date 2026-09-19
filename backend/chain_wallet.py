@@ -122,7 +122,9 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
     if amount < min_amount:
         return {"swept": False, "reason": f"balance {amount:.4f} < min {min_amount}"}
 
-    gas_price = int(w3.eth.gas_price * 1.15)
+    # BSC/Polygon validators minimum gas price enforce karte hain — floor lagao (underpriced reject fix)
+    _floor = {"BEP20": Web3.to_wei(3, "gwei"), "POLYGON": Web3.to_wei(30, "gwei")}
+    gas_price = max(int(w3.eth.gas_price * 1.15), int(_floor.get(network, 0)))
     gas_limit = 100000
     gas_needed = gas_limit * gas_price
     native_bal = w3.eth.get_balance(acct.address)

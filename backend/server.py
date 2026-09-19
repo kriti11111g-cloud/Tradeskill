@@ -2652,12 +2652,17 @@ async def deposit_watcher_loop():
                         logger.info(f"On-chain deposit credited: {diff} USDT ({net}) -> {w['user_id']}")
 
                     # AUTO-SWEEP: credited funds ko cold wallet me bhejo (retry-safe)
-                    if (SWEEP_ENABLED and sweep_to and chain_bal >= SWEEP_MIN_USDT
-                            and w.get("deposit_index") is not None):
+                    if SWEEP_ENABLED and sweep_to and chain_bal >= SWEEP_MIN_USDT:
+                        if w.get("deposit_index") is None:
+                            logger.warning(f"sweep skip {w['user_id']} {net}: deposit_index missing")
+                            continue
                         try:
+                            logger.info(f"sweep attempt: {chain_bal:.4f} USDT ({net}) idx={w['deposit_index']} -> {sweep_to}")
                             r = await asyncio.to_thread(
                                 chain_wallet.sweep_usdt, net,
                                 int(w["deposit_index"]), sweep_to, SWEEP_MIN_USDT)
+                            if not r.get("swept"):
+                                logger.warning(f"sweep skipped {w['user_id']} {net}: {r.get('reason')}")
                             if r.get("swept"):
                                 # sweep ke baad chain balance 0 — baseline reset
                                 await db.bot_wallets.update_one(
