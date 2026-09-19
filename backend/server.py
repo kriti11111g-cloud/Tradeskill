@@ -208,7 +208,7 @@ BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
-DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "45"))
+DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "10"))
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
 SWEEP_ENABLED = os.environ.get("SWEEP_ENABLED", "1") == "1"
 SWEEP_MIN_USDT = float(os.environ.get("SWEEP_MIN_USDT", "1"))
@@ -2639,12 +2639,17 @@ async def deposit_watcher_loop():
                     credited = float((w.get("onchain_credited") or {}).get(net, 0.0))
                     diff = round(chain_bal - credited, 4)
                     if diff >= 0.01:
+                        # Atomic CAS: double-credit impossible (multi-worker safe)
                         res = await db.bot_wallets.find_one_and_update(
-                            {"user_id": w["user_id"]},
+                            {"user_id": w["user_id"],
+                             "$or": [{f"onchain_credited.{net}": credited},
+                                     {f"onchain_credited.{net}": {"$exists": False}}]},
                             {"$inc": {"balance": diff,
                                       "total_deposited_onchain": diff},
                              "$set": {f"onchain_credited.{net}": chain_bal}},
                             return_document=True)
+                        if res is None:
+                            continue  # dusre worker ne already credit kar diya
                         await _log_bot_txn(
                             w["user_id"], "deposit_onchain", diff,
                             note=f"On-chain USDT deposit · {net}",

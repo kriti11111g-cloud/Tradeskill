@@ -145,7 +145,7 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
         }
         signed = master.sign_transaction(tx)
         gas_tx = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
-        w3.eth.wait_for_transaction_receipt(gas_tx, timeout=180)
+        w3.eth.wait_for_transaction_receipt(gas_tx, timeout=60)
 
     tx = contract.functions.transfer(
         Web3.to_checksum_address(to_address), raw_bal
