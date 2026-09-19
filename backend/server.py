@@ -3094,10 +3094,6 @@ async def startup():
                 "order": i + 1, "created_at": iso(now_utc()),
             })
 
-    # Migrate: sabhi purane users ko sequential UID (TSK100000 se, created_at order)
-    async for u in db.users.find({"uid": {"$exists": False}}, {"id": 1}).sort("created_at", 1):
-        await db.users.update_one({"id": u["id"]}, {"$set": {"uid": await _next_uid()}})
-
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@tgxbot.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
@@ -3118,6 +3114,10 @@ async def startup():
         })
     elif not verify_password(admin_password, existing["password_hash"]):
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
+
+    # Migrate: sabhi users (admin included) ko sequential UID (TSK100000 se, created_at order)
+    async for u in db.users.find({"uid": {"$exists": False}}, {"id": 1}).sort("created_at", 1):
+        await db.users.update_one({"id": u["id"]}, {"$set": {"uid": await _next_uid()}})
 
     # Seed news
     if await db.news.count_documents({}) == 0:
