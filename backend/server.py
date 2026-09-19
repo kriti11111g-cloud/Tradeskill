@@ -4,6 +4,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import math
 import time
 import uuid
 import asyncio
@@ -1099,19 +1100,44 @@ async def get_user_binance(user_id: str):
     return client, mode
 
 
-def _parse_fill(order: dict) -> tuple[float, float, float]:
-    """Return (filled_qty, quote_spent, avg_price) from a Binance order response."""
+def _parse_fill(order: dict, base_asset: str = "") -> tuple[float, float, float]:
+    """Return (net_filled_qty, quote_spent, avg_price). Base-asset commission (Binance
+    0.1% fee jo bought coin me katati hai) NET ki jati hai — warna sell fail hota hai."""
     fills = order.get("fills") or []
     if fills:
         qty = sum(float(f["qty"]) for f in fills)
         quote = sum(float(f["qty"]) * float(f["price"]) for f in fills)
         avg = quote / qty if qty > 0 else 0.0
+        if base_asset:
+            base_comm = sum(float(f.get("commission", 0)) for f in fills
+                            if f.get("commissionAsset") == base_asset)
+            qty = max(0.0, qty - base_comm)
         return qty, quote, avg
     # Fallback to top-level fields
     exec_qty = float(order.get("executedQty", 0) or 0)
     cum_quote = float(order.get("cummulativeQuoteQty", 0) or 0)
     avg = cum_quote / exec_qty if exec_qty > 0 else 0.0
     return exec_qty, cum_quote, avg
+
+
+_LOT_STEP_CACHE: dict = {}
+
+
+async def _get_lot_step(client, symbol: str) -> float:
+    """Symbol ka LOT_SIZE step (e.g. FIL=0.01) — cached."""
+    if symbol in _LOT_STEP_CACHE:
+        return _LOT_STEP_CACHE[symbol]
+    step = 0.000001
+    try:
+        info = await run_in_threadpool(client.get_symbol_info, symbol)
+        for f in (info or {}).get("filters", []):
+            if f.get("filterType") == "LOT_SIZE":
+                step = float(f["stepSize"])
+                break
+    except Exception:
+        pass
+    _LOT_STEP_CACHE[symbol] = step
+    return step
 
 
 @api.get("/binance/account")
@@ -1193,6 +1219,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
 
     # ----- LIVE (real / testnet) -----
     if client and mode in ("real", "testnet"):
+        base_asset = symbol.replace("USDT", "")
         try:
             if side == "BUY":
                 amount = usdt_amount or 0
@@ -1205,8 +1232,22 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 qty = quantity or bot.get("position_qty", 0.0)
                 if qty <= 0:
                     raise _TradeError(400, "No position to sell")
+                # Binance ka ACTUAL free balance se clamp (fee ki wajah se tracked > held ho sakta hai)
+                try:
+                    bal = await run_in_threadpool(client.get_asset_balance, asset=base_asset)
+                    free = float((bal or {}).get("free", 0) or 0)
+                    if free > 0:
+                        qty = min(qty, free)
+                except Exception:
+                    pass
+                # LOT_SIZE step par floor (warna invalid quantity reject)
+                step = await _get_lot_step(client, symbol)
+                if step > 0:
+                    qty = math.floor(qty / step + 1e-9) * step
+                if qty <= 0:
+                    raise _TradeError(400, "No sellable balance on Binance")
                 order = await run_in_threadpool(
-                    client.order_market_sell, symbol=symbol, quantity=float(f"{qty:.6f}"),
+                    client.order_market_sell, symbol=symbol, quantity=float(f"{qty:.8f}"),
                 )
         except _TradeError:
             raise
@@ -1218,7 +1259,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         except Exception as e:
             raise _TradeError(400, f"Order failed: {e}")
 
-        filled_qty, quote_spent, avg_price = _parse_fill(order)
+        filled_qty, quote_spent, avg_price = _parse_fill(order, base_asset if side == "BUY" else "")
         if side == "BUY":
             new_qty = bot.get("position_qty", 0.0) + filled_qty
             new_amt = bot.get("position_amount", 0.0) + quote_spent
@@ -1248,6 +1289,10 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
             cost = filled_qty * bot.get("avg_price", 0.0)
             profit = quote_spent - cost
             remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
+            # Dust (fee/lot-step ka bacha tracked amount) ko 0 mano — warna cycle reset nahi hota
+            step = _LOT_STEP_CACHE.get(symbol, 0.000001)
+            if remaining_qty < max(step, 0.000001) * 1.05:
+                remaining_qty = 0.0
             remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
             new_wallet = wallet + quote_spent
             reset = remaining_qty == 0
