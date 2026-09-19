@@ -1270,7 +1270,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         }
         await db.transactions.insert_one(txn)
         if side == "SELL":
-            if profit > 0:
+            if profit > 0 and source not in ("bot_stop", "fresh_start"):
                 await _charge_trading_fee(user_id, profit, symbol)
         txn.pop("_id", None)
         return txn
@@ -1361,10 +1361,11 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         "created_at": iso(now_utc()),
     }
     await db.transactions.insert_one(txn)
-    if side == "SELL":
-        if profit > 0:
-            await _charge_trading_fee(user_id, profit, symbol)
     txn.pop("_id", None)
+    if side == "SELL":
+        # Fuel sirf profit-book (TP/manual) par — stop/fresh-start close par NAHI (double-fee complaint fix)
+        if profit > 0 and source not in ("bot_stop", "fresh_start"):
+            await _charge_trading_fee(user_id, profit, symbol)
     return txn
 
 
