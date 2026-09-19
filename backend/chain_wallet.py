@@ -108,3 +108,53 @@ def send_usdt(network: str, to_address: str, amount: float, from_index: int = 0)
     signed = acct.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     return tx_hash.hex()
+
+
+def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float = 1.0) -> dict:
+    """User deposit address (HD index) ka pura USDT cold wallet me sweep karta hai.
+    Deposit address par gas kam ho to master gas wallet (index 0) se native top-up hota hai."""
+    cfg = NETWORKS[network]
+    w3 = _w3(network)
+    acct = w3.eth.account.from_key(_derive_privkey(from_index))
+    contract = _usdt_contract(w3, network)
+    raw_bal = contract.functions.balanceOf(acct.address).call()
+    amount = raw_bal / (10 ** cfg["decimals"])
+    if amount < min_amount:
+        return {"swept": False, "reason": f"balance {amount:.4f} < min {min_amount}"}
+
+    gas_price = int(w3.eth.gas_price * 1.15)
+    gas_limit = 100000
+    gas_needed = gas_limit * gas_price
+    native_bal = w3.eth.get_balance(acct.address)
+    gas_tx = None
+    if native_bal < gas_needed:
+        master = w3.eth.account.from_key(_derive_privkey(0))
+        topup = int(gas_needed * 1.25) - native_bal
+        master_native = w3.eth.get_balance(master.address)
+        if master_native < topup + 21000 * gas_price:
+            raise ValueError(
+                f"Gas wallet me {cfg['native']} insufficient "
+                f"({w3.from_wei(master_native, 'ether')} {cfg['native']}) — sweep skip")
+        tx = {
+            "to": acct.address, "value": topup,
+            "gas": 21000, "gasPrice": gas_price,
+            "nonce": w3.eth.get_transaction_count(master.address),
+            "chainId": cfg["chain_id"],
+        }
+        signed = master.sign_transaction(tx)
+        gas_tx = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
+        w3.eth.wait_for_transaction_receipt(gas_tx, timeout=180)
+
+    tx = contract.functions.transfer(
+        Web3.to_checksum_address(to_address), raw_bal
+    ).build_transaction({
+        "from": acct.address,
+        "nonce": w3.eth.get_transaction_count(acct.address),
+        "gas": gas_limit,
+        "gasPrice": gas_price,
+        "chainId": cfg["chain_id"],
+    })
+    signed = acct.sign_transaction(tx)
+    sweep_tx = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
+    return {"swept": True, "amount": amount, "sweep_tx": sweep_tx, "gas_tx": gas_tx,
+            "from_address": acct.address, "to_address": to_address}
