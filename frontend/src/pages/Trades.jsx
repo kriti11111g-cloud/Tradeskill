@@ -231,7 +231,7 @@ function BotRow({ bot, onDone }) {
             style={{ border: "1px solid var(--good)", background: "rgba(16,185,129,0.08)" }}
             data-testid={`bot-wft-${bot.symbol}`}
           >
-            <span className="text-[8.5px] font-black tracking-[0.08em] uppercase" style={{ color: "var(--text-mute)" }}>Waiting to Sell</span>
+            <span className="text-[8.5px] font-black tracking-[0.08em] uppercase" style={{ color: "var(--text-mute)" }}>Take Profit</span>
             <span className="text-[11.5px] font-black tabular-nums" style={{ color: "var(--good)" }}>
               +{fmtNum(wftPct, 2)}%
             </span>
