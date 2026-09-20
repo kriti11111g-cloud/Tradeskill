@@ -1821,40 +1821,15 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
     # unreachable we report 0 (with `wallet_error`) instead of leaking the demo
     # balance, so the UI doesn't mislead the user about their real funds.
     demo_balance = float(user.get("wallet_usdt", 0.0))
-    wallet_usdt = demo_balance
-    wallet_mode = "demo"
-    wallet_connected = False
-    wallet_error = None
-    client, mode = await get_user_binance(user["id"])
-    if client and mode in ("real", "testnet"):
-        wallet_mode = mode
-        try:
-            data = await run_in_threadpool(client.get_account)
-            usdt = 0.0
-            for b in data.get("balances", []):
-                if b.get("asset") == "USDT":
-                    usdt = float(b.get("free", 0))
-                    break
-            wallet_usdt = usdt
-            wallet_connected = True
-        except Exception as e:
-            msg = str(e)
-            wallet_usdt = 0.0
-            wallet_connected = False
-            wallet_error = (
-                "Binance is unreachable from this server region (geo-restriction). "
-                "Your funds are safe in Binance — we cannot read the balance from here."
-                if "restricted location" in msg.lower() or "eligibility" in msg.lower()
-                else f"Binance connection failed: {msg[:120]}"
-            )
-    # ---- Unified balance: Bot Wallet is THE single balance source (demo mode).
+    _, mode = await get_user_binance(user["id"])
+    wallet_mode = mode if mode in ("real", "testnet") else "demo"
+    # ---- Asset page ka balance HAMESHA Trade Skill bot-wallet hota hai.
+    # Binance ka fund yahan kabhi add nahi hota (user request) — wo sirf
+    # Trade page ke exchange card par dikhta hai.
     bw = await _get_or_create_bot_wallet(user["id"])
     unified = round(float(bw.get("balance", 0.0) or 0.0), 4)
-    if wallet_mode == "demo":
-        wallet_usdt = unified
-        total = unified
-    else:
-        total = round(wallet_usdt + positions_value, 4)
+    wallet_usdt = unified
+    total = unified
     return {
         "wallet_usdt": round(wallet_usdt, 4),
         "positions_value_usdt": round(positions_value, 4),
@@ -1862,8 +1837,8 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
         "bot_wallet_balance": unified,
         "positions": positions,
         "wallet_mode": wallet_mode,
-        "wallet_connected": wallet_connected,
-        "wallet_error": wallet_error,
+        "wallet_connected": wallet_mode != "demo",
+        "wallet_error": None,
         "demo_wallet_usdt": round(demo_balance, 4),
     }
 
