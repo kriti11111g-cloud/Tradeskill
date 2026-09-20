@@ -194,6 +194,7 @@ def _rank_qualifies(stats: dict, rank: dict) -> bool:
 BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "50"))
 BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "25"))  # % of profit → fuel
 BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "10"))  # bot pauses below this
+MIN_FIRST_BUY = 10.0  # minimum first buy in USDT (below this Binance sells can fail on MIN_NOTIONAL)
 
 # ---- MLM Trading Commission Structure (of PROFIT, totals BOT_TRADING_FEE_PCT=25%) ----
 COMPANY_FEE_PCT = 5.0        # Company / Bot fee
@@ -902,6 +903,8 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
 @api.post("/bots/{symbol}")
 async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()
+    if float(cfg.first_buy_amount or 0) < MIN_FIRST_BUY:
+        raise HTTPException(400, f"Minimum First Buy Amount is ${MIN_FIRST_BUY:.0f}. Amounts below this can fail to sell due to Binance minimum order limits.")
     # Serialize margin_config (list of MarginRule pydantic objects) to plain dicts
     mc = cfg.margin_config
     mc_docs = [r.model_dump() for r in mc] if mc else DEFAULT_MARGIN_CONFIG
@@ -993,6 +996,10 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "Bot wallet not activated. Please activate your bot from the Bot tab to start trading.")
     if float(w.get("balance", 0.0) or 0.0) < BOT_MIN_FUEL_BALANCE:
         raise HTTPException(400, f"Minimum ${BOT_MIN_FUEL_BALANCE:.0f} fuel required to run the bot. Please deposit.")
+
+    pre = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"first_buy_amount": 1})
+    if pre and float(pre.get("first_buy_amount", 0) or 0) < MIN_FIRST_BUY:
+        raise HTTPException(400, f"Minimum First Buy Amount is ${MIN_FIRST_BUY:.0f}. Please update your strategy before starting the bot.")
 
     # FRESH START: agar purani (stale) position padi hai to use pehle clear karo.
     # Demo mode: cost-basis refund (no profit, no fee). Real/testnet: market sell.

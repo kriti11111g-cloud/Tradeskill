@@ -11,7 +11,7 @@ import CoinIcon from "@/components/CoinIcon";
 import useBinanceStream from "@/hooks/useBinanceStream";
 
 const fields = [
-  { key: "first_buy_amount", label: "First Buy In Amount (USDT)", step: 0.5, type: "number" },
+  { key: "first_buy_amount", label: "First Buy In Amount (USDT) — Min $10", step: 0.5, type: "number" },
   { key: "margin_call_limit", label: "Margin Call Limit", step: 1, type: "number" },
   { key: "whole_take_profit_ratio", label: "Whole Take Profit Ratio (%)", step: 0.1, type: "number" },
   { key: "whole_take_profit_callback", label: "Whole TP Callback (%)", step: 0.1, type: "number" },
@@ -147,6 +147,10 @@ export default function TradingPair() {
   };
 
   const saveConfig = async () => {
+    if (parseFloat(bot.first_buy_amount) < 10) {
+      toast.error("Minimum First Buy Amount is $10 — smaller orders can fail to sell on Binance");
+      return;
+    }
     try {
       await api.post(`/bots/${sym}`, bot);
       toast.success("Strategy saved");

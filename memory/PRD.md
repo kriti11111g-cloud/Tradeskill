@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (20 Jun 2026): Min $10 First Buy enforced
+- Backend: MIN_FIRST_BUY=10 — strategy save (POST /bots/{symbol}) rejects <$10; bot start blocked if saved config <$10
+- Frontend: client-side validation + label "First Buy In Amount (USDT) — Min $10"
+- Reason: <$5 positions fail to SELL on Binance MIN_NOTIONAL
+
 ## Update (20 Jun 2026): Trade card action buttons polish
 - Fixed 2-3 tap issue on One Shot/Cycle/Sell buttons (removed active:scale transform on card that cancelled mobile taps; added touchAction: manipulation)
 - Slimmed the 3 action buttons (single-line, py-1.5, smaller icons) for professional look
