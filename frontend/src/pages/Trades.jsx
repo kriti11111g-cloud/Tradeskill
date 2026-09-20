@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
@@ -24,9 +25,45 @@ const fmtPrice = (v) => {
   return "$" + v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 };
 
-function BotRow({ bot }) {
+const GRAD = "linear-gradient(90deg, #2563EB, #10B981)";
+
+/* Confirmation popup — Sell / One Shot / Cycle sab isi se */
+function ConfirmModal({ open, title, desc, confirmLabel, danger, loading, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onCancel} data-testid="confirm-modal">
+      <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="font-display font-black text-lg" style={{ color: "var(--ink)" }}>{title}</div>
+        <div className="text-[13px] leading-relaxed mt-2" style={{ color: "var(--text)" }}>{desc}</div>
+        <div className="flex gap-2.5 mt-5">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-black"
+            style={{ background: "var(--surface-3)", color: "var(--ink)" }}
+            data-testid="confirm-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white"
+            style={{ background: danger ? "#DC2626" : GRAD, opacity: loading ? 0.6 : 1 }}
+            data-testid="confirm-yes"
+          >
+            {loading ? "Processing..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BotRow({ bot, onDone }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
+  const [modal, setModal] = useState(null); // 'sell' | 'oneshot' | 'cycle'
+  const [busy, setBusy] = useState(false);
   const isRunning = String(bot.status || "").toLowerCase() === "running";
   const live = (ticker?.price || 0) > 0 ? ticker.price : bot.avg_price || 0;
   const qty = bot.position_qty || 0;
@@ -36,22 +73,62 @@ function BotRow({ bot }) {
   const floatPct = hasPos && avg > 0 ? ((live - avg) / avg) * 100 : 0;
   const negative = floating < 0;
   const round = bot.cycles_completed || 0;
+  const mode = bot.trade_mode || "cycle";
+  const sym = bot.symbol.replace(/USDT$/, "");
+
+  const act = async () => {
+    setBusy(true);
+    try {
+      if (modal === "sell") {
+        const { data } = await api.post(`/bots/${bot.symbol}/sell-now`);
+        const p = data.profit || 0;
+        toast.success(`${sym} sold at $${fmtNum(data.price, 4)} · P&L ${p >= 0 ? "+" : ""}$${fmtNum(p, 2)}`);
+      } else {
+        await api.post(`/bots/${bot.symbol}/mode`, { mode: modal });
+        toast.success(modal === "oneshot" ? `${sym}: One Shot ON — next profit book ke baad bot ruk jayega` : `${sym}: Cycle ON — auto re-buy chalu`);
+      }
+      onDone && onDone();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Action failed");
+    }
+    setBusy(false);
+    setModal(null);
+  };
+
+  const modalCfg = {
+    sell: {
+      title: `Sell ${sym} Position?`,
+      desc: `Aapki current position (${fmtNum(qty, 4)} ${sym}) turant market price par SELL ho jayegi aur P&L book hoga. Kya aap confirm hain?`,
+      confirmLabel: "Yes, Sell Now",
+      danger: true,
+    },
+    oneshot: {
+      title: "One Shot Mode?",
+      desc: `Agla profit book hote hi ${sym} bot RUK jayega — dobara BUY nahi karega. Current position normal tarike se TP par sell hogi.`,
+      confirmLabel: "Yes, One Shot",
+    },
+    cycle: {
+      title: "Cycle Mode?",
+      desc: `${sym} bot har profit book ke baad automatic RE-BUY karega aur rounds continuously chalte rahenge.`,
+      confirmLabel: "Yes, Cycle On",
+    },
+  };
 
   return (
-    <button
+    <div
       onClick={() => navigate(`/pair/${bot.symbol}`)}
-      className="w-full text-left rounded-xl px-3 py-2.5 transition active:scale-[0.995]"
+      className="w-full text-left rounded-xl px-3 py-2.5 transition active:scale-[0.995] cursor-pointer"
       style={CARD}
       data-testid={`bot-card-${bot.symbol}`}
     >
       <div className="flex items-center gap-2.5">
-        <CoinIcon symbol={bot.symbol.replace("USDT", "")} size={34} />
+        <CoinIcon symbol={sym} size={34} />
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-black leading-tight" style={{ color: "var(--ink)" }}>
-            {bot.symbol.replace(/USDT$/, "")}/USDT
+            {sym}/USDT
           </div>
           <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
-            {(bot.trade_method || "Cycle").toUpperCase()} ·{" "}
+            {mode === "oneshot" ? "ONE SHOT" : "CYCLE"} ·{" "}
             <span style={{ color: isRunning ? "var(--good)" : "var(--text-mute)" }}>
               {isRunning ? "RUNNING" : "IDLE"}
             </span>
@@ -66,6 +143,51 @@ function BotRow({ bot }) {
         </div>
       </div>
 
+      {/* CYCLE / ONE SHOT / SELL NOW */}
+      <div className="grid grid-cols-3 gap-1.5 mt-2.5" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => mode !== "cycle" && setModal("cycle")}
+          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
+          style={mode === "cycle"
+            ? { background: GRAD, color: "#fff" }
+            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+          data-testid={`bot-cycle-btn-${bot.symbol}`}
+        >
+          <RefreshCw size={15} className="shrink-0" />
+          <span className="text-left leading-tight">
+            <span className="block text-[10.5px] font-black">CYCLE</span>
+            <span className="block text-[7.5px] font-bold opacity-80">Auto Re-Buy</span>
+          </span>
+        </button>
+        <button
+          onClick={() => mode !== "oneshot" && setModal("oneshot")}
+          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
+          style={mode === "oneshot"
+            ? { background: GRAD, color: "#fff" }
+            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+          data-testid={`bot-oneshot-btn-${bot.symbol}`}
+        >
+          <span className="w-[17px] h-[17px] rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
+            style={mode === "oneshot" ? { border: "1.5px solid #fff" } : { border: "1.5px solid var(--ink)" }}>1</span>
+          <span className="text-left leading-tight">
+            <span className="block text-[10.5px] font-black">ONE SHOT</span>
+            <span className="block text-[7.5px] font-bold opacity-80">No Re-Buy</span>
+          </span>
+        </button>
+        <button
+          onClick={() => hasPos && setModal("sell")}
+          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
+          style={{ background: "var(--surface)", border: "1.5px solid var(--ink)", color: "var(--ink)", opacity: hasPos ? 1 : 0.45 }}
+          data-testid={`bot-sellnow-btn-${bot.symbol}`}
+        >
+          <Send size={14} className="shrink-0" />
+          <span className="text-left leading-tight">
+            <span className="block text-[10.5px] font-black">SELL NOW</span>
+            <span className="block text-[7.5px] font-bold opacity-80">Sell Current Position</span>
+          </span>
+        </button>
+      </div>
+
       <div className="flex items-end justify-between mt-2.5">
         <div>
           <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live Price</div>
@@ -73,7 +195,7 @@ function BotRow({ bot }) {
             {fmtPrice(live)}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-center">
           <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Floating P&L</div>
           <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: hasPos ? (negative ? "var(--bad)" : "var(--good)") : "var(--text-mute)" }}>
             {hasPos ? `$${negative ? "-" : "+"}${fmtNum(Math.abs(floating), 2)}` : "—"}
@@ -82,22 +204,32 @@ function BotRow({ bot }) {
             )}
           </div>
         </div>
+        <div className="text-right">
+          <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Position</div>
+          <div className="text-[13px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }}>
+            <span style={{ color: "var(--good)" }}>{bot.buy_count || 0}</span> Buys ·{" "}
+            <span style={{ color: "var(--bad)" }}>{bot.sell_count || 0}</span> Sells
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-1.5 text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
-          <CalendarDays size={13} style={{ color: "var(--ink)" }} />
-          {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
-          <span style={{ color: "var(--text-mute)" }}>·</span>
-          <span style={{ color: "var(--good)" }}>ROUND {round}</span>
-        </div>
-        <div className="text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
-          <span style={{ color: "var(--good)" }}>{bot.buy_count || 0}</span> Buys{" "}
-          <span style={{ color: "var(--text-mute)" }}>·</span>{" "}
-          <span style={{ color: "var(--bad)" }}>{bot.sell_count || 0}</span> Sells
-        </div>
+      <div className="flex items-center gap-1.5 mt-2.5 pt-2 text-[10.5px] font-bold" style={{ borderTop: "1px solid var(--border)", color: "var(--text)" }}>
+        <CalendarDays size={13} style={{ color: "var(--ink)" }} />
+        {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
+        <span style={{ color: "var(--text-mute)" }}>·</span>
+        <span style={{ color: "var(--good)" }}>ROUND {round}</span>
       </div>
-    </button>
+
+      <div onClick={(e) => e.stopPropagation()}>
+        <ConfirmModal
+          open={!!modal}
+          {...(modalCfg[modal] || {})}
+          loading={busy}
+          onConfirm={act}
+          onCancel={() => setModal(null)}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -160,6 +292,9 @@ export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
   const [exUsdt, setExUsdt] = useState(null);
+  const reloadBots = () => {
+    api.get("/bots").then(({ data }) => setBots(data)).catch(() => {});
+  };
   const [filter, setFilter] = useState("live");
   const [prices, setPrices] = useState({});
   const navigate = useNavigate();
@@ -332,7 +467,7 @@ export default function Trades() {
         ) : filter === "idle" ? (
           shown.map((b) => <HistoryRow key={b.symbol} bot={b} />)
         ) : (
-          shown.map((b) => <BotRow key={b.symbol} bot={b} />)
+          shown.map((b) => <BotRow key={b.symbol} bot={b} onDone={reloadBots} />)
         )}
       </div>
 

@@ -1025,11 +1025,55 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
             "position_qty": 0.0, "position_amount": 0.0, "avg_price": 0.0,
             "margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
             "peak_price": 0.0, "dca_bottom_price": 0.0,
-            "cycles_completed": 0, "stop_reason": "",
+            "cycles_completed": 0, "stop_reason": "", "trade_mode": "cycle",
         }},
         upsert=True,
     )
     return {"status": "running", "symbol": symbol, "fresh_start": True}
+
+
+@api.post("/bots/{symbol}/mode")
+async def set_bot_mode(symbol: str, body: dict, user: dict = Depends(get_current_user)):
+    """Trade mode: 'cycle' (auto re-buy) ya 'oneshot' (agle profit book ke baad stop)."""
+    symbol = symbol.upper()
+    tmode = str(body.get("mode", "")).lower()
+    if tmode not in ("cycle", "oneshot"):
+        raise HTTPException(400, "mode must be 'cycle' or 'oneshot'")
+    r = await db.bots.update_one(
+        {"user_id": user["id"], "symbol": symbol},
+        {"$set": {"trade_mode": tmode}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Bot not found")
+    return {"symbol": symbol, "trade_mode": tmode}
+
+
+@api.post("/bots/{symbol}/sell-now")
+async def sell_now(symbol: str, user: dict = Depends(get_current_user)):
+    """Current position turant market par SELL (confirmation frontend par ho chuki hai)."""
+    symbol = symbol.upper()
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    qty = float((bot or {}).get("position_qty", 0.0) or 0.0)
+    if not bot or qty <= 0:
+        raise HTTPException(400, "No open position to sell")
+    try:
+        txn = await _execute_trade(user_id=user["id"], symbol=symbol, side="SELL",
+                                   quantity=qty, source="manual_sell")
+    except _TradeError as e:
+        raise HTTPException(e.status_code, e.msg)
+    await db.bot_events.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+        "kind": "manual_sell", "price": txn.get("price"),
+        "amount": txn.get("amount"), "profit": txn.get("profit"),
+        "created_at": iso(now_utc()),
+    })
+    # ONE SHOT me manual sell ke baad bhi re-buy nahi hona chahiye — stop
+    if str(bot.get("trade_mode", "cycle")) == "oneshot":
+        await db.bots.update_one(
+            {"user_id": user["id"], "symbol": symbol},
+            {"$set": {"status": "stopped", "trade_mode": "cycle",
+                      "stopped_at": iso(now_utc())}})
+    return {"ok": True, "symbol": symbol, "sold_qty": txn.get("quantity"),
+            "price": txn.get("price"), "profit": txn.get("profit")}
 
 
 @api.post("/bots/{symbol}/stop")
@@ -1501,6 +1545,17 @@ async def _bot_tick(bot: dict):
                     "peak": peak, "created_at": iso(now_utc()),
                 })
                 logger.info(f"bot {symbol}: TAKE PROFIT sold at {price} (peak {peak})")
+                # ONE SHOT mode: profit book hote hi bot ruk jata hai — re-buy nahi
+                if str(bot.get("trade_mode", "cycle")) == "oneshot":
+                    await db.bots.update_one(
+                        {"user_id": user_id, "symbol": symbol},
+                        {"$set": {"status": "stopped", "trade_mode": "cycle",
+                                  "stopped_at": iso(now_utc())}})
+                    await db.bot_events.insert_one({
+                        "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                        "kind": "oneshot_complete", "created_at": iso(now_utc()),
+                    })
+                    logger.info(f"bot {symbol}: ONE SHOT complete — bot stopped, no re-buy")
             except _TradeError as e:
                 logger.warning(f"bot {symbol}: TP sell failed: {e.msg}")
         return
