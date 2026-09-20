@@ -74,15 +74,16 @@ function BotRow({ bot, onDone }) {
   const mode = bot.trade_mode || "cycle";
   const sym = bot.symbol.replace(/USDT$/, "");
 
-  // WFT (Waiting For Trigger): % at which auto-sell fires.
-  // Base = TP ratio; once price crosses it, trailing callback pushes the trigger % up with the peak.
+  // Take Profit badge: % at which auto-sell fires.
+  // Base = TP ratio; once armed (price crossed TP), trailing % follows the
+  // peak — it can also sit BELOW the base (e.g. +1.3% after a 1.6% spike).
   const tpRatio = bot.whole_take_profit_ratio || 1.5;
   const tpCb = bot.whole_take_profit_callback || 0.3;
-  const effPeak = Math.max(bot.peak_price || 0, hasPos ? live : 0);
+  const tpHitLive = hasPos && live >= avg * (1 + tpRatio / 100);
+  const effPeak = Math.max(bot.peak_price || 0, tpHitLive ? live : 0);
   let wftPct = tpRatio;
   if (hasPos && effPeak > 0) {
-    const trailPct = ((effPeak * (1 - tpCb / 100) - avg) / avg) * 100;
-    if (trailPct > wftPct) wftPct = trailPct;
+    wftPct = ((effPeak * (1 - tpCb / 100) - avg) / avg) * 100;
   }
 
   const act = async () => {

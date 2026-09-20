@@ -1527,19 +1527,20 @@ async def _bot_tick(bot: dict):
                 )
         return
 
-    # === TAKE PROFIT ===
+    # === TAKE PROFIT (trailing) ===
+    # Peak arms once price crosses the TP target. After arming, the trailing
+    # pullback sell stays ACTIVE even if price falls back below the target —
+    # so a spike to +1.6% followed by a drop still books profit (e.g. at +1.3%).
     tp_trigger = avg_price * (1 + tp_ratio / 100.0)
-    if price >= tp_trigger:
-        new_peak = max(peak, price)
-        # Arm callback: once we've peaked, wait for pullback of tp_callback%
-        if new_peak != peak:
-            await db.bots.update_one(
-                {"user_id": user_id, "symbol": symbol},
-                {"$set": {"peak_price": new_peak}},
-            )
-            peak = new_peak
+    if price >= tp_trigger and price > peak:
+        await db.bots.update_one(
+            {"user_id": user_id, "symbol": symbol},
+            {"$set": {"peak_price": price}},
+        )
+        peak = price
+    if peak > 0:
         pullback_trigger = peak * (1 - tp_callback / 100.0)
-        if price <= pullback_trigger:
+        if price <= pullback_trigger and price > avg_price:
             try:
                 round_num = mc_count + 1
                 await _execute_trade(
@@ -1565,7 +1566,16 @@ async def _bot_tick(bot: dict):
                     logger.info(f"bot {symbol}: ONE SHOT complete — bot stopped, no re-buy")
             except _TradeError as e:
                 logger.warning(f"bot {symbol}: TP sell failed: {e.msg}")
-        return
+            return
+        if price <= avg_price:
+            # Crashed below entry — disarm TP so DCA logic can take over below
+            await db.bots.update_one(
+                {"user_id": user_id, "symbol": symbol},
+                {"$set": {"peak_price": 0.0}},
+            )
+            peak = 0.0
+        else:
+            return  # armed — holding, waiting for pullback to hit
 
     # === TRAILING DCA / MARGIN CALL BUY ================================
     # Instead of buying the instant `next_buy` is crossed, we wait for the

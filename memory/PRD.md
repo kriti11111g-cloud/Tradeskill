@@ -1,5 +1,11 @@
 # TGX BOT — Product Requirements Document
 
+## Update (20 Jun 2026): CRITICAL — Trailing TP sell bug fixed
+- BUG: pullback sell only evaluated while price >= TP target. Spike to +1.6% then fast drop below +1.5% → sell never fired (user saw 1.6% → 0.9% no sell)
+- FIX (_bot_tick): peak stays ARMED after crossing TP; pullback sell now fires even below the target (sells at e.g. +1.3%) as long as price > avg (profit positive). If price crashes below avg, peak disarms and DCA logic resumes
+- Take Profit badge (Trades.jsx) now shows real trailing % once armed (can be below base ratio)
+- Verified via live engine simulation: armed peak +1.6%, price +1.0% → SOLD, profit booked, cycle completed
+
 ## Update (20 Jun 2026): Revenue — Trading Profit details expand
 - One-tap expand on Trading Profit history cards now shows: Date (with time), Order Number (real Binance order ID; internal txn id fallback for demo), Filled Quantity (coin), Deal Amount (USDT), Role: Trade Skill Bot (blue), Status: Completed (green)
 - Backend: /revenue/income sell rows now carry a `trade` object (quantity, amount, binance_order_id)
