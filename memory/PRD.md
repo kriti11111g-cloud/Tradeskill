@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (20 Jun 2026): WFT badge on trade cards
+- Trades page bot card bottom row now shows a square "WFT" (Waiting For Trigger) badge with the % at which auto-sell fires
+- Base = whole_take_profit_ratio; once live/peak price crosses TP, badge % trails upward with peak (peak*(1-callback) vs avg)
+- Frontend-only change (Trades.jsx BotRow); data already in GET /bots
+
 ## Update (20 Jun 2026): Min $10 First Buy enforced
 - Backend: MIN_FIRST_BUY=10 — strategy save (POST /bots/{symbol}) rejects <$10; bot start blocked if saved config <$10
 - Frontend: client-side validation + label "First Buy In Amount (USDT) — Min $10"

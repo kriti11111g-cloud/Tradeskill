@@ -74,6 +74,17 @@ function BotRow({ bot, onDone }) {
   const mode = bot.trade_mode || "cycle";
   const sym = bot.symbol.replace(/USDT$/, "");
 
+  // WFT (Waiting For Trigger): % at which auto-sell fires.
+  // Base = TP ratio; once price crosses it, trailing callback pushes the trigger % up with the peak.
+  const tpRatio = bot.whole_take_profit_ratio || 1.5;
+  const tpCb = bot.whole_take_profit_callback || 0.3;
+  const effPeak = Math.max(bot.peak_price || 0, hasPos ? live : 0);
+  let wftPct = tpRatio;
+  if (hasPos && effPeak > 0) {
+    const trailPct = ((effPeak * (1 - tpCb / 100) - avg) / avg) * 100;
+    if (trailPct > wftPct) wftPct = trailPct;
+  }
+
   const act = async () => {
     const action = modal;
     setModal(null);
@@ -207,11 +218,25 @@ function BotRow({ bot, onDone }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-2.5 pt-2 text-[10.5px] font-bold" style={{ borderTop: "1px solid var(--border)", color: "var(--text)" }}>
-        <CalendarDays size={13} style={{ color: "var(--ink)" }} />
-        {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
-        <span style={{ color: "var(--text-mute)" }}>·</span>
-        <span style={{ color: "var(--good)" }}>ROUND {round}</span>
+      <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
+          <CalendarDays size={13} style={{ color: "var(--ink)" }} />
+          {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
+          <span style={{ color: "var(--text-mute)" }}>·</span>
+          <span style={{ color: "var(--good)" }}>ROUND {round}</span>
+        </div>
+        {isRunning && (
+          <div
+            className="flex flex-col items-center justify-center rounded-lg px-2 py-1 leading-none"
+            style={{ border: "1px solid var(--good)", background: "rgba(16,185,129,0.08)" }}
+            data-testid={`bot-wft-${bot.symbol}`}
+          >
+            <span className="text-[7.5px] font-black tracking-[0.12em]" style={{ color: "var(--text-mute)" }}>WFT</span>
+            <span className="text-[11px] font-black tabular-nums mt-0.5" style={{ color: "var(--good)" }}>
+              +{fmtNum(wftPct, 2)}%
+            </span>
+          </div>
+        )}
       </div>
 
       <div onClick={(e) => e.stopPropagation()}>
