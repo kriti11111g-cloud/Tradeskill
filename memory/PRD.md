@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (20 Jun 2026): Trade card action buttons polish
+- Fixed 2-3 tap issue on One Shot/Cycle/Sell buttons (removed active:scale transform on card that cancelled mobile taps; added touchAction: manipulation)
+- Slimmed the 3 action buttons (single-line, py-1.5, smaller icons) for professional look
+- Confirm popup: instant action on confirm — modal closes immediately, loading toast → success toast (English)
+- All Hindi/Hinglish toasts & popup texts converted to English (Trades.jsx, SocialBonus.jsx, ExchangeList.jsx)
+- NOTE: Live app on user VPS (tradeskill.in) — user must Save to GitHub + git pull on VPS to apply
+
 ## Original Problem Statement
 Mobile-responsive crypto trading bot web app cloning HiTechBot's UI/UX. Dark neon theme. Binance API integration for real trading + Demo mode for practice. Features: Dashboard, Trading Pairs, Bot Strategy (DCA/TP), Transactions, Revenue, Referral, Rewards, Wallet, News.
 

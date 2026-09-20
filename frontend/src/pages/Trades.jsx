@@ -28,30 +28,29 @@ const fmtPrice = (v) => {
 const GRAD = "linear-gradient(90deg, #2563EB, #10B981)";
 
 /* Confirmation popup — Sell / One Shot / Cycle sab isi se */
-function ConfirmModal({ open, title, desc, confirmLabel, danger, loading, onConfirm, onCancel }) {
+function ConfirmModal({ open, title, desc, confirmLabel, danger, onConfirm, onCancel }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.45)" }} onClick={onCancel} data-testid="confirm-modal">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.45)", touchAction: "manipulation" }} onClick={onCancel} data-testid="confirm-modal">
       <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
         <div className="font-display font-black text-lg" style={{ color: "var(--ink)" }}>{title}</div>
         <div className="text-[13px] leading-relaxed mt-2" style={{ color: "var(--text)" }}>{desc}</div>
         <div className="flex gap-2.5 mt-5">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-[13px] font-black"
-            style={{ background: "var(--surface-3)", color: "var(--ink)" }}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none"
+            style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }}
             data-testid="confirm-cancel"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white"
-            style={{ background: danger ? "#DC2626" : GRAD, opacity: loading ? 0.6 : 1 }}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none"
+            style={{ background: danger ? "#DC2626" : GRAD, touchAction: "manipulation" }}
             data-testid="confirm-yes"
           >
-            {loading ? "Processing..." : confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -63,7 +62,6 @@ function BotRow({ bot, onDone }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
   const [modal, setModal] = useState(null); // 'sell' | 'oneshot' | 'cycle'
-  const [busy, setBusy] = useState(false);
   const isRunning = String(bot.status || "").toLowerCase() === "running";
   const live = (ticker?.price || 0) > 0 ? ticker.price : bot.avg_price || 0;
   const qty = bot.position_qty || 0;
@@ -77,39 +75,44 @@ function BotRow({ bot, onDone }) {
   const sym = bot.symbol.replace(/USDT$/, "");
 
   const act = async () => {
-    setBusy(true);
+    const action = modal;
+    setModal(null);
+    const tid = toast.loading(action === "sell" ? `Selling ${sym} position...` : `Switching ${sym} mode...`);
     try {
-      if (modal === "sell") {
+      if (action === "sell") {
         const { data } = await api.post(`/bots/${bot.symbol}/sell-now`);
         const p = data.profit || 0;
-        toast.success(`${sym} sold at $${fmtNum(data.price, 4)} · P&L ${p >= 0 ? "+" : ""}$${fmtNum(p, 2)}`);
+        toast.success(`${sym} sold at $${fmtNum(data.price, 4)} · P&L ${p >= 0 ? "+" : ""}$${fmtNum(p, 2)}`, { id: tid });
       } else {
-        await api.post(`/bots/${bot.symbol}/mode`, { mode: modal });
-        toast.success(modal === "oneshot" ? `${sym}: One Shot ON — next profit book ke baad bot ruk jayega` : `${sym}: Cycle ON — auto re-buy chalu`);
+        await api.post(`/bots/${bot.symbol}/mode`, { mode: action });
+        toast.success(
+          action === "oneshot"
+            ? `${sym}: One Shot mode ON — bot will stop after next profit is booked`
+            : `${sym}: Cycle mode ON — auto re-buy enabled`,
+          { id: tid }
+        );
       }
       onDone && onDone();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Action failed");
+      toast.error(e?.response?.data?.detail || "Action failed", { id: tid });
     }
-    setBusy(false);
-    setModal(null);
   };
 
   const modalCfg = {
     sell: {
       title: `Sell ${sym} Position?`,
-      desc: `Aapki current position (${fmtNum(qty, 4)} ${sym}) turant market price par SELL ho jayegi aur P&L book hoga. Kya aap confirm hain?`,
+      desc: `Your current position (${fmtNum(qty, 4)} ${sym}) will be SOLD instantly at market price and the P&L will be booked. Are you sure?`,
       confirmLabel: "Yes, Sell Now",
       danger: true,
     },
     oneshot: {
       title: "One Shot Mode?",
-      desc: `Agla profit book hote hi ${sym} bot RUK jayega — dobara BUY nahi karega. Current position normal tarike se TP par sell hogi.`,
+      desc: `The ${sym} bot will STOP right after the next profit is booked — it will not re-buy. The current position will still sell normally at Take Profit.`,
       confirmLabel: "Yes, One Shot",
     },
     cycle: {
       title: "Cycle Mode?",
-      desc: `${sym} bot har profit book ke baad automatic RE-BUY karega aur rounds continuously chalte rahenge.`,
+      desc: `The ${sym} bot will automatically RE-BUY after every profit is booked and keep running rounds continuously.`,
       confirmLabel: "Yes, Cycle On",
     },
   };
@@ -117,8 +120,8 @@ function BotRow({ bot, onDone }) {
   return (
     <div
       onClick={() => navigate(`/pair/${bot.symbol}`)}
-      className="w-full text-left rounded-xl px-3 py-2.5 transition active:scale-[0.995] cursor-pointer"
-      style={CARD}
+      className="w-full text-left rounded-xl px-3 py-2.5 cursor-pointer"
+      style={{ ...CARD, touchAction: "manipulation" }}
       data-testid={`bot-card-${bot.symbol}`}
     >
       <div className="flex items-center gap-2.5">
@@ -144,47 +147,38 @@ function BotRow({ bot, onDone }) {
       </div>
 
       {/* CYCLE / ONE SHOT / SELL NOW */}
-      <div className="grid grid-cols-3 gap-1.5 mt-2.5" onClick={(e) => e.stopPropagation()}>
+      <div className="grid grid-cols-3 gap-1.5 mt-2.5" style={{ touchAction: "manipulation" }} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
         <button
           onClick={() => mode !== "cycle" && setModal("cycle")}
-          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
           style={mode === "cycle"
-            ? { background: GRAD, color: "#fff" }
-            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+            ? { background: GRAD, color: "#fff", touchAction: "manipulation" }
+            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
           data-testid={`bot-cycle-btn-${bot.symbol}`}
         >
-          <RefreshCw size={15} className="shrink-0" />
-          <span className="text-left leading-tight">
-            <span className="block text-[10.5px] font-black">CYCLE</span>
-            <span className="block text-[7.5px] font-bold opacity-80">Auto Re-Buy</span>
-          </span>
+          <RefreshCw size={12} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">CYCLE</span>
         </button>
         <button
           onClick={() => mode !== "oneshot" && setModal("oneshot")}
-          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
           style={mode === "oneshot"
-            ? { background: GRAD, color: "#fff" }
-            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+            ? { background: GRAD, color: "#fff", touchAction: "manipulation" }
+            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
           data-testid={`bot-oneshot-btn-${bot.symbol}`}
         >
-          <span className="w-[17px] h-[17px] rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
+          <span className="w-[13px] h-[13px] rounded-full flex items-center justify-center text-[8.5px] font-black shrink-0"
             style={mode === "oneshot" ? { border: "1.5px solid #fff" } : { border: "1.5px solid var(--ink)" }}>1</span>
-          <span className="text-left leading-tight">
-            <span className="block text-[10.5px] font-black">ONE SHOT</span>
-            <span className="block text-[7.5px] font-bold opacity-80">No Re-Buy</span>
-          </span>
+          <span className="text-[10px] font-black tracking-wide">ONE SHOT</span>
         </button>
         <button
           onClick={() => hasPos && setModal("sell")}
-          className="rounded-xl py-2 px-1 flex items-center justify-center gap-1.5"
-          style={{ background: "var(--surface)", border: "1.5px solid var(--ink)", color: "var(--ink)", opacity: hasPos ? 1 : 0.45 }}
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+          style={{ background: "var(--surface)", border: "1px solid var(--ink)", color: "var(--ink)", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
           data-testid={`bot-sellnow-btn-${bot.symbol}`}
         >
-          <Send size={14} className="shrink-0" />
-          <span className="text-left leading-tight">
-            <span className="block text-[10.5px] font-black">SELL NOW</span>
-            <span className="block text-[7.5px] font-bold opacity-80">Sell Current Position</span>
-          </span>
+          <Send size={11} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">SELL NOW</span>
         </button>
       </div>
 
@@ -224,7 +218,6 @@ function BotRow({ bot, onDone }) {
         <ConfirmModal
           open={!!modal}
           {...(modalCfg[modal] || {})}
-          loading={busy}
           onConfirm={act}
           onCancel={() => setModal(null)}
         />

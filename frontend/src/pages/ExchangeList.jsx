@@ -153,7 +153,7 @@ export default function ExchangeList() {
             onClick={() =>
               ex.id === "binance"
                 ? navigate("/bind-api/binance")
-                : toast(`${ex.name} integration — Coming Soon 🚀 (abhi Binance supported hai)`)
+                : toast(`${ex.name} integration — Coming Soon 🚀 (currently only Binance is supported)`)
             }
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}

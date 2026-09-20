@@ -73,7 +73,7 @@ export default function SocialBonus() {
       await api.post(`/social-bonus/follow/${p.id}`);
       window.open(p.url, "_blank", "noopener");
       await load();
-      toast.info(`${p.name} follow karke wapas aayen — verification chal raha hai…`);
+      toast.info(`Follow ${p.name} and come back — verification in progress…`);
     } catch (e) {
       toast.error(formatApiError(e));
     } finally {
