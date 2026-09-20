@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
+import CoinIcon from "@/components/CoinIcon";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconHandDollar } from "@/components/IncomeIcons";
 
@@ -248,6 +249,24 @@ export default function Revenue() {
                   {open && (
                     r.category === "trading_profit" && r.trade ? (
                       <div className="mt-1.5 pt-2 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-row-detail">
+                        <div className="flex items-center justify-between pb-1.5" style={{ borderBottom: "1px dashed var(--border)" }}>
+                          <div className="flex items-center gap-2">
+                            <CoinIcon symbol={r.trade.symbol.replace(/USDT$/, "")} size={26} />
+                            <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>
+                              {r.trade.symbol.replace(/USDT$/, "")} / USDT
+                            </span>
+                            <span className="text-[9.5px] font-black text-white px-2 py-0.5 rounded-md" style={{ background: "#DC2626" }}>SELL</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <img
+                              src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
+                              alt="Binance"
+                              className="w-[18px] h-[18px] rounded-full object-cover"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                            <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }}>BINANCE</span>
+                          </div>
+                        </div>
                         {[
                           ["Date", new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })],
                           ["Order Number", String(r.trade.order_id || "—")],
