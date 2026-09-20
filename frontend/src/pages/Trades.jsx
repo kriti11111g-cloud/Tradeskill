@@ -227,12 +227,12 @@ function BotRow({ bot, onDone }) {
         </div>
         {isRunning && (
           <div
-            className="flex flex-col items-center justify-center rounded-lg px-2 py-1 leading-none"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 leading-none"
             style={{ border: "1px solid var(--good)", background: "rgba(16,185,129,0.08)" }}
             data-testid={`bot-wft-${bot.symbol}`}
           >
-            <span className="text-[7.5px] font-black tracking-[0.12em]" style={{ color: "var(--text-mute)" }}>WFT</span>
-            <span className="text-[11px] font-black tabular-nums mt-0.5" style={{ color: "var(--good)" }}>
+            <span className="text-[8.5px] font-black tracking-[0.08em] uppercase" style={{ color: "var(--text-mute)" }}>Waiting to Sell</span>
+            <span className="text-[11.5px] font-black tabular-nums" style={{ color: "var(--good)" }}>
               +{fmtNum(wftPct, 2)}%
             </span>
           </div>
