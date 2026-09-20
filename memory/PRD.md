@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (20 Jun 2026): Revenue — Trading Profit details expand
+- One-tap expand on Trading Profit history cards now shows: Date (with time), Order Number (real Binance order ID; internal txn id fallback for demo), Filled Quantity (coin), Deal Amount (USDT), Role: Trade Skill Bot (blue), Status: Completed (green)
+- Backend: /revenue/income sell rows now carry a `trade` object (quantity, amount, binance_order_id)
+- No profit repeat inside detail, same card theme, touchAction manipulation for reliable single tap
+
 ## Update (20 Jun 2026): WFT badge on trade cards
 - Trades page bot card bottom row now shows a square "WFT" (Waiting For Trigger) badge with the % at which auto-sell fires
 - Base = whole_take_profit_ratio; once live/peak price crosses TP, badge % trails upward with peak (peak*(1-callback) vs avg)

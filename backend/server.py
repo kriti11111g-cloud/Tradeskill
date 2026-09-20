@@ -1672,7 +1672,8 @@ async def revenue_income(user: dict = Depends(get_current_user)):
         {"_id": 0}).sort("created_at", -1).to_list(3000)
     sells = await db.transactions.find(
         {"user_id": uid, "side": "SELL"},
-        {"_id": 0, "id": 1, "profit": 1, "created_at": 1, "symbol": 1}).sort("created_at", -1).to_list(3000)
+        {"_id": 0, "id": 1, "profit": 1, "created_at": 1, "symbol": 1,
+         "quantity": 1, "amount": 1, "binance_order_id": 1, "binance_status": 1}).sort("created_at", -1).to_list(3000)
 
     def cat_of(t):
         k = t["kind"]
@@ -1699,7 +1700,14 @@ async def revenue_income(user: dict = Depends(get_current_user)):
             continue
         history.append({"id": s.get("id") or s["created_at"], "category": "trading_profit",
                         "level": None, "amount": round(p, 4), "created_at": s["created_at"],
-                        "note": s.get("symbol", "")})
+                        "note": s.get("symbol", ""),
+                        "trade": {
+                            "symbol": s.get("symbol", ""),
+                            "order_id": s.get("binance_order_id") or s.get("id", ""),
+                            "quantity": s.get("quantity"),
+                            "deal_amount": s.get("amount"),
+                            "status": "Completed",
+                        }})
     history.sort(key=lambda x: x["created_at"] or "", reverse=True)
 
     today_str = now_utc().strftime("%Y-%m-%d")

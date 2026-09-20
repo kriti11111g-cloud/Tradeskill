@@ -224,8 +224,8 @@ export default function Revenue() {
                 <div
                   key={r.id}
                   onClick={() => setOpenRow(open ? null : r.id)}
-                  className="rounded-xl px-3 py-2 cursor-pointer"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                  className="rounded-xl px-3 py-2 cursor-pointer select-none"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", touchAction: "manipulation" }}
                   data-testid={`income-row-${r.category}`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -246,9 +246,33 @@ export default function Revenue() {
                     </div>
                   </div>
                   {open && (
-                    <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="income-row-detail">
-                      {r.note || meta.title} · {new Date(r.created_at).toLocaleString()}
-                    </div>
+                    r.category === "trading_profit" && r.trade ? (
+                      <div className="mt-1.5 pt-2 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-row-detail">
+                        {[
+                          ["Date", new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })],
+                          ["Order Number", String(r.trade.order_id || "—")],
+                          ["Filled Quantity", r.trade.quantity != null ? `${fmtNum(r.trade.quantity, 4)} ${r.trade.symbol.replace(/USDT$/, "")}` : "—"],
+                          ["Deal Amount", r.trade.deal_amount != null ? `${fmtNum(r.trade.deal_amount, 2)} USDT` : "—"],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex items-center justify-between text-[11px]">
+                            <span className="font-semibold" style={{ color: "var(--text-mute)" }}>{k}</span>
+                            <span className="font-bold tabular-nums text-right" style={{ color: "var(--ink)" }}>{v}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Role</span>
+                          <span className="font-black" style={{ color: "#2563EB" }}>Trade Skill Bot</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Status</span>
+                          <span className="font-black" style={{ color: "var(--good)" }}>{r.trade.status || "Completed"}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="income-row-detail">
+                        {r.note || meta.title} · {new Date(r.created_at).toLocaleString()}
+                      </div>
+                    )
                   )}
                 </div>
               );
