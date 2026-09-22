@@ -1637,6 +1637,7 @@ async def _bot_tick(bot: dict):
 
 
 _engine_task = None
+_royalty_task = None
 
 
 async def bot_engine_loop():
@@ -1699,6 +1700,8 @@ async def revenue_income(user: dict = Depends(get_current_user)):
             return "direct_income", None
         if k in ("support_income", "social_bonus"):
             return "support_income", None
+        if k == "royalty_income":
+            return "royalty_income", None
         if k == "team_commission":  # team's trading commission (level/rank wise)
             m = re.search(r"· L(\d+)$", t.get("note") or "")
             lvl = min(int(m.group(1)) if m else 1, 10)
@@ -2189,7 +2192,66 @@ async def _pool_levels(kind: str) -> list:
         {"$group": {"_id": "$level", "total": {"$sum": "$amount"}}},
     ]).to_list(20)
     m = {r["_id"]: r["total"] for r in rows}
-    return [{"level": lvl, "balance": round(float(m.get(lvl, 0.0)), 4)} for lvl in range(2, 11)]
+    paid = await db.royalty_distributions.aggregate([
+        {"$match": {"pool_kind": kind}},
+        {"$group": {"_id": "$level", "total": {"$sum": "$total"}}},
+    ]).to_list(20)
+    pm = {r["_id"]: r["total"] for r in paid}
+    return [{"level": lvl, "balance": round(float(m.get(lvl, 0.0)) - float(pm.get(lvl, 0.0)), 4)}
+            for lvl in range(2, 11)]
+
+
+async def _run_royalty_distribution(date_str: str):
+    """Daily royalty pool close at 00:00 UTC. Each level's pool balance is split
+    equally among activated users of that level; empty levels carry forward."""
+    existing = await db.royalty_closes.find_one_and_update(
+        {"date": date_str},
+        {"$setOnInsert": {"date": date_str, "status": "running", "created_at": iso(now_utc())}},
+        upsert=True)
+    if existing is not None:
+        return
+    logger.info(f"royalty close {date_str}: distributing pools (00:00 UTC cutoff)")
+    for kind in ("activation_royalty", "trading_royalty"):
+        pool_label = "Activation" if kind == "activation_royalty" else "Trading"
+        for row in await _pool_levels(kind):
+            lvl, balance = row["level"], row["balance"]
+            if balance < 0.01:
+                continue
+            users = await db.users.find({"rank": f"Level {lvl}"}, {"_id": 0, "id": 1}).to_list(200000)
+            qualified = []
+            for u in users:
+                w = await db.bot_wallets.find_one({"user_id": u["id"]}, {"activated": 1})
+                if w and w.get("activated"):
+                    qualified.append(u["id"])
+            if not qualified:
+                continue  # carry forward to next day
+            per_user = math.floor(balance / len(qualified) * 10000) / 10000.0
+            if per_user <= 0:
+                continue
+            for uid in qualified:
+                await _credit_commission(uid, per_user, "royalty_income",
+                                         f"Daily royalty · Level {lvl} · {pool_label} pool · {date_str}",
+                                         from_user_id="system")
+            await db.royalty_distributions.insert_one({
+                "id": str(uuid.uuid4()), "date": date_str, "pool_kind": kind, "level": lvl,
+                "total": round(per_user * len(qualified), 4), "per_user": per_user,
+                "user_count": len(qualified), "created_at": iso(now_utc()),
+            })
+            logger.info(f"royalty close {date_str}: {pool_label} L{lvl} ${per_user} × {len(qualified)} users")
+    await db.royalty_closes.update_one({"date": date_str},
+                                       {"$set": {"status": "done", "finished_at": iso(now_utc())}})
+
+
+async def royalty_close_loop():
+    """Auto-runs the daily close at 00:00 UTC — no manual action. All math in UTC."""
+    while True:
+        try:
+            date_str = now_utc().strftime("%Y-%m-%d")
+            if not await db.royalty_closes.find_one({"date": date_str}):
+                await _run_royalty_distribution(date_str)
+        except Exception as e:
+            logger.warning(f"royalty close loop: {e}")
+        await asyncio.sleep(60)
 
 
 @api.get("/pool/summary")
@@ -2197,11 +2259,16 @@ async def pool_summary(user: dict = Depends(get_current_user)):
     """Main Pool card: Bot Activation Royalty Pool + Trading Royalty Pool (level-wise)."""
     activation = await _pool_levels("activation_royalty")
     trading = await _pool_levels("trading_royalty")
+    next_cutoff = (now_utc() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    last = await db.royalty_distributions.find({}, {"_id": 0}).sort("created_at", -1).to_list(1)
     return {
         "activation_pool": activation,
         "trading_pool": trading,
         "activation_total": round(sum(x["balance"] for x in activation), 4),
         "trading_total": round(sum(x["balance"] for x in trading), 4),
+        "cutoff_utc": "00:00 UTC",
+        "next_cutoff_at": iso(next_cutoff),
+        "last_distribution": last[0] if last else None,
     }
 
 
@@ -3416,11 +3483,13 @@ async def startup():
         logger.warning(f"Could not load Binance exchangeInfo at startup: {e}. Using fallback list.")
 
     # Launch the background bot engine
-    global _engine_task, _watcher_task
+    global _engine_task, _watcher_task, _royalty_task
     if _engine_task is None or _engine_task.done():
         _engine_task = asyncio.create_task(bot_engine_loop())
     if _watcher_task is None or _watcher_task.done():
         _watcher_task = asyncio.create_task(deposit_watcher_loop())
+    if _royalty_task is None or _royalty_task.done():
+        _royalty_task = asyncio.create_task(royalty_close_loop())
 
 
 # ==== CORS + Include ====

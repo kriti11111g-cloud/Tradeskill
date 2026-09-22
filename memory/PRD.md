@@ -1,5 +1,13 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Daily royalty pool auto-distribution (00:00 UTC)
+- royalty_close_loop background task: closes pools once per UTC day (idempotent via royalty_closes collection), all math UTC
+- Each level's pool balance (activation + trading) split equally among ACTIVATED users of that level; empty levels carry forward
+- Payout kind "royalty_income" → shows in Revenue as new "Royalty Income" category
+- Pool balances now = ledger in − distributions out; /pool/summary returns cutoff_utc + next_cutoff_at + last_distribution
+- Pool page note: "Daily cutoff is 00:00 UTC so everyone sees the same rule" + device local time equivalent
+- Tested: $30 L5 pool → 3 users × $10, carry-forward for empty levels, idempotent double-run
+
 ## Update (22 Jun 2026): Final 25% trading fee distribution
 - Commission (differential, cumulative): L1 3.5%, L2 4.25%, L3 5.0%, L4 5.75%, L5 6.5%, L6 7.5%, L7 8.5%, L8 9.5%, L9 10.75%, L10 12.0% (total 12%)
 - Trading royalty pool (level-wise, from L2): L2-L5 0.5%, L6-L7 0.75%, L8-L9 1.0%, L10 1.5% = 7% (TRADING_ROYALTY_BY_LEVEL)

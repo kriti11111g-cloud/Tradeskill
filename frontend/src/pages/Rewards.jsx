@@ -61,6 +61,17 @@ export default function Rewards() {
               </div>
             </div>
           ))}
+          <div className="px-4 py-2.5 border-t border-[color:var(--border)]" data-testid="pool-cutoff-note">
+            <div className="text-[10px] font-semibold leading-snug" style={{ color: "var(--text-mute)" }}>
+              Daily cutoff is 00:00 UTC so everyone sees the same rule.
+              {pool?.next_cutoff_at && (
+                <> Your local time: <span className="font-black" style={{ color: "var(--ink)" }}>
+                  {new Date(pool.next_cutoff_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span></>
+              )}
+              {" "}· Pools auto-distribute level-wise — no manual action.
+            </div>
+          </div>
         </div>
       </div>
 

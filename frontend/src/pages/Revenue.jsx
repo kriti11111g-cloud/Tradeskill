@@ -11,6 +11,7 @@ const TABS = [
   { id: "all", label: "All" },
   { id: "trading_profit", label: "Trading Profit", Icon: IconProfit, title: "Trading Profit" },
   { id: "trading_commission", label: "Trading Commission", Icon: IconHandDollar, title: "Trading Commission" },
+  { id: "royalty_income", label: "Royalty Income", Icon: IconCrown, title: "Royalty Income" },
   { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
   ...Array.from({ length: 10 }, (_, i) => ({
