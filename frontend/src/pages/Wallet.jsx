@@ -9,9 +9,9 @@ import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
-import { IconCoins, IconDocPlus, IconDeposit, IconWithdraw } from "@/components/IncomeIcons";
+import { IconCoins, IconDocPlus, IconDeposit, IconWithdraw, IconHandDollar, IconCrown, IconPersonAdd, IconPeople, IconBars } from "@/components/IncomeIcons";
 
-/* Assets = wallet transactions ONLY (user lock): Deposit, Withdrawal, Activation Fee, Trading Fee */
+/* Assets = wallet txns + all incomes EXCEPT self trading income (trade_commission) */
 const KIND_META = {
   deposit: { title: "Deposit", Icon: IconDeposit },
   deposit_onchain: { title: "Deposit", Icon: IconDeposit },
@@ -26,6 +26,22 @@ const KIND_META = {
   fuel: { title: "Trading Fee", Icon: IconCoins },
   pause: { title: "Trading Fee", Icon: IconCoins },
   trading_fee: { title: "Trading Fee", Icon: IconCoins },
+  team_commission: { title: "Trading Commission", Icon: IconHandDollar },
+  royalty_income: { title: "Royalty", Icon: IconCrown },
+  direct_bonus: { title: "Direct Income", Icon: IconPersonAdd },
+  support_income: { title: "Support Income", Icon: IconPeople },
+  social_bonus: { title: "Support Income", Icon: IconPeople },
+};
+
+const rowMeta = (h) => {
+  if (h.kind === "team_commission") {
+    const m = /· L(\d+)$/.exec(h.note || "");
+    if (m) {
+      const lvl = Math.min(parseInt(m[1], 10) + 1, 10);
+      return { title: `Global Level-${String(lvl).padStart(2, "0")}`, Icon: IconBars };
+    }
+  }
+  return KIND_META[h.kind];
 };
 
 const fmtDT = (iso) => {
@@ -440,7 +456,7 @@ export default function Wallet() {
           return (
             <div className="space-y-1.5" data-testid="history-list">
               {rows.map((h) => {
-                const meta = KIND_META[h.kind] || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: IconCoins };
+                const meta = rowMeta(h) || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: IconCoins };
                 const isOut = (h.amount ?? 0) < 0;
                 return (
                   <div

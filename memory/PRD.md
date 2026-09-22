@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Asset page history — income entries added
+- Wallet/Asset history now shows (with icons): Trading Commission, Royalty (crown), Direct Income, Support Income, Social Bonus (as Support Income), Global Level-02..10 (team_commission hop N → Level N+1, capped 10, bars icon)
+- Self trading income (trade_commission) intentionally EXCLUDED from asset history
+- Balance was already credited to bot wallet; only display added (frontend Wallet.jsx KIND_META + rowMeta)
+
 ## Update (22 Jun 2026): Daily royalty pool auto-distribution (00:00 UTC)
 ### Amendment: pools FULLY EMPTY at every cutoff (no carry-forward)
 - Unclaimed levels (no activated users) + rounding dust sweep to admin_revenue kind "royalty_reserve"
