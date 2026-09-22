@@ -1,5 +1,11 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Final 25% trading fee distribution
+- Commission (differential, cumulative): L1 3.5%, L2 4.25%, L3 5.0%, L4 5.75%, L5 6.5%, L6 7.5%, L7 8.5%, L8 9.5%, L9 10.75%, L10 12.0% (total 12%)
+- Trading royalty pool (level-wise, from L2): L2-L5 0.5%, L6-L7 0.75%, L8-L9 1.0%, L10 1.5% = 7% (TRADING_ROYALTY_BY_LEVEL)
+- Company 5% + physical meeting 1% = 6%. TOTAL = 25% exact
+- Compression: unpaid commission budget → company_reserve. Verified: full chain $25.00 exact, solo trader $25.00 with $8.50 reserve
+
 ## Update (22 Jun 2026): Level naming + final $50 activation structure + Pools
 - Ranks renamed: Starter/1-9 Star → Level 1..Level 10 (startup migration auto-renames DB users, idempotent — runs on VPS too)
 - Direct/Support table: L1 8/0.80, L2 9/0.90, L3 12/1.20, L4 15/1.50, L5 18/1.80, L6 20/2.00, L7 22/2.20, L8 23/2.30, L9 24/2.40, L10 26.36/2.64 (support = 10% rounded 2dp)

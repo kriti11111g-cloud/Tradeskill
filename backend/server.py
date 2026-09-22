@@ -66,7 +66,7 @@ RANKS = [
     {
         "level": 2, "code": "LEVEL2", "title": "LEVEL 2",
         "color": "#00BFFF", "glow": "#1E90FF",
-        "direct_income": 9, "commission_pct": 4.5, "support_pct": 10,
+        "direct_income": 9, "commission_pct": 4.25, "support_pct": 10,
         "direct_users": 2, "team_size": 15,
         "downline_requirement": None,
         "team_note": "10+5 in 2 legs",
@@ -74,49 +74,49 @@ RANKS = [
     {
         "level": 3, "code": "LEVEL3", "title": "LEVEL 3",
         "color": "#9D3FE0", "glow": "#C77DFF",
-        "direct_income": 12, "commission_pct": 5.5, "support_pct": 10,
+        "direct_income": 12, "commission_pct": 5.0, "support_pct": 10,
         "direct_users": 4, "team_size": 80,
         "downline_requirement": {"count": 2, "min_level": 2, "label": "2× 1 Star"},
     },
     {
         "level": 4, "code": "LEVEL4", "title": "LEVEL 4",
         "color": "#FF8C00", "glow": "#FFA500",
-        "direct_income": 15, "commission_pct": 6.5, "support_pct": 10,
+        "direct_income": 15, "commission_pct": 5.75, "support_pct": 10,
         "direct_users": 6, "team_size": 250,
         "downline_requirement": {"count": 2, "min_level": 3, "label": "2× 2 Star"},
     },
     {
         "level": 5, "code": "LEVEL5", "title": "LEVEL 5",
         "color": "#DC143C", "glow": "#FF4444",
-        "direct_income": 18, "commission_pct": 7.5, "support_pct": 10,
+        "direct_income": 18, "commission_pct": 6.5, "support_pct": 10,
         "direct_users": 8, "team_size": 500,
         "downline_requirement": {"count": 2, "min_level": 4, "label": "2× 3 Star"},
     },
     {
         "level": 6, "code": "LEVEL6", "title": "LEVEL 6",
         "color": "#FFD700", "glow": "#FFC500",
-        "direct_income": 20, "commission_pct": 8.5, "support_pct": 10,
+        "direct_income": 20, "commission_pct": 7.5, "support_pct": 10,
         "direct_users": 10, "team_size": 1000,
         "downline_requirement": {"count": 2, "min_level": 5, "label": "2× 4 Star"},
     },
     {
         "level": 7, "code": "LEVEL7", "title": "LEVEL 7",
         "color": "#00FFFF", "glow": "#40E0D0",
-        "direct_income": 22, "commission_pct": 9.5, "support_pct": 10,
+        "direct_income": 22, "commission_pct": 8.5, "support_pct": 10,
         "direct_users": 12, "team_size": 2000,
         "downline_requirement": {"count": 2, "min_level": 6, "label": "2× 5 Star"},
     },
     {
         "level": 8, "code": "LEVEL8", "title": "LEVEL 8",
         "color": "#1E40FF", "glow": "#4169E1",
-        "direct_income": 23, "commission_pct": 10.5, "support_pct": 10,
+        "direct_income": 23, "commission_pct": 9.5, "support_pct": 10,
         "direct_users": 14, "team_size": 3500,
         "downline_requirement": {"count": 2, "min_level": 7, "label": "2× 6 Star"},
     },
     {
         "level": 9, "code": "LEVEL9", "title": "LEVEL 9",
         "color": "#FF1493", "glow": "#FF69B4",
-        "direct_income": 24, "commission_pct": 11.5, "support_pct": 10,
+        "direct_income": 24, "commission_pct": 10.75, "support_pct": 10,
         "direct_users": 16, "team_size": 5500,
         "downline_requirement": {"count": 2, "min_level": 8, "label": "2× 7 Star"},
     },
@@ -197,9 +197,11 @@ BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "10"))  # bo
 MIN_FIRST_BUY = 10.0  # minimum first buy in USDT (below this Binance sells can fail on MIN_NOTIONAL)
 
 # ---- MLM Trading Commission Structure (of PROFIT, totals BOT_TRADING_FEE_PCT=25%) ----
-COMPANY_FEE_PCT = 5.0        # Company / Bot fee
-ROYALTY_POOL_PCT = 1.0       # Bonanza / Royalty pool
-RANK_BUDGET_PCT = 19.0       # Differential rank commissions (max 12% paid, >=7% reserve)
+COMPANY_FEE_PCT = 5.0        # Company / Bot fee (% of profit)
+TRADING_MEETING_PCT = 1.0    # Physical meetings / operations (% of profit)
+# Trading royalty pool — level-wise weights (% of profit), Levels 2..10, total 7%
+TRADING_ROYALTY_BY_LEVEL = {2: 0.5, 3: 0.5, 4: 0.5, 5: 0.5, 6: 0.75, 7: 0.75, 8: 1.0, 9: 1.0, 10: 1.5}
+RANK_BUDGET_PCT = 12.0       # Differential rank commissions budget (12% fully paid at Level 10)
 # ---- Bot activation ($50) distribution ----
 ACTIVATION_ROYALTY_PER_LEVEL = 2.0   # $2 per level into royalty pool
 ACTIVATION_ROYALTY_LEVELS = list(range(2, 11))  # Levels 2..10 only → $18 total (Level 1 gets no royalty)
@@ -2354,8 +2356,11 @@ async def _credit_commission(user_id: str, amount: float, kind: str, note: str,
 
 
 async def _distribute_trading_deduction(user_id: str, profit: float, deducted: float, symbol: str):
-    """Split the 25% profit deduction: 5% company fee, 1% royalty pool,
-    19% differential rank commissions (self + upline, capped at 12%), leftover -> company reserve.
+    """Split the 25% profit deduction:
+    12% differential rank commissions (self + upline, fully paid at Level 10),
+    7% royalty pool (level-wise: L2-L5 0.5%, L6-L7 0.75%, L8-L9 1%, L10 1.5%),
+    5% company fee, 1% physical meetings — total 25%.
+    Unpaid commission budget (compression) -> company reserve.
     All amounts scale down proportionally if only partial fuel was deducted."""
     try:
         fee_expected = profit * BOT_TRADING_FEE_PCT / 100.0
@@ -2364,15 +2369,18 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
         scale = min(1.0, deducted / fee_expected)
 
         company_fee = round(profit * COMPANY_FEE_PCT / 100.0 * scale, 4)
-        royalty = round(profit * ROYALTY_POOL_PCT / 100.0 * scale, 6)
         await _credit_admin_revenue(company_fee, "company_fee", user_id,
                                     note=f"Company fee {COMPANY_FEE_PCT}% of ${profit:.2f} on {symbol}",
                                     symbol=symbol)
-        # Trading royalty pool — level-wise (equal split across Levels 2..10)
-        per_level = royalty / len(ACTIVATION_ROYALTY_LEVELS)
-        for lvl in ACTIVATION_ROYALTY_LEVELS:
-            await _company_ledger("trading_royalty", per_level, user_id,
-                                  note=f"Trading royalty · Level {lvl} · {symbol}", symbol=symbol, level=lvl)
+        meeting = round(profit * TRADING_MEETING_PCT / 100.0 * scale, 6)
+        await _company_ledger("physical_meeting", meeting, user_id,
+                              note=f"Physical meeting {TRADING_MEETING_PCT}% of ${profit:.2f} on {symbol}",
+                              symbol=symbol)
+        # Trading royalty pool — level-wise weights (total 7%)
+        for lvl, pct in TRADING_ROYALTY_BY_LEVEL.items():
+            amt = profit * pct / 100.0 * scale
+            await _company_ledger("trading_royalty", amt, user_id,
+                                  note=f"Trading royalty {pct}% · Level {lvl} · {symbol}", symbol=symbol, level=lvl)
 
         trader = await db.users.find_one({"id": user_id},
                                          {"_id": 0, "id": 1, "referred_by": 1, "rank": 1,
