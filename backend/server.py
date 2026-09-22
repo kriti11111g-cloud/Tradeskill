@@ -2203,7 +2203,8 @@ async def _pool_levels(kind: str) -> list:
 
 async def _run_royalty_distribution(date_str: str):
     """Daily royalty pool close at 00:00 UTC. Each level's pool balance is split
-    equally among activated users of that level; empty levels carry forward."""
+    equally among activated users of that level; unclaimed levels sweep to
+    company reserve so ALL pools reset to $0 at every cutoff."""
     existing = await db.royalty_closes.find_one_and_update(
         {"date": date_str},
         {"$setOnInsert": {"date": date_str, "status": "running", "created_at": iso(now_utc())}},
@@ -2215,7 +2216,7 @@ async def _run_royalty_distribution(date_str: str):
         pool_label = "Activation" if kind == "activation_royalty" else "Trading"
         for row in await _pool_levels(kind):
             lvl, balance = row["level"], row["balance"]
-            if balance < 0.01:
+            if balance < 0.0001:
                 continue
             users = await db.users.find({"rank": f"Level {lvl}"}, {"_id": 0, "id": 1}).to_list(200000)
             qualified = []
@@ -2223,21 +2224,27 @@ async def _run_royalty_distribution(date_str: str):
                 w = await db.bot_wallets.find_one({"user_id": u["id"]}, {"activated": 1})
                 if w and w.get("activated"):
                     qualified.append(u["id"])
-            if not qualified:
-                continue  # carry forward to next day
-            per_user = math.floor(balance / len(qualified) * 10000) / 10000.0
-            if per_user <= 0:
-                continue
-            for uid in qualified:
-                await _credit_commission(uid, per_user, "royalty_income",
-                                         f"Daily royalty · Level {lvl} · {pool_label} pool · {date_str}",
-                                         from_user_id="system")
+            per_user = math.floor(balance / len(qualified) * 10000) / 10000.0 if qualified else 0.0
+            paid = 0.0
+            if per_user > 0:
+                for uid in qualified:
+                    await _credit_commission(uid, per_user, "royalty_income",
+                                             f"Daily royalty · Level {lvl} · {pool_label} pool · {date_str}",
+                                             from_user_id="system")
+                paid = round(per_user * len(qualified), 4)
+            # Pool MUST be fully empty after cutoff: unpaid remainder (no users
+            # at this level, or rounding dust) sweeps to company reserve.
+            leftover = round(balance - paid, 6)
+            if leftover > 0:
+                await _credit_admin_revenue(leftover, "royalty_reserve", "system",
+                                            note=f"Unclaimed {pool_label} royalty · Level {lvl} · {date_str}")
             await db.royalty_distributions.insert_one({
                 "id": str(uuid.uuid4()), "date": date_str, "pool_kind": kind, "level": lvl,
-                "total": round(per_user * len(qualified), 4), "per_user": per_user,
-                "user_count": len(qualified), "created_at": iso(now_utc()),
+                "total": round(balance, 6), "per_user": per_user,
+                "user_count": len(qualified), "paid": paid, "reserve": leftover,
+                "created_at": iso(now_utc()),
             })
-            logger.info(f"royalty close {date_str}: {pool_label} L{lvl} ${per_user} × {len(qualified)} users")
+            logger.info(f"royalty close {date_str}: {pool_label} L{lvl} paid ${paid} to {len(qualified)} users, reserve ${leftover} — pool emptied")
     await db.royalty_closes.update_one({"date": date_str},
                                        {"$set": {"status": "done", "finished_at": iso(now_utc())}})
 
@@ -3064,7 +3071,7 @@ async def admin_finance_summary(admin: dict = Depends(require_admin)):
         },
         "company_fee_5pct": await _revenue_total("company_fee"),
         "physical_meeting_1pct": await _ledger_total("physical_meeting"),
-        "company_reserve": round(await _revenue_total("activation_reserve") + await _revenue_total("company_reserve"), 4),
+        "company_reserve": round(await _revenue_total("activation_reserve") + await _revenue_total("company_reserve") + await _revenue_total("royalty_reserve"), 4),
         "legacy_royalty_pool": await _ledger_total("royalty_pool"),
     }
 def _mask_email(e: str) -> str:

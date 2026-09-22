@@ -1,6 +1,9 @@
 # TGX BOT — Product Requirements Document
 
 ## Update (22 Jun 2026): Daily royalty pool auto-distribution (00:00 UTC)
+### Amendment: pools FULLY EMPTY at every cutoff (no carry-forward)
+- Unclaimed levels (no activated users) + rounding dust sweep to admin_revenue kind "royalty_reserve"
+- Verified: after close ALL 9 levels of both pools = $0.00; royalty_reserve counted inside admin finance-summary company_reserve
 - royalty_close_loop background task: closes pools once per UTC day (idempotent via royalty_closes collection), all math UTC
 - Each level's pool balance (activation + trading) split equally among ACTIVATED users of that level; empty levels carry forward
 - Payout kind "royalty_income" → shows in Revenue as new "Royalty Income" category

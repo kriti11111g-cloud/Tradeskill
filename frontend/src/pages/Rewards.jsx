@@ -69,7 +69,7 @@ export default function Rewards() {
                   {new Date(pool.next_cutoff_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span></>
               )}
-              {" "}· Pools auto-distribute level-wise — no manual action.
+              {" "}· Pools auto-distribute level-wise and reset to $0 — no manual action.
             </div>
           </div>
         </div>
