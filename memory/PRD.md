@@ -1,5 +1,9 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Asset history tap-to-expand details
+- Asset page history rows now expand on one tap (like Revenue): shows reason/note, coin (e.g. "Fuel · 25.0% of $1.53 profit · Coin: FIL/USDT") and full date-time; chevron rotates
+- /bot-wallet/transactions already returns note+symbol; frontend-only change (Wallet.jsx openHist)
+
 ## Update (22 Jun 2026): Full income flow test + fixes
 - BUG FIX: /revenue/income kinds was missing "royalty_income" — royalty payouts now appear on Revenue page
 - Asset history fetch limit raised to 200; Hindi social-lock error → English

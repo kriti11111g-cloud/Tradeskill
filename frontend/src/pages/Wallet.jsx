@@ -69,6 +69,7 @@ export default function Wallet() {
   const [liveErr, setLiveErr] = useState(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [prices, setPrices] = useState({});
+  const [openHist, setOpenHist] = useState(null);
   const [search, setSearch] = useState("");
   const [hideBal, setHideBal] = useState(false);
   const [filterDate, setFilterDate] = useState("");
@@ -455,35 +456,48 @@ export default function Wallet() {
               {rows.map((h) => {
                 const meta = rowMeta(h) || { title: (h.kind || h.type || "").replace(/_/g, " "), Icon: IconCoins };
                 const isOut = (h.amount ?? 0) < 0;
+                const open = openHist === h.id;
+                const coin = h.symbol ? h.symbol.replace(/USDT$/, "") : null;
                 return (
                   <div
                     key={h.id}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-2"
+                    onClick={() => setOpenHist(open ? null : h.id)}
+                    className="rounded-xl px-3 py-2 cursor-pointer select-none"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
                       boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+                      touchAction: "manipulation",
                     }}
                     data-testid={`history-row-${h.kind}`}
                   >
-                    <div className="shrink-0"><meta.Icon s={30} /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-black capitalize truncate leading-tight" style={{ color: "var(--ink)" }}>
-                        {meta.title}
+                    <div className="flex items-center gap-2.5">
+                      <div className="shrink-0"><meta.Icon s={30} /></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-black capitalize truncate leading-tight" style={{ color: "var(--ink)" }}>
+                          {meta.title}
+                        </div>
+                        <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                          {fmtDT(h.created_at)}
+                        </div>
                       </div>
-                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
-                        {fmtDT(h.created_at)}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span
+                          className="text-[13px] font-bold tabular-nums"
+                          style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
+                        >
+                          {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
+                        </span>
+                        <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span
-                        className="text-[13px] font-bold tabular-nums"
-                        style={{ color: isOut ? "var(--bad)" : "var(--good)" }}
-                      >
-                        {isOut ? "-" : ""}{fmtNum(Math.abs(h.amount ?? 0), 4)} USDT
-                      </span>
-                      <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)" }} />
-                    </div>
+                    {open && (
+                      <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="history-row-detail">
+                        {[h.note || meta.title, coin ? `Coin: ${coin}/USDT` : null,
+                          new Date(h.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })]
+                          .filter(Boolean).join(" · ")}
+                      </div>
+                    )}
                   </div>
                 );
               })}
