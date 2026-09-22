@@ -9,7 +9,7 @@ import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import CoinIcon from "@/components/CoinIcon";
-import { IconCoins, IconDocPlus, IconDeposit, IconWithdraw, IconHandDollar, IconCrown, IconPersonAdd, IconPeople, IconBars } from "@/components/IncomeIcons";
+import { IconCoins, IconDocPlus, IconDeposit, IconWithdraw, IconHandDollar, IconCrown, IconPersonAdd, IconPeople } from "@/components/IncomeIcons";
 
 /* Assets = wallet txns + all incomes EXCEPT self trading income (trade_commission) */
 const KIND_META = {
@@ -27,19 +27,16 @@ const KIND_META = {
   pause: { title: "Trading Fee", Icon: IconCoins },
   trading_fee: { title: "Trading Fee", Icon: IconCoins },
   team_commission: { title: "Trading Commission", Icon: IconHandDollar },
-  royalty_income: { title: "Royalty", Icon: IconCrown },
+  royalty_income: { title: "Global Level", Icon: IconCrown },
   direct_bonus: { title: "Direct Income", Icon: IconPersonAdd },
   support_income: { title: "Support Income", Icon: IconPeople },
   social_bonus: { title: "Support Income", Icon: IconPeople },
 };
 
 const rowMeta = (h) => {
-  if (h.kind === "team_commission") {
-    const m = /· L(\d+)$/.exec(h.note || "");
-    if (m) {
-      const lvl = Math.min(parseInt(m[1], 10) + 1, 10);
-      return { title: `Global Level-${String(lvl).padStart(2, "0")}`, Icon: IconBars };
-    }
+  if (h.kind === "royalty_income") {
+    const m = /Level (\d+)/.exec(h.note || "");
+    if (m) return { title: `Global Level-${String(Math.min(parseInt(m[1], 10), 10)).padStart(2, "0")}`, Icon: IconCrown };
   }
   return KIND_META[h.kind];
 };
