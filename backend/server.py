@@ -59,7 +59,7 @@ RANKS = [
     {
         "level": 1, "code": "STAR1", "title": "STARTER",
         "color": "#39FF14", "glow": "#7FFF00",
-        "direct_income": 6, "commission_pct": 3.5, "support_pct": 10,
+        "direct_income": 8, "commission_pct": 3.5, "support_pct": 10,
         "direct_users": 0, "team_size": 0,
         "downline_requirement": None,
     },
@@ -95,35 +95,35 @@ RANKS = [
     {
         "level": 6, "code": "STAR6", "title": "5 STAR",
         "color": "#FFD700", "glow": "#FFC500",
-        "direct_income": 21, "commission_pct": 8.5, "support_pct": 10,
+        "direct_income": 20, "commission_pct": 8.5, "support_pct": 10,
         "direct_users": 10, "team_size": 1000,
         "downline_requirement": {"count": 2, "min_level": 5, "label": "2× 4 Star"},
     },
     {
         "level": 7, "code": "STAR7", "title": "6 STAR",
         "color": "#00FFFF", "glow": "#40E0D0",
-        "direct_income": 24, "commission_pct": 9.5, "support_pct": 10,
+        "direct_income": 21, "commission_pct": 9.5, "support_pct": 10,
         "direct_users": 12, "team_size": 2000,
         "downline_requirement": {"count": 2, "min_level": 6, "label": "2× 5 Star"},
     },
     {
         "level": 8, "code": "STAR8", "title": "7 STAR",
         "color": "#1E40FF", "glow": "#4169E1",
-        "direct_income": 27, "commission_pct": 10.5, "support_pct": 10,
+        "direct_income": 22, "commission_pct": 10.5, "support_pct": 10,
         "direct_users": 14, "team_size": 3500,
         "downline_requirement": {"count": 2, "min_level": 7, "label": "2× 6 Star"},
     },
     {
         "level": 9, "code": "STAR9", "title": "8 STAR",
         "color": "#FF1493", "glow": "#FF69B4",
-        "direct_income": 30, "commission_pct": 11.5, "support_pct": 10,
+        "direct_income": 23, "commission_pct": 11.5, "support_pct": 10,
         "direct_users": 16, "team_size": 5500,
         "downline_requirement": {"count": 2, "min_level": 8, "label": "2× 7 Star"},
     },
     {
         "level": 10, "code": "STAR10", "title": "9 STAR",
         "color": "#FFD700", "glow": "#FFF8DC",
-        "direct_income": 33, "commission_pct": 12.0, "support_pct": 10,
+        "direct_income": 24, "commission_pct": 12.0, "support_pct": 10,
         "direct_users": 20, "team_size": 10000,
         "downline_requirement": {"count": 2, "min_level": 9, "label": "2× 8 Star"},
         "crown": True,
@@ -200,7 +200,11 @@ MIN_FIRST_BUY = 10.0  # minimum first buy in USDT (below this Binance sells can 
 COMPANY_FEE_PCT = 5.0        # Company / Bot fee
 ROYALTY_POOL_PCT = 1.0       # Bonanza / Royalty pool
 RANK_BUDGET_PCT = 19.0       # Differential rank commissions (max 12% paid, >=7% reserve)
-ROYALTY_PER_ACTIVATION = 2.0 # $ per bot activation into royalty pool
+# ---- Bot activation ($50) distribution ----
+ACTIVATION_ROYALTY_PER_LEVEL = 2.0   # $2 per level into royalty pool
+ACTIVATION_ROYALTY_LEVELS = 10       # 10 levels → $20 total
+ACTIVATION_COMPANY_PCT = 5.0         # 5% of activation → company ($2.50)
+ACTIVATION_MEETING_PCT = 1.0         # 1% of activation → physical meeting fund ($0.50)
 SUPPORT_INCOME_PCT = 10.0    # % of direct bonus to sponsor's immediate upline
 
 RANK_PCT_BY_TITLE = {r["title"].upper(): float(r["commission_pct"]) for r in RANKS}
@@ -2504,8 +2508,25 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
                        note="One-time bot activation fee",
                        balance_after=new_bal)
-    # ---- MLM activation distribution ----
+    # ---- MLM activation distribution ($50 full accounting) ----
+    # $20 royalty (10 levels × $2) + $2.50 company (5%) + $0.50 meeting (1%)
+    # + rank-based direct bonus + 10% support income → leftover = company reserve
     distributed = 0.0
+    royalty_total = round(ACTIVATION_ROYALTY_PER_LEVEL * ACTIVATION_ROYALTY_LEVELS, 4)
+    await _company_ledger("royalty_pool", royalty_total, user["id"],
+                          note=f"Royalty pool · ${ACTIVATION_ROYALTY_PER_LEVEL:.0f} × {ACTIVATION_ROYALTY_LEVELS} levels per activation")
+    distributed += royalty_total
+
+    company_fee = round(BOT_ACTIVATION_FEE * ACTIVATION_COMPANY_PCT / 100.0, 4)
+    await _credit_admin_revenue(company_fee, "company_fee", user["id"],
+                                note=f"Company fee {ACTIVATION_COMPANY_PCT:.0f}% of ${BOT_ACTIVATION_FEE:.0f} activation")
+    distributed += company_fee
+
+    meeting = round(BOT_ACTIVATION_FEE * ACTIVATION_MEETING_PCT / 100.0, 4)
+    await _company_ledger("physical_meeting", meeting, user["id"],
+                          note=f"Physical meeting fund {ACTIVATION_MEETING_PCT:.0f}% of ${BOT_ACTIVATION_FEE:.0f} activation")
+    distributed += meeting
+
     sponsor = None
     if user.get("referred_by"):
         sponsor = await db.users.find_one({"id": user["referred_by"]},
@@ -2526,13 +2547,10 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                                                    from_user_id=user["id"])
                     if ok2:
                         distributed += support
-    await _company_ledger("royalty_pool", ROYALTY_PER_ACTIVATION, user["id"],
-                          note="Royalty pool · per bot activation")
-    distributed += ROYALTY_PER_ACTIVATION
     remainder = round(BOT_ACTIVATION_FEE - distributed, 4)
     if remainder > 0:
-        await _credit_admin_revenue(remainder, "activation", user["id"],
-                                    note=f"Activation fee (net) from {user.get('email','user')}")
+        await _credit_admin_revenue(remainder, "activation_reserve", user["id"],
+                                    note=f"Activation unallocated reserve from {user.get('email','user')}")
     return {"ok": True, "activation_fee": BOT_ACTIVATION_FEE}
 
 

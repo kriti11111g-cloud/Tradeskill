@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): New $50 activation distribution structure
+- Royalty pool: $2 × 10 levels = $20 per activation
+- Company fee 5% = $2.50 (admin_revenue kind company_fee), Physical meeting 1% = $0.50 (company_ledger kind physical_meeting)
+- Direct reward NEW table: L1 $8, L2 $9, L3 $12, L4 $15, L5 $18, L6 $20, L7 $21, L8 $22, L9 $23, L10 $24
+- Support income = 10% of direct (sponsor's upline). L10 example: 20+2.5+0.5+24+2.4 = $49.40, $0.60 → activation_reserve (backend only, hidden from user dashboard)
+- Inactive (non-activated) sponsor/upline earn nothing → their share falls into reserve (existing rule kept)
+- Verified end-to-end: full $50 accounted exactly
+- PENDING: user will next give new 25% trading fee distribution structure
+
 ## Update (22 Jun 2026): Profit % on Trading Profit cards
 - Revenue history: profit amount now shows percentage beside it, e.g. "+0.27 USDT (+2.74%)"
 - pct = profit / (deal_amount − profit) × 100, computed client-side from trade data (SELL rows only; commission rows unchanged)
