@@ -493,9 +493,7 @@ export default function Wallet() {
                     </div>
                     {open && (
                       <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="history-row-detail">
-                        {[h.note || meta.title, coin ? `Coin: ${coin}/USDT` : null,
-                          new Date(h.created_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })]
-                          .filter(Boolean).join(" · ")}
+                        {[h.note || meta.title, coin ? `Coin: ${coin}/USDT` : null].filter(Boolean).join(" · ")}
                       </div>
                     )}
                   </div>
