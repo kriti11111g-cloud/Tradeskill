@@ -155,7 +155,7 @@ export default function Referral() {
                         boxShadow: "0 0 8px rgba(245,158,11,0.3)",
                       }}
                     >
-                      ★ {(t.rank || "Starter").toUpperCase()}
+                      ★ {(t.rank || "Level 1").toUpperCase()}
                     </span>
                   </div>
                   <div className="text-[9px] font-mono text-[color:var(--text-mute)] mt-0.5">

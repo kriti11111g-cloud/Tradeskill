@@ -57,14 +57,14 @@ fernet = Fernet(MASTER_KEY.encode())
 # Team requirements start from rank 2 onwards.
 RANKS = [
     {
-        "level": 1, "code": "STAR1", "title": "STARTER",
+        "level": 1, "code": "LEVEL1", "title": "LEVEL 1",
         "color": "#39FF14", "glow": "#7FFF00",
         "direct_income": 8, "commission_pct": 3.5, "support_pct": 10,
         "direct_users": 0, "team_size": 0,
         "downline_requirement": None,
     },
     {
-        "level": 2, "code": "STAR2", "title": "1 STAR",
+        "level": 2, "code": "LEVEL2", "title": "LEVEL 2",
         "color": "#00BFFF", "glow": "#1E90FF",
         "direct_income": 9, "commission_pct": 4.5, "support_pct": 10,
         "direct_users": 2, "team_size": 15,
@@ -72,58 +72,58 @@ RANKS = [
         "team_note": "10+5 in 2 legs",
     },
     {
-        "level": 3, "code": "STAR3", "title": "2 STAR",
+        "level": 3, "code": "LEVEL3", "title": "LEVEL 3",
         "color": "#9D3FE0", "glow": "#C77DFF",
         "direct_income": 12, "commission_pct": 5.5, "support_pct": 10,
         "direct_users": 4, "team_size": 80,
         "downline_requirement": {"count": 2, "min_level": 2, "label": "2× 1 Star"},
     },
     {
-        "level": 4, "code": "STAR4", "title": "3 STAR",
+        "level": 4, "code": "LEVEL4", "title": "LEVEL 4",
         "color": "#FF8C00", "glow": "#FFA500",
         "direct_income": 15, "commission_pct": 6.5, "support_pct": 10,
         "direct_users": 6, "team_size": 250,
         "downline_requirement": {"count": 2, "min_level": 3, "label": "2× 2 Star"},
     },
     {
-        "level": 5, "code": "STAR5", "title": "4 STAR",
+        "level": 5, "code": "LEVEL5", "title": "LEVEL 5",
         "color": "#DC143C", "glow": "#FF4444",
         "direct_income": 18, "commission_pct": 7.5, "support_pct": 10,
         "direct_users": 8, "team_size": 500,
         "downline_requirement": {"count": 2, "min_level": 4, "label": "2× 3 Star"},
     },
     {
-        "level": 6, "code": "STAR6", "title": "5 STAR",
+        "level": 6, "code": "LEVEL6", "title": "LEVEL 6",
         "color": "#FFD700", "glow": "#FFC500",
         "direct_income": 20, "commission_pct": 8.5, "support_pct": 10,
         "direct_users": 10, "team_size": 1000,
         "downline_requirement": {"count": 2, "min_level": 5, "label": "2× 4 Star"},
     },
     {
-        "level": 7, "code": "STAR7", "title": "6 STAR",
+        "level": 7, "code": "LEVEL7", "title": "LEVEL 7",
         "color": "#00FFFF", "glow": "#40E0D0",
-        "direct_income": 21, "commission_pct": 9.5, "support_pct": 10,
+        "direct_income": 22, "commission_pct": 9.5, "support_pct": 10,
         "direct_users": 12, "team_size": 2000,
         "downline_requirement": {"count": 2, "min_level": 6, "label": "2× 5 Star"},
     },
     {
-        "level": 8, "code": "STAR8", "title": "7 STAR",
+        "level": 8, "code": "LEVEL8", "title": "LEVEL 8",
         "color": "#1E40FF", "glow": "#4169E1",
-        "direct_income": 22, "commission_pct": 10.5, "support_pct": 10,
+        "direct_income": 23, "commission_pct": 10.5, "support_pct": 10,
         "direct_users": 14, "team_size": 3500,
         "downline_requirement": {"count": 2, "min_level": 7, "label": "2× 6 Star"},
     },
     {
-        "level": 9, "code": "STAR9", "title": "8 STAR",
+        "level": 9, "code": "LEVEL9", "title": "LEVEL 9",
         "color": "#FF1493", "glow": "#FF69B4",
-        "direct_income": 23, "commission_pct": 11.5, "support_pct": 10,
+        "direct_income": 24, "commission_pct": 11.5, "support_pct": 10,
         "direct_users": 16, "team_size": 5500,
         "downline_requirement": {"count": 2, "min_level": 8, "label": "2× 7 Star"},
     },
     {
-        "level": 10, "code": "STAR10", "title": "9 STAR",
+        "level": 10, "code": "LEVEL10", "title": "LEVEL 10",
         "color": "#FFD700", "glow": "#FFF8DC",
-        "direct_income": 24, "commission_pct": 12.0, "support_pct": 10,
+        "direct_income": 26.36, "commission_pct": 12.0, "support_pct": 10,
         "direct_users": 20, "team_size": 10000,
         "downline_requirement": {"count": 2, "min_level": 9, "label": "2× 8 Star"},
         "crown": True,
@@ -155,7 +155,7 @@ async def _compute_team_stats(user_id: str) -> dict:
             seen.add(u["id"])
             next_frontier.append(u["id"])
             # Track rank counts
-            r_title = u.get("rank", "Starter").upper()
+            r_title = u.get("rank", "Level 1").upper()
             for rk in RANKS:
                 if rk["title"] == r_title:
                     downline_ranks[rk["level"]] = downline_ranks.get(rk["level"], 0) + 1
@@ -202,7 +202,7 @@ ROYALTY_POOL_PCT = 1.0       # Bonanza / Royalty pool
 RANK_BUDGET_PCT = 19.0       # Differential rank commissions (max 12% paid, >=7% reserve)
 # ---- Bot activation ($50) distribution ----
 ACTIVATION_ROYALTY_PER_LEVEL = 2.0   # $2 per level into royalty pool
-ACTIVATION_ROYALTY_LEVELS = 10       # 10 levels → $20 total
+ACTIVATION_ROYALTY_LEVELS = list(range(2, 11))  # Levels 2..10 only → $18 total (Level 1 gets no royalty)
 ACTIVATION_COMPANY_PCT = 5.0         # 5% of activation → company ($2.50)
 ACTIVATION_MEETING_PCT = 1.0         # 1% of activation → physical meeting fund ($0.50)
 SUPPORT_INCOME_PCT = 10.0    # % of direct bonus to sponsor's immediate upline
@@ -409,7 +409,7 @@ async def register(body: RegisterIn, response: Response):
         "role": "user",
         "referral_code": ref_code,
         "referred_by": referred_by,
-        "rank": "Starter",
+        "rank": "Level 1",
         "activated": False,
         "wallet_usdt": 1000.0,  # demo starter balance
         "created_at": iso(now_utc()),
@@ -2023,7 +2023,7 @@ async def referral(user: dict = Depends(get_current_user)):
         {
             "email": d["email"],
             "name": d.get("name"),
-            "rank": d.get("rank", "Starter"),
+            "rank": d.get("rank", "Level 1"),
             "activated": bool(d.get("activated")),
             "created_at": d.get("created_at"),
             "team_size": subtree.get(d["id"], 0),
@@ -2181,11 +2181,33 @@ async def ranks_config():
     return {"ranks": RANKS}
 
 
+async def _pool_levels(kind: str) -> list:
+    rows = await db.company_ledger.aggregate([
+        {"$match": {"kind": kind}},
+        {"$group": {"_id": "$level", "total": {"$sum": "$amount"}}},
+    ]).to_list(20)
+    m = {r["_id"]: r["total"] for r in rows}
+    return [{"level": lvl, "balance": round(float(m.get(lvl, 0.0)), 4)} for lvl in range(2, 11)]
+
+
+@api.get("/pool/summary")
+async def pool_summary(user: dict = Depends(get_current_user)):
+    """Main Pool card: Bot Activation Royalty Pool + Trading Royalty Pool (level-wise)."""
+    activation = await _pool_levels("activation_royalty")
+    trading = await _pool_levels("trading_royalty")
+    return {
+        "activation_pool": activation,
+        "trading_pool": trading,
+        "activation_total": round(sum(x["balance"] for x in activation), 4),
+        "trading_total": round(sum(x["balance"] for x in trading), 4),
+    }
+
+
 @api.get("/ranks/me")
 async def ranks_me(user: dict = Depends(get_current_user)):
     """Return user's current rank, team stats and progress to next rank."""
     stats = await _compute_team_stats(user["id"])
-    current_title = (user.get("rank") or "Starter").upper()
+    current_title = (user.get("rank") or "Level 1").upper()
 
     current_level = 1
     for rk in RANKS:
@@ -2298,12 +2320,13 @@ def _rank_pct_of(user_doc) -> float:
     return RANK_PCT_BY_TITLE.get(((user_doc or {}).get("rank") or "").strip().upper(), 0.0)
 
 
-async def _company_ledger(kind: str, amount: float, from_user_id: str, note: str = "", symbol: str = None):
+async def _company_ledger(kind: str, amount: float, from_user_id: str, note: str = "", symbol: str = None, level: int = None):
     if amount <= 0:
         return
     await db.company_ledger.insert_one({
-        "id": str(uuid.uuid4()), "kind": kind, "amount": round(amount, 4),
+        "id": str(uuid.uuid4()), "kind": kind, "amount": round(amount, 6),
         "from_user_id": from_user_id, "note": note, "symbol": symbol,
+        "level": level,
         "created_at": iso(now_utc()),
     })
 
@@ -2341,12 +2364,15 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
         scale = min(1.0, deducted / fee_expected)
 
         company_fee = round(profit * COMPANY_FEE_PCT / 100.0 * scale, 4)
-        royalty = round(profit * ROYALTY_POOL_PCT / 100.0 * scale, 4)
+        royalty = round(profit * ROYALTY_POOL_PCT / 100.0 * scale, 6)
         await _credit_admin_revenue(company_fee, "company_fee", user_id,
                                     note=f"Company fee {COMPANY_FEE_PCT}% of ${profit:.2f} on {symbol}",
                                     symbol=symbol)
-        await _company_ledger("royalty_pool", royalty, user_id,
-                              note=f"Royalty {ROYALTY_POOL_PCT}% of ${profit:.2f}", symbol=symbol)
+        # Trading royalty pool — level-wise (equal split across Levels 2..10)
+        per_level = royalty / len(ACTIVATION_ROYALTY_LEVELS)
+        for lvl in ACTIVATION_ROYALTY_LEVELS:
+            await _company_ledger("trading_royalty", per_level, user_id,
+                                  note=f"Trading royalty · Level {lvl} · {symbol}", symbol=symbol, level=lvl)
 
         trader = await db.users.find_one({"id": user_id},
                                          {"_id": 0, "id": 1, "referred_by": 1, "rank": 1,
@@ -2509,13 +2535,13 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                        note="One-time bot activation fee",
                        balance_after=new_bal)
     # ---- MLM activation distribution ($50 full accounting) ----
-    # $20 royalty (10 levels × $2) + $2.50 company (5%) + $0.50 meeting (1%)
+    # $18 royalty ($2 × Levels 2..10) + $2.50 company (5%) + $0.50 meeting (1%)
     # + rank-based direct bonus + 10% support income → leftover = company reserve
     distributed = 0.0
-    royalty_total = round(ACTIVATION_ROYALTY_PER_LEVEL * ACTIVATION_ROYALTY_LEVELS, 4)
-    await _company_ledger("royalty_pool", royalty_total, user["id"],
-                          note=f"Royalty pool · ${ACTIVATION_ROYALTY_PER_LEVEL:.0f} × {ACTIVATION_ROYALTY_LEVELS} levels per activation")
-    distributed += royalty_total
+    for lvl in ACTIVATION_ROYALTY_LEVELS:
+        await _company_ledger("activation_royalty", ACTIVATION_ROYALTY_PER_LEVEL, user["id"],
+                              note=f"Activation royalty · Level {lvl}", level=lvl)
+        distributed += ACTIVATION_ROYALTY_PER_LEVEL
 
     company_fee = round(BOT_ACTIVATION_FEE * ACTIVATION_COMPANY_PCT / 100.0, 4)
     await _credit_admin_revenue(company_fee, "company_fee", user["id"],
@@ -2540,7 +2566,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                                           from_user_id=user["id"])
             if ok:
                 distributed += bonus
-                support = round(bonus * SUPPORT_INCOME_PCT / 100.0, 4)
+                support = round(bonus * SUPPORT_INCOME_PCT / 100.0, 2)
                 if support > 0 and sponsor.get("referred_by"):
                     ok2 = await _credit_commission(sponsor["referred_by"], support, "support_income",
                                                    f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${bonus:.2f} direct bonus",
@@ -2926,7 +2952,46 @@ async def admin_treasury(admin: dict = Depends(require_admin)):
     return out
 
 
-# ==== Withdrawal Email OTP ====
+@api.get("/admin/finance-summary")
+async def admin_finance_summary(admin: dict = Depends(require_admin)):
+    """Full accounting: direct, support, both royalty pools (level-wise),
+    company 5%, meeting 1% and company reserve — all tracked separately."""
+    async def _ledger_total(kind):
+        r = await db.company_ledger.aggregate([
+            {"$match": {"kind": kind}},
+            {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
+        return round(float(r[0]["t"]), 4) if r else 0.0
+
+    async def _revenue_total(kind):
+        r = await db.admin_revenue.aggregate([
+            {"$match": {"kind": kind}},
+            {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
+        return round(float(r[0]["t"]), 4) if r else 0.0
+
+    async def _payout_total(kind):
+        r = await db.bot_transactions.aggregate([
+            {"$match": {"kind": kind, "amount": {"$gt": 0}}},
+            {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
+        return round(float(r[0]["t"]), 4) if r else 0.0
+
+    activation_pool = await _pool_levels("activation_royalty")
+    trading_pool = await _pool_levels("trading_royalty")
+    return {
+        "direct_bonus_paid": await _payout_total("direct_bonus"),
+        "support_income_paid": await _payout_total("support_income"),
+        "activation_royalty_pool": {
+            "levels": activation_pool,
+            "total": round(sum(x["balance"] for x in activation_pool), 4),
+        },
+        "trading_royalty_pool": {
+            "levels": trading_pool,
+            "total": round(sum(x["balance"] for x in trading_pool), 4),
+        },
+        "company_fee_5pct": await _revenue_total("company_fee"),
+        "physical_meeting_1pct": await _ledger_total("physical_meeting"),
+        "company_reserve": round(await _revenue_total("activation_reserve") + await _revenue_total("company_reserve"), 4),
+        "legacy_royalty_pool": await _ledger_total("royalty_pool"),
+    }
 def _mask_email(e: str) -> str:
     name, _, dom = (e or "").partition("@")
     return f"{name[:2]}***@{dom}" if dom else "***"
@@ -3235,6 +3300,14 @@ async def delete_banner(banner_id: str, user: dict = Depends(get_current_user)):
 
 @app.on_event("startup")
 async def startup():
+    # Rank rename migration (idempotent): old Star names → Level names
+    _RANK_MIGRATION = {"Starter": "Level 1", "1 Star": "Level 2", "2 Star": "Level 3",
+                       "3 Star": "Level 4", "4 Star": "Level 5", "5 Star": "Level 6",
+                       "6 Star": "Level 7", "7 Star": "Level 8", "8 Star": "Level 9",
+                       "9 Star": "Level 10"}
+    for _old, _new in _RANK_MIGRATION.items():
+        await db.users.update_many({"rank": _old}, {"$set": {"rank": _new}})
+
     # Indexes
     await db.users.create_index("email", unique=True)
     await db.users.create_index("referral_code")

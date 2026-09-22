@@ -58,8 +58,8 @@ export default function Dashboard() {
   const totalBalance = wallet?.total_usdt ?? 0;
 
   const currentRank = rank
-    ? { level: rank.current_level || 1, title: rank.current_title || "STARTER" }
-    : { level: 1, title: "STARTER" };
+    ? { level: rank.current_level || 1, title: rank.current_title || "LEVEL 1" }
+    : { level: 1, title: "LEVEL 1" };
 
   useEffect(() => {
     if (!rank?.current_level) return;

@@ -1,5 +1,15 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Level naming + final $50 activation structure + Pools
+- Ranks renamed: Starter/1-9 Star → Level 1..Level 10 (startup migration auto-renames DB users, idempotent — runs on VPS too)
+- Direct/Support table: L1 8/0.80, L2 9/0.90, L3 12/1.20, L4 15/1.50, L5 18/1.80, L6 20/2.00, L7 22/2.20, L8 23/2.30, L9 24/2.40, L10 26.36/2.64 (support = 10% rounded 2dp)
+- Activation royalty: $2 × Levels 2..10 = $18/activation, level-wise ledger kind activation_royalty (Level 1 gets no royalty but valid level)
+- Company 5% ($2.50) + meeting 1% ($0.50) — admin-side only. L10 total: 18+3+26.36+2.64 = $50.00 exact, no reserve. Lower levels leftover → activation_reserve (backend only)
+- Trading royalty (1% of profit) now level-wise: equal split L2..L10, kind trading_royalty (adjustable when new 25% trading split arrives)
+- New endpoints: GET /pool/summary (both pools level-wise), GET /admin/finance-summary (direct, support, pools, company, meeting, reserve — all separate)
+- Pool page (/rewards): main Pool card with Bot Activation Royalty Pool + Trading Royalty Pool, L2-L10 chips
+- PENDING: user will give new 25% trading fee distribution next
+
 ## Update (22 Jun 2026): New $50 activation distribution structure
 - Royalty pool: $2 × 10 levels = $20 per activation
 - Company fee 5% = $2.50 (admin_revenue kind company_fee), Physical meeting 1% = $0.50 (company_ledger kind physical_meeting)

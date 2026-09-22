@@ -327,7 +327,7 @@ export default function BotHub() {
             <span className="text-[11px] font-bold uppercase tracking-widest text-[color:var(--text)]">
               Rank Levels
             </span>
-            <span className="text-[10px] text-[color:var(--text-mute)]">· 1 STAR → 10 STAR</span>
+            <span className="text-[10px] text-[color:var(--text-mute)]">· LEVEL 1 → LEVEL 10</span>
           </div>
           <span className="text-[color:var(--warn)] text-lg">›</span>
         </button>

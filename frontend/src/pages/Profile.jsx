@@ -136,7 +136,7 @@ export default function Profile() {
           <div>
             <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>CURRENT RANK</div>
             <div className="font-display font-black text-2xl leading-tight uppercase" style={{ color: "var(--ink)" }}>
-              {rankInfo?.current_title || user?.rank || "Starter"}
+              {rankInfo?.current_title || user?.rank || "Level 1"}
             </div>
           </div>
         </div>
