@@ -113,7 +113,7 @@ export default function Wallet() {
       if (retry > 0) return setTimeout(() => load(retry - 1), 1500);
     }
     const [h, bd] = await Promise.all([
-      api.get("/bot-wallet/transactions").then((r) => r.data).catch(() => []),
+      api.get("/bot-wallet/transactions", { params: { limit: 200 } }).then((r) => r.data).catch(() => []),
       api.get("/binance/bind").then((r) => r.data).catch(() => null),
     ]);
     if (s) setSummary(s);

@@ -1683,7 +1683,7 @@ async def list_transactions(
 @api.get("/revenue/income")
 async def revenue_income(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    kinds = ["trade_commission", "team_commission", "direct_bonus", "support_income", "social_bonus"]
+    kinds = ["trade_commission", "team_commission", "direct_bonus", "support_income", "social_bonus", "royalty_income"]
     txns = await db.bot_transactions.find(
         {"user_id": uid, "kind": {"$in": kinds}, "amount": {"$gt": 0}},
         {"_id": 0}).sort("created_at", -1).to_list(3000)
@@ -3224,7 +3224,7 @@ async def social_bonus_follow(platform: str,
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
     if _social_locked(claims, platform):
-        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
+        raise HTTPException(400, "Locked — claim the previous platform first")
     await db.social_bonus.update_one(
         {"user_id": user["id"]},
         {"$set": {f"claims.{platform}.follow_started_at": iso(now_utc()),
@@ -3244,7 +3244,7 @@ async def social_bonus_verify(platform: str, user: dict = Depends(get_current_us
     if c.get("followed"):
         return {"ok": True, "verified": True}
     if _social_locked(claims, platform):
-        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
+        raise HTTPException(400, "Locked — claim the previous platform first")
     if not c.get("follow_started_at"):
         raise HTTPException(400, "Follow first — tap the FOLLOW button")
     if platform == "telegram" and _tg_real_mode():
@@ -3315,7 +3315,7 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
     if c.get("claimed"):
         raise HTTPException(400, "Reward already claimed")
     if _social_locked(claims, platform):
-        raise HTTPException(400, "Locked — pehle pichla platform claim karein")
+        raise HTTPException(400, "Locked — claim the previous platform first")
     if not c.get("followed"):
         raise HTTPException(400, "Please follow & verify first, then claim")
     # Atomic guard against double-claim

@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Full income flow test + fixes
+- BUG FIX: /revenue/income kinds was missing "royalty_income" — royalty payouts now appear on Revenue page
+- Asset history fetch limit raised to 200; Hindi social-lock error → English
+- Test users created in pod DB (kept): demo-child-c1 (child1@test.in, Level 3, TSK900001), demo-grand-g1 (grand1@test.in, Level 1, TSK900002) under admin (set to Level 10)
+- Verified on admin test ID Asset history: Direct Income $26.36, Support Income $1.20 + $0.20 (Telegram social), Global Level-03 $7, Royalty — all with icons; self trading income excluded
+- User's live-site issue: Telegram $0.20 not showing on tradeskill.in because new frontend not yet deployed there
+
 ## Update (22 Jun 2026): Asset page history — income entries added
 - Wallet/Asset history now shows (with icons): Trading Commission, Royalty (crown), Direct Income, Support Income, Social Bonus (as Support Income), Global Level-02..10 (team_commission hop N → Level N+1, capped 10, bars icon)
 - Self trading income (trade_commission) intentionally EXCLUDED from asset history
