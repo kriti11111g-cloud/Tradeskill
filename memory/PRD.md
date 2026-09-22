@@ -1,5 +1,9 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): Profit % on Trading Profit cards
+- Revenue history: profit amount now shows percentage beside it, e.g. "+0.27 USDT (+2.74%)"
+- pct = profit / (deal_amount − profit) × 100, computed client-side from trade data (SELL rows only; commission rows unchanged)
+
 ## Update (20 Jun 2026): CRITICAL — Trailing TP sell bug fixed
 - BUG: pullback sell only evaluated while price >= TP target. Spike to +1.6% then fast drop below +1.5% → sell never fired (user saw 1.6% → 0.9% no sell)
 - FIX (_bot_tick): peak stays ARMED after crossing TP; pullback sell now fires even below the target (sells at e.g. +1.3%) as long as price > avg (profit positive). If price crashes below avg, peak disarms and DCA logic resumes

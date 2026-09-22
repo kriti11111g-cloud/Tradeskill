@@ -242,6 +242,11 @@ export default function Revenue() {
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
                         +{fmtNum(r.amount, 2)} USDT
+                        {r.category === "trading_profit" && r.trade?.deal_amount > r.amount && (
+                          <span className="ml-1 text-[11px] font-black" data-testid="income-profit-pct">
+                            (+{fmtNum((r.amount / (r.trade.deal_amount - r.amount)) * 100, 2)}%)
+                          </span>
+                        )}
                       </span>
                       <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
                     </div>
