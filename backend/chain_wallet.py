@@ -1,7 +1,19 @@
 import os
+import time
 from web3 import Web3
 from web3.middleware import ExtraDataToPOAMiddleware
 from bip_utils import Bip39SeedGenerator, Bip44, Bip44Coins, Bip44Changes
+
+# keccak("Transfer(address,address,uint256)")
+TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+
+# Backup public RPCs — primary fail hone par auto-rotate
+_DEFAULT_BACKUPS = {
+    "BEP20": ["https://bsc-dataseed1.binance.org", "https://bsc-dataseed2.binance.org",
+              "https://bsc-rpc.publicnode.com"],
+    "POLYGON": ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+}
+_rpc_idx = {}
 
 ERC20_ABI = [
     {"constant": True, "inputs": [{"name": "_owner", "type": "address"}],
@@ -56,11 +68,60 @@ def _derive_privkey(index: int) -> str:
     return _acct().AddressIndex(index).PrivateKey().Raw().ToHex()
 
 
-def _w3(network: str) -> Web3:
+def _rpc_urls(network: str) -> list:
     cfg = NETWORKS[network]
-    w3 = Web3(Web3.HTTPProvider(os.environ[cfg["rpc_env"]], request_kwargs={"timeout": 15}))
+    urls = [u.strip() for u in os.environ[cfg["rpc_env"]].split(",") if u.strip()]
+    extra = os.environ.get(cfg["rpc_env"] + "_BACKUP", "")
+    urls += [u.strip() for u in extra.split(",") if u.strip()]
+    urls += [u for u in _DEFAULT_BACKUPS.get(network, []) if u not in urls]
+    return urls
+
+
+def rotate_rpc(network: str):
+    """Current RPC fail — agla backup RPC use karo."""
+    _rpc_idx[network] = _rpc_idx.get(network, 0) + 1
+
+
+def _w3(network: str) -> Web3:
+    urls = _rpc_urls(network)
+    url = urls[_rpc_idx.get(network, 0) % len(urls)]
+    w3 = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 8}))
     w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
     return w3
+
+
+def get_latest_block(network: str) -> int:
+    return _w3(network).eth.block_number
+
+
+def get_usdt_transfers_to(network: str, addresses: list, from_block: int, to_block: int) -> list:
+    """Event-based detection: USDT Transfer logs jinka `to` hamare deposit addresses me hai.
+    Public RPCs ki getLogs limit ke liye 10-block chunks me scan hota hai."""
+    cfg = NETWORKS[network]
+    w3 = _w3(network)
+    topic_addrs = ["0x" + ("0" * 24) + a.lower().replace("0x", "") for a in addresses]
+    out = []
+    start = from_block
+    while start <= to_block:
+        end = min(start + 9, to_block)
+        logs = w3.eth.get_logs({
+            "address": Web3.to_checksum_address(cfg["usdt"]),
+            "fromBlock": start, "toBlock": end,
+            "topics": [TRANSFER_TOPIC, None, topic_addrs],
+        })
+        for lg in logs:
+            to_addr = "0x" + bytes(lg["topics"][2])[-20:].hex()
+            value = int.from_bytes(bytes(lg["data"]), "big") / (10 ** cfg["decimals"])
+            txh = lg["transactionHash"].hex()
+            out.append({"to": to_addr, "value": value,
+                        "tx_hash": txh if txh.startswith("0x") else "0x" + txh,
+                        "block": lg["blockNumber"]})
+        start = end + 1
+    return out
+
+
+def wait_receipt(network: str, tx_hash: str, timeout: int = 120):
+    return _w3(network).eth.wait_for_transaction_receipt(tx_hash, timeout=timeout, poll_latency=0.5)
 
 
 def _usdt_contract(w3: Web3, network: str):
@@ -152,7 +213,7 @@ def sweep_usdt(network: str, from_index: int, to_address: str, min_amount: float
         }
         signed = master.sign_transaction(tx)
         gas_tx = w3.eth.send_raw_transaction(signed.raw_transaction).hex()
-        w3.eth.wait_for_transaction_receipt(gas_tx, timeout=60)
+        w3.eth.wait_for_transaction_receipt(gas_tx, timeout=45, poll_latency=0.5)
 
     tx = contract.functions.transfer(
         to_checksum, raw_bal

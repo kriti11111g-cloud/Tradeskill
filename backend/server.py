@@ -216,7 +216,8 @@ BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
-DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "10"))
+DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "60"))  # backup poller
+EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "3"))  # primary event scanner
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
 SWEEP_ENABLED = os.environ.get("SWEEP_ENABLED", "1") == "1"
 SWEEP_MIN_USDT = float(os.environ.get("SWEEP_MIN_USDT", "1"))
@@ -2805,6 +2806,165 @@ async def bot_wallet_transactions(user: dict = Depends(get_current_user),
 
 # ==== On-chain Deposit / Withdrawal (BSC + Polygon HD Wallet) ====
 _watcher_task = None
+_event_task = None
+_deposit_processing = set()
+
+
+async def _process_deposit_wallet(user_id: str, net: str, sweep_to: str, detected_ts: float = None):
+    """Credit fresh on-chain USDT + INSTANT sweep broadcast. Event scanner &
+    backup poller dono isko call karte hain (per user+net lock, double-safe)."""
+    key = f"{user_id}:{net}"
+    if key in _deposit_processing:
+        return
+    _deposit_processing.add(key)
+    try:
+        w = await db.bot_wallets.find_one(
+            {"user_id": user_id},
+            {"_id": 0, "user_id": 1, "chain_deposit_address": 1,
+             "deposit_index": 1, "onchain_credited": 1})
+        if not w or not w.get("chain_deposit_address"):
+            return
+        try:
+            chain_bal = await asyncio.to_thread(
+                chain_wallet.get_usdt_balance, net, w["chain_deposit_address"])
+        except Exception:
+            chain_wallet.rotate_rpc(net)
+            return
+        credited = float((w.get("onchain_credited") or {}).get(net, 0.0))
+        diff = round(chain_bal - credited, 4)
+        if diff >= 0.01:
+            # Atomic CAS: double-credit impossible (multi-worker safe)
+            res = await db.bot_wallets.find_one_and_update(
+                {"user_id": w["user_id"],
+                 "$or": [{f"onchain_credited.{net}": credited},
+                         {f"onchain_credited.{net}": {"$exists": False}}]},
+                {"$inc": {"balance": diff,
+                          "total_deposited_onchain": diff},
+                 "$set": {f"onchain_credited.{net}": chain_bal}},
+                return_document=True)
+            if res is not None:
+                await _log_bot_txn(
+                    w["user_id"], "deposit_onchain", diff,
+                    note=f"On-chain USDT deposit · {net}",
+                    balance_after=round(float(res.get("balance", 0.0)), 4))
+                lat = f" · detect→credit {int((time.time() - detected_ts) * 1000)}ms" if detected_ts else ""
+                logger.info(f"DEPOSIT CREDITED: {diff} USDT ({net}) -> {w['user_id']} at {iso(now_utc())}{lat}")
+
+        # AUTO-SWEEP: instant broadcast to cold wallet
+        if SWEEP_ENABLED and sweep_to and chain_bal >= SWEEP_MIN_USDT:
+            if w.get("deposit_index") is None:
+                logger.warning(f"sweep skip {w['user_id']} {net}: deposit_index missing")
+                return
+            try:
+                t0 = time.time()
+                r = await asyncio.to_thread(
+                    chain_wallet.sweep_usdt, net,
+                    int(w["deposit_index"]), sweep_to, SWEEP_MIN_USDT)
+                if not r.get("swept"):
+                    logger.warning(f"sweep skipped {w['user_id']} {net}: {r.get('reason')}")
+                    return
+                broadcast_ms = int((time.time() - (detected_ts or t0)) * 1000)
+                await db.bot_wallets.update_one(
+                    {"user_id": w["user_id"]},
+                    {"$set": {f"onchain_credited.{net}": 0.0}})
+                sweep_id = str(uuid.uuid4())
+                await db.sweeps.insert_one({
+                    "id": sweep_id, "user_id": w["user_id"],
+                    "network": net, "amount": r["amount"],
+                    "from_address": r["from_address"],
+                    "to_address": r["to_address"],
+                    "sweep_tx": r["sweep_tx"], "gas_tx": r.get("gas_tx"),
+                    "detected_at": iso(datetime.fromtimestamp(detected_ts, tz=timezone.utc)) if detected_ts else None,
+                    "broadcast_at": iso(now_utc()),
+                    "detect_to_broadcast_ms": broadcast_ms,
+                    "status": "broadcast",
+                    "created_at": iso(now_utc()),
+                })
+                logger.info(
+                    f"SWEEP BROADCAST: {r['amount']:.4f} USDT ({net}) "
+                    f"{r['from_address']} -> {sweep_to} tx={r['sweep_tx']} · detect→broadcast {broadcast_ms}ms")
+                asyncio.create_task(_confirm_sweep(net, r["sweep_tx"], sweep_id, time.time()))
+            except Exception as e:
+                logger.warning(f"sweep failed {w['user_id']} {net}: {e}")
+    finally:
+        _deposit_processing.discard(key)
+
+
+async def _confirm_sweep(net: str, tx_hash: str, sweep_id: str, started: float):
+    """Background: sweep tx confirm hone ka wait + confirm time log."""
+    try:
+        await asyncio.to_thread(chain_wallet.wait_receipt, net, tx_hash, 180)
+        ms = int((time.time() - started) * 1000)
+        await db.sweeps.update_one(
+            {"id": sweep_id},
+            {"$set": {"status": "confirmed", "confirmed_at": iso(now_utc()), "confirm_ms": ms}})
+        logger.info(f"SWEEP CONFIRMED ({net}) tx={tx_hash} · broadcast→confirm {ms}ms")
+    except Exception as e:
+        logger.warning(f"sweep confirm pending ({net}) tx={tx_hash}: {e}")
+
+
+async def deposit_event_loop():
+    """PRIMARY detector — event-based (USDT Transfer logs), har ~3s naye blocks scan.
+    Deposit detect hote hi instant credit + sweep broadcast (target < 10s)."""
+    await asyncio.sleep(5)
+    last_blocks = {}
+    while True:
+        try:
+            wallets = await db.bot_wallets.find(
+                {"chain_deposit_address": {"$exists": True, "$ne": None}},
+                {"_id": 0, "user_id": 1, "chain_deposit_address": 1}).to_list(2000)
+            addr_map = {w["chain_deposit_address"].lower(): w["user_id"] for w in wallets}
+            if not addr_map:
+                await asyncio.sleep(EVENT_SCAN_INTERVAL)
+                continue
+            sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
+            for net in ("BEP20", "POLYGON"):
+                try:
+                    latest = await asyncio.to_thread(chain_wallet.get_latest_block, net)
+                    prev = last_blocks.get(net)
+                    if prev is None or latest < prev:
+                        last_blocks[net] = latest
+                        continue
+                    if latest == prev:
+                        continue
+                    frm = max(prev + 1, latest - 120)
+                    transfers = await asyncio.to_thread(
+                        chain_wallet.get_usdt_transfers_to, net,
+                        list(addr_map.keys()), frm, latest)
+                    last_blocks[net] = latest
+                    for t in transfers:
+                        uid = addr_map.get(t["to"].lower())
+                        if not uid:
+                            continue
+                        detected_ts = time.time()
+                        logger.info(
+                            f"DEPOSIT DETECTED (event): {t['value']:.4f} USDT ({net}) "
+                            f"tx={t['tx_hash']} block={t['block']} -> user {uid} at {iso(now_utc())}")
+                        asyncio.create_task(
+                            _process_deposit_wallet(uid, net, sweep_to, detected_ts))
+                except Exception as e:
+                    chain_wallet.rotate_rpc(net)
+                    logger.warning(f"deposit event scan {net}: {e} — RPC rotated")
+        except Exception as e:
+            logger.warning(f"deposit event loop: {e}")
+        await asyncio.sleep(EVENT_SCAN_INTERVAL)
+
+
+async def deposit_watcher_loop():
+    """BACKUP poller — event scanner kuch miss kare to balance-diff se pakdta hai."""
+    await asyncio.sleep(20)
+    while True:
+        try:
+            wallets = await db.bot_wallets.find(
+                {"chain_deposit_address": {"$exists": True, "$ne": None}},
+                {"_id": 0, "user_id": 1}).to_list(2000)
+            sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
+            for w in wallets:
+                for net in ("BEP20", "POLYGON"):
+                    await _process_deposit_wallet(w["user_id"], net, sweep_to)
+        except Exception as e:
+            logger.warning(f"deposit watcher error: {e}")
+        await asyncio.sleep(DEPOSIT_WATCH_INTERVAL)
 
 
 async def _assign_deposit_address(user_id: str) -> dict:
@@ -2843,78 +3003,6 @@ async def bot_wallet_deposit_address(user: dict = Depends(get_current_user)):
     }
 
 
-async def deposit_watcher_loop():
-    """Polls BSC + Polygon USDT balances of every user deposit address and
-    auto-credits new funds to the user's Bot Wallet."""
-    await asyncio.sleep(10)
-    while True:
-        try:
-            wallets = await db.bot_wallets.find(
-                {"chain_deposit_address": {"$exists": True, "$ne": None}},
-                {"_id": 0, "user_id": 1, "chain_deposit_address": 1,
-                 "deposit_index": 1, "onchain_credited": 1}).to_list(2000)
-            sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
-            for w in wallets:
-                for net in ("BEP20", "POLYGON"):
-                    try:
-                        chain_bal = await asyncio.to_thread(
-                            chain_wallet.get_usdt_balance, net,
-                            w["chain_deposit_address"])
-                    except Exception:
-                        continue
-                    credited = float((w.get("onchain_credited") or {}).get(net, 0.0))
-                    diff = round(chain_bal - credited, 4)
-                    if diff >= 0.01:
-                        # Atomic CAS: double-credit impossible (multi-worker safe)
-                        res = await db.bot_wallets.find_one_and_update(
-                            {"user_id": w["user_id"],
-                             "$or": [{f"onchain_credited.{net}": credited},
-                                     {f"onchain_credited.{net}": {"$exists": False}}]},
-                            {"$inc": {"balance": diff,
-                                      "total_deposited_onchain": diff},
-                             "$set": {f"onchain_credited.{net}": chain_bal}},
-                            return_document=True)
-                        if res is None:
-                            continue  # dusre worker ne already credit kar diya
-                        await _log_bot_txn(
-                            w["user_id"], "deposit_onchain", diff,
-                            note=f"On-chain USDT deposit · {net}",
-                            balance_after=round(float(res.get("balance", 0.0)), 4))
-                        logger.info(f"On-chain deposit credited: {diff} USDT ({net}) -> {w['user_id']}")
-
-                    # AUTO-SWEEP: credited funds ko cold wallet me bhejo (retry-safe)
-                    if SWEEP_ENABLED and sweep_to and chain_bal >= SWEEP_MIN_USDT:
-                        if w.get("deposit_index") is None:
-                            logger.warning(f"sweep skip {w['user_id']} {net}: deposit_index missing")
-                            continue
-                        try:
-                            logger.info(f"sweep attempt: {chain_bal:.4f} USDT ({net}) idx={w['deposit_index']} -> {sweep_to}")
-                            r = await asyncio.to_thread(
-                                chain_wallet.sweep_usdt, net,
-                                int(w["deposit_index"]), sweep_to, SWEEP_MIN_USDT)
-                            if not r.get("swept"):
-                                logger.warning(f"sweep skipped {w['user_id']} {net}: {r.get('reason')}")
-                            if r.get("swept"):
-                                # sweep ke baad chain balance 0 — baseline reset
-                                await db.bot_wallets.update_one(
-                                    {"user_id": w["user_id"]},
-                                    {"$set": {f"onchain_credited.{net}": 0.0}})
-                                await db.sweeps.insert_one({
-                                    "id": str(uuid.uuid4()), "user_id": w["user_id"],
-                                    "network": net, "amount": r["amount"],
-                                    "from_address": r["from_address"],
-                                    "to_address": r["to_address"],
-                                    "sweep_tx": r["sweep_tx"], "gas_tx": r.get("gas_tx"),
-                                    "created_at": iso(now_utc()),
-                                })
-                                logger.info(
-                                    f"SWEEP OK: {r['amount']:.4f} USDT ({net}) "
-                                    f"{r['from_address']} -> {sweep_to} tx={r['sweep_tx']}")
-                        except Exception as e:
-                            logger.warning(f"sweep failed {w['user_id']} {net}: {e}")
-        except Exception as e:
-            logger.warning(f"deposit watcher error: {e}")
-        await asyncio.sleep(DEPOSIT_WATCH_INTERVAL)
 
 
 @api.get("/bot-wallet/withdrawals")
