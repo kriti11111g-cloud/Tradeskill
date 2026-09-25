@@ -48,6 +48,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
           <Route
             element={
               <ProtectedRoute>
@@ -64,7 +65,6 @@ export default function App() {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/bot" element={<BotHub />} />
             <Route path="/rank" element={<Rank />} />
-            <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
             <Route path="/social-bonus" element={<SocialBonus />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/trades" element={<Trades />} />
