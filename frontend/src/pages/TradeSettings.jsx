@@ -21,18 +21,20 @@ const ord = (n) => {
 };
 
 function Row({ Icon, title, sub, right, onClick, testid }) {
+  const long = title.length > 26;
   return (
-    <div onClick={onClick} className={`flex items-center gap-2.5 px-3 py-2 ${onClick ? "cursor-pointer" : ""}`}
+    <div onClick={onClick} className={`flex items-center gap-2.5 px-3 py-2 min-h-[52px] ${onClick ? "cursor-pointer" : ""}`}
       style={{ ...ROW, touchAction: "manipulation" }} data-testid={testid}>
       <Icon size={19} strokeWidth={2.2} className="shrink-0" style={{ color: "#0D9488" }} />
       <div className="flex-1 min-w-0">
-        <div className="text-[12.5px] font-black leading-tight" style={{ color: "var(--ink)" }}>{title}</div>
-        <div className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>{sub}</div>
+        <div className={long ? "text-[11.3px] font-black leading-tight tracking-tight whitespace-nowrap" : "text-[12.5px] font-black leading-tight"} style={{ color: "var(--ink)" }}>{title}</div>
+        {!long && <div className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>{sub}</div>}
       </div>
       {right}
     </div>
   );
 }
+
 
 function NumInput({ value, onChange, unit, testid, w = "w-20" }) {
   return (
@@ -270,7 +272,7 @@ export default function TradeSettings() {
           right={<NumInput value={bot.whole_take_profit_ratio} unit="%" testid="ts-tp-ratio" onChange={(v) => setBot({ ...bot, whole_take_profit_ratio: v })} />} />
 
         <Row Icon={RotateCcw} title="Whole position take profit callback" sub="Retrace percentage after TP"
-          right={<NumInput value={bot.whole_take_profit_callback} unit="%" testid="ts-tp-callback" onChange={(v) => setBot({ ...bot, whole_take_profit_callback: v })} />} />
+          right={<NumInput w="w-14" value={bot.whole_take_profit_callback} unit="%" testid="ts-tp-callback" onChange={(v) => setBot({ ...bot, whole_take_profit_callback: v })} />} />
 
         <Row Icon={ArrowUpCircle} title="Buy in callback" sub="Extra buy when price rebounds"
           right={<NumInput value={bot.buy_in_callback} unit="%" testid="ts-buy-callback" onChange={(v) => setBot({ ...bot, buy_in_callback: v })} />} />
