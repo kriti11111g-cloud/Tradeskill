@@ -259,27 +259,12 @@ export default function TradingPair() {
             </div>
           </div>
 
-          {/* Current price */}
-          <div className="flex items-center justify-between rounded-xl px-3 py-2 mb-2" style={{ background: "var(--lp-current-grad)", borderLeft: "3px solid var(--lp-blue)" }} data-testid="lp-current-price">
-            <div className="flex items-center gap-2">
-              <LineChart size={17} style={{ color: "var(--lp-blue)" }} />
-              <div>
-                <div className="text-[13px] font-black" style={{ color: "var(--lp-blue)" }}>Current Price</div>
-                <div className="text-[9.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Live · Binance</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-display font-black text-[18px] tabular-nums" style={{ color: "#16A34A" }}>{price > 0 ? fmtNum(price, price > 100 ? 2 : 4) : "—"}</div>
-              <div className="text-[9px] font-black" style={{ color: "var(--text-mute)" }}>USDT</div>
-            </div>
-          </div>
-
           {/* Call cards */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
             {Array.from({ length: mcCount }, (_, i) => (
-              <div key={`used-${i}`} className="flex items-center gap-2 rounded-xl px-2 py-2 opacity-55" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid={`lp-call-used-${i + 1}`}>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-display font-black text-[13px] shrink-0" style={{ background: "linear-gradient(135deg,#94A3B8,#64748B)" }}>C{i + 1}</div>
-                <div className="min-w-0">
+              <div key={`used-${i}`} className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 min-h-[46px] opacity-55" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid={`lp-call-used-${i + 1}`}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-display font-black text-[11px] shrink-0" style={{ background: "linear-gradient(135deg,#94A3B8,#64748B)" }}>C{i + 1}</div>
+                <div className="flex-1 min-w-0">
                   <div className="text-[10px] font-black leading-tight flex items-center gap-1" style={{ color: "var(--ink)" }}>Executed <Check size={11} strokeWidth={3} style={{ color: "#16A34A" }} /></div>
                   <div className="text-[9px] font-semibold" style={{ color: "var(--text-mute)" }}>Safety order filled</div>
                 </div>
@@ -289,16 +274,16 @@ export default function TradingPair() {
               const dist = price > 0 && lvl.trigger_price > 0 ? ((price - lvl.trigger_price) / lvl.trigger_price) * 100 : 0;
               const dropFromAnchor = anchor > 0 ? (1 - lvl.trigger_price / anchor) * 100 : lvl.drop_pct;
               return (
-                <div key={lvl.level} className="rounded-xl px-2 py-2" style={{ background: "var(--surface)", border: "1px solid var(--lp-border)" }} data-testid={`lp-call-${lvl.level}`}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-display font-black text-[11px] shrink-0" style={{ background: BLUE_GRAD }}>C{lvl.level}</div>
-                    <div className="text-[9px] font-black leading-tight" style={{ color: "var(--ink)" }}>Buy – Safety Order</div>
+                <div key={lvl.level} className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 min-h-[46px]" style={{ background: "var(--surface)", border: "1px solid var(--lp-border)" }} data-testid={`lp-call-${lvl.level}`}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-display font-black text-[11px] shrink-0" style={{ background: BLUE_GRAD }}>C{lvl.level}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-black leading-tight whitespace-nowrap" style={{ color: "var(--ink)" }}>Buy – Safety Order</div>
+                    <div className="text-[9px] font-semibold tabular-nums whitespace-nowrap" style={{ color: "var(--text-mute)" }}>-{fmtNum(dropFromAnchor, 1)}% · ${fmtNum(lvl.amount_usdt, 0)} · Total ${fmtNum(lvl.cumulative_usdt, 2)}</div>
                   </div>
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="font-display font-black text-[11px] tabular-nums whitespace-nowrap" style={{ color: "var(--ink)" }}>≤ {fmtNum(lvl.trigger_price, lvl.trigger_price > 100 ? 2 : 4)}</div>
+                  <div className="text-right shrink-0">
+                    <div className="font-display font-black text-[12px] tabular-nums whitespace-nowrap" style={{ color: "var(--ink)" }}>≤ {fmtNum(lvl.trigger_price, lvl.trigger_price > 100 ? 2 : 4)}</div>
                     <div className="text-[9px] font-black tabular-nums whitespace-nowrap" style={{ color: dist >= 0 ? "#16A34A" : "var(--bad)" }}>{dist >= 0 ? "+" : ""}{fmtNum(dist, 2)}% <span className="text-[7.5px] font-semibold" style={{ color: "var(--text-mute)" }}>above</span></div>
                   </div>
-                  <div className="text-[8.5px] font-semibold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: "var(--text-mute)" }}>-{fmtNum(dropFromAnchor, 1)}% · ${fmtNum(lvl.amount_usdt, 0)} · Total ${fmtNum(lvl.cumulative_usdt, 2)}</div>
                 </div>
               );
             })}
