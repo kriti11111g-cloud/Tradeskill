@@ -217,6 +217,7 @@ BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
 DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "30"))  # backup poller
+AUTO_WITHDRAW_ENABLED = os.environ.get("AUTO_WITHDRAW", "true").lower() == "true"
 EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "3"))  # primary event scanner
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
 SWEEP_ENABLED = os.environ.get("SWEEP_ENABLED", "1") == "1"
@@ -2808,9 +2809,44 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     await _log_bot_txn(user["id"], "withdraw_request", -amount,
                        note=f"Withdrawal request → {address[:8]}…{address[-6:]} · {network} (fee ${WITHDRAW_FEE_USDT:.0f})",
                        balance_after=new_balance)
+    if AUTO_WITHDRAW_ENABLED:
+        asyncio.create_task(_auto_process_withdrawal(req["id"]))
     return {"ok": True, "balance": new_balance, "kind": "withdraw_request",
             "request_id": req["id"], "fee": WITHDRAW_FEE_USDT,
-            "net_amount": net_amount}
+            "net_amount": net_amount, "auto": AUTO_WITHDRAW_ENABLED}
+
+
+_withdraw_send_lock = asyncio.Lock()
+
+
+async def _auto_process_withdrawal(req_id: str):
+    """Instant auto-payout: master hot wallet (index 0) se on-chain USDT bhejta hai.
+    Fail hone par request wapas pending (admin queue) me chali jati hai."""
+    req = await db.withdrawal_requests.find_one_and_update(
+        {"id": req_id, "status": "pending"},
+        {"$set": {"status": "processing"}}, return_document=True)
+    if not req:
+        return
+    try:
+        async with _withdraw_send_lock:
+            tx_hash = await asyncio.to_thread(
+                chain_wallet.send_usdt, req["network"], req["address"],
+                float(req["net_amount"]))
+        if not tx_hash.startswith("0x"):
+            tx_hash = "0x" + tx_hash
+        await db.withdrawal_requests.update_one(
+            {"id": req_id},
+            {"$set": {"status": "completed", "method": "auto", "tx_hash": tx_hash,
+                      "resolved_at": iso(now_utc())}})
+        await _log_bot_txn(req["user_id"], "withdraw_paid", 0.0,
+                           note=f"Withdrawal auto-paid · {req['network']} · tx {tx_hash[:12]}…")
+        logger.info(f"AUTO WITHDRAW: {req['net_amount']:.4f} USDT ({req['network']}) "
+                    f"-> {req['address']} tx={tx_hash}")
+    except Exception as e:
+        await db.withdrawal_requests.update_one(
+            {"id": req_id},
+            {"$set": {"status": "pending", "auto_error": str(e)[:300]}})
+        logger.warning(f"AUTO WITHDRAW FAILED {req_id}: {e} — moved to admin queue")
 
 
 @api.post("/bot-wallet/p2p")

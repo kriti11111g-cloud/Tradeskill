@@ -259,7 +259,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
               <CheckCircle2 size={42} className="text-[color:var(--good)]" />
             </div>
             <div className="text-[color:var(--text)] font-black text-base">Withdrawal Request Submitted</div>
-            <div className="text-[color:var(--text-mute)] text-[12px] mt-1">Successfully — pending admin approval</div>
+            <div className="text-[color:var(--text-mute)] text-[12px] mt-1">Success! Processing — USDT aapke wallet me kuch hi seconds me pahunch jayega ⚡</div>
             <div className="mt-4 rounded-2xl bg-[color:var(--surface-3)] border p-3.5 text-left space-y-1.5 text-[12px]" style={{ borderColor: GOLD_SOFT }}>
               <div className="flex justify-between"><span className="text-[color:var(--text-mute)]">Amount</span><span className="text-[color:var(--text)] font-bold">{success.amount.toFixed(2)} USDT</span></div>
               <div className="flex justify-between"><span className="text-[color:var(--text-mute)]">You receive</span><span className="text-[color:var(--good)] font-bold">{Number(success.net).toFixed(2)} USDT</span></div>
