@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import api from "@/lib/api";
 
 /**
  * Subscribes to Binance's official public WebSocket ticker stream and returns the
@@ -17,6 +18,7 @@ export default function useBinanceStream(symbol, initialPrice = 0) {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef(null);
   const reconnectRef = useRef(null);
+  const connectedRef = useRef(false);
 
   useEffect(() => {
     if (!symbol) return;
@@ -27,7 +29,7 @@ export default function useBinanceStream(symbol, initialPrice = 0) {
         const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${sym}@ticker`);
         wsRef.current = ws;
 
-        ws.onopen = () => setConnected(true);
+        ws.onopen = () => { connectedRef.current = true; setConnected(true); };
         ws.onmessage = (evt) => {
           try {
             const d = JSON.parse(evt.data);
@@ -38,6 +40,7 @@ export default function useBinanceStream(symbol, initialPrice = 0) {
           } catch {}
         };
         ws.onclose = () => {
+          connectedRef.current = false;
           setConnected(false);
           // Auto-reconnect with a small backoff
           if (reconnectRef.current) clearTimeout(reconnectRef.current);
@@ -50,7 +53,26 @@ export default function useBinanceStream(symbol, initialPrice = 0) {
     };
 
     connect();
+
+    // REST fallback: WS blocked/na chale to backend stats se price + 24h change
+    const pollStats = async () => {
+      if (connectedRef.current) return;
+      try {
+        const { data } = await api.get(`/market/stats/${symbol.toUpperCase()}`);
+        const p = parseFloat(data.lastPrice || data.price || 0);
+        const c = parseFloat(data.priceChangePercent ?? data.change_pct ?? 0);
+        if (p > 0) setPrice(p);
+        if (!Number.isNaN(c)) setChange(c);
+        if (data.highPrice) setHigh(parseFloat(data.highPrice));
+        if (data.lowPrice) setLow(parseFloat(data.lowPrice));
+      } catch {}
+    };
+    const fallbackTimer = setTimeout(pollStats, 2500);
+    const fallbackInterval = setInterval(pollStats, 15000);
+
     return () => {
+      clearTimeout(fallbackTimer);
+      clearInterval(fallbackInterval);
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (wsRef.current) {
         try {
