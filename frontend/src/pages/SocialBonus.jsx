@@ -126,6 +126,16 @@ export default function SocialBonus() {
           <CheckCircle2 size={14} /> CLAIMED
         </span>
       );
+    if (p.coming_soon)
+      return (
+        <span
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase"
+          style={{ background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.30)", color: "#2563EB" }}
+          data-testid={`coming-soon-${p.id}`}
+        >
+          Coming Soon 🚀
+        </span>
+      );
     if (p.locked)
       return (
         <span
@@ -250,19 +260,19 @@ export default function SocialBonus() {
                 key={p.id}
                 className="rounded-2xl border p-3 flex items-center gap-3 bg-[color:var(--surface)] transition-all duration-300"
                 style={{
-                  borderColor: p.claimed ? "rgba(22,163,74,0.5)" : p.locked ? "var(--border)" : GOLD_BORDER,
-                  boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : p.locked ? "none" : "0 4px 16px rgba(22,163,74,0.08)",
-                  opacity: p.locked ? 0.6 : 1,
+                  borderColor: p.claimed ? "rgba(22,163,74,0.5)" : p.coming_soon || p.locked ? "var(--border)" : GOLD_BORDER,
+                  boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : p.coming_soon || p.locked ? "none" : "0 4px 16px rgba(22,163,74,0.08)",
+                  opacity: p.coming_soon || p.locked ? 0.65 : 1,
                 }}
                 data-testid={`social-card-${p.id}`}
               >
-                <div className="shrink-0" style={{ filter: p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(38)}</div>
+                <div className="shrink-0" style={{ filter: p.coming_soon || p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(38)}</div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
                     {String(i + 1).padStart(2, "0")}. {p.name}
                   </div>
                   <div className="text-[10px] text-[color:var(--text-mute)] truncate">
-                    {p.locked ? `Pehle ${data.platforms[i - 1]?.name} claim karein` : p.desc}
+                    {p.coming_soon ? "Jald hi available hoga" : p.locked ? `Pehle ${data.platforms[i - 1]?.name} claim karein` : p.desc}
                   </div>
                   <div
                     className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"

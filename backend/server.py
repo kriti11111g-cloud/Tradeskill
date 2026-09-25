@@ -3370,6 +3370,7 @@ SOCIAL_PLATFORMS = [
 ]
 _SOCIAL_IDS = {p["id"] for p in SOCIAL_PLATFORMS}
 _SOCIAL_ORDER = [p["id"] for p in SOCIAL_PLATFORMS]
+SOCIAL_ENABLED = set((os.environ.get("SOCIAL_ENABLED", "telegram")).split(","))
 
 
 def _social_locked(claims: dict, platform: str) -> bool:
@@ -3411,6 +3412,7 @@ async def social_bonus_status(user: dict = Depends(get_current_user)):
                           "followed": bool(c.get("followed")),
                           "claimed": bool(c.get("claimed")),
                           "locked": _social_locked(claims, p["id"]),
+                          "coming_soon": p["id"] not in SOCIAL_ENABLED,
                           "follow_started_at": c.get("follow_started_at"),
                           "verify_mode": "real" if (p["id"] == "telegram" and _tg_real_mode()) else "timer"})
     return {"platforms": platforms, "reward": SOCIAL_BONUS_AMOUNT,
@@ -3426,6 +3428,8 @@ async def social_bonus_follow(platform: str,
                               user: dict = Depends(get_current_user)):
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
+    if platform not in SOCIAL_ENABLED:
+        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
@@ -3444,6 +3448,8 @@ async def social_bonus_follow(platform: str,
 async def social_bonus_verify(platform: str, user: dict = Depends(get_current_user)):
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
+    if platform not in SOCIAL_ENABLED:
+        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
@@ -3517,6 +3523,8 @@ async def telegram_webhook(secret: str, request: Request):
 async def social_bonus_claim(platform: str, user: dict = Depends(get_current_user)):
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
+    if platform not in SOCIAL_ENABLED:
+        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
