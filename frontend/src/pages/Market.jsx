@@ -178,7 +178,7 @@ export default function Market() {
               transition={{ delay: Math.min(i * 0.012, 0.35) }}
             >
               <Link
-                to={`/pair/${p.symbol}`}
+                to={`/trade-settings/${p.symbol}`}
                 data-testid={`market-pair-${p.symbol}`}
                 className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all"
                 style={{

@@ -13,6 +13,7 @@ import Dashboard from "@/pages/Dashboard";
 import BindAPI from "@/pages/BindAPI";
 import ExchangeList from "@/pages/ExchangeList";
 import TradingPair from "@/pages/TradingPair";
+import TradeSettings from "@/pages/TradeSettings";
 import Wallet from "@/pages/Wallet";
 import Transactions from "@/pages/Transactions";
 import Trades from "@/pages/Trades";
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/bind-api" element={<ExchangeList />} />
             <Route path="/bind-api/binance" element={<BindAPI />} />
             <Route path="/pair/:symbol" element={<TradingPair />} />
+            <Route path="/trade-settings/:symbol" element={<TradeSettings />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/bot" element={<BotHub />} />
             <Route path="/rank" element={<Rank />} />

@@ -366,6 +366,7 @@ class BotConfigIn(BaseModel):
     trade_method: Literal["Cycle", "One-Shot"] = "Cycle"
     sub_take_profit_callback: float = 0.5
     margin_config: Optional[List[MarginRule]] = None
+    sub_position_tps: Optional[List[float]] = None
 
 
 class OrderIn(BaseModel):
@@ -988,18 +989,28 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
     # Serialize margin_config (list of MarginRule pydantic objects) to plain dicts
     mc = cfg.margin_config
     mc_docs = [r.model_dump() for r in mc] if mc else DEFAULT_MARGIN_CONFIG
+    # MASTER SYNC: margin_call_limit drives row counts of margin_config & sub_position_tps
+    limit = max(1, min(50, int(cfg.margin_call_limit or 1)))
+    mc_docs = list(mc_docs)[:limit]
+    while len(mc_docs) < limit:
+        last = mc_docs[-1] if mc_docs else {"drop": 2.0, "multiplier": 2.0}
+        mc_docs.append({"drop": float(last.get("drop", 2.0)), "multiplier": float(last.get("multiplier", 2.0))})
+    tps = [float(x) for x in (cfg.sub_position_tps or [])][:limit]
+    while len(tps) < limit:
+        tps.append(float(cfg.whole_take_profit_ratio or 1.5))
     doc = {
         "user_id": user["id"],
         "symbol": symbol,
         "first_buy_amount": cfg.first_buy_amount,
         "open_position_double": cfg.open_position_double,
-        "margin_call_limit": cfg.margin_call_limit,
+        "margin_call_limit": limit,
         "whole_take_profit_ratio": cfg.whole_take_profit_ratio,
         "whole_take_profit_callback": cfg.whole_take_profit_callback,
         "buy_in_callback": cfg.buy_in_callback,
         "trade_method": cfg.trade_method,
         "sub_take_profit_callback": cfg.sub_take_profit_callback,
         "margin_config": mc_docs,
+        "sub_position_tps": tps,
         "updated_at": iso(now_utc()),
     }
     existing = await db.bots.find_one({"user_id": user["id"], "symbol": symbol})
