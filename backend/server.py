@@ -3290,13 +3290,56 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
     if EMAIL_OTP_MODE == "smtp":
         import smtplib
         from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.utils import formatdate, make_msgid
         gm_user = os.environ["GMAIL_USER"]
         gm_pass = os.environ["GMAIL_APP_PASSWORD"]
-        label = "signup verification" if purpose == "signup" else "withdrawal"
-        msg = MIMEText(f"Your Trade Skill {label} OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
-        msg["Subject"] = f"Trade Skill {'Sign Up' if purpose == 'signup' else 'Withdrawal'} Verification Code"
-        msg["From"] = gm_user
+        is_signup = purpose == "signup"
+        label = "sign up verification" if is_signup else "withdrawal verification"
+        subject = f"{code} is your Trade Skill {'sign up' if is_signup else 'withdrawal'} code"
+        text = (f"Hello,\n\nYour Trade Skill {label} code is: {code}\n\n"
+                "This code is valid for 5 minutes. If you did not request this, "
+                "you can safely ignore this email.\n\n"
+                "Thanks,\nTeam Trade Skill")
+        html = f"""\
+<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#F4F7F9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F9;padding:28px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="420" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:14px;overflow:hidden;border:1px solid #E3EAEE;">
+        <tr><td style="background:linear-gradient(135deg,#16A34A,#0F766E);padding:18px 24px;">
+          <span style="color:#FFFFFF;font-size:19px;font-weight:800;letter-spacing:0.5px;">Trade Skill</span>
+        </td></tr>
+        <tr><td style="padding:26px 24px 8px;">
+          <p style="margin:0;color:#083344;font-size:15px;font-weight:700;">{'Verify your email' if is_signup else 'Confirm your withdrawal'}</p>
+          <p style="margin:10px 0 0;color:#4B6A74;font-size:13px;line-height:1.5;">
+            Use the code below to complete your {label}. It expires in 5 minutes.
+          </p>
+        </td></tr>
+        <tr><td align="center" style="padding:18px 24px;">
+          <div style="display:inline-block;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:12px 30px;">
+            <span style="color:#083344;font-size:30px;font-weight:800;letter-spacing:8px;">{code}</span>
+          </div>
+        </td></tr>
+        <tr><td style="padding:0 24px 24px;">
+          <p style="margin:0;color:#8AA3AB;font-size:11px;line-height:1.5;">
+            Never share this code with anyone. Trade Skill will never ask for it.
+            If you did not request this code, you can safely ignore this email.
+          </p>
+        </td></tr>
+      </table>
+      <p style="margin:14px 0 0;color:#9DB3BA;font-size:10px;">© Trade Skill · Automated trading assistant</p>
+    </td></tr>
+  </table>
+</body></html>"""
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Trade Skill <{gm_user}>"
         msg["To"] = to_email
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg.attach(MIMEText(text, "plain"))
+        msg.attach(MIMEText(html, "html"))
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
             s.login(gm_user, gm_pass)
             s.send_message(msg)
