@@ -3191,10 +3191,81 @@ async def cancel_withdrawal(req_id: str, user: dict = Depends(get_current_user))
 
 
 # ==== Admin: Withdrawal Approval Queue + Treasury ====
-async def require_admin(user: dict = Depends(get_current_user)) -> dict:
-    if user.get("role") != "admin":
+ADMIN_PANEL_WALLET = os.environ.get(
+    "ADMIN_PANEL_WALLET", "0x07fE8dc2d97F592C4333F30ADC47377c93b37559").lower()
+
+
+async def require_admin(request: Request) -> dict:
+    """Admin panel STRICTLY wallet-signature login se hi khulta hai."""
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else None
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid token")
+    if not payload.get("wallet_admin"):
+        raise HTTPException(403, "Admin access requires wallet login")
+    user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})
+    if not user or user.get("role") != "admin":
         raise HTTPException(403, "Admin access required")
     return user
+
+
+class WalletNonceIn(BaseModel):
+    address: str
+
+
+class WalletLoginIn(BaseModel):
+    address: str
+    signature: str
+
+
+@api.post("/admin/wallet-nonce")
+async def admin_wallet_nonce(body: WalletNonceIn):
+    addr = body.address.strip().lower()
+    if addr != ADMIN_PANEL_WALLET:
+        raise HTTPException(403, "This wallet is not authorized for admin access")
+    nonce = pysecrets.token_hex(16)
+    message = (f"Trade Skill Admin Login\n\nWallet: {body.address}\nNonce: {nonce}\n\n"
+               "Sign this message to access the admin panel. This does not cost any gas.")
+    await db.admin_wallet_nonces.update_one(
+        {"address": addr},
+        {"$set": {"address": addr, "nonce": nonce, "message": message,
+                  "created_at": iso(now_utc())}}, upsert=True)
+    return {"message": message}
+
+
+@api.post("/admin/wallet-login")
+async def admin_wallet_login(body: WalletLoginIn):
+    addr = body.address.strip().lower()
+    if addr != ADMIN_PANEL_WALLET:
+        raise HTTPException(403, "This wallet is not authorized for admin access")
+    row = await db.admin_wallet_nonces.find_one({"address": addr}, {"_id": 0})
+    if not row or datetime.fromisoformat(row["created_at"]) < now_utc() - timedelta(minutes=5):
+        raise HTTPException(400, "Nonce expired — connect wallet again")
+    from eth_account import Account
+    from eth_account.messages import encode_defunct
+    try:
+        recovered = Account.recover_message(
+            encode_defunct(text=row["message"]), signature=body.signature)
+    except Exception:
+        raise HTTPException(401, "Invalid signature")
+    if recovered.lower() != addr:
+        raise HTTPException(401, "Signature does not match the admin wallet")
+    await db.admin_wallet_nonces.delete_one({"address": addr})
+    admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1, "email": 1})
+    if not admin_user:
+        raise HTTPException(500, "Admin user not found")
+    payload = {"sub": admin_user["id"], "email": admin_user["email"],
+               "wallet_admin": True, "wallet": body.address,
+               "exp": now_utc() + timedelta(hours=12), "type": "access"}
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    logger.info(f"ADMIN WALLET LOGIN: {body.address}")
+    return {"token": token, "expires_in_hours": 12}
 
 
 class AdminApproveIn(BaseModel):

@@ -28,30 +28,62 @@ export default function AdminWithdrawals() {
   const [treasury, setTreasury] = useState(null);
   const [busy, setBusy] = useState(null); // request id being processed
   const [tab, setTab] = useState("pending");
+  const [walletToken, setWalletToken] = useState(() => localStorage.getItem("tgx_admin_wallet_token") || "");
+  const [connecting, setConnecting] = useState(false);
+
+  const wcfg = { headers: { Authorization: `Bearer ${walletToken}` } };
+
+  const disconnect = useCallback(() => {
+    localStorage.removeItem("tgx_admin_wallet_token");
+    setWalletToken("");
+  }, []);
+
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      toast.error("No wallet found — open this page inside MetaMask / Trust Wallet browser");
+      return;
+    }
+    setConnecting(true);
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const addr = accounts[0];
+      const { data: n } = await api.post("/admin/wallet-nonce", { address: addr });
+      const sig = await window.ethereum.request({ method: "personal_sign", params: [n.message, addr] });
+      const { data: login } = await api.post("/admin/wallet-login", { address: addr, signature: sig });
+      localStorage.setItem("tgx_admin_wallet_token", login.token);
+      setWalletToken(login.token);
+      toast.success("Admin wallet verified — welcome!");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || e?.message || "Wallet connect failed");
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   useEffect(() => {
     if (user && !isAdmin) navigate("/", { replace: true });
   }, [user, isAdmin, navigate]);
 
   const load = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!walletToken) return;
     try {
-      const { data } = await api.get("/admin/withdrawals");
+      const { data } = await api.get("/admin/withdrawals", { headers: { Authorization: `Bearer ${walletToken}` } });
       setRequests(data || []);
     } catch (e) {
-      toast.error(formatApiError(e));
+      if (e?.response?.status === 401 || e?.response?.status === 403) disconnect();
+      else toast.error(formatApiError(e));
     }
-  }, [isAdmin]);
+  }, [walletToken, disconnect]);
 
   const loadTreasury = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!walletToken) return;
     try {
-      const { data } = await api.get("/admin/treasury");
+      const { data } = await api.get("/admin/treasury", { headers: { Authorization: `Bearer ${walletToken}` } });
       setTreasury(data);
     } catch {
       /* ignore */
     }
-  }, [isAdmin]);
+  }, [walletToken]);
 
   useEffect(() => {
     load();
@@ -61,7 +93,7 @@ export default function AdminWithdrawals() {
   const act = async (id, action, payload = {}) => {
     setBusy(id);
     try {
-      const { data } = await api.post(`/admin/withdrawals/${id}/${action}`, payload);
+      const { data } = await api.post(`/admin/withdrawals/${id}/${action}`, payload, wcfg);
       if (action === "approve" && data.tx_hash) {
         toast.success(`Paid on-chain · tx ${data.tx_hash.slice(0, 12)}…`);
       } else {
@@ -83,9 +115,40 @@ export default function AdminWithdrawals() {
 
   if (!isAdmin) return null;
 
+  if (!walletToken) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-8 text-center" data-testid="admin-wallet-gate">
+        <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-white mb-5"
+          style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)" }}>
+          <ShieldCheck size={38} />
+        </div>
+        <div className="font-display font-black text-[22px]" style={{ color: "var(--ink)" }}>Admin Access</div>
+        <div className="text-[13px] font-semibold mt-2 leading-relaxed" style={{ color: "var(--text-mute)" }}>
+          Admin panel sirf authorized wallet se khulta hai.<br />
+          Apna admin wallet connect karke message sign karo.
+        </div>
+        <button onClick={connectWallet} disabled={connecting}
+          className="mt-6 px-8 py-3.5 rounded-2xl text-white font-display font-black text-[16px] disabled:opacity-60"
+          style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)", touchAction: "manipulation" }}
+          data-testid="admin-connect-wallet-btn">
+          {connecting ? "Connecting…" : "Connect Wallet"}
+        </button>
+        <div className="text-[10.5px] font-semibold mt-4" style={{ color: "var(--text-mute)" }}>
+          Mobile par: is page ko MetaMask / Trust Wallet ke browser me kholo
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-40" data-testid="admin-withdrawals-page">
       <PageHeader title="Withdrawals Admin" subtitle="Approval Queue · Treasury" />
+      <div className="px-4 -mt-1 mb-2 flex justify-end">
+        <button onClick={disconnect} className="text-[11px] font-black uppercase tracking-wider"
+          style={{ color: "var(--bad)" }} data-testid="admin-disconnect-wallet">
+          Disconnect Wallet
+        </button>
+      </div>
 
       <div className="px-4 mt-2 space-y-4">
         {/* Treasury card */}
