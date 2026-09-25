@@ -1,240 +1,127 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, Share2, Users, Gift, Network } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
-import { fmtUSD, fmtTime } from "@/lib/format";
 
-const maskEmail = (email = "") => {
-  const [u, d] = email.split("@");
-  if (!d) return email;
-  const head = u.slice(0, 3);
-  return `${head}***@${d}`;
-};
+const LOGO = "https://static.prod-images.emergentagent.com/jobs/e3103ddd-0dc9-4cf2-8d94-ea48e4389b5b/images/2fc173585b6a7c8ae03589e9d69e196865e3322126777cf481e10020b4b21714.jpeg";
 
-const fmtDate = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-};
+const CARD = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", boxShadow: "0 1px 8px rgba(0,0,0,0.05)" };
 
 export default function Referral() {
+  const nav = useNavigate();
   const [data, setData] = useState(null);
 
   useEffect(() => {
     api.get("/referral").then(({ data }) => setData(data));
   }, []);
 
-  const copy = () => {
-    if (!data?.referral_code) return;
-    navigator.clipboard.writeText(data.referral_code);
-    toast.success("Code copied!");
-  };
-  const share = () => {
-    const url = `${window.location.origin}/register?ref=${data.referral_code}`;
-    if (navigator.share) navigator.share({ title: "Join Trade Skill", url });
-    else {
-      navigator.clipboard.writeText(url);
-      toast.success("Referral link copied!");
-    }
-  };
+  const code = data?.referral_code || "";
+  const link = code ? `${window.location.origin}/register?ref=${code}` : "";
 
-  const ds = data?.direct_stats || { activated: 0, not_activated: 0 };
-  const ts = data?.team_stats || { total: 0, activated: 0, not_activated: 0 };
+  const copyCode = () => { navigator.clipboard.writeText(code); toast.success("Referral code copied!"); };
+  const copyLink = () => { navigator.clipboard.writeText(link); toast.success("Referral link copied!"); };
 
   return (
-    <div className="pb-4">
-      <PageHeader title="Referral" subtitle="Invite · Earn · Grow" showBack={false} />
+    <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
+      {/* Header */}
+      <div className="flex items-center px-3 py-3">
+        <button onClick={() => nav(-1)} className="w-9 h-9 flex items-center justify-center" data-testid="invite-back" style={{ touchAction: "manipulation" }}>
+          <ChevronLeft size={26} strokeWidth={2.6} style={{ color: "var(--ink)" }} />
+        </button>
+        <div className="flex-1 text-center font-display font-black text-[22px] pr-9" style={{ color: "var(--ink)" }}>Invite Friends</div>
+      </div>
 
       <div className="px-4">
-        <div
-          className="rounded-3xl border border-[color:var(--border)] p-6 relative overflow-hidden text-white"
-          style={{ background: "var(--hero-grad)" }}
-        >
-          <div className="relative">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--warn)] font-bold">Your Code</div>
-            <div className="font-display font-black text-3xl tabular-nums mt-2 tracking-wider" data-testid="ref-code">
-              {data?.referral_code || "----"}
-            </div>
-            <div className="text-xs text-white/70 mt-2">Earn 10% of your team&apos;s trading revenue.</div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={copy}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-white text-[color:var(--primary-deep)] rounded-xl py-2.5 font-bold text-sm"
-                data-testid="ref-copy"
-              >
-                <Copy size={14} /> Copy
-              </button>
-              <button
-                onClick={share}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 border border-[color:var(--border)] rounded-xl py-2.5 font-bold text-sm"
-                data-testid="ref-share"
-              >
-                <Share2 size={14} /> Share
-              </button>
-            </div>
-          </div>
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2">
+          <img src={LOGO} alt="TradeSkill" className="w-11 h-11 rounded-xl object-cover" style={{ transform: "scale(1.0)" }} />
+          <span className="font-display font-black text-[30px] leading-none">
+            <span style={{ color: "#2563EB" }}>Trade</span><span style={{ color: "#16A34A" }}>Skill</span>
+          </span>
         </div>
-      </div>
+        <div className="text-center text-[11px] font-bold tracking-[0.35em] mt-1.5" style={{ color: "var(--text-mute)" }}>
+          TRADE · EARN · GROW TOGETHER
+        </div>
+        <div className="text-center text-[13px] font-semibold mt-2" style={{ color: "var(--ink)" }}>
+          Invite your friends and be a part of our growing community
+        </div>
 
-      {/* ==== Team Quantification ==== */}
-      <div className="px-4 mt-4">
-        <SectionCard icon={Network} title="Team" testid="ref-team-card">
-          <div className="grid grid-cols-3 gap-2">
-            <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
-            <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
-            <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* ==== Direct Quantification ==== */}
-      <div className="px-4 mt-3">
-        <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
-          <div className="grid grid-cols-3 gap-2">
-            <BarStat color="var(--primary-deep)" label="Total Direct" value={ds.not_activated + ds.activated} testid="direct-total" />
-            <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
-            <BarStat color="var(--gold)" label="Not Activated" value={ds.not_activated} testid="direct-inactive" />
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* ==== Direct Referrals table ==== */}
-      <div className="px-4 mt-5">
-        <div className="font-display font-bold text-lg mb-3">Direct Referrals</div>
-        {(!data?.team || data.team.length === 0) && (
-          <div className="text-center text-sm text-[color:var(--text-mute)] py-8" data-testid="empty-team">
-            Share your code to grow your team.
-          </div>
-        )}
-        {data?.team?.length > 0 && (
-          <div className="space-y-2.5" data-testid="direct-list">
-            {data.team.map((t, i) => (
-              <div
-                key={t.email}
-                className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
-                style={{
-                  background: "var(--surface-2)",
-                  border: t.activated ? "1.5px solid #16A34A" : "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
-                  boxShadow: t.activated
-                    ? "0 2px 14px rgba(22,163,74,0.30)"
-                    : "0 2px 12px rgba(245,158,11,0.12)",
-                  backdropFilter: "blur(20px)",
-                }}
-                data-testid={`direct-row-${i}`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[12px] text-white"
-                    style={{ background: "var(--primary-grad)" }}
-                  >
-                    {(t.name || t.email || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-display font-bold text-[13px] truncate flex items-center gap-1.5">
-                      {t.name || t.email.split("@")[0]}
-                    </div>
-                    <div className="text-[10px] text-[color:var(--text-mute)] truncate mt-0.5">{maskEmail(t.email)}</div>
-                  </div>
-                </div>
-                <div className="text-right pl-2 shrink-0">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span
-                      className="text-[8px] uppercase tracking-widest font-black"
-                      style={{ color: t.activated ? "var(--primary)" : "#DC2626" }}
-                      data-testid={`direct-status-${i}`}
-                    >
-                      ● {t.activated ? "Active" : "Inactive"}
-                    </span>
-                    <span
-                      className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
-                      style={{
-                        color: "#FBBF24",
-                        background: "rgba(10,10,10,0.88)",
-                        border: "1px solid rgba(245,158,11,0.65)",
-                        boxShadow: "0 0 8px rgba(245,158,11,0.3)",
-                      }}
-                    >
-                      ★ {(t.rank || "Level 1").toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="text-[9px] font-mono text-[color:var(--text-mute)] mt-0.5">
-                    Joined {fmtDate(t.created_at)}
-                  </div>
-                </div>
+        {/* QR */}
+        <div className="flex flex-col items-center mt-4">
+          <div className="relative rounded-3xl p-3" style={{ border: "6px solid #0A0A0A", background: "#FFFFFF" }} data-testid="invite-qr">
+            {link ? (
+              <QRCodeCanvas value={link} size={200} level="H" bgColor="#FFFFFF" fgColor="#0A0A0A" />
+            ) : (
+              <div className="w-[200px] h-[200px]" />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center" style={{ boxShadow: "0 0 0 4px #FFFFFF" }}>
+                <img src={LOGO} alt="" className="w-11 h-11 rounded-xl object-cover" />
               </div>
-            ))}
+            </div>
           </div>
-        )}
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full -mt-5 relative z-10 text-white font-display font-black text-[15px]" style={{ background: "#0A0A0A" }}>
+            <ScanLine size={17} /> Scan &amp; Join Now
+          </div>
+          <div className="text-[12px] font-semibold mt-2.5" style={{ color: "var(--text-mute)" }}>
+            Share your QR code with friends
+          </div>
+        </div>
+
+        {/* Referral Code card */}
+        <div className="flex items-center gap-3 px-3.5 py-3 mt-4" style={CARD} data-testid="invite-code-card">
+          <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--surface-3)" }}>
+            <User size={20} style={{ color: "var(--ink)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-semibold" style={{ color: "var(--text-mute)" }}>Your Referral Code</div>
+            <div className="font-display font-black text-[20px] tracking-wide" style={{ color: "var(--ink)" }} data-testid="invite-code">{code || "----"}</div>
+          </div>
+          <div className="self-stretch w-px" style={{ background: "var(--border)" }} />
+          <button onClick={copyCode} className="flex items-center gap-1.5 font-display font-black text-[15px] px-1" style={{ color: "#2563EB", touchAction: "manipulation" }} data-testid="invite-copy-code">
+            <Copy size={18} /> Copy
+          </button>
+        </div>
+
+        {/* Referral Link card */}
+        <div className="flex items-center gap-3 px-3.5 py-3 mt-2.5" style={CARD} data-testid="invite-link-card">
+          <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--surface-3)" }}>
+            <Link2 size={20} style={{ color: "var(--ink)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-semibold" style={{ color: "var(--text-mute)" }}>Your Referral Link</div>
+            <div className="font-semibold text-[12px] truncate" style={{ color: "var(--ink)" }} data-testid="invite-link">{link || "—"}</div>
+          </div>
+          <div className="self-stretch w-px" style={{ background: "var(--border)" }} />
+          <button onClick={copyLink} className="flex items-center gap-1.5 font-display font-black text-[15px] px-1" style={{ color: "#2563EB", touchAction: "manipulation" }} data-testid="invite-copy-link">
+            <Copy size={18} /> Copy
+          </button>
+        </div>
+
+        {/* Big gradient button */}
+        <button onClick={copyLink} className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 mt-3.5 text-white font-display font-black text-[17px]"
+          style={{ background: "linear-gradient(90deg,#2563EB 0%,#16A34A 100%)", touchAction: "manipulation" }} data-testid="invite-copy-link-btn">
+          <Copy size={19} /> Copy Referral Link
+        </button>
+
+        {/* Info row */}
+        <div className="grid grid-cols-4 mt-4" style={CARD} data-testid="invite-info-row">
+          {[
+            { Icon: Users, color: "#2563EB", title: "Invite Friends", sub: "Share your link" },
+            { Icon: BarChart3, color: "#16A34A", title: "They Trade", sub: "Grow together" },
+            { Icon: HandCoins, color: "#16A34A", title: "You Earn", sub: "Get rewards" },
+            { Icon: InfinityIcon, color: "#16A34A", title: "Unlimited Potential", sub: "Build your network" },
+          ].map((it, i) => (
+            <div key={it.title} className="flex flex-col items-center text-center px-1.5 py-3" style={{ borderLeft: i > 0 ? "1px solid var(--border)" : "none" }}>
+              <it.Icon size={26} style={{ color: it.color }} strokeWidth={2.2} />
+              <div className="font-display font-black text-[11px] mt-1.5 leading-tight" style={{ color: "var(--ink)" }}>{it.title}</div>
+              <div className="text-[9px] font-semibold mt-0.5 leading-tight" style={{ color: "var(--text-mute)" }}>{it.sub}</div>
+            </div>
+          ))}
+        </div>
       </div>
-
-      {/* ==== Commission Log ==== */}
-      {data?.earnings?.length > 0 && (
-        <div className="px-4 mt-5">
-          <div className="font-display font-bold text-lg mb-3">Commission Log</div>
-          <div className="space-y-2" data-testid="commission-log">
-            {data.earnings.slice(0, 10).map((e) => (
-              <div key={e.id} className="app-card rounded-2xl p-3 flex items-center justify-between">
-                <div className="min-w-0">
-                  <div className="font-display font-bold text-sm truncate">
-                    {e.symbol ? e.symbol.replace("USDT", "/USDT") : "Referral"}
-                  </div>
-                  <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5 truncate">
-                    {e.note || fmtTime(e.created_at)}
-                  </div>
-                </div>
-                <div className="text-right pl-3">
-                  <div className="font-display font-bold tabular-nums text-[color:var(--good)] text-sm">
-                    +{fmtUSD(e.amount)}
-                  </div>
-                  <div className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
-                    e.status === "claimed" ? "text-[color:var(--text-mute)]" : "text-[color:var(--primary)]"
-                  }`}>
-                    {e.status}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {(data?.pending || 0) > 0 && (
-        <div className="px-4 mt-3">
-          <div className="app-card rounded-2xl p-3 flex items-center gap-2 text-[11px] font-bold" data-testid="ref-pending">
-            <Gift size={14} className="text-[color:var(--gold-deep)]" />
-            +{fmtUSD(data.pending)} pending · claim in Rewards
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
-const SectionCard = ({ icon: Icon, title, children, testid }) => (
-  <div className="app-card rounded-2xl p-3" data-testid={testid}>
-    <div className="flex items-center gap-1.5 mb-2">
-      <Icon size={12} className="text-[color:var(--gold-deep)]" />
-      <span className="text-[9px] uppercase tracking-[0.25em] font-black text-[color:var(--text-mute)]">{title}</span>
-    </div>
-    {children}
-  </div>
-);
-
-const BarStat = ({ color, label, value, testid }) => (
-  <div
-    className="rounded-lg px-2 py-1.5 flex items-stretch gap-1.5 min-w-0"
-    style={{
-      background: `color-mix(in srgb, ${color} 6%, var(--surface))`,
-      border: `1px solid color-mix(in srgb, ${color} 35%, transparent)`,
-      boxShadow: "var(--shadow-sm)",
-    }}
-    data-testid={testid}
-  >
-    <span className="w-1 rounded-full shrink-0" style={{ background: color }} />
-    <div className="min-w-0">
-      <div className="text-[8px] uppercase tracking-wider font-bold text-[color:var(--text-mute)] leading-tight">{label}</div>
-      <div className="font-display font-black text-base tabular-nums">{value}</div>
-    </div>
-  </div>
-);
