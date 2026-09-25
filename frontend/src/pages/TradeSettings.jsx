@@ -12,8 +12,8 @@ import useBinanceStream from "@/hooks/useBinanceStream";
 import { fmtNum } from "@/lib/format";
 
 const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
-const ROW = { background: "#fff", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
-const INP = { background: "#F0FDF4", border: "1px solid var(--border)", borderRadius: "12px" };
+const ROW = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
+const INP = { background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "12px" };
 
 const ord = (n) => {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -170,7 +170,7 @@ export default function TradeSettings() {
       <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
         <Header title="Margin Configuration" />
         <div className="px-4 space-y-1.5">
-          <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--card-soft-grad)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><Settings size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
               Set the margin call drop percentage and multiple buy ratio for each call. The bot will follow this configuration automatically.
@@ -202,7 +202,7 @@ export default function TradeSettings() {
       <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
         <Header title="Distribution And Take Profit" />
         <div className="px-4 space-y-1.5">
-          <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--card-soft-grad)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><PieChart size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
               <span className="font-black" style={{ color: "var(--ink)" }}>Set take profit percentage for each sub-position.</span><br />
@@ -232,7 +232,7 @@ export default function TradeSettings() {
       <div className="px-4 space-y-1.5">
         {/* Coin card */}
         <div onClick={() => nav(`/pair/${sym}`)} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer"
-          style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1.5px solid #86EFAC", borderRadius: "12px", touchAction: "manipulation" }}
+          style={{ background: "var(--card-soft-grad)", border: "1.5px solid var(--card-soft-border)", borderRadius: "12px", touchAction: "manipulation" }}
           data-testid="ts-coin-card">
           <CoinIcon symbol={base} size={32} />
           <div className="flex-1 min-w-0">
@@ -278,7 +278,7 @@ export default function TradeSettings() {
           right={
             <button onClick={() => setBot({ ...bot, open_position_double: !bot.open_position_double })}
               className="w-14 h-8 rounded-full relative transition-colors shrink-0"
-              style={{ background: bot.open_position_double ? "#16A34A" : "#CBD5E1", touchAction: "manipulation" }}
+              style={{ background: bot.open_position_double ? "#16A34A" : "var(--toggle-off)", touchAction: "manipulation" }}
               data-testid="ts-double-toggle">
               <span className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-all" style={{ left: bot.open_position_double ? "30px" : "4px" }} />
             </button>
