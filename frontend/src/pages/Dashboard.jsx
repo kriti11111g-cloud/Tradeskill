@@ -410,7 +410,7 @@ export default function Dashboard() {
         {/* ============ START BOT CTA ============ */}
         <div className="mt-5 relative">
           <Link
-            to="/pair/BTCUSDT"
+            to="/trade-settings/BTCUSDT"
             data-testid="start-bot-btn"
             className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm tracking-widest text-white uppercase"
             style={{

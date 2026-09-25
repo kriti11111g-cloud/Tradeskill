@@ -135,8 +135,8 @@ export default function TradeSettings() {
 
   if (!bot) return <div className="min-h-screen" style={{ background: "var(--bg-base)" }} />;
 
-  const live = stream?.price || stats?.price || 0;
-  const chg = stream?.change_pct ?? stats?.change_pct ?? 0;
+  const live = stream?.price || parseFloat(stats?.lastPrice || stats?.price || 0);
+  const chg = stream?.change_pct ?? parseFloat(stats?.priceChangePercent ?? stats?.change_pct ?? 0);
   const up = chg >= 0;
 
   const Header = ({ title }) => (

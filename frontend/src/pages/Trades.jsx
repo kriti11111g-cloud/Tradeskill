@@ -131,7 +131,7 @@ function BotRow({ bot, onDone }) {
 
   return (
     <div
-      onClick={() => navigate(`/pair/${bot.symbol}`)}
+      onClick={() => navigate(`/trade-settings/${bot.symbol}`)}
       className="w-full text-left rounded-xl px-3 py-2.5 cursor-pointer"
       style={{ ...CARD, touchAction: "manipulation" }}
       data-testid={`bot-card-${bot.symbol}`}
