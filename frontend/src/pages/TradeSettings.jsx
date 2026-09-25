@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, ChevronDown, HelpCircle, Database, Copy, ArrowUpDown,
   Target, RotateCcw, ArrowUpCircle, Settings, PieChart, BarChart3, Repeat,
-  Lightbulb, Save, Minus, Plus,
+  Save, Minus, Plus,
 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
@@ -13,7 +13,7 @@ import { fmtNum } from "@/lib/format";
 
 const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
 const ROW = { background: "#fff", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
-const INP = { background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "10px" };
+const INP = { background: "#F0FDF4", border: "1px solid var(--border)", borderRadius: "12px" };
 
 const ord = (n) => {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -36,14 +36,29 @@ function Row({ Icon, title, sub, right, onClick, testid }) {
 }
 
 
-function NumInput({ value, onChange, unit, testid, w = "w-20" }) {
+function NumInput({ value, onChange, unit, testid }) {
   return (
-    <div className="flex items-center shrink-0 overflow-hidden" style={INP}>
+    <div className="flex items-center shrink-0 w-[118px] h-10 overflow-hidden" style={INP}>
       <input value={value} inputMode="decimal"
         onChange={(e) => onChange(e.target.value)}
-        className={`${w} bg-transparent outline-none text-[13px] font-black text-center py-1.5`}
+        className="flex-1 min-w-0 bg-transparent outline-none text-[14px] font-black text-center h-full"
         style={{ color: "var(--ink)" }} data-testid={testid} />
-      <span className="px-2 text-[10.5px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
+      <span className="w-[42px] text-center text-[11px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
+    </div>
+  );
+}
+
+function Stepper({ value, onChange, testid }) {
+  const n = parseInt(value, 10) || 1;
+  return (
+    <div className="flex items-center shrink-0 w-[118px] h-10 overflow-hidden" style={INP}>
+      <button onClick={() => onChange(n - 1)} className="w-9 h-full flex items-center justify-center" style={{ borderRight: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-minus`}>
+        <Minus size={15} style={{ color: "var(--ink)" }} />
+      </button>
+      <span className="flex-1 text-center text-[14px] font-black tabular-nums" style={{ color: "var(--ink)" }} data-testid={`${testid}-value`}>{value}</span>
+      <button onClick={() => onChange(n + 1)} className="w-9 h-full flex items-center justify-center" style={{ borderLeft: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-plus`}>
+        <Plus size={15} style={{ color: "var(--ink)" }} />
+      </button>
     </div>
   );
 }
@@ -124,16 +139,6 @@ export default function TradeSettings() {
     finally { setSaving(false); }
   };
 
-  const suggest = () => {
-    setBot((b) => ({
-      ...b, first_buy_amount: 10, margin_call_limit: 5,
-      whole_take_profit_ratio: 1.6, whole_take_profit_callback: 0.2,
-      buy_in_callback: 0.2, sub_take_profit_callback: 0.2, trade_method: "Cycle",
-      margin_config: [{ drop: 2, multiplier: 2 }, { drop: 3, multiplier: 2 }, { drop: 4, multiplier: 2 }, { drop: 6, multiplier: 2 }, { drop: 10, multiplier: 2 }],
-      sub_position_tps: [1.6, 1.6, 1.6, 1.6, 1.6],
-    }));
-    toast.info("Suggested strategy loaded — press Update to save");
-  };
 
   if (!bot) return <div className="min-h-screen" style={{ background: "var(--bg-base)" }} />;
 
@@ -176,13 +181,13 @@ export default function TradeSettings() {
             <div className="flex-1 text-center text-white text-[11px] font-black rounded-xl py-1.5 leading-tight" style={{ background: "linear-gradient(90deg,#2563EB,#3B82F6)" }}>Multiple Buy in ratio<br /><span className="font-semibold opacity-85">Times to buy</span></div>
           </div>
           {bot.margin_config.map((r, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2.5" style={ROW} data-testid={`mc-row-${i + 1}`}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: GRAD }}>{i + 1}</div>
-              <div className="w-[52px] text-[12px] font-black shrink-0" style={{ color: "var(--ink)" }}>{ord(i + 1)} call</div>
-              <div className="flex-1"><NumInput w="w-full" value={r.drop} unit="%" testid={`mc-drop-${i + 1}`}
-                onChange={(v) => setBot((b) => { const mc = [...b.margin_config]; mc[i] = { ...mc[i], drop: v }; return { ...b, margin_config: mc }; })} /></div>
-              <div className="flex-1"><NumInput w="w-full" value={r.multiplier} unit="Times" testid={`mc-ratio-${i + 1}`}
-                onChange={(v) => setBot((b) => { const mc = [...b.margin_config]; mc[i] = { ...mc[i], multiplier: v }; return { ...b, margin_config: mc }; })} /></div>
+            <div key={i} className="flex items-center gap-1.5 px-2.5 py-2.5" style={ROW} data-testid={`mc-row-${i + 1}`}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] font-black shrink-0" style={{ background: GRAD }}>{i + 1}</div>
+              <div className="w-[46px] text-[11.5px] font-black shrink-0" style={{ color: "var(--ink)" }}>{ord(i + 1)} call</div>
+              <NumInput value={r.drop} unit="%" testid={`mc-drop-${i + 1}`}
+                onChange={(v) => setBot((b) => { const mc = [...b.margin_config]; mc[i] = { ...mc[i], drop: v }; return { ...b, margin_config: mc }; })} />
+              <NumInput value={r.multiplier} unit="Times" testid={`mc-ratio-${i + 1}`}
+                onChange={(v) => setBot((b) => { const mc = [...b.margin_config]; mc[i] = { ...mc[i], multiplier: v }; return { ...b, margin_config: mc }; })} />
             </div>
           ))}
           <UpdateBtn goBack />
@@ -246,6 +251,29 @@ export default function TradeSettings() {
         <Row Icon={Database} title="First buy in amount" sub="Initial order amount"
           right={<NumInput value={bot.first_buy_amount} unit="USDT" testid="ts-first-buy" onChange={(v) => setBot({ ...bot, first_buy_amount: v })} />} />
 
+        <Row Icon={ArrowUpDown} title="Margin call limit" sub="Number of safety orders"
+          right={<Stepper value={bot.margin_call_limit} onChange={setLimit} testid="ts-limit" />} />
+
+        <Row Icon={Target} title="Whole position take profit ratio" sub="Take profit for total position"
+          right={<NumInput value={bot.whole_take_profit_ratio} unit="%" testid="ts-tp-ratio" onChange={(v) => setBot({ ...bot, whole_take_profit_ratio: v })} />} />
+
+        <Row Icon={RotateCcw} title="Whole position take profit callback" sub="Callback from total take profit"
+          right={<NumInput value={bot.whole_take_profit_callback} unit="%" testid="ts-tp-callback" onChange={(v) => setBot({ ...bot, whole_take_profit_callback: v })} />} />
+
+        <Row Icon={ArrowUpCircle} title="Buy in callback" sub="Extra buy when price rebounds"
+          right={<NumInput value={bot.buy_in_callback} unit="%" testid="ts-buy-callback" onChange={(v) => setBot({ ...bot, buy_in_callback: v })} />} />
+
+        <Row Icon={BarChart3} title="Sub position take profit callback" sub="Callback from each sub position"
+          right={<NumInput value={bot.sub_take_profit_callback} unit="%" testid="ts-sub-callback" onChange={(v) => setBot({ ...bot, sub_take_profit_callback: v })} />} />
+
+        <Row Icon={Settings} title="Margin configuration" sub={`Leverage, max positions and mode · ${bot.margin_call_limit} calls`}
+          onClick={() => setView("margin")} testid="ts-margin-config"
+          right={<ChevronRight size={20} className="shrink-0" style={{ color: "var(--ink)" }} />} />
+
+        <Row Icon={PieChart} title="Distribution and take profit allocation" sub="Set profit distribution for each call"
+          onClick={() => setView("dist")} testid="ts-distribution"
+          right={<ChevronRight size={20} className="shrink-0" style={{ color: "var(--ink)" }} />} />
+
         <Row Icon={Copy} title="Open position double" sub="Open next position with double amount"
           right={
             <button onClick={() => setBot({ ...bot, open_position_double: !bot.open_position_double })}
@@ -255,38 +283,6 @@ export default function TradeSettings() {
               <span className="absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-all" style={{ left: bot.open_position_double ? "30px" : "4px" }} />
             </button>
           } />
-
-        <Row Icon={ArrowUpDown} title="Margin call limit" sub="Number of safety orders"
-          right={
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center overflow-hidden" style={INP}>
-                <button onClick={() => setLimit((parseInt(bot.margin_call_limit, 10) || 1) - 1)} className="px-2.5 py-2" data-testid="ts-limit-minus" style={{ touchAction: "manipulation" }}><Minus size={15} style={{ color: "var(--ink)" }} /></button>
-                <span className="w-9 text-center text-[14px] font-black tabular-nums" style={{ color: "var(--ink)" }} data-testid="ts-limit-value">{bot.margin_call_limit}</span>
-                <button onClick={() => setLimit((parseInt(bot.margin_call_limit, 10) || 1) + 1)} className="px-2.5 py-2" data-testid="ts-limit-plus" style={{ touchAction: "manipulation" }}><Plus size={15} style={{ color: "var(--ink)" }} /></button>
-              </div>
-              <span className="text-[11.5px] font-black" style={{ color: "var(--text-mute)" }}>Time</span>
-            </div>
-          } />
-
-        <Row Icon={Target} title="Whole position take profit ratio" sub="Close all positions profit percentage"
-          right={<NumInput value={bot.whole_take_profit_ratio} unit="%" testid="ts-tp-ratio" onChange={(v) => setBot({ ...bot, whole_take_profit_ratio: v })} />} />
-
-        <Row Icon={RotateCcw} title="Whole position take profit callback" sub="Retrace percentage after TP"
-          right={<NumInput w="w-14" value={bot.whole_take_profit_callback} unit="%" testid="ts-tp-callback" onChange={(v) => setBot({ ...bot, whole_take_profit_callback: v })} />} />
-
-        <Row Icon={ArrowUpCircle} title="Buy in callback" sub="Extra buy when price rebounds"
-          right={<NumInput value={bot.buy_in_callback} unit="%" testid="ts-buy-callback" onChange={(v) => setBot({ ...bot, buy_in_callback: v })} />} />
-
-        <Row Icon={Settings} title="Margin configuration" sub={`Leverage, max positions and mode · ${bot.margin_call_limit} calls`}
-          onClick={() => setView("margin")} testid="ts-margin-config"
-          right={<ChevronRight size={20} className="shrink-0" style={{ color: "var(--ink)" }} />} />
-
-        <Row Icon={PieChart} title="Distribution and take profit allocation" sub={`Set allocation for each position · ${bot.margin_call_limit} positions`}
-          onClick={() => setView("dist")} testid="ts-distribution"
-          right={<ChevronRight size={20} className="shrink-0" style={{ color: "var(--ink)" }} />} />
-
-        <Row Icon={BarChart3} title="Sub position take profit callback" sub="Individual position callback"
-          right={<NumInput value={bot.sub_take_profit_callback} unit="%" testid="ts-sub-callback" onChange={(v) => setBot({ ...bot, sub_take_profit_callback: v })} />} />
 
         <Row Icon={Repeat} title="Trade method" sub="Select trading method"
           right={
@@ -301,14 +297,6 @@ export default function TradeSettings() {
               ))}
             </div>
           } />
-
-        <div onClick={suggest} className="flex items-center gap-3 px-3.5 py-3.5 cursor-pointer"
-          style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1.5px solid #93C5FD", borderRadius: "16px", touchAction: "manipulation" }}
-          data-testid="ts-suggest">
-          <Lightbulb size={22} style={{ color: "#2563EB" }} />
-          <div className="flex-1 font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Get Suggested Strategy</div>
-          <ChevronRight size={20} style={{ color: "var(--ink)" }} />
-        </div>
 
         <UpdateBtn />
       </div>

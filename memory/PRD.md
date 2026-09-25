@@ -1,5 +1,11 @@
 # TGX BOT — Product Requirements Document
 
+## Update (25 Jun 2026): Trade Settings final polish
+- Card order finalized: First buy, Margin call limit, Whole TP ratio, Whole TP callback, Buy-in callback, Sub TP callback, Margin config, Distribution, Open position double, Trade method
+- ALL right-side inputs uniform 118×40px (#F0FDF4 bg, 12px radius): value | unit divider format; stepper − N + same size; "Time" text removed
+- "Get Suggested Strategy" card REMOVED (suggest fn deleted); only Update button below
+- Margin Configuration subpage rows use same uniform inputs
+
 ## Update (25 Jun 2026): Trade Settings page (Market coin tap → settings first)
 - Market coin tap → /trade-settings/{SYMBOL} (TradeSettings.jsx, 3 internal views: main / Margin Configuration / Distribution And Take Profit); coin card tap → /pair/{SYMBOL} full detail
 - MASTER SYNC: Margin call limit N auto-generates N rows in both Margin Config (1st..Nth call: drop % + multiplier Times) and Distribution (N sub-position TP %); limit change re-syncs instantly, backend pads/trims on save (upsert_bot)
