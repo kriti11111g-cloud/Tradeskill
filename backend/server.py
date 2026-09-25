@@ -461,6 +461,9 @@ async def register(body: RegisterIn, response: Response):
     if not otp or not otp.get("verified"):
         raise HTTPException(400, "Please verify your email with OTP first")
 
+    if body.transaction_password and body.transaction_password == body.password:
+        raise HTTPException(400, "Login password and transaction password cannot be the same. Please use different passwords.")
+
     user_id = str(uuid.uuid4())
     uid = await _next_uid()
     ref_code = uid  # referral code = UID (TSK100000 style)
@@ -2779,8 +2782,12 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
         raise HTTPException(400, "Invalid wallet address")
     if amount < WITHDRAW_MIN_USDT:
         raise HTTPException(400, f"Minimum withdrawal is ${WITHDRAW_MIN_USDT:.0f} USDT")
-    udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1})
-    if not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
+    udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1, "txn_password_hash": 1})
+    txn_hash = (udoc or {}).get("txn_password_hash")
+    if txn_hash:
+        if not body.password or not verify_password(body.password, txn_hash):
+            raise HTTPException(401, "Incorrect transaction password")
+    elif not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
         raise HTTPException(401, "Incorrect password")
     otp = await db.withdraw_otps.find_one({"user_id": user["id"]}, {"_id": 0})
     otp_ok = (otp and otp.get("verified") and not otp.get("used")

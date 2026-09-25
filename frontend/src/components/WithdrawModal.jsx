@@ -212,7 +212,7 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
     if (!validAddress) return toast.error("Enter a valid wallet address");
     if (amt < 10) return toast.error("Minimum withdrawal is $10 USDT");
     if (!otpVerified) return toast.error("Verify the Gmail OTP first");
-    if (!password) return toast.error("Enter your login password");
+    if (!password) return toast.error("Enter your transaction password");
     setLoading(true);
     try {
       const { data } = await api.post("/bot-wallet/withdraw", {
@@ -483,14 +483,14 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
                 {/* Password */}
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Lock size={12} className="text-[color:var(--gold-deep,#D97706)]" />
-                  <span className={label + " mb-0"}>Login / Transaction Password</span>
+                  <span className={label + " mb-0"}>Transaction Password</span>
                 </div>
                 <div className="relative mb-2.5">
                   <input
                     type={showPass ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Confirm with your password"
+                    placeholder="Enter your transaction password"
                     className={inputCls + " pr-11"}
                     style={inputStyle}
                     data-testid="input-withdraw-password"

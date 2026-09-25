@@ -85,6 +85,7 @@ export default function Register() {
   const [agree, setAgree] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
+  const [pwSameError, setPwSameError] = useState(false);
   const [otpOpen, setOtpOpen] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [verified, setVerified] = useState(false);
@@ -132,6 +133,11 @@ export default function Register() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (form.password && form.transaction_password && form.transaction_password === form.password) {
+      setPwSameError(true);
+      toast.error("Login password and transaction password cannot be the same");
+      return;
+    }
     if (!verified) { toast.error("Please verify your email with OTP"); return; }
     if (!form.mobile.trim()) { toast.error("Enter your mobile number"); return; }
     if (!form.transaction_password) { toast.error("Set a transaction password"); return; }
@@ -253,10 +259,10 @@ export default function Register() {
           </div>
 
           {/* Transaction Password */}
-          <div className="flex items-center gap-3 px-4 py-3.5" style={FIELD}>
+          <div className="flex items-center gap-3 px-4 py-3.5" style={{ ...FIELD, ...(pwSameError ? { border: "1.5px solid #DC2626" } : {}) }}>
             <ShieldCheck size={22} className={iconCls} />
             <input type={showTxn ? "text" : "password"} value={form.transaction_password}
-              onChange={(e) => setForm({ ...form, transaction_password: e.target.value })}
+              onChange={(e) => { setForm({ ...form, transaction_password: e.target.value }); if (pwSameError) setPwSameError(false); }}
               placeholder="Transaction Password" required minLength={4}
               className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-[#0F172A] placeholder:text-[#94A3B8]"
               data-testid="signup-txn-password" />
@@ -264,6 +270,13 @@ export default function Register() {
               {showTxn ? <EyeOff size={22} className={iconCls} /> : <Eye size={22} className={iconCls} />}
             </button>
           </div>
+          {pwSameError && (
+            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl" style={{ background: "#FEF2F2", border: "1px solid #FCA5A5" }} data-testid="signup-pw-same-error">
+              <span className="text-[12px] font-bold" style={{ color: "#DC2626" }}>
+                Login password and transaction password cannot be the same. Please use a different transaction password.
+              </span>
+            </div>
+          )}
 
           {/* Referral + QR */}
           <div className="flex items-center gap-3 px-4 py-3.5" style={FIELD}>
