@@ -31,13 +31,13 @@ const STAT_DEFS = [
 
 function StatCard({ Icon, grad, label, value, valueColor }) {
   return (
-    <div className="flex items-center gap-2 px-2 py-2 min-h-[58px]" style={CARD} data-testid={`lp-stat-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: grad }}>
-        <Icon size={15} strokeWidth={2.2} />
+    <div className="flex items-center gap-2 px-2.5 py-1.5 min-h-[46px]" style={CARD} data-testid={`lp-stat-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}>
+      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: grad }}>
+        <Icon size={14} strokeWidth={2.2} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[8.5px] font-semibold leading-tight break-words" style={{ color: "var(--text-mute)" }}>{label}</div>
-        <div className="font-display font-black text-[12.5px] tabular-nums mt-0.5 leading-tight break-all" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
+        <div className="text-[9px] font-semibold leading-tight whitespace-nowrap" style={{ color: "var(--text-mute)" }}>{label}</div>
+        <div className="font-display font-black text-[13px] tabular-nums mt-0.5 leading-none" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
       </div>
     </div>
   );
@@ -236,7 +236,7 @@ export default function TradingPair() {
         </div>
 
         {/* Stat cards grid */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {STAT_DEFS.map((s) => (
             <StatCard key={s.key} Icon={s.Icon} grad={s.grad} label={s.label === "Position quantity" ? `Position quantity (${base})` : s.label} value={statValue(s.key, s.dec)} />
           ))}
