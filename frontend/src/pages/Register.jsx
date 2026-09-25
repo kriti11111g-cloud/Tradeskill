@@ -9,7 +9,7 @@ import jsQR from "jsqr";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
 
-const LOGO = "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/yohyuz3i_file_000000009b4081f5a8ad892ef6e3f993.png";
+const LOGO = "https://static.prod-images.emergentagent.com/jobs/e3103ddd-0dc9-4cf2-8d94-ea48e4389b5b/images/2fc173585b6a7c8ae03589e9d69e196865e3322126777cf481e10020b4b21714.jpeg";
 const GRAD = "linear-gradient(90deg, #16A34A 0%, #2563EB 100%)";
 const COUNTRIES = [
   { code: "+91", flag: "🇮🇳" }, { code: "+1", flag: "🇺🇸" }, { code: "+44", flag: "🇬🇧" },
@@ -165,7 +165,7 @@ export default function Register() {
 
         {/* Logo */}
         <div className="flex flex-col items-center -mt-2">
-          <img src={LOGO} alt="Trade Skill" className="w-28 h-28 rounded-full object-cover" style={{ border: "3px solid #22C55E", boxShadow: "0 0 24px rgba(34,197,94,0.35)" }} />
+          <img src={LOGO} alt="Trade Skill" className="w-28 h-28 rounded-full object-cover" style={{ boxShadow: "0 0 24px rgba(34,197,94,0.35)" }} />
           <div className="font-display font-black text-[32px] leading-tight mt-2 text-[#0F172A]">
             Trade <span style={{ color: "#14B8A6" }}>Skill</span>
           </div>

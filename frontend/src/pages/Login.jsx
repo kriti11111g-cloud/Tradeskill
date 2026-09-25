@@ -1,15 +1,20 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Zap, ArrowRight } from "lucide-react";
+import { User, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatApiError } from "@/lib/api";
+
+export const TS_LOGO = "https://static.prod-images.emergentagent.com/jobs/e3103ddd-0dc9-4cf2-8d94-ea48e4389b5b/images/2fc173585b6a7c8ae03589e9d69e196865e3322126777cf481e10020b4b21714.jpeg";
+const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
+const FIELD = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: "14px" };
 
 export default function Login() {
   const nav = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
@@ -17,89 +22,69 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      toast.success("Welcome back to Trade Skill");
       nav("/");
-    } catch (err) {
-      toast.error(formatApiError(err));
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error(formatApiError(err)); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen w-full bg-[color:var(--bg-base)] text-[color:var(--text)] flex items-center justify-center px-4 relative overflow-hidden">
-      <div className="grain-overlay" />
-      <div
-        className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #16A34A, transparent 70%)" }}
-      />
-      <div
-        className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #0F766E, transparent 70%)" }}
-      />
+    <div className="min-h-screen w-full flex justify-center relative overflow-hidden" style={{ background: "#060D0B" }}>
+      <div className="absolute -top-24 right-0 w-[420px] h-[420px] rounded-full opacity-25 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #14532D, transparent 70%)" }} />
+      <div className="absolute bottom-0 inset-x-0 h-72 opacity-40 blur-2xl pointer-events-none" style={{ background: "radial-gradient(ellipse at 20% 100%, #14532D 0%, transparent 55%), radial-gradient(ellipse at 90% 100%, #064E3B 0%, transparent 50%)" }} />
 
-      <div className="w-full max-w-md z-10">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--primary-deep)] flex items-center justify-center glow-primary">
-              <Zap size={22} className="text-[color:var(--text)]" strokeWidth={2.5} />
-            </div>
-            <div className="font-display font-black text-3xl tracking-tight">Trade Skill</div>
+      <div className="w-full max-w-md z-10 px-6 flex flex-col justify-center min-h-screen pb-16">
+        {/* Logo */}
+        <div className="flex flex-col items-center">
+          <img src={TS_LOGO} alt="Trade Skill" className="w-40 h-40 rounded-full object-cover" style={{ boxShadow: "0 0 40px rgba(34,197,94,0.25)" }} />
+          <div className="font-display font-black text-[38px] leading-tight mt-3 text-white">
+            Trade{" "}
+            <span style={{ background: "linear-gradient(90deg,#4ADE80,#22D3EE)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Skill</span>
           </div>
-          <div className="text-[10px] uppercase tracking-[0.35em] text-[color:var(--text-mute)]">
-            Quantitative Auto Trading
-          </div>
+          <div className="text-[13px] font-bold tracking-[0.35em] text-white/85 mt-1">LOGIN TO YOUR ACCOUNT</div>
         </div>
 
-        <div className="app-card rounded-3xl p-8 shadow-[0_8px_60px_rgba(0,0,0,0.4)]">
-          <h1 className="font-display font-bold text-2xl mb-1">Welcome back</h1>
-          <p className="text-sm text-[color:var(--text-mute)] mb-6">Sign in to your account</p>
+        <form onSubmit={onSubmit} className="mt-10 space-y-4">
+          <div className="flex items-center gap-3.5 px-4 py-4" style={FIELD}>
+            <User size={24} className="text-white/80 shrink-0" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="Username or Email" required
+              className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-white placeholder:text-white/45"
+              data-testid="login-email" />
+          </div>
 
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)]"
-                placeholder="you@email.com"
-                data-testid="login-email"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)]"
-                placeholder="••••••••"
-                data-testid="login-password"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 bg-[color:var(--primary)] text-white font-display font-bold rounded-xl px-6 py-3.5 hover:brightness-110 transition-all hover:glow-primary flex items-center justify-center gap-2 disabled:opacity-60"
-              data-testid="login-submit"
-            >
-              {loading ? "Signing in..." : "Sign In"} <ArrowRight size={18} />
+          <div className="flex items-center gap-3.5 px-4 py-4" style={FIELD}>
+            <Lock size={24} className="text-white/80 shrink-0" />
+            <input type={showPw ? "text" : "password"} value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password" required
+              className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-white placeholder:text-white/45"
+              data-testid="login-password" />
+            <button type="button" onClick={() => setShowPw(!showPw)} className="shrink-0" data-testid="login-pw-eye" style={{ touchAction: "manipulation" }}>
+              {showPw ? <EyeOff size={24} className="text-white/80" /> : <Eye size={24} className="text-white/80" />}
             </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-[color:var(--text-mute)]">
-            No account?{" "}
-            <Link to="/register" className="text-[color:var(--primary)] font-semibold hover:underline" data-testid="link-register">
-              Create one
-            </Link>
           </div>
-        </div>
 
-        <div className="text-center mt-6 text-[10px] text-[color:var(--text-mute)] uppercase tracking-widest">
-          New era of crypto · Powered by Trade Skill
+          <div className="flex justify-end">
+            <button type="button" className="text-[15px] font-bold text-white"
+              onClick={() => toast.info("Please contact support to reset your password")}
+              data-testid="login-forgot" style={{ touchAction: "manipulation" }}>
+              Forgot Password?
+            </button>
+          </div>
+
+          <button type="submit" disabled={loading}
+            className="w-full text-white font-display font-black text-lg tracking-[0.15em] rounded-2xl py-4 mt-2 disabled:opacity-60 select-none"
+            style={{ background: GRAD, touchAction: "manipulation" }}
+            data-testid="login-submit">
+            {loading ? "LOGGING IN..." : "LOGIN"}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-[15px] text-white/60">
+          Don&apos;t have an account?{" "}
+          <Link to="/register" className="font-bold" style={{ color: "#4ADE80" }} data-testid="link-register">
+            Sign Up
+          </Link>
         </div>
       </div>
     </div>

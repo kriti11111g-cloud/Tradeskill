@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (25 Jun 2026): Login page redesign + same DP everywhere
+- Login.jsx rebuilt to reference: dark theme, green chart circle DP (generated asset on static.prod-images...b21714.jpeg), "Trade Skill" gradient, LOGIN TO YOUR ACCOUNT, Username or Email + Password (eye), Forgot Password (toast: contact support), gradient LOGIN
+- Same DP used on Sign Up page (LOGO constant in Register.jsx)
+- Backend: login now accepts email OR UID (username); tested both
+
 ## Update (25 Jun 2026): New Sign Up page (exact reference design)
 - Register.jsx rebuilt: logo + "Trade Skill / CREATE YOUR ACCOUNT", Name, Email with in-card Send OTP pill → 6 OTP boxes inside same card → auto-verify ✓ badge (no separate verify button), +CC flag selector + Mobile in one field (no mobile OTP), Password + Transaction Password with eye toggles, Referral + QR scanner (jsQR camera modal, ?ref= URL or raw code autofill), Select Your Leg dropdown (Left/Right mandatory), Terms checkbox, gradient Create Account
 - Backend: /auth/signup-otp/send + /auth/signup-otp/verify (sha256, TTL, cooldown, attempts; demo mode returns demo_otp). Register REQUIRES verified email OTP; new fields: country_code, mobile, transaction_password (bcrypt hashed as txn_password_hash), leg

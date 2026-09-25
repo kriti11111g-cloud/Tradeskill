@@ -340,7 +340,7 @@ class SignupOtpVerifyIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: str  # email ya UID (username)
     password: str
 
 
@@ -512,11 +512,12 @@ async def register(body: RegisterIn, response: Response):
 
 @api.post("/auth/login")
 async def login(body: LoginIn, response: Response):
-    email = body.email.lower()
-    user = await db.users.find_one({"email": email})
+    ident = body.email.strip()
+    user = await db.users.find_one(
+        {"$or": [{"email": ident.lower()}, {"uid": ident.upper()}]})
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
-    token = create_access_token(user["id"], email)
+    token = create_access_token(user["id"], user["email"])
     response.set_cookie("access_token", token, httponly=True, samesite="lax", max_age=604800, path="/")
     user.pop("password_hash", None)
     user.pop("_id", None)
