@@ -3287,13 +3287,7 @@ def _mask_email(e: str) -> str:
 
 
 def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bool:
-    if EMAIL_OTP_MODE == "smtp":
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        from email.utils import formatdate, make_msgid
-        gm_user = os.environ["GMAIL_USER"]
-        gm_pass = os.environ["GMAIL_APP_PASSWORD"]
+    if EMAIL_OTP_MODE in ("smtp", "resend"):
         is_signup = purpose == "signup"
         label = "sign up verification" if is_signup else "withdrawal verification"
         subject = f"{code} is your Trade Skill {'sign up' if is_signup else 'withdrawal'} code"
@@ -3332,6 +3326,22 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
     </td></tr>
   </table>
 </body></html>"""
+        if EMAIL_OTP_MODE == "resend":
+            import requests as _rq
+            r = _rq.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}"},
+                json={"from": os.environ.get("RESEND_FROM", "Trade Skill <no-reply@tradeskill.in>"),
+                      "to": [to_email], "subject": subject, "html": html, "text": text},
+                timeout=15)
+            r.raise_for_status()
+            return True
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.utils import formatdate, make_msgid
+        gm_user = os.environ["GMAIL_USER"]
+        gm_pass = os.environ["GMAIL_APP_PASSWORD"]
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"Trade Skill <{gm_user}>"
