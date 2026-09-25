@@ -1,19 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { PartyPopper, X } from "lucide-react";
+import confetti from "canvas-confetti";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 
-const CONFETTI_COLORS = ["#16A34A", "#22C55E", "#2563EB", "#3B82F6", "#F59E0B", "#F5C518"];
-const PIECES = Array.from({ length: 36 }, (_, i) => ({
-  left: (i * 137) % 100,
-  delay: (i % 12) * 0.12,
-  dur: 2.2 + ((i * 53) % 10) / 8,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  size: 6 + (i % 3) * 3,
-  rot: (i * 97) % 360,
-}));
-
 const shownIds = new Set();
+const BLUE_GRAD = "linear-gradient(135deg,#3B82F6 0%,#2563EB 55%,#0B2A5C 100%)";
 
 export default function DepositCelebration() {
   const [alert, setAlert] = useState(null);
@@ -21,11 +12,22 @@ export default function DepositCelebration() {
   const queueRef = useRef([]);
   const timerRef = useRef(null);
 
+  const fireConfetti = () => {
+    const fire = (opts) =>
+      confetti({ particleCount: 90, spread: 75, zIndex: 9999, ...opts });
+    fire({ origin: { x: 0.2, y: 0.7 }, colors: ["#2563EB", "#60A5FA", "#FFFFFF"] });
+    fire({ origin: { x: 0.8, y: 0.7 }, colors: ["#2563EB", "#60A5FA", "#FFFFFF"] });
+    setTimeout(() => fire({ origin: { x: 0.5, y: 0.5 }, particleCount: 140, spread: 100, colors: ["#3B82F6", "#93C5FD", "#16A34A"] }), 400);
+  };
+
   const show = (a) => {
     alertRef.current = a;
     setAlert(a);
     clearTimeout(timerRef.current);
-    if (a) timerRef.current = setTimeout(() => show(queueRef.current.shift() || null), 7000);
+    if (a) {
+      fireConfetti();
+      timerRef.current = setTimeout(() => show(queueRef.current.shift() || null), 7000);
+    }
   };
 
   useEffect(() => {
@@ -49,37 +51,34 @@ export default function DepositCelebration() {
   if (!alert) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 pointer-events-none" data-testid="deposit-celebration">
-      <style>{`
-        @keyframes dc-fall { 0% { transform: translateY(-12vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(105vh) rotate(720deg); opacity: 0.15; } }
-        @keyframes dc-pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes dc-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.45); } 50% { box-shadow: 0 0 0 18px rgba(22,163,74,0); } }
-      `}</style>
-      {PIECES.map((p, i) => (
-        <span key={i} className="absolute top-0 rounded-sm" style={{
-          left: `${p.left}%`, width: p.size, height: p.size * 1.6, background: p.color,
-          transform: `rotate(${p.rot}deg)`,
-          animation: `dc-fall ${p.dur}s linear ${p.delay}s infinite`,
-        }} />
-      ))}
-      <div className="relative w-full max-w-[320px] rounded-3xl p-6 text-center pointer-events-auto"
-        style={{ background: "var(--surface)", border: "1.5px solid rgba(34,197,94,0.5)", animation: "dc-pop 0.45s cubic-bezier(0.34,1.56,0.64,1)", boxShadow: "0 24px 80px rgba(0,0,0,0.35)" }}>
-        <button onClick={() => show(queueRef.current.shift() || null)}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: "var(--surface-3)", touchAction: "manipulation" }} data-testid="deposit-celebration-close">
-          <X size={16} style={{ color: "var(--ink)" }} />
-        </button>
-        <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-white mb-3"
-          style={{ background: "linear-gradient(135deg,#22C55E,#16A34A)", animation: "dc-pulse 1.6s ease-out infinite" }}>
-          <PartyPopper size={30} />
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center px-8"
+      style={{ background: "rgba(4,25,32,0.72)", backdropFilter: "blur(6px)" }}
+      onClick={() => show(queueRef.current.shift() || null)}
+      data-testid="deposit-celebration"
+    >
+      <div
+        className="w-full max-w-xs rounded-3xl p-6 text-center text-white relative overflow-hidden"
+        style={{ background: BLUE_GRAD, border: "1px solid rgba(96,165,250,0.5)", boxShadow: "0 0 60px rgba(37,99,235,0.35)" }}
+      >
+        <div className="text-5xl mb-2">🎉</div>
+        <div className="text-[10px] uppercase tracking-[0.35em] font-bold" style={{ color: "#93C5FD" }}>
+          Deposit Received
         </div>
-        <div className="font-display font-black text-[20px]" style={{ color: "var(--ink)" }}>Deposit Received!</div>
-        <div className="font-display font-black text-[32px] tabular-nums mt-1" style={{ color: "#16A34A" }} data-testid="deposit-celebration-amount">
+        <div className="font-display font-black text-4xl mt-2 tabular-nums" data-testid="deposit-celebration-amount">
           +{fmtNum(alert.amount, 2)} USDT
         </div>
-        <div className="text-[12px] font-bold mt-1 uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>
-          {alert.network} · credited to your wallet
+        <div className="text-[11px] text-white/70 mt-2">
+          {alert.network} · Aapke wallet me credit ho gaya! 🥳
         </div>
+        <button
+          className="mt-4 px-6 py-2 rounded-full text-[12px] font-black uppercase tracking-widest"
+          style={{ background: "rgba(10,10,10,0.85)", border: "1px solid rgba(96,165,250,0.65)", color: "#60A5FA" }}
+          onClick={() => show(queueRef.current.shift() || null)}
+          data-testid="deposit-celebration-close"
+        >
+          Awesome!
+        </button>
       </div>
     </div>
   );
