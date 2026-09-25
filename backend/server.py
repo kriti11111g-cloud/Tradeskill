@@ -356,7 +356,7 @@ class MarginRule(BaseModel):
 
 
 class BotConfigIn(BaseModel):
-    symbol: str
+    symbol: Optional[str] = None  # path param se aata hai
     first_buy_amount: float = 20.0
     open_position_double: bool = True
     margin_call_limit: int = 5

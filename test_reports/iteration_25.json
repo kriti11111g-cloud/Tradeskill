@@ -1,0 +1,25 @@
+{
+  "summary": "Full E2E test of Trade Settings feature (backend + frontend). Backend: 4/4 pytest passed for /api/bots/{sym} master-sync pad/trim of margin_config and sub_position_tps + min first buy validation. Frontend: login OK, Market tap navigates to /trade-settings/{SYMBOL}, all data-testids present, margin call limit stepper syncs Margin Configuration and Distribution sub-views to exact N rows (verified 8 and 3), edits save via Update with toast, first_buy_amount<10 shows 'Minimum First Buy Amount is $10' toast, coin card tap navigates to /pair/{SYMBOL}.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "TradeSettings", "issues": ["Binance WebSocket wss://stream.binance.com returns 451 in preview env - live price on coin card falls back to REST /market/stats which is fine, but no live tick updates. Not a code bug (geo-block on egress); acceptable."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_trade_settings.py", "/app/test_reports/pytest/trade_settings.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BotConfigIn.symbol is required by pydantic but the URL already provides {symbol}. Frontend passes it via spread of `bot` (works), but a direct client (e.g., curl without symbol in body) will 422 instead of using path symbol. Minor - consider making symbol optional in BotConfigIn or overriding it from path in upsert_bot.",
+    "TradeSettings.jsx save() spreads full `bot` object including server-only fields (status, position_qty, avg_price, etc.) into POST body; BotConfigIn ignores extras but this is noisy - consider whitelisting fields."
+  ],
+  "updated_files": ["/app/backend/tests/test_trade_settings.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "None - used existing admin BTCUSDT bot",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Trade Settings page fully functional. All acceptance criteria met. Backend pad/trim logic in upsert_bot (server.py ~L985) correctly enforces margin_call_limit across margin_config & sub_position_tps. Frontend uses syncRows/syncTps in TradeSettings.jsx to keep row counts synced on stepper change.",
+  "rca of the issue": "N/A - no bugs found"
+}

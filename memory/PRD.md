@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (25 Jun 2026): Trade Settings page (Market coin tap → settings first)
+- Market coin tap → /trade-settings/{SYMBOL} (TradeSettings.jsx, 3 internal views: main / Margin Configuration / Distribution And Take Profit); coin card tap → /pair/{SYMBOL} full detail
+- MASTER SYNC: Margin call limit N auto-generates N rows in both Margin Config (1st..Nth call: drop % + multiplier Times) and Distribution (N sub-position TP %); limit change re-syncs instantly, backend pads/trims on save (upsert_bot)
+- Backend: BotConfigIn += sub_position_tps list; symbol optional (path); server clamps limit 1..50
+- NOTE: sub_position_tps stored/edited but engine still books WHOLE-position TP only (per-sub-position TP execution = future work)
+- Tested: iteration_25.json — backend 100%, frontend 100%, no bugs
+
 ## Update (25 Jun 2026): Login page redesign + same DP everywhere
 - Login.jsx rebuilt to reference: dark theme, green chart circle DP (generated asset on static.prod-images...b21714.jpeg), "Trade Skill" gradient, LOGIN TO YOUR ACCOUNT, Username or Email + Password (eye), Forgot Password (toast: contact support), gradient LOGIN
 - Same DP used on Sign Up page (LOGO constant in Register.jsx)
