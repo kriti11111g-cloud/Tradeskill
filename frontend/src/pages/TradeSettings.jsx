@@ -27,7 +27,7 @@ function Row({ Icon, title, sub, right, onClick, testid }) {
       style={{ ...ROW, touchAction: "manipulation" }} data-testid={testid}>
       <Icon size={19} strokeWidth={2.2} className="shrink-0" style={{ color: "#0D9488" }} />
       <div className="flex-1 min-w-0">
-        <div className={long ? "text-[11.3px] font-black leading-tight tracking-tight whitespace-nowrap" : "text-[12.5px] font-black leading-tight"} style={{ color: "var(--ink)" }}>{title}</div>
+        <div className={long ? "text-[11.5px] font-black leading-tight tracking-tight" : "text-[12.5px] font-black leading-tight"} style={{ color: "var(--ink)" }}>{title}</div>
         {!long && <div className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>{sub}</div>}
       </div>
       {right}
@@ -38,12 +38,12 @@ function Row({ Icon, title, sub, right, onClick, testid }) {
 
 function NumInput({ value, onChange, unit, testid }) {
   return (
-    <div className="flex items-center shrink-0 w-[118px] h-10 overflow-hidden" style={INP}>
+    <div className="flex items-center shrink-0 w-[96px] h-10 overflow-hidden" style={INP}>
       <input value={value} inputMode="decimal"
         onChange={(e) => onChange(e.target.value)}
         className="flex-1 min-w-0 bg-transparent outline-none text-[14px] font-black text-center h-full"
         style={{ color: "var(--ink)" }} data-testid={testid} />
-      <span className="w-[42px] text-center text-[11px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
+      <span className="w-[34px] text-center text-[10px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
     </div>
   );
 }
@@ -51,12 +51,12 @@ function NumInput({ value, onChange, unit, testid }) {
 function Stepper({ value, onChange, testid }) {
   const n = parseInt(value, 10) || 1;
   return (
-    <div className="flex items-center shrink-0 w-[118px] h-10 overflow-hidden" style={INP}>
-      <button onClick={() => onChange(n - 1)} className="w-9 h-full flex items-center justify-center" style={{ borderRight: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-minus`}>
+    <div className="flex items-center shrink-0 w-[96px] h-10 overflow-hidden" style={INP}>
+      <button onClick={() => onChange(n - 1)} className="w-8 h-full flex items-center justify-center" style={{ borderRight: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-minus`}>
         <Minus size={15} style={{ color: "var(--ink)" }} />
       </button>
       <span className="flex-1 text-center text-[14px] font-black tabular-nums" style={{ color: "var(--ink)" }} data-testid={`${testid}-value`}>{value}</span>
-      <button onClick={() => onChange(n + 1)} className="w-9 h-full flex items-center justify-center" style={{ borderLeft: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-plus`}>
+      <button onClick={() => onChange(n + 1)} className="w-8 h-full flex items-center justify-center" style={{ borderLeft: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${testid}-plus`}>
         <Plus size={15} style={{ color: "var(--ink)" }} />
       </button>
     </div>
