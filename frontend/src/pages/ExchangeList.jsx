@@ -49,6 +49,7 @@ const Logo = ({ ex, s = 30, ts = "text-[11px]" }) => (
 
 export default function ExchangeList() {
   const [bind, setBind] = useState(null);
+  const [ipModal, setIpModal] = useState(null); // exchange whose IP popup is open
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -153,7 +154,7 @@ export default function ExchangeList() {
             onClick={() =>
               ex.id === "binance"
                 ? navigate("/bind-api/binance")
-                : toast(`${ex.name} integration — Coming Soon 🚀 (currently only Binance is supported)`)
+                : setIpModal(ex)
             }
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
@@ -176,6 +177,38 @@ export default function ExchangeList() {
           </button>
         ))}
       </div>
+
+      {/* Whitelist IP popup for other exchanges */}
+      {ipModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-6" onClick={() => setIpModal(null)} data-testid="exchange-ip-modal">
+          <div className="w-full max-w-xs rounded-2xl p-5 text-center" style={{ background: "var(--surface)", border: "1.5px solid rgba(37,99,235,0.35)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-2"><Logo ex={ipModal} s={48} ts="text-[16px]" /></div>
+            <div className="font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>{ipModal.name}</div>
+            <div className="text-[11px] font-semibold mt-1" style={{ color: "var(--text-mute)" }}>
+              Integration Coming Soon 🚀 — abhi Binance supported hai.
+            </div>
+            <div className="rounded-xl px-3 py-2.5 mt-3" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
+              <div className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>API Whitelist IP</div>
+              <div className="font-mono font-black text-[16px] tabular-nums mt-0.5" style={{ color: "#2563EB" }} data-testid="exchange-ip-value">
+                {bind?.whitelist_ip || "—"}
+              </div>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(bind?.whitelist_ip || ""); toast.success("IP copied!"); }}
+              className="w-full rounded-xl py-2.5 mt-2.5 text-white font-display font-black text-[13px]"
+              style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)", touchAction: "manipulation" }}
+              data-testid="exchange-ip-copy"
+            >
+              Copy IP
+            </button>
+            <button onClick={() => setIpModal(null)} className="w-full rounded-xl py-2.5 mt-1.5 font-display font-black text-[13px]"
+              style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
+              data-testid="exchange-ip-close">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

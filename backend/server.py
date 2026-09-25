@@ -552,12 +552,16 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
     return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
 
 
+BIND_WHITELIST_IP = os.environ.get("BIND_WHITELIST_IP", "187.127.98.41")
+
+
 @api.get("/binance/bind")
 async def get_bind(user: dict = Depends(get_current_user)):
     row = await db.binance_keys.find_one({"user_id": user["id"]}, {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0})
     if not row:
-        return {"mode": None, "api_key_mask": None, "bound": False}
+        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": BIND_WHITELIST_IP}
     row["bound"] = row.get("mode") in ("real", "testnet")
+    row["whitelist_ip"] = BIND_WHITELIST_IP
     return row
 
 

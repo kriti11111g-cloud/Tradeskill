@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
+import { KeyRound, ShieldCheck, Trash2, AlertTriangle, Globe, Copy } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 
@@ -77,6 +77,31 @@ export default function BindAPI() {
               data-testid="unbind-btn"
             >
               <Trash2 size={16} className="text-[color:var(--bad)]" />
+            </button>
+          </div>
+        )}
+
+        {existing?.whitelist_ip && (
+          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "var(--lp-card-grad)", border: "1.5px solid var(--lp-border)" }} data-testid="whitelist-ip-card">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)" }}>
+              <Globe size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-bold text-sm" style={{ color: "var(--ink)" }}>Server IP — Whitelist This</div>
+              <div className="text-[11px] mt-0.5 leading-snug" style={{ color: "var(--text-mute)" }}>
+                Exchange API settings me "Restrict access to trusted IPs" me ye IP add karo:
+              </div>
+              <div className="font-mono font-black text-[15px] mt-1.5 tabular-nums" style={{ color: "var(--lp-blue)" }} data-testid="whitelist-ip-value">
+                {existing.whitelist_ip}
+              </div>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(existing.whitelist_ip); toast.success("IP copied!"); }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "var(--surface-3)", border: "1px solid var(--lp-border)", touchAction: "manipulation" }}
+              data-testid="whitelist-ip-copy"
+            >
+              <Copy size={15} style={{ color: "var(--lp-blue)" }} />
             </button>
           </div>
         )}
