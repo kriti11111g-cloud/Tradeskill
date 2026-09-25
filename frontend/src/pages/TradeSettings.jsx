@@ -230,7 +230,8 @@ export default function TradeSettings() {
     <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
       <Header title="Trade Settings" />
       <div className="px-4 space-y-1.5">
-        {/* Coin card */}
+        {/* Coin card — sticky below header */}
+        <div className="sticky z-10 -mx-4 px-4 pb-1.5" style={{ top: "58px", background: "var(--bg-base)" }}>
         <div onClick={() => nav(`/pair/${sym}`)} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer"
           style={{ background: "var(--card-soft-grad)", border: "1.5px solid var(--card-soft-border)", borderRadius: "12px", touchAction: "manipulation" }}
           data-testid="ts-coin-card">
@@ -246,6 +247,7 @@ export default function TradeSettings() {
             <div className="text-[10px] font-black tabular-nums" style={{ color: up ? "#16A34A" : "#DC2626" }}>{up ? "▲" : "▼"} {up ? "+" : ""}{fmtNum(chg, 2)}% (24h)</div>
           </div>
           <ChevronRight size={18} style={{ color: "var(--ink)" }} />
+        </div>
         </div>
 
         <Row Icon={Database} title="First buy in amount" sub="Initial order amount"
