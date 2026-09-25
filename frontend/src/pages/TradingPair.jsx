@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronDown, ChevronRight, RefreshCw, MoreVertical, Layers, Info,
   Coins, Database, LineChart, Banknote, ShieldCheck, BarChart3, CircleDollarSign,
   Droplets, PhoneCall, Phone, Percent, Play, Square, Settings, Pencil, TrendingUp,
-  TrendingDown, XCircle, Check,
+  TrendingDown, XCircle, Check, Target,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtNum, shortSymbol } from "@/lib/format";
@@ -243,6 +243,8 @@ export default function TradingPair() {
           <StatCard Icon={Percent} grad="linear-gradient(135deg,#22C55E,#16A34A)" label="Return rate"
             value={`${returnRate >= 0 ? "" : ""}${fmtNum(returnRate, 2)}%`}
             valueColor={returnRate > 0 ? "#16A34A" : returnRate < 0 ? "var(--bad)" : "var(--ink)"} />
+          <StatCard Icon={Target} grad={BLUE_GRAD} label="Take profit trigger price"
+            value={bot.take_profit_trigger_price > 0 ? `≥ ${fmtNum(bot.take_profit_trigger_price, bot.take_profit_trigger_price > 100 ? 2 : 4)}` : "0"} />
         </div>
 
         {/* Auto-Trigger Ladder */}
