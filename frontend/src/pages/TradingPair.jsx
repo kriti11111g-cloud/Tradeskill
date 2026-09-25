@@ -36,8 +36,8 @@ function StatCard({ Icon, grad, label, value, valueColor }) {
         <Icon size={15} strokeWidth={2.2} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[8.5px] font-semibold leading-tight" style={{ color: "var(--text-mute)" }}>{label}</div>
-        <div className="font-display font-black text-[13px] tabular-nums mt-0.5 leading-none truncate" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
+        <div className="text-[8.5px] font-semibold leading-tight break-words" style={{ color: "var(--text-mute)" }}>{label}</div>
+        <div className="font-display font-black text-[12.5px] tabular-nums mt-0.5 leading-tight break-all" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
       </div>
     </div>
   );
@@ -217,7 +217,7 @@ export default function TradingPair() {
           style={{ ...CARD, border: "1.5px solid var(--lp-border)", touchAction: "manipulation" }} data-testid="lp-coin-card">
           <CoinIcon symbol={base} size={38} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
+            <div className="flex items-center gap-1 font-display font-black text-[16px]" style={{ color: "var(--ink)" }}>
               {base}/USDT <ChevronDown size={15} />
             </div>
             <div className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: "var(--text-mute)" }}>
@@ -228,8 +228,8 @@ export default function TradingPair() {
               </span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="font-display font-black text-[19px] tabular-nums" style={{ color: "#16A34A" }}>${fmtNum(price, price > 100 ? 2 : 4)}</div>
+          <div className="text-right shrink-0 pl-1">
+            <div className="font-display font-black text-[17px] tabular-nums" style={{ color: "#16A34A" }}>${fmtNum(price, price > 100 ? 2 : 4)}</div>
             <div className="text-[11px] font-black tabular-nums" style={{ color: up ? "#16A34A" : "var(--bad)" }}>{up ? "▲" : "▼"} {up ? "+" : ""}{fmtNum(change24, 2)}% (24h)</div>
           </div>
           <ChevronRight size={20} style={{ color: "var(--ink)" }} />
@@ -287,18 +287,16 @@ export default function TradingPair() {
               const dist = price > 0 && lvl.trigger_price > 0 ? ((price - lvl.trigger_price) / lvl.trigger_price) * 100 : 0;
               const dropFromAnchor = anchor > 0 ? (1 - lvl.trigger_price / anchor) * 100 : lvl.drop_pct;
               return (
-                <div key={lvl.level} className="flex items-center gap-1.5 rounded-xl px-2 py-2" style={{ background: "var(--surface)", border: "1px solid var(--lp-border)" }} data-testid={`lp-call-${lvl.level}`}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-display font-black text-[12px] shrink-0" style={{ background: BLUE_GRAD }}>C{lvl.level}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[8.5px] font-black leading-tight truncate" style={{ color: "var(--ink)" }}>Buy – Safety Order</div>
-                    <div className="text-[8.5px] font-semibold tabular-nums whitespace-nowrap" style={{ color: "var(--text-mute)" }}>-{fmtNum(dropFromAnchor, 1)}% · ${fmtNum(lvl.amount_usdt, 0)}</div>
-                    <div className="text-[8.5px] font-semibold tabular-nums whitespace-nowrap" style={{ color: "var(--text-mute)" }}>Total ${fmtNum(lvl.cumulative_usdt, 2)}</div>
+                <div key={lvl.level} className="rounded-xl px-2 py-2" style={{ background: "var(--surface)", border: "1px solid var(--lp-border)" }} data-testid={`lp-call-${lvl.level}`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-display font-black text-[11px] shrink-0" style={{ background: BLUE_GRAD }}>C{lvl.level}</div>
+                    <div className="text-[9px] font-black leading-tight" style={{ color: "var(--ink)" }}>Buy – Safety Order</div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="flex items-center justify-between gap-1">
                     <div className="font-display font-black text-[11px] tabular-nums whitespace-nowrap" style={{ color: "var(--ink)" }}>≤ {fmtNum(lvl.trigger_price, lvl.trigger_price > 100 ? 2 : 4)}</div>
-                    <div className="text-[10px] font-black tabular-nums" style={{ color: dist >= 0 ? "#16A34A" : "var(--bad)" }}>{dist >= 0 ? "+" : ""}{fmtNum(dist, 2)}%</div>
-                    <div className="text-[8px] font-semibold" style={{ color: "var(--text-mute)" }}>above</div>
+                    <div className="text-[9px] font-black tabular-nums whitespace-nowrap" style={{ color: dist >= 0 ? "#16A34A" : "var(--bad)" }}>{dist >= 0 ? "+" : ""}{fmtNum(dist, 2)}% <span className="text-[7.5px] font-semibold" style={{ color: "var(--text-mute)" }}>above</span></div>
                   </div>
+                  <div className="text-[8.5px] font-semibold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: "var(--text-mute)" }}>-{fmtNum(dropFromAnchor, 1)}% · ${fmtNum(lvl.amount_usdt, 0)} · Total ${fmtNum(lvl.cumulative_usdt, 2)}</div>
                 </div>
               );
             })}
