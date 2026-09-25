@@ -12,8 +12,8 @@ import useBinanceStream from "@/hooks/useBinanceStream";
 import { fmtNum } from "@/lib/format";
 
 const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
-const ROW = { background: "#fff", border: "1px solid var(--border)", borderRadius: "16px" };
-const INP = { background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "12px" };
+const ROW = { background: "#fff", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
+const INP = { background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "10px" };
 
 const ord = (n) => {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -22,12 +22,12 @@ const ord = (n) => {
 
 function Row({ Icon, title, sub, right, onClick, testid }) {
   return (
-    <div onClick={onClick} className={`flex items-center gap-3 px-3.5 py-3 ${onClick ? "cursor-pointer" : ""}`}
+    <div onClick={onClick} className={`flex items-center gap-2.5 px-3 py-2 ${onClick ? "cursor-pointer" : ""}`}
       style={{ ...ROW, touchAction: "manipulation" }} data-testid={testid}>
-      <Icon size={22} strokeWidth={2.2} className="shrink-0" style={{ color: "#0D9488" }} />
+      <Icon size={19} strokeWidth={2.2} className="shrink-0" style={{ color: "#0D9488" }} />
       <div className="flex-1 min-w-0">
-        <div className="text-[13.5px] font-black leading-tight" style={{ color: "var(--ink)" }}>{title}</div>
-        <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>{sub}</div>
+        <div className="text-[12.5px] font-black leading-tight" style={{ color: "var(--ink)" }}>{title}</div>
+        <div className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>{sub}</div>
       </div>
       {right}
     </div>
@@ -39,9 +39,9 @@ function NumInput({ value, onChange, unit, testid, w = "w-20" }) {
     <div className="flex items-center shrink-0 overflow-hidden" style={INP}>
       <input value={value} inputMode="decimal"
         onChange={(e) => onChange(e.target.value)}
-        className={`${w} bg-transparent outline-none text-[14px] font-black text-center py-2`}
+        className={`${w} bg-transparent outline-none text-[13px] font-black text-center py-1.5`}
         style={{ color: "var(--ink)" }} data-testid={testid} />
-      <span className="px-2.5 text-[11px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
+      <span className="px-2 text-[10.5px] font-black" style={{ color: "var(--text-mute)", borderLeft: "1px solid var(--border)" }}>{unit}</span>
     </div>
   );
 }
@@ -162,7 +162,7 @@ export default function TradeSettings() {
     return (
       <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
         <Header title="Margin Configuration" />
-        <div className="px-4 space-y-2.5">
+        <div className="px-4 space-y-1.5">
           <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><Settings size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
@@ -194,7 +194,7 @@ export default function TradeSettings() {
     return (
       <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
         <Header title="Distribution And Take Profit" />
-        <div className="px-4 space-y-2.5">
+        <div className="px-4 space-y-1.5">
           <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><PieChart size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
@@ -222,23 +222,23 @@ export default function TradeSettings() {
   return (
     <div className="min-h-screen pb-8" style={{ background: "var(--bg-base)" }}>
       <Header title="Trade Settings" />
-      <div className="px-4 space-y-2.5">
+      <div className="px-4 space-y-1.5">
         {/* Coin card */}
-        <div onClick={() => nav(`/pair/${sym}`)} className="flex items-center gap-3 px-3.5 py-3 cursor-pointer"
-          style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1.5px solid #86EFAC", borderRadius: "16px", touchAction: "manipulation" }}
+        <div onClick={() => nav(`/pair/${sym}`)} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer"
+          style={{ background: "linear-gradient(90deg,#ECFDF5,#EFF6FF)", border: "1.5px solid #86EFAC", borderRadius: "12px", touchAction: "manipulation" }}
           data-testid="ts-coin-card">
-          <CoinIcon symbol={base} size={40} />
+          <CoinIcon symbol={base} size={32} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
-              {base}/USDT <ChevronDown size={16} />
+            <div className="flex items-center gap-1 font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>
+              {base}/USDT <ChevronDown size={14} />
             </div>
-            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>{stats?.name || base}</div>
+            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>{stats?.name || base}</div>
           </div>
           <div className="text-right">
-            <div className="font-display font-black text-[17px] tabular-nums" style={{ color: "#16A34A" }}>${fmtNum(live, live > 100 ? 2 : 4)}</div>
-            <div className="text-[11px] font-black tabular-nums" style={{ color: up ? "#16A34A" : "#DC2626" }}>{up ? "▲" : "▼"} {up ? "+" : ""}{fmtNum(chg, 2)}% (24h)</div>
+            <div className="font-display font-black text-[15px] tabular-nums" style={{ color: "#16A34A" }}>${fmtNum(live, live > 100 ? 2 : 4)}</div>
+            <div className="text-[10px] font-black tabular-nums" style={{ color: up ? "#16A34A" : "#DC2626" }}>{up ? "▲" : "▼"} {up ? "+" : ""}{fmtNum(chg, 2)}% (24h)</div>
           </div>
-          <ChevronRight size={20} style={{ color: "var(--ink)" }} />
+          <ChevronRight size={18} style={{ color: "var(--ink)" }} />
         </div>
 
         <Row Icon={Database} title="First buy in amount" sub="Initial order amount"
