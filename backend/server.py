@@ -2931,6 +2931,11 @@ async def _process_deposit_wallet(user_id: str, net: str, sweep_to: str, detecte
                     w["user_id"], "deposit_onchain", diff,
                     note=f"On-chain USDT deposit · {net}",
                     balance_after=round(float(res.get("balance", 0.0)), 4))
+                await db.deposit_alerts.insert_one({
+                    "id": str(uuid.uuid4()), "user_id": w["user_id"],
+                    "amount": diff, "network": net, "seen": False,
+                    "created_at": iso(now_utc()),
+                })
                 lat = f" · detect→credit {int((time.time() - detected_ts) * 1000)}ms" if detected_ts else ""
                 logger.info(f"DEPOSIT CREDITED: {diff} USDT ({net}) -> {w['user_id']} at {iso(now_utc())}{lat}")
 
@@ -3087,6 +3092,23 @@ async def bot_wallet_deposit_address(user: dict = Depends(get_current_user)):
     }
 
 
+
+
+@api.get("/bot-wallet/deposit-alerts")
+async def deposit_alerts(user: dict = Depends(get_current_user)):
+    return await db.deposit_alerts.find(
+        {"user_id": user["id"], "seen": False}, {"_id": 0}).sort("created_at", 1).to_list(10)
+
+
+class DepositAlertAck(BaseModel):
+    ids: List[str]
+
+
+@api.post("/bot-wallet/deposit-alerts/ack")
+async def ack_deposit_alerts(body: DepositAlertAck, user: dict = Depends(get_current_user)):
+    await db.deposit_alerts.update_many(
+        {"user_id": user["id"], "id": {"$in": body.ids}}, {"$set": {"seen": True}})
+    return {"ok": True}
 
 
 @api.get("/bot-wallet/withdrawals")

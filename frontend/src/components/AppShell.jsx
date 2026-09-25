@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
+import DepositCelebration from "@/components/DepositCelebration";
 
 export default function AppShell() {
   return (
@@ -18,6 +19,7 @@ export default function AppShell() {
       >
         <Outlet />
         <BottomNav />
+        <DepositCelebration />
       </div>
     </div>
   );
