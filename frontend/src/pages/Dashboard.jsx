@@ -63,8 +63,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!rank?.current_level) return;
-    const stored = Number(localStorage.getItem("hubx-rank-level") || 1);
-    if (rank.current_level > stored) {
+    const stored = localStorage.getItem("hubx-rank-level");
+    if (stored === null || rank.current_level > Number(stored)) {
       setRankUp({ title: rank.current_title, level: rank.current_level });
       const fire = (opts) =>
         confetti({ particleCount: 90, spread: 75, zIndex: 9999, ...opts });
