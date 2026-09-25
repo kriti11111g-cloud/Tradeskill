@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.setItem("tgx_token", data.token);
+    localStorage.removeItem("hubx-rank-level");
     setUser(data.user);
     return data.user;
   };
@@ -41,6 +42,7 @@ export function AuthProvider({ children }) {
       await api.post("/auth/logout");
     } catch {}
     localStorage.removeItem("tgx_token");
+    localStorage.removeItem("hubx-rank-level");
     setUser(null);
   };
 
