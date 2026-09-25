@@ -1,0 +1,43 @@
+{
+  "summary": "Frontend E2E test of the new Live Position page (/pair/BTCUSDT). 11/12 requested flows pass. One CRITICAL layout bug found: Edit Position modal Save button is fully overlapped by the fixed bottom navigation on the mobile viewport (420x900), making it unclickable for a real user. All other flows work: header, coin card, live price + 24h change, 11 stat cards, dynamic ladder count matching margin_call_limit (verified 9→10), C1..CN call cards, current price row, refresh toast, 3-dot menu with all 6 items, Edit Strategy nav, Coin-card nav to /trade-settings, Start Bot / Stop Bot state transitions, ts-limit change dynamically updates ladder call cards, and dark mode renders correctly (no white cards).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "TradingPair.jsx Edit Position modal",
+        "issue": "The Save Position button (lp-posedit-save) is completely covered by the fixed bottom navigation bar on mobile viewport (420x900). Measured: save button rect y=820.5, h=46.5, viewport h=900; bottom-nav is fixed at bottom with h-20 (80px), starting at y=820. `document.elementFromPoint(saveCenterX, saveCenterY)` returns the <nav data-testid=\"bottom-nav\"> element, not the save button. A real user tapping Save hits the bottom-nav's Trade tab. Playwright force-click also fails to trigger onClick — modal just closes via backdrop propagation. The POST /api/bots/{sym}/position endpoint itself works fine (verified via JS .click() and via curl). The Import balance button and inputs above are also close to the overlap zone. FIX: hide bottom-nav while modal is open, OR render modal in a portal with z-index above bottom-nav (bottom-nav appears to have equal/higher z compared to the fixed inset modal), OR change items-end to items-center on mobile too, OR add bottom padding pb-24 to modal container so Save clears the 80px nav.",
+        "selector": "[data-testid=\"lp-posedit-save\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "TradingPair.jsx StatCard testid slug",
+        "issue": "Slug generation `label.toLowerCase().replace(/[^a-z0-9]+/g, '-')` leaves a TRAILING hyphen when the label ends with `)` — e.g. 'Position amount (USDT)' → data-testid=`lp-stat-position-amount-usdt-` (trailing dash) instead of the spec's `lp-stat-position-amount-usdt`. Same for `lp-stat-position-quantity-btc-`. FIX: append `.replace(/^-+|-+$/g, '')` after the replace to trim leading/trailing dashes.",
+        "selector": "[data-testid=\"lp-stat-position-amount-usdt\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Live Position", "issues": ["Binance WSS 451 in preview (geo-block) — live tick falls back to REST /market/stats/{sym}, prices still display. Not a code bug."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix bottom-nav overlapping lp-posedit-save on mobile viewport (add pb-24 to the modal inner container, or hide bottom-nav while lp-posedit-modal is open, or bump modal container z-index above bottom-nav). This is the only real user-facing blocker.",
+    "Trim trailing hyphens in StatCard data-testid slug so lp-stat-position-amount-usdt and lp-stat-position-quantity-btc match the spec (remove the extra trailing '-')."
+  ],
+  "critical_code_review_comments": [
+    "TradingPair.jsx L34: slug generator produces trailing '-' for labels ending in ')'. Add .replace(/^-+|-+$/g,'').",
+    "Edit Position modal (L313-340) renders as items-end on mobile without pb-24 — collides with fixed bottom-nav (h-20).",
+    "TradingPair.jsx L61-62: price falls back to stats.lastPrice string, but stream.price==0 check keeps rechecking; okay but stream error surfaces as noisy console spam in preview (WSS 451).",
+    "TradingPair.jsx L112-113: startBot/stopBot don't await; toast fires immediately on 2xx but errors from race conditions could be missed if loadAll fails."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "83% (10/12 acceptance items; 1 HIGH bug, 1 MED slug bug)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "During test the bot's BTCUSDT position was temporarily set to qty=0.01/avg=50000/mc=2 via JS click bypass; reset back to qty=0/avg=0/mc=0 and stopped via curl at end. Final DB state verified: qty 0.0 mc 0 lim 9 st stopped.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The Edit Position modal Save button is unreachable on 420-wide viewports because the fixed bottom-nav (h-20) overlays it. Once main agent adds pb-24 (or portals modal above bottom-nav / hides bottom-nav on modal open), re-test by clicking lp-posedit-save via a NORMAL click (not force / not JS.click) and verify: (a) POST /api/bots/BTCUSDT/position fires, (b) 'Position updated' toast, (c) lp-stat-numbers-of-call-margin card shows new value, (d) lp-ladder-count updates 'X Left', (e) lp-call-used-1..N cards render. Also verify the testid slug fix for lp-stat-position-amount-usdt (no trailing hyphen). Dark mode and dynamic ladder count already confirmed working.",
+  "rca of the issue": "Root cause: modal outer container uses `flex items-end sm:items-center justify-center bg-black/50 p-4` — on <sm mobile (420px), modal panel is aligned to bottom edge (items-end) with only p-4 (16px) padding. The Save button lies within the last ~46px of the modal; combined with the modal itself extending to viewport bottom minus 16px, the button's y-range (820..866) fully falls inside the fixed bottom-nav's y-range (820..900, h-20 = 80px). Bottom-nav therefore intercepts pointer events at that spot. Reproduction: /pair/BTCUSDT on 420x900 viewport → 3-dot menu → Edit Position → fill values → tap Save → observe: no POST fires, modal closes (from backdrop click), no toast. Mitigation: apply pb-24 to modal panel OR wrap modal render in a portal with z-index higher than bottom-nav OR conditionally hide bottom-nav when posEditOpen."
+}

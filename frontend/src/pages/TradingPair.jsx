@@ -31,12 +31,14 @@ const STAT_DEFS = [
 
 function StatCard({ Icon, grad, label, value, valueColor }) {
   return (
-    <div className="flex flex-col items-start px-2.5 py-2.5 min-h-[86px]" style={CARD} data-testid={`lp-stat-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white mb-1.5 shrink-0" style={{ background: grad }}>
-        <Icon size={17} strokeWidth={2.2} />
+    <div className="flex items-center gap-2 px-2 py-2 min-h-[58px]" style={CARD} data-testid={`lp-stat-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: grad }}>
+        <Icon size={15} strokeWidth={2.2} />
       </div>
-      <div className="text-[9.5px] font-semibold leading-tight" style={{ color: "var(--text-mute)" }}>{label}</div>
-      <div className="font-display font-black text-[13.5px] tabular-nums mt-0.5 leading-none" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[8.5px] font-semibold leading-tight" style={{ color: "var(--text-mute)" }}>{label}</div>
+        <div className="font-display font-black text-[13px] tabular-nums mt-0.5 leading-none truncate" style={{ color: valueColor || "var(--ink)" }}>{value}</div>
+      </div>
     </div>
   );
 }
@@ -311,7 +313,7 @@ export default function TradingPair() {
 
       {/* Edit Position modal */}
       {posEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={() => setPosEditOpen(false)}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 pb-28" onClick={() => setPosEditOpen(false)}>
           <div className="w-full max-w-sm rounded-2xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()} data-testid="lp-posedit-modal">
             <div className="font-display font-black text-[17px] mb-3" style={{ color: "var(--ink)" }}>Edit Position</div>
             {[
