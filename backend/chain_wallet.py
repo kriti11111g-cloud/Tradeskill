@@ -90,25 +90,37 @@ def _w3(network: str) -> Web3:
     return w3
 
 
+def _with_failover(network: str, fn):
+    """RPC fail par agla backup RPC try karo (sticky rotation)."""
+    urls = _rpc_urls(network)
+    last = None
+    for _ in range(len(urls)):
+        try:
+            return fn(_w3(network))
+        except Exception as e:
+            last = e
+            rotate_rpc(network)
+    raise last
+
+
 def get_latest_block(network: str) -> int:
-    return _w3(network).eth.block_number
+    return _with_failover(network, lambda w3: w3.eth.block_number)
 
 
 def get_usdt_transfers_to(network: str, addresses: list, from_block: int, to_block: int) -> list:
     """Event-based detection: USDT Transfer logs jinka `to` hamare deposit addresses me hai.
     Public RPCs ki getLogs limit ke liye 10-block chunks me scan hota hai."""
     cfg = NETWORKS[network]
-    w3 = _w3(network)
     topic_addrs = ["0x" + ("0" * 24) + a.lower().replace("0x", "") for a in addresses]
     out = []
     start = from_block
     while start <= to_block:
         end = min(start + 9, to_block)
-        logs = w3.eth.get_logs({
+        logs = _with_failover(network, lambda w3, s=start, e=end: w3.eth.get_logs({
             "address": Web3.to_checksum_address(cfg["usdt"]),
-            "fromBlock": start, "toBlock": end,
+            "fromBlock": s, "toBlock": e,
             "topics": [TRANSFER_TOPIC, None, topic_addrs],
-        })
+        }))
         for lg in logs:
             to_addr = "0x" + bytes(lg["topics"][2])[-20:].hex()
             value = int.from_bytes(bytes(lg["data"]), "big") / (10 ** cfg["decimals"])

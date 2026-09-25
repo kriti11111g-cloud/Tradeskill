@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (22 Jun 2026): FAST deposits — event-based detection (<10s target)
+- PRIMARY: deposit_event_loop scans USDT Transfer events (eth_getLogs, 10-block chunks) every 3s on BSC+Polygon — instant per-deposit task
+- BACKUP: old balance-poll watcher now runs every 60s (DEPOSIT_WATCH_INTERVAL; pod .env has 45)
+- RPC failover: comma-separated URLs + auto backup list (publicnode etc.); binance dataseed blocks getLogs → auto-rotates (sticky)
+- INSTANT SWEEP: on detect → credit (CAS) → sweep broadcast immediately (parallel task, per user+net lock); gas top-up wait poll 0.5s
+- Dynamic gas already (live gas price +20%)
+- LOGS: "DEPOSIT DETECTED (event)" with tx/block/time, "DEPOSIT CREDITED ... detect→credit Xms", "SWEEP BROADCAST ... detect→broadcast Xms", "SWEEP CONFIRMED ... broadcast→confirm Xms"; sweeps doc has detected_at/broadcast_at/confirmed_at/timings
+- Verified live on BSC: real USDT transfer detected via event filter in 598ms
+
 ## Update (22 Jun 2026): Asset history tap-to-expand details
 - Asset page history rows now expand on one tap (like Revenue): shows reason/note, coin (e.g. "Fuel · 25.0% of $1.53 profit · Coin: FIL/USDT") and full date-time; chevron rotates
 - /bot-wallet/transactions already returns note+symbol; frontend-only change (Wallet.jsx openHist)
