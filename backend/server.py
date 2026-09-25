@@ -216,7 +216,7 @@ BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
-DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "60"))  # backup poller
+DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "30"))  # backup poller
 EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "3"))  # primary event scanner
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
 SWEEP_ENABLED = os.environ.get("SWEEP_ENABLED", "1") == "1"
@@ -2994,9 +2994,38 @@ async def _confirm_sweep(net: str, tx_hash: str, sweep_id: str, started: float):
 
 async def deposit_event_loop():
     """PRIMARY detector — event-based (USDT Transfer logs), har ~3s naye blocks scan.
-    Deposit detect hote hi instant credit + sweep broadcast (target < 10s)."""
+    BSC + Polygon PARALLEL scan hote hain. Deposit detect hote hi instant credit + sweep."""
     await asyncio.sleep(5)
     last_blocks = {}
+
+    async def scan_net(net, addr_map, sweep_to):
+        try:
+            latest = await asyncio.to_thread(chain_wallet.get_latest_block, net)
+            prev = last_blocks.get(net)
+            if prev is None or latest < prev:
+                last_blocks[net] = latest
+                return
+            if latest == prev:
+                return
+            frm = max(prev + 1, latest - 120)
+            transfers = await asyncio.to_thread(
+                chain_wallet.get_usdt_transfers_to, net,
+                list(addr_map.keys()), frm, latest)
+            last_blocks[net] = latest
+            for t in transfers:
+                uid = addr_map.get(t["to"].lower())
+                if not uid:
+                    continue
+                detected_ts = time.time()
+                logger.info(
+                    f"DEPOSIT DETECTED (event): {t['value']:.4f} USDT ({net}) "
+                    f"tx={t['tx_hash']} block={t['block']} -> user {uid} at {iso(now_utc())}")
+                asyncio.create_task(
+                    _process_deposit_wallet(uid, net, sweep_to, detected_ts))
+        except Exception as e:
+            chain_wallet.rotate_rpc(net)
+            logger.warning(f"deposit event scan {net}: {e} — RPC rotated")
+
     while True:
         try:
             wallets = await db.bot_wallets.find(
@@ -3007,33 +3036,13 @@ async def deposit_event_loop():
                 await asyncio.sleep(EVENT_SCAN_INTERVAL)
                 continue
             sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
-            for net in ("BEP20", "POLYGON"):
-                try:
-                    latest = await asyncio.to_thread(chain_wallet.get_latest_block, net)
-                    prev = last_blocks.get(net)
-                    if prev is None or latest < prev:
-                        last_blocks[net] = latest
-                        continue
-                    if latest == prev:
-                        continue
-                    frm = max(prev + 1, latest - 120)
-                    transfers = await asyncio.to_thread(
-                        chain_wallet.get_usdt_transfers_to, net,
-                        list(addr_map.keys()), frm, latest)
-                    last_blocks[net] = latest
-                    for t in transfers:
-                        uid = addr_map.get(t["to"].lower())
-                        if not uid:
-                            continue
-                        detected_ts = time.time()
-                        logger.info(
-                            f"DEPOSIT DETECTED (event): {t['value']:.4f} USDT ({net}) "
-                            f"tx={t['tx_hash']} block={t['block']} -> user {uid} at {iso(now_utc())}")
-                        asyncio.create_task(
-                            _process_deposit_wallet(uid, net, sweep_to, detected_ts))
-                except Exception as e:
-                    chain_wallet.rotate_rpc(net)
-                    logger.warning(f"deposit event scan {net}: {e} — RPC rotated")
+            t0 = time.time()
+            await asyncio.gather(
+                scan_net("BEP20", addr_map, sweep_to),
+                scan_net("POLYGON", addr_map, sweep_to))
+            elapsed = time.time() - t0
+            if elapsed > 6:
+                logger.warning(f"deposit event scan slow: {elapsed:.1f}s — RPC latency high")
         except Exception as e:
             logger.warning(f"deposit event loop: {e}")
         await asyncio.sleep(EVENT_SCAN_INTERVAL)

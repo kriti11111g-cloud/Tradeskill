@@ -7,13 +7,15 @@ from bip_utils import Bip39SeedGenerator, Bip44, Bip44Coins, Bip44Changes
 # keccak("Transfer(address,address,uint256)")
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
-# Backup public RPCs — primary fail hone par auto-rotate
+# Backup public RPCs — primary fail hone par auto-rotate (fastest first)
 _DEFAULT_BACKUPS = {
-    "BEP20": ["https://bsc-dataseed1.binance.org", "https://bsc-dataseed2.binance.org",
-              "https://bsc-rpc.publicnode.com"],
-    "POLYGON": ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+    "BEP20": ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed1.bnbchain.org",
+              "https://bsc-dataseed1.binance.org", "https://bsc-dataseed2.binance.org"],
+    "POLYGON": ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com"],
 }
 _rpc_idx = {}
+_w3_cache = {}
+GETLOGS_CHUNK = int(os.environ.get("GETLOGS_CHUNK", "30"))
 
 ERC20_ABI = [
     {"constant": True, "inputs": [{"name": "_owner", "type": "address"}],
@@ -85,8 +87,12 @@ def rotate_rpc(network: str):
 def _w3(network: str) -> Web3:
     urls = _rpc_urls(network)
     url = urls[_rpc_idx.get(network, 0) % len(urls)]
-    w3 = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 8}))
+    cached = _w3_cache.get(url)
+    if cached is not None:
+        return cached
+    w3 = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 5}))
     w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+    _w3_cache[url] = w3
     return w3
 
 
@@ -109,13 +115,13 @@ def get_latest_block(network: str) -> int:
 
 def get_usdt_transfers_to(network: str, addresses: list, from_block: int, to_block: int) -> list:
     """Event-based detection: USDT Transfer logs jinka `to` hamare deposit addresses me hai.
-    Public RPCs ki getLogs limit ke liye 10-block chunks me scan hota hai."""
+    Public RPCs ki getLogs limit ke liye GETLOGS_CHUNK-block chunks me scan hota hai."""
     cfg = NETWORKS[network]
     topic_addrs = ["0x" + ("0" * 24) + a.lower().replace("0x", "") for a in addresses]
     out = []
     start = from_block
     while start <= to_block:
-        end = min(start + 9, to_block)
+        end = min(start + GETLOGS_CHUNK - 1, to_block)
         logs = _with_failover(network, lambda w3, s=start, e=end: w3.eth.get_logs({
             "address": Web3.to_checksum_address(cfg["usdt"]),
             "fromBlock": s, "toBlock": e,
