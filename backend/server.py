@@ -3162,6 +3162,39 @@ class AdminRejectIn(BaseModel):
     reason: Optional[str] = None
 
 
+@api.post("/admin/sweep-stuck")
+async def admin_sweep_stuck(admin: dict = Depends(require_admin)):
+    """Stuck on-chain deposits ko manually sweep karta hai (credit dobara NahI hota)."""
+    sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
+    if not sweep_to:
+        raise HTTPException(400, "SWEEP_ADDRESS not configured")
+    wallets = await db.bot_wallets.find(
+        {"deposit_index": {"$exists": True}},
+        {"_id": 0, "user_id": 1, "deposit_index": 1, "chain_deposit_address": 1}).to_list(2000)
+    results = []
+    for w in wallets:
+        for net in ("BEP20", "POLYGON"):
+            try:
+                bal = await asyncio.to_thread(
+                    chain_wallet.get_usdt_balance, net, w["chain_deposit_address"])
+                if bal < SWEEP_MIN_USDT:
+                    continue
+                r = await asyncio.to_thread(
+                    chain_wallet.sweep_usdt, net, int(w["deposit_index"]), sweep_to, SWEEP_MIN_USDT)
+                if r.get("swept"):
+                    await db.sweeps.insert_one({
+                        "id": str(uuid.uuid4()), "user_id": w["user_id"], "network": net,
+                        "amount": r["amount"], "from_address": r["from_address"],
+                        "to_address": sweep_to, "sweep_tx": r["sweep_tx"],
+                        "gas_tx": r.get("gas_tx"), "status": "broadcast",
+                        "manual": True, "created_at": iso(now_utc())})
+                    logger.info(f"MANUAL SWEEP: {r['amount']:.4f} USDT ({net}) user {w['user_id']} tx={r['sweep_tx']}")
+                results.append({"user_id": w["user_id"], "network": net, "balance": bal, **r})
+            except Exception as e:
+                results.append({"user_id": w["user_id"], "network": net, "error": str(e)})
+    return {"checked": len(wallets), "actions": results}
+
+
 @api.get("/admin/withdrawals")
 async def admin_withdrawals(status: Optional[str] = None,
                             admin: dict = Depends(require_admin),
