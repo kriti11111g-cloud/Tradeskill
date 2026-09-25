@@ -1,5 +1,11 @@
 # TGX BOT — Product Requirements Document
 
+## Update (25 Jun 2026): New Sign Up page (exact reference design)
+- Register.jsx rebuilt: logo + "Trade Skill / CREATE YOUR ACCOUNT", Name, Email with in-card Send OTP pill → 6 OTP boxes inside same card → auto-verify ✓ badge (no separate verify button), +CC flag selector + Mobile in one field (no mobile OTP), Password + Transaction Password with eye toggles, Referral + QR scanner (jsQR camera modal, ?ref= URL or raw code autofill), Select Your Leg dropdown (Left/Right mandatory), Terms checkbox, gradient Create Account
+- Backend: /auth/signup-otp/send + /auth/signup-otp/verify (sha256, TTL, cooldown, attempts; demo mode returns demo_otp). Register REQUIRES verified email OTP; new fields: country_code, mobile, transaction_password (bcrypt hashed as txn_password_hash), leg
+- Referral lookup now matches referral_code OR uid
+- E2E tested: OTP send→verify→register with all fields (UID TSK100103) + UI auto-verify flow verified
+
 ## Update (22 Jun 2026): FAST deposits — event-based detection (<10s target)
 - PRIMARY: deposit_event_loop scans USDT Transfer events (eth_getLogs, 10-block chunks) every 3s on BSC+Polygon — instant per-deposit task
 - BACKUP: old balance-poll watcher now runs every 60s (DEPOSIT_WATCH_INTERVAL; pod .env has 45)

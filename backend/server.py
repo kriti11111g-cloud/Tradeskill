@@ -324,6 +324,19 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=6)
     name: Optional[str] = None
     referral_code: Optional[str] = None
+    country_code: Optional[str] = "+91"
+    mobile: Optional[str] = None
+    transaction_password: Optional[str] = Field(default=None, min_length=4)
+    leg: Optional[Literal["left", "right"]] = None
+
+
+class SignupOtpSendIn(BaseModel):
+    email: EmailStr
+
+
+class SignupOtpVerifyIn(BaseModel):
+    email: EmailStr
+    code: str
 
 
 class LoginIn(BaseModel):
@@ -386,12 +399,65 @@ async def _next_uid() -> str:
     return f"TSK{100000 + int(c['seq']) - 1}"
 
 
+@api.post("/auth/signup-otp/send")
+async def signup_otp_send(body: SignupOtpSendIn):
+    email = body.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    now = now_utc()
+    existing = await db.signup_otps.find_one({"email": email}, {"_id": 0})
+    if existing and existing.get("created_at"):
+        elapsed = (now - datetime.fromisoformat(existing["created_at"])).total_seconds()
+        if elapsed < OTP_RESEND_COOLDOWN:
+            raise HTTPException(429, f"Please wait {int(OTP_RESEND_COOLDOWN - elapsed)}s before requesting another OTP")
+    code = f"{random.randint(0, 999999):06d}"
+    await db.signup_otps.replace_one(
+        {"email": email},
+        {"email": email,
+         "code_hash": hashlib.sha256(code.encode()).hexdigest(),
+         "created_at": iso(now),
+         "expires_at": iso(now + timedelta(seconds=OTP_TTL_SECONDS)),
+         "attempts": 0, "verified": False},
+        upsert=True)
+    try:
+        await asyncio.to_thread(_send_otp_email, email, code, "signup")
+    except Exception as e:
+        logger.error(f"signup OTP email failed: {e}")
+        raise HTTPException(500, "Could not send OTP email. Try again later.")
+    resp = {"ok": True, "email_masked": _mask_email(email),
+            "expires_in": OTP_TTL_SECONDS, "resend_in": OTP_RESEND_COOLDOWN,
+            "mode": EMAIL_OTP_MODE}
+    if EMAIL_OTP_MODE == "demo":
+        resp["demo_otp"] = code
+    return resp
+
+
+@api.post("/auth/signup-otp/verify")
+async def signup_otp_verify(body: SignupOtpVerifyIn):
+    email = body.email.lower()
+    doc = await db.signup_otps.find_one({"email": email}, {"_id": 0})
+    if not doc:
+        raise HTTPException(400, "Request an OTP first")
+    if datetime.fromisoformat(doc["expires_at"]) < now_utc():
+        raise HTTPException(400, "OTP expired — request a new one")
+    if doc.get("attempts", 0) >= 5:
+        raise HTTPException(429, "Too many wrong attempts — request a new OTP")
+    if hashlib.sha256(body.code.strip().encode()).hexdigest() != doc["code_hash"]:
+        await db.signup_otps.update_one({"email": email}, {"$inc": {"attempts": 1}})
+        raise HTTPException(400, "Incorrect OTP")
+    await db.signup_otps.update_one({"email": email}, {"$set": {"verified": True}})
+    return {"verified": True}
+
+
 @api.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
     email = body.email.lower()
     existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(400, "Email already registered")
+    otp = await db.signup_otps.find_one({"email": email}, {"_id": 0, "verified": 1})
+    if not otp or not otp.get("verified"):
+        raise HTTPException(400, "Please verify your email with OTP first")
 
     user_id = str(uuid.uuid4())
     uid = await _next_uid()
@@ -399,7 +465,8 @@ async def register(body: RegisterIn, response: Response):
 
     referred_by = None
     if body.referral_code:
-        ref = await db.users.find_one({"referral_code": body.referral_code.upper()})
+        code = body.referral_code.strip().upper()
+        ref = await db.users.find_one({"$or": [{"referral_code": code}, {"uid": code}]})
         if ref:
             referred_by = ref["id"]
 
@@ -413,11 +480,16 @@ async def register(body: RegisterIn, response: Response):
         "referral_code": ref_code,
         "referred_by": referred_by,
         "rank": "Level 1",
+        "country_code": body.country_code or "+91",
+        "mobile": (body.mobile or "").strip() or None,
+        "txn_password_hash": hash_password(body.transaction_password) if body.transaction_password else None,
+        "leg": body.leg,
         "activated": False,
         "wallet_usdt": 1000.0,  # demo starter balance
         "created_at": iso(now_utc()),
     }
     await db.users.insert_one(doc)
+    await db.signup_otps.delete_one({"email": email})
 
     # Seed some rewards
     await db.rewards.insert_one({
@@ -3167,21 +3239,22 @@ def _mask_email(e: str) -> str:
     return f"{name[:2]}***@{dom}" if dom else "***"
 
 
-def _send_otp_email(to_email: str, code: str) -> bool:
+def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bool:
     if EMAIL_OTP_MODE == "smtp":
         import smtplib
         from email.mime.text import MIMEText
         gm_user = os.environ["GMAIL_USER"]
         gm_pass = os.environ["GMAIL_APP_PASSWORD"]
-        msg = MIMEText(f"Your Trade Skill withdrawal OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
-        msg["Subject"] = "Trade Skill Withdrawal Verification Code"
+        label = "signup verification" if purpose == "signup" else "withdrawal"
+        msg = MIMEText(f"Your Trade Skill {label} OTP is: {code}\n\nValid for 5 minutes. Never share this code with anyone.")
+        msg["Subject"] = f"Trade Skill {'Sign Up' if purpose == 'signup' else 'Withdrawal'} Verification Code"
         msg["From"] = gm_user
         msg["To"] = to_email
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
             s.login(gm_user, gm_pass)
             s.send_message(msg)
         return True
-    logger.info(f"[DEMO OTP] Withdrawal OTP for {to_email}: {code}")
+    logger.info(f"[DEMO OTP] {purpose} OTP for {to_email}: {code}")
     return False
 
 
