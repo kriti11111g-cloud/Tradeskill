@@ -133,7 +133,7 @@ function BotRow({ bot, onDone }) {
     <div
       onClick={() => navigate(`/trade-settings/${bot.symbol}`)}
       className="w-full text-left rounded-xl px-3 py-2.5 cursor-pointer"
-      style={{ ...CARD, touchAction: "manipulation" }}
+      style={{ ...CARD, ...(isRunning ? { border: "1.5px solid #2563EB" } : {}), touchAction: "manipulation" }}
       data-testid={`bot-card-${bot.symbol}`}
     >
       <div className="flex items-center gap-2.5">
