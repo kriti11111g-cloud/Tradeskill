@@ -165,7 +165,9 @@ export default function Register() {
 
         {/* Logo */}
         <div className="flex flex-col items-center -mt-2">
-          <img src={LOGO} alt="Trade Skill" className="w-28 h-28 rounded-full object-cover" style={{ boxShadow: "0 0 24px rgba(34,197,94,0.35)" }} />
+          <div className="w-28 h-28 rounded-full overflow-hidden" style={{ boxShadow: "0 0 24px rgba(34,197,94,0.35)" }}>
+            <img src={LOGO} alt="Trade Skill" className="w-full h-full object-cover" style={{ transform: "scale(1.55)" }} />
+          </div>
           <div className="font-display font-black text-[32px] leading-tight mt-2 text-[#0F172A]">
             Trade <span style={{ color: "#14B8A6" }}>Skill</span>
           </div>

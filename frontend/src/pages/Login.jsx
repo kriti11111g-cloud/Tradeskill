@@ -35,7 +35,9 @@ export default function Login() {
       <div className="w-full max-w-md z-10 px-6 flex flex-col justify-center min-h-screen pb-16">
         {/* Logo */}
         <div className="flex flex-col items-center">
-          <img src={TS_LOGO} alt="Trade Skill" className="w-40 h-40 rounded-full object-cover" style={{ boxShadow: "0 0 40px rgba(34,197,94,0.25)" }} />
+          <div className="w-44 h-44 rounded-full overflow-hidden" style={{ boxShadow: "0 0 40px rgba(34,197,94,0.25)" }}>
+            <img src={TS_LOGO} alt="Trade Skill" className="w-full h-full object-cover" style={{ transform: "scale(1.55)" }} />
+          </div>
           <div className="font-display font-black text-[38px] leading-tight mt-3 text-white">
             Trade{" "}
             <span style={{ background: "linear-gradient(90deg,#4ADE80,#22D3EE)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Skill</span>
