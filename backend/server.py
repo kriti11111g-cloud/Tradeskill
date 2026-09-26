@@ -319,6 +319,8 @@ async def get_current_user(request: Request) -> dict:
     user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(401, "User not found")
+    if user.get("blocked"):
+        raise HTTPException(403, "Your account has been blocked. Contact support.")
     return user
 
 
@@ -2836,6 +2838,11 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     address = (body.address or "").strip()
     network = ((body.network or "").strip() or "BEP20").upper()
 
+    # Admin-set withdrawal address override (User Management → Edit wallet)
+    _admin_addr = (user.get("withdrawal_addresses") or {}).get(network)
+    if _admin_addr:
+        address = _admin_addr
+
     if not address:
         raise HTTPException(400, "Withdrawal address required. The app uses one unified wallet — withdraw externally or use P2P.")
 
@@ -3498,7 +3505,8 @@ async def admin_users(q: str = "", admin: dict = Depends(require_admin)):
         filt["$or"] = [{"email": rx}, {"uid": rx}, {"name": rx}]
     users = await db.users.find(
         filt, {"_id": 0, "id": 1, "uid": 1, "email": 1, "name": 1, "rank": 1,
-               "activated": 1, "created_at": 1}).sort("created_at", -1).to_list(200)
+               "activated": 1, "created_at": 1, "mobile": 1, "blocked": 1,
+               "withdrawal_addresses": 1}).sort("created_at", -1).to_list(200)
     ids = [u["id"] for u in users]
     wallets = {w["user_id"]: w.get("balance", 0.0) for w in await db.bot_wallets.find(
         {"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "balance": 1}).to_list(len(ids) or 1)}
@@ -3552,6 +3560,49 @@ async def admin_set_settings(body: AdminSettingsIn, admin: dict = Depends(requir
         {"key": "auto_withdraw"}, {"$set": {"value": body.auto_withdraw}}, upsert=True)
     logger.info(f"ADMIN SETTINGS: auto_withdraw={body.auto_withdraw}")
     return {"ok": True, "auto_withdraw": body.auto_withdraw}
+
+
+class AdminUserWalletsIn(BaseModel):
+    bep20_address: Optional[str] = None
+    polygon_address: Optional[str] = None
+
+
+@api.post("/admin/users/{uid}/wallets")
+async def admin_update_user_wallets(uid: str, body: AdminUserWalletsIn,
+                                    admin: dict = Depends(require_admin)):
+    u = await db.users.find_one({"uid": uid.upper()}, {"_id": 0, "id": 1, "email": 1})
+    if not u:
+        raise HTTPException(404, "User not found")
+    wa = {}
+    for key, val in (("BEP20", body.bep20_address), ("POLYGON", body.polygon_address)):
+        v = (val or "").strip()
+        if v:
+            if not (v.startswith("0x") and len(v) == 42):
+                raise HTTPException(400, f"Invalid {key} address")
+            wa[f"withdrawal_addresses.{key}"] = v
+    if not wa:
+        raise HTTPException(400, "No address provided")
+    await db.users.update_one({"id": u["id"]}, {"$set": wa})
+    logger.info(f"ADMIN WALLETS UPDATE: {uid} {list(wa.keys())}")
+    return {"ok": True}
+
+
+@api.post("/admin/users/{uid}/block")
+async def admin_block_user(uid: str, admin: dict = Depends(require_admin)):
+    r = await db.users.update_one({"uid": uid.upper()}, {"$set": {"blocked": True}})
+    if not r.matched_count:
+        raise HTTPException(404, "User not found")
+    logger.info(f"ADMIN BLOCK: {uid}")
+    return {"ok": True, "blocked": True}
+
+
+@api.post("/admin/users/{uid}/unblock")
+async def admin_unblock_user(uid: str, admin: dict = Depends(require_admin)):
+    r = await db.users.update_one({"uid": uid.upper()}, {"$set": {"blocked": False}})
+    if not r.matched_count:
+        raise HTTPException(404, "User not found")
+    logger.info(f"ADMIN UNBLOCK: {uid}")
+    return {"ok": True, "blocked": False}
 
 
 @api.get("/admin/finance-summary")

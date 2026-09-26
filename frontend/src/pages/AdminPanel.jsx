@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
-  RefreshCw, Search,
+  RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -38,6 +38,41 @@ export default function AdminPanel() {
   const [settings, setSettings] = useState(null);
   const [adj, setAdj] = useState({ identifier: "", amount: "", note: "" });
   const [adjBusy, setAdjBusy] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [editWallets, setEditWallets] = useState({ bep20: null, polygon: null });
+  const [detailBusy, setDetailBusy] = useState(false);
+
+  const openUser = (u) => {
+    setDetail(u);
+    setEditWallets({ bep20: null, polygon: null });
+  };
+
+  const saveWallets = async () => {
+    setDetailBusy(true);
+    try {
+      await api.post(`/admin/users/${detail.uid}/wallets`, {
+        bep20_address: editWallets.bep20 || null,
+        polygon_address: editWallets.polygon || null,
+      }, cfg);
+      toast.success("Wallet address updated — user withdrawals will use it now");
+      const wa = { ...(detail.withdrawal_addresses || {}) };
+      if (editWallets.bep20) wa.BEP20 = editWallets.bep20;
+      if (editWallets.polygon) wa.POLYGON = editWallets.polygon;
+      setDetail({ ...detail, withdrawal_addresses: wa });
+      setEditWallets({ bep20: null, polygon: null });
+      loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
+  const blockToggle = async (block) => {
+    setDetailBusy(true);
+    try {
+      await api.post(`/admin/users/${detail.uid}/${block ? "block" : "unblock"}`, {}, cfg);
+      toast.success(block ? `${detail.uid} BLOCKED` : `${detail.uid} unblocked`);
+      setDetail({ ...detail, blocked: block });
+      loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
 
   const cfg = { headers: { Authorization: `Bearer ${walletToken}` } };
 
@@ -194,24 +229,113 @@ export default function AdminPanel() {
             <div className="flex items-center gap-2 px-3 py-2.5 mb-3" style={CARD}>
               <Search size={16} style={{ color: BLUE }} />
               <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadSection("users")}
-                placeholder="Search email / UID / name" className="flex-1 bg-transparent outline-none text-[13px] font-bold"
+                placeholder="Search UID / email / name" className="flex-1 bg-transparent outline-none text-[13px] font-bold"
                 style={{ color: "var(--ink)" }} data-testid="admin-user-search" />
               <button onClick={() => loadSection("users")} className="text-[11px] font-black px-3 py-1.5 rounded-lg text-white" style={{ background: BLUE_GRAD, touchAction: "manipulation" }}>GO</button>
             </div>
             <div className="space-y-2">
               {users.map((u) => (
-                <div key={u.id} className="flex items-center justify-between px-3 py-2.5" style={CARD} data-testid={`admin-user-${u.uid}`}>
-                  <div className="min-w-0">
-                    <div className="font-display font-black text-[13px] truncate" style={{ color: "var(--ink)" }}>{u.uid} · {u.name || u.email.split("@")[0]}</div>
-                    <div className="text-[10px] font-semibold truncate" style={{ color: "var(--text-mute)" }}>{u.email} · {u.rank || "Level 1"}</div>
+                <div key={u.id} onClick={() => openUser(u)} className="flex items-center gap-3 px-3 py-3 cursor-pointer" style={CARD} data-testid={`admin-user-${u.uid}`}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,0.12)" }}>
+                    <Users size={19} style={{ color: BLUE }} />
                   </div>
-                  <div className="text-right shrink-0 pl-2">
-                    <div className="font-display font-black text-[14px] tabular-nums" style={{ color: "var(--ink)" }}>{fmtUSD(u.balance)}</div>
-                    <div className="text-[9px] font-black uppercase" style={{ color: u.activated ? "#16A34A" : "#DC2626" }}>{u.activated ? "● Active" : "● Inactive"}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>{u.uid}</div>
+                    <div className="text-[12px] font-bold tabular-nums" style={{ color: "var(--text-mute)" }}>$ {Number(u.balance).toFixed(2)}</div>
                   </div>
+                  <span className="text-[11px] font-black px-3 py-1 rounded-full shrink-0"
+                    style={u.activated
+                      ? { background: "#DCFCE7", color: "#16A34A" }
+                      : { background: "#FEE2E2", color: "#DC2626" }}
+                    data-testid={`admin-user-status-${u.uid}`}>
+                    {u.activated ? "Active" : "Inactive"}
+                  </span>
+                  <ChevronRight size={18} style={{ color: BLUE }} className="shrink-0" />
                 </div>
               ))}
               {users.length === 0 && <div className="text-center text-[12px] py-6" style={{ color: "var(--text-mute)" }}>No users found</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ==== User Details modal ==== */}
+        {detail && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55" onClick={() => setDetail(null)} data-testid="admin-user-detail">
+            <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" style={{ background: "var(--surface)" }} onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 flex items-center justify-between px-5 py-4 text-white rounded-t-3xl" style={{ background: BLUE_GRAD }}>
+                <div className="font-display font-black text-[19px]">User Details</div>
+                <button onClick={() => setDetail(null)} data-testid="admin-detail-close" style={{ touchAction: "manipulation" }}><X size={22} /></button>
+              </div>
+              <div className="px-4 py-4 space-y-2">
+                {[
+                  { Icon: Calendar, label: "Joining Date", value: detail.created_at ? new Date(detail.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—" },
+                  { Icon: Users, label: "Full Name", value: detail.name || "—" },
+                  { Icon: Mail, label: "Gmail", value: detail.email },
+                  { Icon: Phone, label: "Phone Number", value: detail.mobile || "—" },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center gap-3 px-3.5 py-3" style={CARD}>
+                    <r.Icon size={18} style={{ color: BLUE }} className="shrink-0" />
+                    <div className="text-[12px] font-bold w-[105px] shrink-0" style={{ color: "var(--text-mute)" }}>{r.label}</div>
+                    <div className="text-[13px] font-black truncate" style={{ color: "var(--ink)" }}>{r.value}</div>
+                  </div>
+                ))}
+                <div className="flex items-center gap-3 px-3.5 py-3" style={CARD}>
+                  <Crown size={18} style={{ color: BLUE }} className="shrink-0" />
+                  <div className="text-[12px] font-bold w-[105px] shrink-0" style={{ color: "var(--text-mute)" }}>Current Rank</div>
+                  <div className="text-[14px] font-black" style={{ color: BLUE }} data-testid="admin-detail-rank">{detail.rank || "Level 1"}</div>
+                </div>
+
+                {[
+                  { net: "BEP20", key: "bep20" },
+                  { net: "Polygon", key: "polygon" },
+                ].map((w) => (
+                  <div key={w.key} className="px-3.5 py-3" style={CARD}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wallet size={17} style={{ color: BLUE }} />
+                      <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>{w.net} <span className="font-bold" style={{ color: "var(--text-mute)" }}>Withdrawal Wallet Address</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {editWallets[w.key] !== null ? (
+                        <input value={editWallets[w.key]} onChange={(e) => setEditWallets({ ...editWallets, [w.key]: e.target.value })}
+                          placeholder="0x..." className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-[11px] font-mono font-bold outline-none"
+                          style={{ background: "var(--surface-3)", border: `1px solid ${BLUE}`, color: "var(--ink)" }}
+                          data-testid={`admin-wallet-input-${w.key}`} />
+                      ) : (
+                        <div className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-[10.5px] font-mono font-bold break-all"
+                          style={{ background: "var(--surface-3)", color: "var(--ink)" }} data-testid={`admin-wallet-${w.key}`}>
+                          {(detail.withdrawal_addresses || {})[w.net.toUpperCase() === "POLYGON" ? "POLYGON" : "BEP20"] || "Not set"}
+                        </div>
+                      )}
+                      <button onClick={() => setEditWallets({ ...editWallets, [w.key]: editWallets[w.key] === null ? ((detail.withdrawal_addresses || {})[w.key === "polygon" ? "POLYGON" : "BEP20"] || "") : null })}
+                        className="flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-black shrink-0"
+                        style={{ border: `1.5px solid ${BLUE}`, color: BLUE, touchAction: "manipulation" }}
+                        data-testid={`admin-wallet-edit-${w.key}`}>
+                        <Pencil size={13} /> {editWallets[w.key] !== null ? "Cancel" : "Edit"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button onClick={saveWallets} disabled={detailBusy || (editWallets.bep20 === null && editWallets.polygon === null)}
+                  className="w-full rounded-xl py-3.5 text-white font-display font-black text-[16px] disabled:opacity-50"
+                  style={{ background: BLUE_GRAD, touchAction: "manipulation" }} data-testid="admin-update-changes">
+                  {detailBusy ? "Saving…" : "Update Changes"}
+                </button>
+
+                <div className="grid grid-cols-2 gap-2 pb-2">
+                  <button onClick={() => blockToggle(true)} disabled={detailBusy}
+                    className="flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50"
+                    style={{ border: "1.5px solid #DC2626", color: "#DC2626", touchAction: "manipulation" }} data-testid="admin-block-user">
+                    <Ban size={16} /> Block User
+                  </button>
+                  <button onClick={() => blockToggle(false)} disabled={detailBusy}
+                    className="flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50"
+                    style={{ border: "1.5px solid #16A34A", color: "#16A34A", touchAction: "manipulation" }} data-testid="admin-unblock-user">
+                    <CheckCircle2 size={16} /> Unblock User
+                  </button>
+                </div>
+                {detail.blocked && <div className="text-center text-[11px] font-black pb-3" style={{ color: "#DC2626" }}>⚠ This user is currently BLOCKED</div>}
+              </div>
             </div>
           </div>
         )}
