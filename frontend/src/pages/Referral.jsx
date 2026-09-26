@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine } from "lucide-react";
+import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
+import { fmtUSD, fmtTime } from "@/lib/format";
+
+const maskEmail = (email = "") => {
+  const [u, d] = email.split("@");
+  if (!d) return email;
+  return `${u.slice(0, 3)}***@${d}`;
+};
+
+const fmtDate = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+};
 
 const LOGO = "https://static.prod-images.emergentagent.com/jobs/e3103ddd-0dc9-4cf2-8d94-ea48e4389b5b/images/2fc173585b6a7c8ae03589e9d69e196865e3322126777cf481e10020b4b21714.jpeg";
 
@@ -121,7 +134,152 @@ export default function Referral() {
             </div>
           ))}
         </div>
+        {/* ==== Team ==== */}
+        {(() => {
+          const ds = data?.direct_stats || { activated: 0, not_activated: 0 };
+          const ts = data?.team_stats || { total: 0, activated: 0, not_activated: 0 };
+          return (
+            <>
+              <div className="mt-4">
+                <SectionCard icon={Network} title="Team" testid="ref-team-card">
+                  <div className="grid grid-cols-3 gap-2">
+                    <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
+                    <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
+                    <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
+                  </div>
+                </SectionCard>
+              </div>
+
+              <div className="mt-3">
+                <SectionCard icon={Users} title="Direct Referrals" testid="ref-direct-card">
+                  <div className="grid grid-cols-3 gap-2">
+                    <BarStat color="var(--primary-deep)" label="Total Direct" value={ds.not_activated + ds.activated} testid="direct-total" />
+                    <BarStat color="var(--primary)" label="Activated" value={ds.activated} testid="direct-active" />
+                    <BarStat color="var(--gold)" label="Not Activated" value={ds.not_activated} testid="direct-inactive" />
+                  </div>
+                </SectionCard>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ==== Direct Referrals list ==== */}
+        <div className="mt-5">
+          <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Direct Referrals</div>
+          {(!data?.team || data.team.length === 0) && (
+            <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-team">
+              Share your code to grow your team.
+            </div>
+          )}
+          {data?.team?.length > 0 && (
+            <div className="space-y-2.5" data-testid="direct-list">
+              {data.team.map((t, i) => (
+                <div key={t.email} className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
+                  style={{
+                    background: "var(--surface-2)",
+                    border: t.activated ? "1.5px solid #16A34A" : "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
+                    boxShadow: t.activated ? "0 2px 14px rgba(22,163,74,0.30)" : "0 2px 12px rgba(245,158,11,0.12)",
+                  }}
+                  data-testid={`direct-row-${i}`}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[12px] text-white"
+                      style={{ background: "var(--primary-grad)" }}>
+                      {(t.name || t.email || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-[13px] truncate" style={{ color: "var(--ink)" }}>
+                        {t.name || t.email.split("@")[0]}
+                      </div>
+                      <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{maskEmail(t.email)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right pl-2 shrink-0">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="text-[8px] uppercase tracking-widest font-black"
+                        style={{ color: t.activated ? "var(--primary)" : "#DC2626" }} data-testid={`direct-status-${i}`}>
+                        ● {t.activated ? "Active" : "Inactive"}
+                      </span>
+                      <span className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
+                        style={{ color: "#FBBF24", background: "rgba(10,10,10,0.88)", border: "1px solid rgba(245,158,11,0.65)", boxShadow: "0 0 8px rgba(245,158,11,0.3)" }}>
+                        ★ {(t.rank || "Level 1").toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--text-mute)" }}>
+                      Joined {fmtDate(t.created_at)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ==== Commission Log ==== */}
+        {data?.earnings?.length > 0 && (
+          <div className="mt-5">
+            <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Commission Log</div>
+            <div className="space-y-2" data-testid="commission-log">
+              {data.earnings.slice(0, 10).map((e) => (
+                <div key={e.id} className="app-card rounded-2xl p-3 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="font-display font-bold text-sm truncate" style={{ color: "var(--ink)" }}>
+                      {e.symbol ? e.symbol.replace("USDT", "/USDT") : "Referral"}
+                    </div>
+                    <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-mute)" }}>
+                      {e.note || fmtTime(e.created_at)}
+                    </div>
+                  </div>
+                  <div className="text-right pl-3">
+                    <div className="font-display font-bold tabular-nums text-[color:var(--good)] text-sm">
+                      +{fmtUSD(e.amount)}
+                    </div>
+                    <div className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
+                      e.status === "claimed" ? "text-[color:var(--text-mute)]" : "text-[color:var(--primary)]"
+                    }`}>
+                      {e.status}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(data?.pending || 0) > 0 && (
+          <div className="mt-3">
+            <div className="app-card rounded-2xl p-3 flex items-center gap-2 text-[11px] font-bold" data-testid="ref-pending">
+              <Gift size={14} className="text-[color:var(--gold-deep)]" />
+              +{fmtUSD(data.pending)} pending · claim in Rewards
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const SectionCard = ({ icon: Icon, title, children, testid }) => (
+  <div className="app-card rounded-2xl p-3" data-testid={testid}>
+    <div className="flex items-center gap-1.5 mb-2">
+      <Icon size={12} className="text-[color:var(--gold-deep)]" />
+      <span className="text-[9px] uppercase tracking-[0.25em] font-black text-[color:var(--text-mute)]">{title}</span>
+    </div>
+    {children}
+  </div>
+);
+
+const BarStat = ({ color, label, value, testid }) => (
+  <div className="rounded-lg px-2 py-1.5 flex items-stretch gap-1.5 min-w-0"
+    style={{
+      background: `color-mix(in srgb, ${color} 6%, var(--surface))`,
+      border: `1px solid color-mix(in srgb, ${color} 35%, transparent)`,
+      boxShadow: "var(--shadow-sm)",
+    }}
+    data-testid={testid}>
+    <span className="w-1 rounded-full shrink-0" style={{ background: color }} />
+    <div className="min-w-0">
+      <div className="text-[8px] uppercase tracking-wider font-bold leading-tight" style={{ color: "var(--text-mute)" }}>{label}</div>
+      <div className="font-display font-black text-base tabular-nums" style={{ color: "var(--ink)" }}>{value}</div>
+    </div>
+  </div>
+);
