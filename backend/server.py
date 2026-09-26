@@ -2816,11 +2816,13 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
     await _log_bot_txn(user["id"], "withdraw_request", -amount,
                        note=f"Withdrawal request → {address[:8]}…{address[-6:]} · {network} (fee ${WITHDRAW_FEE_USDT:.0f})",
                        balance_after=new_balance)
-    if AUTO_WITHDRAW_ENABLED:
+    _s = await db.app_settings.find_one({"key": "auto_withdraw"}, {"_id": 0})
+    _auto = AUTO_WITHDRAW_ENABLED if _s is None else bool(_s.get("value"))
+    if _auto:
         asyncio.create_task(_auto_process_withdrawal(req["id"]))
     return {"ok": True, "balance": new_balance, "kind": "withdraw_request",
             "request_id": req["id"], "fee": WITHDRAW_FEE_USDT,
-            "net_amount": net_amount, "auto": AUTO_WITHDRAW_ENABLED}
+            "net_amount": net_amount, "auto": _auto}
 
 
 _withdraw_send_lock = asyncio.Lock()
@@ -3386,6 +3388,106 @@ async def admin_treasury(admin: dict = Depends(require_admin)):
             out["networks"][net] = {"error": str(e), "label": cfg["label"],
                                     "native_symbol": cfg["native"]}
     return out
+
+
+class AdminAdjustIn(BaseModel):
+    identifier: str
+    amount: float
+    note: Optional[str] = ""
+
+
+class AdminSettingsIn(BaseModel):
+    auto_withdraw: bool
+
+
+@api.get("/admin/overview")
+async def admin_overview(admin: dict = Depends(require_admin)):
+    today = now_utc().strftime("%Y-%m-%d")
+    total_users = await db.users.count_documents({"role": {"$ne": "admin"}})
+    active_users = await db.users.count_documents({"activated": True, "role": {"$ne": "admin"}})
+    pending = await db.withdrawal_requests.aggregate([
+        {"$match": {"status": "pending"}},
+        {"$group": {"_id": None, "c": {"$sum": 1}, "t": {"$sum": "$net_amount"}}}]).to_list(1)
+    dep = await db.bot_transactions.aggregate([
+        {"$match": {"kind": {"$in": ["deposit_onchain", "deposit"]}, "amount": {"$gt": 0}}},
+        {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
+    earn = await db.company_ledger.aggregate([
+        {"$match": {"created_at": {"$gte": today}}},
+        {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
+    s = await db.app_settings.find_one({"key": "auto_withdraw"}, {"_id": 0})
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "pending_payouts": pending[0]["c"] if pending else 0,
+        "pending_payout_amount": round(float(pending[0]["t"]), 2) if pending else 0.0,
+        "total_deposited": round(float(dep[0]["t"]), 2) if dep else 0.0,
+        "daily_earning": round(float(earn[0]["t"]), 2) if earn else 0.0,
+        "auto_withdraw": AUTO_WITHDRAW_ENABLED if s is None else bool(s.get("value")),
+    }
+
+
+@api.get("/admin/users")
+async def admin_users(q: str = "", admin: dict = Depends(require_admin)):
+    filt = {"role": {"$ne": "admin"}}
+    if q.strip():
+        rx = {"$regex": q.strip(), "$options": "i"}
+        filt["$or"] = [{"email": rx}, {"uid": rx}, {"name": rx}]
+    users = await db.users.find(
+        filt, {"_id": 0, "id": 1, "uid": 1, "email": 1, "name": 1, "rank": 1,
+               "activated": 1, "created_at": 1}).sort("created_at", -1).to_list(200)
+    ids = [u["id"] for u in users]
+    wallets = {w["user_id"]: w.get("balance", 0.0) for w in await db.bot_wallets.find(
+        {"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "balance": 1}).to_list(len(ids) or 1)}
+    for u in users:
+        u["balance"] = round(float(wallets.get(u["id"], 0.0)), 2)
+    return users
+
+
+@api.post("/admin/adjust")
+async def admin_adjust(body: AdminAdjustIn, admin: dict = Depends(require_admin)):
+    ident = body.identifier.strip()
+    u = await db.users.find_one(
+        {"$or": [{"email": ident.lower()}, {"uid": ident.upper()}]}, {"_id": 0, "id": 1, "email": 1})
+    if not u:
+        raise HTTPException(404, "User not found (email ya UID dalo)")
+    if body.amount == 0:
+        raise HTTPException(400, "Amount cannot be 0")
+    res = await db.bot_wallets.find_one_and_update(
+        {"user_id": u["id"]}, {"$inc": {"balance": float(body.amount)}},
+        upsert=True, return_document=True)
+    bal = round(float(res.get("balance", 0.0)), 4)
+    await _log_bot_txn(u["id"], "admin_adjust", float(body.amount),
+                       note=(body.note or f"Admin balance adjustment").strip(),
+                       balance_after=bal)
+    logger.info(f"ADMIN ADJUST: {body.amount:+.2f} USDT -> {u['email']} (bal {bal})")
+    return {"ok": True, "email": u["email"], "balance": bal}
+
+
+@api.get("/admin/deposits")
+async def admin_deposits(admin: dict = Depends(require_admin)):
+    rows = await db.bot_transactions.find(
+        {"kind": {"$in": ["deposit_onchain", "deposit"]}},
+        {"_id": 0}).sort("created_at", -1).to_list(50)
+    ids = list({r["user_id"] for r in rows})
+    emails = {u["id"]: u["email"] for u in await db.users.find(
+        {"id": {"$in": ids}}, {"_id": 0, "id": 1, "email": 1}).to_list(len(ids) or 1)}
+    for r in rows:
+        r["email"] = emails.get(r["user_id"], "—")
+    return rows
+
+
+@api.get("/admin/settings")
+async def admin_get_settings(admin: dict = Depends(require_admin)):
+    s = await db.app_settings.find_one({"key": "auto_withdraw"}, {"_id": 0})
+    return {"auto_withdraw": AUTO_WITHDRAW_ENABLED if s is None else bool(s.get("value"))}
+
+
+@api.post("/admin/settings")
+async def admin_set_settings(body: AdminSettingsIn, admin: dict = Depends(require_admin)):
+    await db.app_settings.update_one(
+        {"key": "auto_withdraw"}, {"$set": {"value": body.auto_withdraw}}, upsert=True)
+    logger.info(f"ADMIN SETTINGS: auto_withdraw={body.auto_withdraw}")
+    return {"ok": True, "auto_withdraw": body.auto_withdraw}
 
 
 @api.get("/admin/finance-summary")
