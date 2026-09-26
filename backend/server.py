@@ -2706,6 +2706,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                   "activation_fee_paid": BOT_ACTIVATION_FEE,
                   "balance": new_bal}},
     )
+    await db.users.update_one({"id": user["id"]}, {"$set": {"activated": True}})
     await _log_bot_txn(user["id"], "activation", -BOT_ACTIVATION_FEE,
                        note="One-time bot activation fee",
                        balance_after=new_bal)
@@ -3907,6 +3908,14 @@ async def startup():
                        "9 Star": "Level 10"}
     for _old, _new in _RANK_MIGRATION.items():
         await db.users.update_many({"rank": _old}, {"$set": {"rank": _new}})
+
+    # Migration (idempotent): bot activate kiya but users.activated missing → fix
+    _act_ids = [w["user_id"] async for w in db.bot_wallets.find(
+        {"activated": True}, {"_id": 0, "user_id": 1})]
+    if _act_ids:
+        await db.users.update_many(
+            {"id": {"$in": _act_ids}, "activated": {"$ne": True}},
+            {"$set": {"activated": True}})
 
     # Indexes
     await db.users.create_index("email", unique=True)
