@@ -216,6 +216,9 @@ BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
 WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
+# Sub-position mode: Call 5 se aage har margin call alag sub-position banti hai
+SUB_POSITION_START = int(os.environ.get("SUB_POSITION_START", "5"))
+
 DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "30"))  # backup poller
 AUTO_WITHDRAW_ENABLED = os.environ.get("AUTO_WITHDRAW", "true").lower() == "true"
 EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "3"))  # primary event scanner
@@ -1130,7 +1133,7 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
             "session_started_at": now,
             "position_qty": 0.0, "position_amount": 0.0, "avg_price": 0.0,
             "margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
-            "peak_price": 0.0, "dca_bottom_price": 0.0,
+            "peak_price": 0.0, "dca_bottom_price": 0.0, "sub_positions": [],
             "cycles_completed": 0, "stop_reason": "", "trade_mode": "cycle",
         }},
         upsert=True,
@@ -1550,6 +1553,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                 "peak_price": 0.0,
                 "dca_bottom_price": 0.0,
                 "last_sell_price": price,
+                "sub_positions": [],
                 "cycles_completed": bot.get("cycles_completed", 0) + 1,
             })
             # Only halt after cycle for explicit One-Shot bots. If trade_method
@@ -1594,6 +1598,7 @@ async def _bot_tick(bot: dict):
     first_buy = float(bot.get("first_buy_amount", 20.0) or 20.0)
     mc_count = int(bot.get("margin_call_count", 0) or 0)
     mc_limit = int(bot.get("margin_call_limit", 10) or 10)
+    sub_positions = list(bot.get("sub_positions") or [])
     tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
     tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
     dca_callback = float(bot.get("buy_in_callback", 0.3) or 0.3)
@@ -1625,6 +1630,46 @@ async def _bot_tick(bot: dict):
                     {"$set": {"status": "stopped", "stop_reason": e.msg}},
                 )
         return
+
+    # === SUB-POSITION TAKE PROFIT (calls 5+) ===
+    # Har sub-position apne tp_price (pichhle call ka average price) par
+    # principal + profit ke saath exit hoti hai.
+    if sub_positions and position_qty > 0:
+        remaining_subs = []
+        sold_any = False
+        for sp in sub_positions:
+            sp_tp = float(sp.get("tp_price", 0) or 0)
+            sp_qty = float(sp.get("qty", 0) or 0)
+            if sp_tp > 0 and sp_qty > 0 and price >= sp_tp:
+                try:
+                    await _execute_trade(
+                        user_id=user_id, symbol=symbol, side="SELL",
+                        quantity=min(sp_qty, position_qty), source="bot",
+                    )
+                    position_qty = max(0.0, position_qty - sp_qty)
+                    sold_any = True
+                    await db.bot_events.insert_one({
+                        "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                        "kind": "sub_position_tp", "call": sp.get("call"),
+                        "qty": sp_qty, "buy_price": sp.get("buy_price"),
+                        "tp_price": sp_tp, "price": price,
+                        "created_at": iso(now_utc()),
+                    })
+                    logger.info(
+                        f"bot {symbol}: SUB-POSITION TP C{sp.get('call')} sold {sp_qty} "
+                        f"at {price} (target {sp_tp})")
+                except _TradeError as e:
+                    logger.warning(f"bot {symbol}: sub TP sell failed: {e.msg}")
+                    remaining_subs.append(sp)
+            else:
+                remaining_subs.append(sp)
+        if sold_any:
+            await db.bots.update_one(
+                {"user_id": user_id, "symbol": symbol},
+                {"$set": {"sub_positions": remaining_subs}})
+            sub_positions = remaining_subs
+            if position_qty <= 0:
+                return
 
     # === TAKE PROFIT (trailing) ===
     # Peak arms once price crosses the TP target. After arming, the trailing
@@ -1698,11 +1743,29 @@ async def _bot_tick(bot: dict):
             if price >= recover_trigger and trough > 0:
                 rule = _get_margin_rule(bot, mc_count)
                 amount = first_buy * rule["multiplier"]
+                call_num = mc_count + 1  # is safety order ka call number (C1, C2 ...)
+                prev_avg = avg_price  # is call se PEHLE ka average price
                 try:
-                    await _execute_trade(
+                    txn = await _execute_trade(
                         user_id=user_id, symbol=symbol, side="BUY",
                         usdt_amount=amount, source="bot",
                     )
+                    # SUB-POSITION MODE: Call 5 se aage har buy alag sub-position
+                    # hai jiska TP = pichhle call ka average price.
+                    if call_num >= SUB_POSITION_START and prev_avg > 0:
+                        sub = {
+                            "id": str(uuid.uuid4()), "call": call_num,
+                            "qty": float(txn.get("quantity", 0)),
+                            "buy_price": float(txn.get("price", price)),
+                            "amount": amount, "tp_price": round(prev_avg, 6),
+                            "created_at": iso(now_utc()),
+                        }
+                        await db.bots.update_one(
+                            {"user_id": user_id, "symbol": symbol},
+                            {"$push": {"sub_positions": sub}})
+                        logger.info(
+                            f"bot {symbol}: SUB-POSITION C{call_num} opened "
+                            f"qty={sub['qty']} tp={sub['tp_price']} (prev avg)")
                     await db.bot_events.insert_one({
                         "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
                         "kind": "margin_call", "round": mc_count + 2,

@@ -205,19 +205,24 @@ export default function TradeSettings() {
           <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--card-soft-grad)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><PieChart size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
-              <span className="font-black" style={{ color: "var(--ink)" }}>Set take profit percentage for each sub-position.</span><br />
-              When each sub-position reaches this profit, it will be closed automatically.
+              <span className="font-black" style={{ color: "var(--ink)" }}>Sub-position mode starts from Call 5.</span><br />
+              Calls 1–4 follow normal margin config. From Call 5, each buy is a separate sub-position — its take profit is auto-set at the previous call's average price, and principal + profit exit together on target.
             </div>
           </div>
           {bot.sub_position_tps.map((v, i) => (
+            i < 4 ? null : (
             <div key={i} className="flex items-center gap-2.5 px-3 py-2.5" style={ROW} data-testid={`tp-row-${i + 1}`}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: GRAD }}>{i + 1}</div>
-              <div className="flex-1 flex items-center gap-1.5 text-[13px] font-black" style={{ color: "var(--ink)" }}>
-                {i + 1}sub-position <BarChart3 size={15} style={{ color: "#16A34A" }} />
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-black shrink-0" style={{ background: GRAD }}>C{i + 1}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 text-[13px] font-black" style={{ color: "var(--ink)" }}>
+                  Sub-position {i + 1} <BarChart3 size={15} style={{ color: "#16A34A" }} />
+                </div>
+                <div className="text-[9.5px] font-semibold" style={{ color: "var(--text-mute)" }}>TP auto: previous call avg price</div>
               </div>
               <NumInput value={v} unit="%" testid={`tp-input-${i + 1}`}
                 onChange={(val) => setBot((b) => { const t = [...b.sub_position_tps]; t[i] = val; return { ...b, sub_position_tps: t }; })} />
             </div>
+            )
           ))}
           <UpdateBtn goBack />
         </div>
