@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
-import { fmtUSD, fmtTime } from "@/lib/format";
+import { fmtUSD } from "@/lib/format";
 
 const maskEmail = (email = "") => {
   const [u, d] = email.split("@");
@@ -214,36 +214,7 @@ export default function Referral() {
           )}
         </div>
 
-        {/* ==== Commission Log ==== */}
-        {data?.earnings?.length > 0 && (
-          <div className="mt-5">
-            <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Commission Log</div>
-            <div className="space-y-2" data-testid="commission-log">
-              {data.earnings.slice(0, 10).map((e) => (
-                <div key={e.id} className="app-card rounded-2xl p-3 flex items-center justify-between">
-                  <div className="min-w-0">
-                    <div className="font-display font-bold text-sm truncate" style={{ color: "var(--ink)" }}>
-                      {e.symbol ? e.symbol.replace("USDT", "/USDT") : "Referral"}
-                    </div>
-                    <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-mute)" }}>
-                      {e.note || fmtTime(e.created_at)}
-                    </div>
-                  </div>
-                  <div className="text-right pl-3">
-                    <div className="font-display font-bold tabular-nums text-[color:var(--good)] text-sm">
-                      +{fmtUSD(e.amount)}
-                    </div>
-                    <div className={`text-[9px] uppercase tracking-widest font-bold mt-0.5 ${
-                      e.status === "claimed" ? "text-[color:var(--text-mute)]" : "text-[color:var(--primary)]"
-                    }`}>
-                      {e.status}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ==== Commission Log removed per user request ==== */}
 
         {(data?.pending || 0) > 0 && (
           <div className="mt-3">
