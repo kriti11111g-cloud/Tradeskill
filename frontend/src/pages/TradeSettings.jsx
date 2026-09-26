@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, ChevronDown, HelpCircle, Database, Copy, ArrowUpDown,
   Target, RotateCcw, ArrowUpCircle, Settings, PieChart, BarChart3, Repeat,
-  Save, Minus, Plus,
+  Save, Minus, Plus, Play, Square,
 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
@@ -73,6 +73,7 @@ export default function TradeSettings() {
   const [stats, setStats] = useState(null);
   const [bot, setBot] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     api.get(`/bots/${sym}`).then(({ data }) => {
@@ -156,13 +157,36 @@ export default function TradeSettings() {
     </div>
   );
 
-  const UpdateBtn = ({ goBack }) => (
-    <button onClick={() => save(goBack)} disabled={saving}
-      className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-4"
-      style={{ background: GRAD, touchAction: "manipulation" }} data-testid="ts-update">
-      <Save size={20} /> {saving ? "Saving..." : "Update"}
-    </button>
-  );
+  const toggleBot = async () => {
+    const running = bot.status === "running";
+    setToggling(true);
+    try {
+      const { data } = await api.post(`/bots/${sym}/${running ? "stop" : "start"}`);
+      setBot((b) => ({ ...b, status: data.status }));
+      toast.success(running ? "Bot stopped" : "Bot started");
+    } catch (err) { toast.error(formatApiError(err)); }
+    finally { setToggling(false); }
+  };
+
+  const UpdateBtn = ({ goBack }) => {
+    const running = bot.status === "running";
+    return (
+      <>
+        <button onClick={() => save(goBack)} disabled={saving}
+          className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-4"
+          style={{ background: GRAD, touchAction: "manipulation" }} data-testid="ts-update">
+          <Save size={20} /> {saving ? "Saving..." : "Update"}
+        </button>
+        <button onClick={toggleBot} disabled={toggling}
+          className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-3"
+          style={{ background: running ? "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)" : GRAD, touchAction: "manipulation" }}
+          data-testid={running ? "ts-stop" : "ts-start"}>
+          {running ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          {toggling ? "Please wait..." : running ? "Stop" : "Start"}
+        </button>
+      </>
+    );
+  };
 
   /* ============ MARGIN CONFIGURATION VIEW ============ */
   if (view === "margin") {
