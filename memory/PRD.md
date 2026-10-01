@@ -382,3 +382,9 @@ See `/app/memory/test_credentials.md`
 - VPS side fixes during setup: Node 18 -> 22 PATH conflict fixed (export PATH=/usr/bin:$PATH), yarn build succeeded, new frontend (Start/Stop btn + Admin backup btn) deployed live
 - TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID stored in VPS /opt/tradeskill/backend/.env (user added himself)
 - NOTE: VPS has stale node 18 earlier in PATH — permanent cleanup pending; builds need export PATH=/usr/bin:$PATH if error recurs
+
+## 2 Oct 2026 — BSC Deposit Speed Fix (deployed on VPS)
+- Symptom: BEP20 deposits 2-3 min (Polygon fast). Cause: _DEFAULT_BACKUPS me 3 dead RPCs (bnbchain dataseeds/binance.org = "limit exceeded" on getLogs) — failover dead servers par ghoomta tha
+- Fix in chain_wallet.py: verified RPC lists (BSC: publicnode, bsc.drpc.org, 1rpc.io/bnb | Polygon: publicnode, polygon.drpc.org, 1rpc.io/matic) + _bad_until blacklist (fail hua RPC 10 min skip, RPC_BLACKLIST_SECS env) + sticky working-RPC index + _w3_url helper
+- .env (local + VPS) RPC lists updated. Tested: dead-primary failover 0.5s, sticky 2nd scan 0.27s
+- VPS deploy: git pull was blocked by local vps_backup.sh edit -> git checkout -- fixed; pull fast-forwarded, service running. User to confirm BEP20 deposit speed
