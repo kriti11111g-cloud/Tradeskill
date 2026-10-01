@@ -361,3 +361,10 @@ See `/app/memory/test_credentials.md`
 - Added Start button below Update on Trade Settings page (all views: main/margin/dist)
 - Bot running hone par red Stop button dikhta hai; calls existing /api/bots/{sym}/start|stop
 - Verified via screenshot + curl (start/stop toggle working)
+
+## 1 Oct 2026 — VPS Login Outage (FIXED)
+- Symptom: tradeskill.in par SAB users ko "Invalid email or password"
+- Root cause: VPS reboot ke baad dusra project (tradego, /var/www/tradego) port 8001 par bind ho gaya; tradeskill-backend crash-loop me tha (port busy). Nginx 8001 par proxy kar raha tha jo tradego ka backend tha → wrong DB → sab logins fail.
+- Data: tradeskill_production DB me 55 users poori tarah SAFE the.
+- Fix: tradeskill ko port 8005 par shift kiya — /etc/systemd/system/tradeskill-backend.service me --port 8005, /etc/nginx/sites-available/tradeskill me proxy_pass :8005, daemon-reload + restart + nginx reload. Login restore ✅
+- VPS NOTE: Is VPS par 4-5 projects hain (tradeskill:8005, titan:8011, tradego:8001, tradegenius, tgexchange). tradego ka koi respawner use 8001 par wapas le aata hai — tradeskill ab 8005 par hai isliye conflict khatam.
