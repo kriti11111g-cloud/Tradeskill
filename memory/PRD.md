@@ -368,3 +368,10 @@ See `/app/memory/test_credentials.md`
 - Data: tradeskill_production DB me 55 users poori tarah SAFE the.
 - Fix: tradeskill ko port 8005 par shift kiya — /etc/systemd/system/tradeskill-backend.service me --port 8005, /etc/nginx/sites-available/tradeskill me proxy_pass :8005, daemon-reload + restart + nginx reload. Login restore ✅
 - VPS NOTE: Is VPS par 4-5 projects hain (tradeskill:8005, titan:8011, tradego:8001, tradegenius, tgexchange). tradego ka koi respawner use 8001 par wapas le aata hai — tradeskill ab 8005 par hai isliye conflict khatam.
+
+## 1 Oct 2026 — Triple Backup System (DONE)
+- GET /api/admin/backup/download (require_admin) — mongodump gzip archive stream; tested 200 + mongorestore dryRun pass
+- /app/scripts/vps_backup.sh — daily cron (2:30 AM), last 7 local backups in /opt/tradeskill-backups, Telegram sendDocument if TELEGRAM_BOT_TOKEN+TELEGRAM_CHAT_ID in backend/.env
+- /app/scripts/vps_restore.sh — mongorestore --drop helper
+- AdminPanel Settings section me "Database Backup" card + download button (data-testid admin-backup-download-btn)
+- User ko VPS install + BotFather steps de diye; Telegram token USER adds on VPS (not in repo)

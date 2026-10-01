@@ -3288,6 +3288,22 @@ async def require_admin(request: Request) -> dict:
     return user
 
 
+@api.get("/admin/backup/download")
+async def admin_backup_download(admin: dict = Depends(require_admin)):
+    from fastapi.responses import FileResponse
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    path = f"/tmp/tradeskill_backup_{ts}.gz"
+    cmd = ["mongodump", "--uri", os.environ.get("MONGO_URL"),
+           "--db", os.environ.get("DB_NAME"), f"--archive={path}", "--gzip"]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    _, err = await proc.communicate()
+    if proc.returncode != 0 or not os.path.exists(path):
+        raise HTTPException(500, f"Backup failed: {err.decode()[:200]}")
+    return FileResponse(path, filename=f"tradeskill_backup_{ts}.gz",
+                        media_type="application/gzip")
+
+
 class WalletNonceIn(BaseModel):
     address: str
 

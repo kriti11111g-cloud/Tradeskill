@@ -5,6 +5,7 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
+  DatabaseBackup,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -41,6 +42,7 @@ export default function AdminPanel() {
   const [detail, setDetail] = useState(null);
   const [editWallets, setEditWallets] = useState({ bep20: null, polygon: null });
   const [detailBusy, setDetailBusy] = useState(false);
+  const [backupBusy, setBackupBusy] = useState(false);
 
   const openUser = (u) => {
     setDetail(u);
@@ -133,6 +135,20 @@ export default function AdminPanel() {
       setSettings({ auto_withdraw: data.auto_withdraw });
       toast.success(`Auto Withdrawal ${data.auto_withdraw ? "ON" : "OFF"}`);
     } catch (e) { guard(e); }
+  };
+
+  const downloadBackup = async () => {
+    setBackupBusy(true);
+    try {
+      const res = await api.get("/admin/backup/download", { ...cfg, responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tradeskill_backup_${new Date().toISOString().slice(0, 19).replace(/[:T-]/g, "")}.gz`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Backup download ho gaya ✅");
+    } catch (e) { guard(e); } finally { setBackupBusy(false); }
   };
 
   if (!walletToken) {
@@ -398,6 +414,7 @@ export default function AdminPanel() {
         )}
 
         {section === "settings" && settings && (
+          <>
           <div className="px-4 py-4 flex items-center justify-between" style={CARD} data-testid="admin-settings">
             <div>
               <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Auto Withdrawal</div>
@@ -411,6 +428,25 @@ export default function AdminPanel() {
               <span className="absolute top-1 w-6 h-6 rounded-full bg-white transition-all" style={{ left: settings.auto_withdraw ? "30px" : "4px" }} />
             </button>
           </div>
+          <div className="px-4 py-4 mt-3" style={CARD} data-testid="admin-backup-card">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: BLUE_GRAD }}>
+                <DatabaseBackup size={17} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Database Backup</div>
+                <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>
+                  Pura database (users, balance, trades) ek file me download karo
+                </div>
+              </div>
+            </div>
+            <button onClick={downloadBackup} disabled={backupBusy}
+              className="w-full mt-3 py-3 rounded-xl text-white font-display font-black text-[14px] disabled:opacity-60"
+              style={{ background: BLUE_GRAD, touchAction: "manipulation" }} data-testid="admin-backup-download-btn">
+              {backupBusy ? "Backup ban raha hai..." : "Download Backup"}
+            </button>
+          </div>
+          </>
         )}
       </div>
     </div>
