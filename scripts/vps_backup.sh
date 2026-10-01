@@ -1,6 +1,6 @@
 #!/bin/bash
 # Trade Skill — Daily DB Backup (local + Telegram copy)
-# Cron: 30 2 * * * /opt/tradeskill/scripts/vps_backup.sh >> /var/log/tradeskill-backup.log 2>&1
+# Cron: 0 */6 * * * /opt/tradeskill/scripts/vps_backup.sh >> /var/log/tradeskill-backup.log 2>&1 (har 6 ghante)
 
 ENV_FILE="/opt/tradeskill/backend/.env"
 BACKUP_DIR="/opt/tradeskill-backups"
@@ -31,8 +31,8 @@ fi
 SIZE=$(du -h "$FILE" | cut -f1)
 echo "[$(date)] Backup done: $FILE ($SIZE)"
 
-# Sirf last 7 backups rakho
-ls -1t "$BACKUP_DIR"/tradeskill_*.gz 2>/dev/null | tail -n +8 | xargs -r rm -f
+# Last 28 backups rakho (7 din x 4 per day)
+ls -1t "$BACKUP_DIR"/tradeskill_*.gz 2>/dev/null | tail -n +29 | xargs -r rm -f
 
 # Telegram par copy bhejo (agar token set hai)
 if [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ]; then

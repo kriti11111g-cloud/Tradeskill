@@ -375,3 +375,10 @@ See `/app/memory/test_credentials.md`
 - /app/scripts/vps_restore.sh — mongorestore --drop helper
 - AdminPanel Settings section me "Database Backup" card + download button (data-testid admin-backup-download-btn)
 - User ko VPS install + BotFather steps de diye; Telegram token USER adds on VPS (not in repo)
+
+## 2 Oct 2026 — Backup System LIVE on VPS (user confirmed)
+- Telegram backup working: user received backup file from @tradeskilll_bot (screenshot confirmed)
+- Schedule changed: every 6 hours (0 */6 * * *), retention 28 backups (7 days x 4/day) — repo script updated
+- VPS side fixes during setup: Node 18 -> 22 PATH conflict fixed (export PATH=/usr/bin:$PATH), yarn build succeeded, new frontend (Start/Stop btn + Admin backup btn) deployed live
+- TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID stored in VPS /opt/tradeskill/backend/.env (user added himself)
+- NOTE: VPS has stale node 18 earlier in PATH — permanent cleanup pending; builds need export PATH=/usr/bin:$PATH if error recurs
