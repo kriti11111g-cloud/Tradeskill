@@ -7,14 +7,15 @@ from bip_utils import Bip39SeedGenerator, Bip44, Bip44Coins, Bip44Changes
 # keccak("Transfer(address,address,uint256)")
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
-# Backup public RPCs — primary fail hone par auto-rotate (fastest first)
+# Backup public RPCs — primary fail hone par auto-rotate (fastest first, sab getLogs-verified)
 _DEFAULT_BACKUPS = {
-    "BEP20": ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed1.bnbchain.org",
-              "https://bsc-dataseed1.binance.org", "https://bsc-dataseed2.binance.org"],
-    "POLYGON": ["https://polygon-bor-rpc.publicnode.com", "https://polygon-rpc.com"],
+    "BEP20": ["https://bsc-rpc.publicnode.com", "https://bsc.drpc.org", "https://1rpc.io/bnb"],
+    "POLYGON": ["https://polygon-bor-rpc.publicnode.com", "https://polygon.drpc.org", "https://1rpc.io/matic"],
 }
 _rpc_idx = {}
 _w3_cache = {}
+_bad_until = {}  # url -> timestamp tak skip karo (dead/rate-limited RPC)
+RPC_BLACKLIST_SECS = int(os.environ.get("RPC_BLACKLIST_SECS", "600"))
 GETLOGS_CHUNK = int(os.environ.get("GETLOGS_CHUNK", "30"))
 
 ERC20_ABI = [
@@ -84,9 +85,7 @@ def rotate_rpc(network: str):
     _rpc_idx[network] = _rpc_idx.get(network, 0) + 1
 
 
-def _w3(network: str) -> Web3:
-    urls = _rpc_urls(network)
-    url = urls[_rpc_idx.get(network, 0) % len(urls)]
+def _w3_url(url: str) -> Web3:
     cached = _w3_cache.get(url)
     if cached is not None:
         return cached
@@ -96,16 +95,31 @@ def _w3(network: str) -> Web3:
     return w3
 
 
-def _with_failover(network: str, fn):
-    """RPC fail par agla backup RPC try karo (sticky rotation)."""
+def _w3(network: str) -> Web3:
     urls = _rpc_urls(network)
+    return _w3_url(urls[_rpc_idx.get(network, 0) % len(urls)])
+
+
+def _with_failover(network: str, fn):
+    """RPC fail par agla RPC try karo. Fail hua RPC 10 min blacklist (dead server par loop nahi)."""
+    urls = _rpc_urls(network)
+    now = time.time()
+    healthy = [u for u in urls if _bad_until.get(u, 0) <= now]
+    if not healthy:  # sab blacklisted — reset karke sabko dubara try karo
+        healthy = urls
+    start = _rpc_idx.get(network, 0)
     last = None
-    for _ in range(len(urls)):
+    for i in range(len(urls)):
+        url = urls[(start + i) % len(urls)]
+        if url not in healthy:
+            continue
         try:
-            return fn(_w3(network))
+            result = fn(_w3_url(url))
+            _rpc_idx[network] = (start + i) % len(urls)  # sticky: working RPC yaad rakho
+            return result
         except Exception as e:
             last = e
-            rotate_rpc(network)
+            _bad_until[url] = now + RPC_BLACKLIST_SECS
     raise last
 
 
