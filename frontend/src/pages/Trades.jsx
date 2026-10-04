@@ -141,9 +141,6 @@ function BotRow({ bot, onDone }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-[14px] font-black leading-tight" style={{ color: "var(--ink)" }}>
             {sym}/USDT
-            <span className="text-[10.5px] font-black tabular-nums" style={{ color: (ticker?.change || 0) >= 0 ? "var(--good)" : "var(--bad)" }} data-testid={`bot-24h-${bot.symbol}`}>
-              {(ticker?.change || 0) >= 0 ? "▲ +" : "▼ "}{(ticker?.change || 0).toFixed(2)}% (24h)
-            </span>
           </div>
           <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
             {mode === "oneshot" ? "ONE SHOT" : "CYCLE"} ·{" "}
