@@ -68,7 +68,7 @@ export default function Login() {
 
           <div className="flex justify-end">
             <button type="button" className="text-[15px] font-bold text-white"
-              onClick={() => toast.info("Please contact support to reset your password")}
+              onClick={() => nav("/forgot-password")}
               data-testid="login-forgot" style={{ touchAction: "manipulation" }}>
               Forgot Password?
             </button>

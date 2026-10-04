@@ -388,3 +388,9 @@ See `/app/memory/test_credentials.md`
 - Fix in chain_wallet.py: verified RPC lists (BSC: publicnode, bsc.drpc.org, 1rpc.io/bnb | Polygon: publicnode, polygon.drpc.org, 1rpc.io/matic) + _bad_until blacklist (fail hua RPC 10 min skip, RPC_BLACKLIST_SECS env) + sticky working-RPC index + _w3_url helper
 - .env (local + VPS) RPC lists updated. Tested: dead-primary failover 0.5s, sticky 2nd scan 0.27s
 - VPS deploy: git pull was blocked by local vps_backup.sh edit -> git checkout -- fixed; pull fast-forwarded, service running. User to confirm BEP20 deposit speed
+
+## 4 Oct 2026 — Forgot Password with Email OTP (DONE, tested)
+- Pehle feature tha hi nahi (button sirf "contact support" toast dikhata tha)
+- Backend: POST /api/auth/forgot/send (OTP email, 60s cooldown, 5min TTL, db.reset_otps sha256) + POST /api/auth/forgot/reset (validate OTP -> bcrypt password update -> OTP marked used). _send_otp_email extended with "reset" purpose (subject/heading)
+- Frontend: ForgotPassword.jsx (/forgot-password route, dark login theme, 2 steps: email -> OTP+new pw+confirm, resend timer). Login.jsx button now navigates
+- Tested e2e: curl full matrix pass + screenshots dono steps. VPS deploy steps user ko diye (build required)

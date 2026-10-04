@@ -520,6 +520,72 @@ async def register(body: RegisterIn, response: Response):
     }
 
 
+class ForgotSendIn(BaseModel):
+    email: EmailStr
+
+
+class ForgotResetIn(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+
+@api.post("/auth/forgot/send")
+async def forgot_otp_send(body: ForgotSendIn):
+    email = body.email.strip().lower()
+    if not await db.users.find_one({"email": email}, {"id": 1}):
+        raise HTTPException(404, "No account found with this email")
+    now = now_utc()
+    existing = await db.reset_otps.find_one({"email": email}, {"_id": 0})
+    if existing and existing.get("created_at"):
+        elapsed = (now - datetime.fromisoformat(existing["created_at"])).total_seconds()
+        if elapsed < OTP_RESEND_COOLDOWN:
+            raise HTTPException(429, f"Please wait {int(OTP_RESEND_COOLDOWN - elapsed)}s before requesting another OTP")
+    code = f"{random.randint(0, 999999):06d}"
+    await db.reset_otps.replace_one(
+        {"email": email},
+        {"email": email,
+         "code_hash": hashlib.sha256(code.encode()).hexdigest(),
+         "created_at": iso(now),
+         "expires_at": iso(now + timedelta(seconds=OTP_TTL_SECONDS)),
+         "attempts": 0, "used": False},
+        upsert=True)
+    try:
+        await asyncio.to_thread(_send_otp_email, email, code, "reset")
+    except Exception as e:
+        logger.error(f"reset OTP email failed: {e}")
+        raise HTTPException(500, "Could not send OTP email. Try again later.")
+    resp = {"ok": True, "email_masked": _mask_email(email),
+            "expires_in": OTP_TTL_SECONDS, "resend_in": OTP_RESEND_COOLDOWN,
+            "mode": EMAIL_OTP_MODE}
+    if EMAIL_OTP_MODE == "demo":
+        resp["demo_otp"] = code
+    return resp
+
+
+@api.post("/auth/forgot/reset")
+async def forgot_password_reset(body: ForgotResetIn):
+    email = body.email.strip().lower()
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    doc = await db.reset_otps.find_one({"email": email}, {"_id": 0})
+    if not doc:
+        raise HTTPException(400, "Request an OTP first")
+    if doc.get("used"):
+        raise HTTPException(400, "OTP already used — request a new one")
+    if datetime.fromisoformat(doc["expires_at"]) < now_utc():
+        raise HTTPException(400, "OTP expired — request a new one")
+    if doc.get("attempts", 0) >= 5:
+        raise HTTPException(429, "Too many wrong attempts — request a new OTP")
+    if hashlib.sha256(body.code.strip().encode()).hexdigest() != doc["code_hash"]:
+        await db.reset_otps.update_one({"email": email}, {"$inc": {"attempts": 1}})
+        raise HTTPException(400, "Incorrect OTP")
+    await db.users.update_one(
+        {"email": email}, {"$set": {"password_hash": hash_password(body.new_password)}})
+    await db.reset_otps.update_one({"email": email}, {"$set": {"used": True}})
+    return {"ok": True, "message": "Password reset successful"}
+
+
 @api.post("/auth/login")
 async def login(body: LoginIn, response: Response):
     ident = body.email.strip()
@@ -3669,8 +3735,10 @@ def _mask_email(e: str) -> str:
 def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bool:
     if EMAIL_OTP_MODE in ("smtp", "resend"):
         is_signup = purpose == "signup"
-        label = "sign up verification" if is_signup else "withdrawal verification"
-        subject = f"{code} is your Trade Skill {'sign up' if is_signup else 'withdrawal'} code"
+        label = {"signup": "sign up verification", "reset": "password reset",
+                 "withdrawal": "withdrawal verification"}.get(purpose, "verification")
+        short = {"signup": "sign up", "reset": "password reset"}.get(purpose, "withdrawal")
+        subject = f"{code} is your Trade Skill {short} code"
         text = (f"Hello,\n\nYour Trade Skill {label} code is: {code}\n\n"
                 "This code is valid for 5 minutes. If you did not request this, "
                 "you can safely ignore this email.\n\n"
@@ -3685,7 +3753,7 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
           <span style="color:#FFFFFF;font-size:19px;font-weight:800;letter-spacing:0.5px;">Trade Skill</span>
         </td></tr>
         <tr><td style="padding:26px 24px 8px;">
-          <p style="margin:0;color:#083344;font-size:15px;font-weight:700;">{'Verify your email' if is_signup else 'Confirm your withdrawal'}</p>
+          <p style="margin:0;color:#083344;font-size:15px;font-weight:700;">{'Verify your email' if is_signup else ('Reset your password' if purpose == 'reset' else 'Confirm your withdrawal')}</p>
           <p style="margin:10px 0 0;color:#4B6A74;font-size:13px;line-height:1.5;">
             Use the code below to complete your {label}. It expires in 5 minutes.
           </p>
