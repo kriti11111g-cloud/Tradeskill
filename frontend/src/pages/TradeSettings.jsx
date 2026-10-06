@@ -176,13 +176,16 @@ export default function TradeSettings() {
     try {
       const { data } = await api.post(`/bots/${sym}/${running ? "stop" : "start"}`);
       setBot((b) => ({ ...b, status: data.status }));
-      toast.success(running ? "Bot stopped" : "Bot started");
+      if (running) toast.success("Bot stopped");
+      else if (upcoming) toast.success(`Bot armed! It will auto-buy ${base} the moment it lists 🚀`);
+      else toast.success("Bot started");
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setToggling(false); }
   };
 
   const UpdateBtn = ({ goBack }) => {
     const running = bot.status === "running";
+    const startLabel = upcoming ? "Arm Bot for Launch" : "Start";
     return (
       <>
         <button onClick={() => save(goBack)} disabled={saving}
@@ -190,15 +193,13 @@ export default function TradeSettings() {
           style={{ background: GRAD, touchAction: "manipulation" }} data-testid="ts-update">
           <Save size={20} /> {saving ? "Saving..." : upcoming ? "Save Settings" : "Update"}
         </button>
-        {!upcoming && (
         <button onClick={toggleBot} disabled={toggling}
           className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-3"
           style={{ background: running ? "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)" : GRAD, touchAction: "manipulation" }}
           data-testid={running ? "ts-stop" : "ts-start"}>
           {running ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
-          {toggling ? "Please wait..." : running ? "Stop" : "Start"}
+          {toggling ? "Please wait..." : running ? (upcoming ? "Disarm Bot" : "Stop") : startLabel}
         </button>
-        )}
       </>
     );
   };

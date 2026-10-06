@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Coming Soon coins — "Arm Bot for Launch" (pre-trigger)
+- USER ask: Coming Soon coin ki Trade Settings me Save ke neeche Start Bot bhi ho, taaki bot pre-armed rahe aur coin list hote hi auto-buy kar le.
+- TradeSettings.jsx: Start/Stop button ab upcoming coins par bhi dikhta hai (pehle hidden tha). Labels upcoming par: "Arm Bot for Launch" / "Disarm Bot"; toast "Bot armed! It will auto-buy {COIN} the moment it lists".
+- NO backend change needed — engine already safe: _bot_tick fetch_price fail hone par gracefully `return` karta hai (no crash). Bot status=running set ho jata hai; jaise hi coin Binance par list hoti hai, fetch_price succeed -> position_qty==0 -> engine auto first-buy karta hai. (Real feed listings = real Binance symbols, launch par tradable ho jate hain.)
+- start_bot pehle se wallet-activation + fuel (>= BOT_MIN_FUEL_BALANCE) + first_buy >= MIN_FIRST_BUY validate karta hai, to arm karne ke liye funded wallet zaroori hai.
+- Verified via curl: POST /bots/MONUSDT/start -> running; engine ne gracefully skip kiya (no traceback); disarm (stop) OK.
+- NOTE: armed-but-not-listed bot har engine tick par ek warning log karta hai (harmless) jab tak coin list na ho.
+
+
 ## Update (06 Oct 2026): Real coin logos (Binance official) + Gainers badge removed
 - USER ask #1: all coins must show real logos like Binance (small movers were showing monogram).
 - Solution: backend `_ensure_symbol_images()` now builds a symbol->logo map from Binance's OWN public **get-all-asset** endpoint (`bapi/asset/v2/public/asset/asset/get-all-asset`, ~1091 assets, keyless, the exact logos the Binance app uses). Cached 6h. market_movers attaches `image` = this logo for every row -> **100% logo coverage (50/50 gainers + 50/50 losers, 0 monograms)**. Verified images load with no referer/hotlink block (200 image/png).
