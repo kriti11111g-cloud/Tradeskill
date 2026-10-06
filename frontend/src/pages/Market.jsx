@@ -17,13 +17,6 @@ const TABS = [
   { id: "market", label: "Market" },
 ];
 
-// Genius / high-momentum score: 24h change % (primary) + volume factor (secondary)
-const momentumScore = (c, maxVol) => {
-  const chg = c.change_pct || 0;
-  const volFactor = maxVol > 0 ? ((c.volume || 0) / maxVol) * 100 : 0;
-  return chg * 0.7 + volFactor * 0.3;
-};
-
 function Countdown({ launchAt, className, style }) {
   const [t, setT] = useState(() => timeLeft(launchAt));
   useEffect(() => {
@@ -99,18 +92,16 @@ export default function Market() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coins.map((c) => c.symbol).join(",")]);
 
-  const maxVol = Math.max(...coins.map((c) => c.volume || 0), 0);
   const sorted = [...coins].sort((a, b) => {
     if (colSort) {
       const va = colSort.col === "price" ? a.last_price : a.change_pct;
       const vb = colSort.col === "price" ? b.last_price : b.change_pct;
       return colSort.dir * (vb - va);
     }
-    if (tab === "hot") return momentumScore(b, maxVol) - momentumScore(a, maxVol); // Genius high-momentum
     if (tab === "gainers") return b.change_pct - a.change_pct;
     if (tab === "losers") return a.change_pct - b.change_pct;
     if (tab === "volume") return b.volume - a.volume;
-    return (a.rank || 999) - (b.rank || 999); // market
+    return (a.rank || 999) - (b.rank || 999); // hot (world top 50) & market
   });
 
   const toggleCol = (col) =>
@@ -226,7 +217,7 @@ export default function Market() {
                 <div className="text-right shrink-0 flex items-center gap-1.5">
                   <div>
                     <Countdown launchAt={c.launchAt} className="text-[12.5px] font-black tabular-nums block leading-tight" style={{ color: "#2563EB" }} />
-                    <div className="text-[9px] font-semibold" style={{ color: "var(--text-mute)" }}>Pre-configure →</div>
+                    <div className="text-[9px] font-bold" style={{ color: "#16A34A" }}>{c.when} · lists</div>
                   </div>
                   <ChevronRight size={16} style={{ color: "var(--text-mute)" }} />
                 </div>

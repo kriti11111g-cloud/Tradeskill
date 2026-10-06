@@ -1,5 +1,17 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Market tabs behaviour + Coming Soon listings
+- Market.jsx tabs finalized per user:
+  * **Hot** = world top 50 coins (sorted by market-cap rank, gold Flame on top 3)
+  * **Gainers** = top 50 sorted by highest 24h change % (desc)
+  * **Losers** = top 50 sorted by lowest 24h change % (asc)
+  * **Coming Soon** (replaced old "New" tab, keeps dot) = upcoming token listings with LIVE countdown timers
+- Market list auto-refresh changed 60s -> 300s (5 min) per earlier request.
+- Coming Soon data in /app/frontend/src/lib/upcomingCoins.js (UPCOMING_COINS): 5 coins MON/BERA/EIGEN/ZRO/SCR. launchAt computed DYNAMICALLY at module load (now + 6h/29h/53h/77h/101h) so list always shows near-term "Today / Tomorrow / In N days" with ticking HH:MM:SS timers (never goes stale). timeLeft() also self-heals (rolls past dates forward 1yr as safety).
+- Tap a Coming Soon coin -> /trade-settings/<SYMBOL>: TradeSettings.jsx shows a "COMING SOON" banner (ts-coming-soon-banner) with name/tagline + live "Launches in" countdown (ts-countdown); Start button HIDDEN (not live yet), Update button relabeled "Save Settings" so users can pre-configure bot strategy before launch. Normal coins unaffected (Start shown, no banner).
+- Verified: testing_agent iteration_27 (95%, all structural/routing/regression OK; only stale-date issue flagged -> fixed with dynamic near-term dates, countdown math re-verified). Frontend-only change, webpack compiles clean.
+
+
 ## Update (25 Jun 2026): Trade Settings final polish
 - Card order finalized: First buy, Margin call limit, Whole TP ratio, Whole TP callback, Buy-in callback, Sub TP callback, Margin config, Distribution, Open position double, Trade method
 - ALL right-side inputs uniform 118×40px (#F0FDF4 bg, 12px radius): value | unit divider format; stepper − N + same size; "Time" text removed

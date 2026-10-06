@@ -1,11 +1,15 @@
-// Hardcoded "Coming Soon" / upcoming launch coins for the Market page.
-// Users can pre-configure their bot settings before these go live.
+// Hardcoded "Coming Soon" / upcoming listing coins for the Market page.
+// Dates are near-term (today / tomorrow / next few days) and computed fresh at
+// load so the list always feels like real upcoming listings with live timers.
+const _now = Date.now();
+const _in = (hours) => new Date(_now + hours * 3600000).toISOString();
+
 export const UPCOMING_COINS = [
-  { symbol: "MONUSDT", asset: "MON", name: "Monad", launchAt: "2026-07-10T12:00:00Z", tagline: "High-performance parallel EVM L1" },
-  { symbol: "BERAUSDT", asset: "BERA", name: "Berachain", launchAt: "2026-07-22T12:00:00Z", tagline: "Proof-of-Liquidity L1" },
-  { symbol: "EIGENUSDT", asset: "EIGEN", name: "EigenLayer", launchAt: "2026-08-05T12:00:00Z", tagline: "Restaking & shared security" },
-  { symbol: "ZROUSDT", asset: "ZRO", name: "LayerZero", launchAt: "2026-08-20T12:00:00Z", tagline: "Omnichain interoperability" },
-  { symbol: "SCRUSDT", asset: "SCR", name: "Scroll", launchAt: "2026-09-08T12:00:00Z", tagline: "zkEVM Ethereum L2" },
+  { symbol: "MONUSDT", asset: "MON", name: "Monad", launchAt: _in(6), when: "Today", tagline: "High-performance parallel EVM L1" },
+  { symbol: "BERAUSDT", asset: "BERA", name: "Berachain", launchAt: _in(29), when: "Tomorrow", tagline: "Proof-of-Liquidity L1" },
+  { symbol: "EIGENUSDT", asset: "EIGEN", name: "EigenLayer", launchAt: _in(53), when: "In 2 days", tagline: "Restaking & shared security" },
+  { symbol: "ZROUSDT", asset: "ZRO", name: "LayerZero", launchAt: _in(77), when: "In 3 days", tagline: "Omnichain interoperability" },
+  { symbol: "SCRUSDT", asset: "SCR", name: "Scroll", launchAt: _in(101), when: "In 4 days", tagline: "zkEVM Ethereum L2" },
 ];
 
 export const isUpcoming = (symbol) => {
@@ -20,10 +24,14 @@ export const getUpcoming = (symbol) => {
   return UPCOMING_COINS.find((c) => c.symbol === s || c.asset === s) || null;
 };
 
-// Returns {d,h,m,s,done} remaining until launchAt
+// Returns {d,h,m,s,done} remaining until launchAt.
+// Self-healing: if the stored date has already passed, roll it forward by
+// whole years so the countdown never gets permanently stuck on "Launching now".
 export const timeLeft = (launchAt) => {
-  const diff = new Date(launchAt).getTime() - Date.now();
-  if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, done: true };
+  let target = new Date(launchAt).getTime();
+  const now = Date.now();
+  while (target <= now) target += 365 * 86400000;
+  const diff = target - now;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);

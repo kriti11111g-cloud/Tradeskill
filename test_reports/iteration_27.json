@@ -1,0 +1,43 @@
+{
+  "summary": "Frontend-only verification of Market page revamp (Hot=Genius, New->Coming Soon) and Trade Settings upcoming banner. All structural / integration requirements pass EXCEPT the hardcoded launchAt dates in /app/frontend/src/lib/upcomingCoins.js are already in the past (Jul-Sep 2026, current date Oct 6, 2026), so every Coming Soon coin shows 'Launching now' and no live countdown ticking is visible.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "upcomingCoins.js", "issue": "Hardcoded launchAt dates (2026-07-10 .. 2026-09-08) are all in the past. Every Coming Soon row and the Trade Settings ts-countdown render 'Launching now' instead of a live HH:MM:SS countdown. Dates must be rolled forward to future dates (e.g. 2026-11 .. 2027-01).", "selector": "coming-pair-<SYM>USDT / ts-countdown", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_requirements": {
+    "tabs_bar": "Hot, Gainers, Losers, Coming Soon (dot), 24h Vol, Market present; tab-new absent — OK",
+    "hot_market_list_present": "OK (market-list rendered)",
+    "flame_icons_top3_hot": "OK (3 flames)",
+    "coming_soon_list_5_coins": "OK (MON, BERA, EIGEN, ZRO, SCR all present with SOON badge and tagline)",
+    "launch_in_header": "OK",
+    "countdown_ticking": "FAIL — dates in past, all show 'Launching now'",
+    "mon_route_to_trade_settings": "OK (/trade-settings/MONUSDT)",
+    "ts_coming_soon_banner": "OK",
+    "ts_countdown": "Present but renders 'Launching now' due to stale dates",
+    "ts_first_buy_and_other_rows": "OK",
+    "ts_update_label_save_settings_upcoming": "OK ('Save Settings')",
+    "ts_start_hidden_for_upcoming": "OK (absent)",
+    "save_settings_toast": "OK — toast 'Trade settings updated' shown after Update with first_buy=15",
+    "regression_btc_no_banner_has_start": "OK (banner absent, ts-start present)",
+    "regression_other_tabs_render": "OK (gainers/losers/volume/market each show 50 rows)"
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Update UPCOMING_COINS launchAt values in /app/frontend/src/lib/upcomingCoins.js to future dates (current date is Oct 6, 2026). Suggested spread: MON 2026-11-15, BERA 2026-12-05, EIGEN 2026-12-20, ZRO 2027-01-12, SCR 2027-02-01. This will make the live HH:MM:SS countdown actually tick in both the Coming Soon list and the Trade Settings banner."
+  ],
+  "critical_code_review_comments": [
+    "Hardcoded dates in frontend will keep going stale. Consider either (a) a utility that offsets launchAt relative to a baseline when expired, or (b) a backend endpoint returning upcoming coins so dates can be managed centrally.",
+    "WebSocket to Binance returns 451 (geo-blocked). Pre-existing issue unrelated to this change; live price falls back to REST stats OK."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "95%"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Only remaining fix is rolling the launchAt dates forward in upcomingCoins.js. Everything else (tabs, coming soon rows, routing, banner, Save Settings label, Start hidden, Update save, BTC regression) was verified working."
+}
