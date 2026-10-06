@@ -33,7 +33,7 @@ function Countdown({ launchAt, className, style }) {
 
 const fmtPrice = (v) => {
   if (v == null) return "—";
-  const d = v >= 100 ? 2 : v >= 1 ? 4 : 5;
+  const d = v >= 100 ? 2 : v >= 1 ? 4 : v >= 0.1 ? 5 : v >= 0.001 ? 6 : 8;
   return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 };
 
@@ -42,6 +42,7 @@ export default function Market() {
   const [tab, setTab] = useState("hot");
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
   const [comingCoins, setComingCoins] = useState(UPCOMING_COINS);
+  const [movers, setMovers] = useState({ gainers: [], losers: [] });
   const wsRef = useRef(null);
 
   const load = () =>
@@ -68,6 +69,17 @@ export default function Market() {
     const pull = () => fetchUpcoming().then((feed) => setComingCoins(feed.length ? feed : UPCOMING_COINS));
     pull();
     const id = setInterval(pull, 300000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Real top Gainers / Losers across ALL Binance USDT pairs (like Binance tabs)
+  useEffect(() => {
+    const pull = () =>
+      api.get("/market/movers?limit=50").then(({ data }) => {
+        if (data.gainers) setMovers({ gainers: data.gainers, losers: data.losers || [] });
+      }).catch(() => {});
+    pull();
+    const id = setInterval(pull, 30000);
     return () => clearInterval(id);
   }, []);
 
@@ -101,7 +113,8 @@ export default function Market() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coins.map((c) => c.symbol).join(",")]);
 
-  const sorted = [...coins].sort((a, b) => {
+  const baseList = tab === "gainers" ? movers.gainers : tab === "losers" ? movers.losers : coins;
+  const sorted = [...baseList].sort((a, b) => {
     if (colSort) {
       const va = colSort.col === "price" ? a.last_price : a.change_pct;
       const vb = colSort.col === "price" ? b.last_price : b.change_pct;

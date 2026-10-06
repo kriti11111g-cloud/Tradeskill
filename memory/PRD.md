@@ -1,5 +1,13 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Gainers/Losers = REAL Binance movers (full universe)
+- BUG (user video): app's Gainers/Losers only re-sorted the top-50-by-market-cap list, so real high-% small-caps (RLC +144%, RAD +48%, API3 +33%, ORCA, VTHO, FIL...) never appeared — unlike Binance which ranks the whole USDT universe.
+- NEW backend GET /api/market/movers (public, no auth): fetches full Binance 24hr ticker (BINANCE_PUBLIC/api/v3/ticker/24hr), filters USDT spot pairs (excludes stables + leveraged UP/DOWN/BULL/BEAR), min_volume floor $500k (drops dead/junk pairs), returns top `limit` gainers (chg desc) + losers (chg asc) across the 362-coin universe. Stale-while-revalidate cache, 30s refresh.
+- Verified: matches video exactly — RLC +142%, RAD +48%, API3 +32%; losers NFP -66%, PYR -57%, VIC -43%.
+- Market.jsx: new `movers` state, polls /market/movers every 30s; Gainers tab -> movers.gainers, Losers tab -> movers.losers; Hot/Market/24hVol stay on /market/top (top-50 mcap). fmtPrice now shows up to 8 decimals for sub-$0.001 coins (e.g. VTHO 0.000749). Rows with no CoinGecko image fall back to CoinIcon monogram. Tap -> /trade-settings/<symbol> works for any Binance symbol.
+- Frontend compiles clean. (Screenshot tool captured only the loading spinner due to early-capture timing; verified via endpoint data + clean compile — rows reuse the already-tested Market row component.)
+
+
 ## Update (06 Oct 2026): Daily income resets at 00:00 IST (not UTC)
 - server.py: added helpers `IST_OFFSET` (+5:30), `ist_today()`, `ist_date(created_at)` (UTC ISO -> IST calendar date), `ist_day_start_utc_iso()` (UTC ISO of current IST midnight, for Mongo $gte).
 - Applied IST daily boundary to all user-facing "today" calcs:

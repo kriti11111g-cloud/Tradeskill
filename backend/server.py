@@ -931,6 +931,72 @@ async def market_upcoming(force: bool = False):
     return result
 
 
+# ==== Top Gainers / Losers across ALL Binance USDT spot pairs ====
+_MOVERS_CACHE = {"ts": 0.0, "data": None}
+_MOVERS_REFRESHING = {"v": False}
+_LEV_SUFFIX = ("UPUSDT", "DOWNUSDT", "BULLUSDT", "BEARUSDT")
+
+
+async def _movers_refresh(limit: int, min_volume: float):
+    try:
+        await market_movers(limit=limit, min_volume=min_volume, force=True)
+    except Exception:
+        pass
+    finally:
+        _MOVERS_REFRESHING["v"] = False
+
+
+@api.get("/market/movers")
+async def market_movers(limit: int = 50, min_volume: float = 500000, force: bool = False):
+    """Real top gainers & losers computed over the FULL Binance USDT spot universe
+    (not just the top-50 by market cap). Mirrors Binance's Gainers/Losers tabs.
+    Stale-while-revalidate cache, refreshed every 30s."""
+    import time as _t
+    now = _t.time()
+    if not force and _MOVERS_CACHE["data"]:
+        if now - _MOVERS_CACHE["ts"] >= 30 and not _MOVERS_REFRESHING["v"]:
+            _MOVERS_REFRESHING["v"] = True
+            asyncio.create_task(_movers_refresh(limit, min_volume))
+        return _MOVERS_CACHE["data"]
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as c:
+            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        logger.warning(f"market_movers failed: {e}")
+        if _MOVERS_CACHE["data"]:
+            return _MOVERS_CACHE["data"]
+        return {"gainers": [], "losers": [], "count": 0, "error": "binance_unreachable"}
+
+    rows = []
+    for d in data:
+        sym = d.get("symbol", "")
+        if not sym.endswith("USDT") or sym.endswith(_LEV_SUFFIX):
+            continue
+        base = sym[:-4]
+        if not base or base in _STABLE_SYMBOLS:
+            continue
+        try:
+            vol = float(d.get("quoteVolume", 0))
+            price = float(d.get("lastPrice", 0))
+            chg = float(d.get("priceChangePercent", 0))
+        except Exception:
+            continue
+        if price <= 0 or vol < min_volume:
+            continue
+        rows.append({"symbol": sym, "asset": base, "name": base,
+                     "last_price": price, "change_pct": chg, "volume": vol})
+
+    gainers = sorted(rows, key=lambda x: x["change_pct"], reverse=True)[:limit]
+    losers = sorted(rows, key=lambda x: x["change_pct"])[:limit]
+    result = {"gainers": gainers, "losers": losers, "count": len(rows), "cached_at": iso(now_utc())}
+    _MOVERS_CACHE["ts"] = now
+    _MOVERS_CACHE["data"] = result
+    return result
+
+
 # ==== Bot Config ====
 DEFAULT_MARGIN_CONFIG = [
     {"drop": 2.0, "multiplier": 2.0},
