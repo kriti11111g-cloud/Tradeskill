@@ -1,5 +1,17 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Daily income resets at 00:00 IST (not UTC)
+- server.py: added helpers `IST_OFFSET` (+5:30), `ist_today()`, `ist_date(created_at)` (UTC ISO -> IST calendar date), `ist_day_start_utc_iso()` (UTC ISO of current IST midnight, for Mongo $gte).
+- Applied IST daily boundary to all user-facing "today" calcs:
+  * `/revenue/income` — Today's Income (all + per category) + 30-day trend dates now IST
+  * `/revenue/summary` — today_profit/today_trades + by_day grouping IST
+  * `/revenue/pair/{symbol}` — per-pair today_profit IST
+  * `/referral` — today_profit IST
+  * `/admin/overview` — daily_earning uses ist_day_start_utc_iso() $gte
+- Royalty pool daily close (royalty_close_loop) INTENTIONALLY stays 00:00 UTC (shared global rule per earlier PRD) — not changed.
+- Verified: IST math unit-tested (20:00 UTC -> next IST day, 17:00 UTC -> same IST day; IST day start = 18:30 UTC). Live curl: revenue/income today=375.84 with trend date 2026-10-06, revenue/summary today_profit=360.52. Backend error-free. Frontend unchanged (just displays values).
+
+
 ## Update (06 Oct 2026): Coming Soon — REAL Binance listing feed
 - New backend endpoint **GET /api/market/upcoming** (server.py, after top_market): parses Binance's keyless public "New Cryptocurrency Listing" announcements (bapi CMS, catalogId=48). Filters titles with "Will List", extracts asset via `(SYMBOL)` regex + name, fetches each article detail IN PARALLEL and pulls the first `YYYY-MM-DD HH:MM (UTC)` = trading-open time. Returns ONLY future listings, dedup by asset, sorted by soonest. Stale-while-revalidate cache, refresh every 30 min. Reachable from our US container (HTTP 200) AND user's India VPS — NO API KEY needed. (CoinMarketCal needs a key + was unreachable from container, so Binance chosen.)
 - Parsing verified manually (extracted HYPE listing + time). Live endpoint returns {source:"binance", count, coins:[{symbol,asset,name,launchAt,tagline,url}]}. Currently count=0 (no pending spot listing this moment) — correct & expected; populates automatically when Binance announces a new one shortly before listing.

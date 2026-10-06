@@ -261,6 +261,36 @@ def iso(dt: datetime) -> str:
     return dt.isoformat()
 
 
+# Daily income/revenue boundaries use India Standard Time (UTC+5:30) so "today"
+# resets at 00:00 IST for the user base. Stored created_at are UTC ISO strings.
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+
+def ist_today() -> str:
+    """Current calendar date in IST as 'YYYY-MM-DD'."""
+    return (now_utc() + IST_OFFSET).strftime("%Y-%m-%d")
+
+
+def ist_date(created_at) -> str:
+    """IST 'YYYY-MM-DD' for a stored UTC ISO created_at string (or datetime)."""
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")) if isinstance(created_at, str) else created_at
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (dt.astimezone(timezone.utc) + IST_OFFSET).strftime("%Y-%m-%d")
+    except Exception:
+        return created_at[:10] if isinstance(created_at, str) else ""
+
+
+def ist_day_start_utc_iso() -> str:
+    """UTC ISO timestamp of the current IST day's 00:00 (for Mongo $gte on created_at)."""
+    d = (now_utc() + IST_OFFSET).date()
+    utc_dt = datetime(d.year, d.month, d.day) - IST_OFFSET
+    return utc_dt.replace(tzinfo=timezone.utc).isoformat()
+
+
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -2048,11 +2078,11 @@ async def revenue_income(user: dict = Depends(get_current_user)):
                         }})
     history.sort(key=lambda x: x["created_at"] or "", reverse=True)
 
-    today_str = now_utc().strftime("%Y-%m-%d")
+    today_str = ist_today()
     cats, trend = {}, {}
     all_today = all_total = 0.0
     for h in history:
-        d = (h["created_at"] or "")[:10]
+        d = ist_date(h["created_at"])
         is_today = d == today_str
         all_total += h["amount"]
         if is_today:
@@ -2067,7 +2097,7 @@ async def revenue_income(user: dict = Depends(get_current_user)):
                 cc["today"] += h["amount"]
         trend[d] = trend.get(d, 0.0) + h["amount"]
 
-    days = [(now_utc() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(29, -1, -1)]
+    days = [((now_utc() + IST_OFFSET) - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(29, -1, -1)]
     return {
         "all": {"today": round(all_today, 4), "total": round(all_total, 4)},
         "categories": {k: {"today": round(v["today"], 4), "total": round(v["total"], 4)}
@@ -2084,8 +2114,8 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
     ).to_list(1000)
     total = sum(r.get("profit", 0.0) for r in rows)
 
-    # last 14 days by date + today's total
-    today_str = now_utc().strftime("%Y-%m-%d")
+    # last 14 days by date + today's total (IST daily boundary)
+    today_str = ist_today()
     by_day = {}
     by_day_count = {}
     by_day_symbols = {}
@@ -2093,7 +2123,7 @@ async def revenue_summary(user: dict = Depends(get_current_user)):
     today_trades = 0
     for r in rows:
         try:
-            d = r["created_at"][:10]
+            d = ist_date(r["created_at"])
         except Exception:
             continue
         by_day[d] = by_day.get(d, 0) + r.get("profit", 0.0)
@@ -2150,8 +2180,8 @@ async def revenue_pair(symbol: str, user: dict = Depends(get_current_user)):
     sells = [r for r in rows if r.get("side") == "SELL"]
     buys = [r for r in rows if r.get("side") == "BUY"]
     total = sum(r.get("profit", 0.0) for r in sells)
-    today_str = now_utc().strftime("%Y-%m-%d")
-    today = sum(r.get("profit", 0.0) for r in sells if (r.get("created_at") or "")[:10] == today_str)
+    today_str = ist_today()
+    today = sum(r.get("profit", 0.0) for r in sells if ist_date(r.get("created_at")) == today_str)
     return {
         "symbol": symbol,
         "cumulative_profit": round(total, 4),
@@ -2338,8 +2368,8 @@ async def referral(user: dict = Depends(get_current_user)):
     earnings = await db.rewards.find({"user_id": user["id"], "type": "referral"}, {"_id": 0}).sort("created_at", -1).to_list(500)
     total_earned = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimed")
     pending = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimable")
-    today = now_utc().date().isoformat()
-    today_profit = sum(e.get("amount", 0) for e in earnings if (e.get("created_at") or "").startswith(today))
+    today = ist_today()
+    today_profit = sum(e.get("amount", 0) for e in earnings if ist_date(e.get("created_at")) == today)
     total_profit = sum(e.get("amount", 0) for e in earnings)
 
     direct_activated = sum(1 for d in directs if d.get("activated"))
@@ -3650,7 +3680,6 @@ class AdminSettingsIn(BaseModel):
 
 @api.get("/admin/overview")
 async def admin_overview(admin: dict = Depends(require_admin)):
-    today = now_utc().strftime("%Y-%m-%d")
     total_users = await db.users.count_documents({"role": {"$ne": "admin"}})
     active_users = await db.users.count_documents({"activated": True, "role": {"$ne": "admin"}})
     pending = await db.withdrawal_requests.aggregate([
@@ -3660,7 +3689,7 @@ async def admin_overview(admin: dict = Depends(require_admin)):
         {"$match": {"kind": {"$in": ["deposit_onchain", "deposit"]}, "amount": {"$gt": 0}}},
         {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
     earn = await db.company_ledger.aggregate([
-        {"$match": {"created_at": {"$gte": today}}},
+        {"$match": {"created_at": {"$gte": ist_day_start_utc_iso()}}},
         {"$group": {"_id": None, "t": {"$sum": "$amount"}}}]).to_list(1)
     s = await db.app_settings.find_one({"key": "auto_withdraw"}, {"_id": 0})
     return {
