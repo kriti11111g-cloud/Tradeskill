@@ -3911,6 +3911,22 @@ async def admin_unblock_user(uid: str, admin: dict = Depends(require_admin)):
     return {"ok": True, "blocked": False}
 
 
+class AdminResetPwIn(BaseModel):
+    new_password: str
+
+
+@api.post("/admin/users/{uid}/reset-password")
+async def admin_reset_password(uid: str, body: AdminResetPwIn, admin: dict = Depends(require_admin)):
+    pw = (body.new_password or "").strip()
+    if len(pw) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    r = await db.users.update_one({"uid": uid.upper()}, {"$set": {"password_hash": hash_password(pw)}})
+    if not r.matched_count:
+        raise HTTPException(404, "User not found")
+    logger.info(f"ADMIN RESET PASSWORD: {uid}")
+    return {"ok": True}
+
+
 @api.get("/admin/finance-summary")
 async def admin_finance_summary(admin: dict = Depends(require_admin)):
     """Full accounting: direct, support, both royalty pools (level-wise),

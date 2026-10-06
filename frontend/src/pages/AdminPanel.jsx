@@ -5,7 +5,7 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
-  DatabaseBackup,
+  DatabaseBackup, KeyRound,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -73,6 +73,17 @@ export default function AdminPanel() {
       toast.success(block ? `${detail.uid} BLOCKED` : `${detail.uid} unblocked`);
       setDetail({ ...detail, blocked: block });
       loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
+  const resetPassword = async () => {
+    const pw = window.prompt(`Set a NEW login password for ${detail.uid} (${detail.email || ""}).\nUser can log in with this immediately. Min 6 characters:`);
+    if (pw === null) return;
+    if (pw.trim().length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    setDetailBusy(true);
+    try {
+      await api.post(`/admin/users/${detail.uid}/reset-password`, { new_password: pw.trim() }, cfg);
+      toast.success(`${detail.uid} ka password reset ho gaya ✅`);
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
@@ -350,6 +361,11 @@ export default function AdminPanel() {
                     <CheckCircle2 size={16} /> Unblock User
                   </button>
                 </div>
+                <button onClick={resetPassword} disabled={detailBusy}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
+                  style={{ border: "1.5px solid #2563EB", color: "#2563EB", touchAction: "manipulation" }} data-testid="admin-reset-password">
+                  <KeyRound size={16} /> Reset Login Password
+                </button>
                 {detail.blocked && <div className="text-center text-[11px] font-black pb-3" style={{ color: "#DC2626" }}>⚠ This user is currently BLOCKED</div>}
               </div>
             </div>
