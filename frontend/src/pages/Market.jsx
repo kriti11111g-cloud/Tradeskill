@@ -17,6 +17,26 @@ const TABS = [
   { id: "market", label: "Market" },
 ];
 
+function LiveBadge({ ts }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(id);
+  }, []);
+  if (!ts) return null;
+  const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  const label = sec < 5 ? "just now" : sec < 60 ? `${sec}s ago` : `${Math.floor(sec / 60)}m ago`;
+  return (
+    <div className="flex items-center gap-1.5" data-testid="gainers-live-badge">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#16A34A" }} />
+        <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#16A34A" }} />
+      </span>
+      <span className="text-[10.5px] font-bold tabular-nums" style={{ color: "#16A34A" }}>Live · updated {label}</span>
+    </div>
+  );
+}
+
 function Countdown({ launchAt, className, style }) {
   const [t, setT] = useState(() => timeLeft(launchAt));
   useEffect(() => {
@@ -43,6 +63,7 @@ export default function Market() {
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
   const [comingCoins, setComingCoins] = useState(UPCOMING_COINS);
   const [movers, setMovers] = useState({ gainers: [], losers: [] });
+  const [updatedAt, setUpdatedAt] = useState(null);
   const wsRef = useRef(null);
 
   const load = () =>
@@ -76,7 +97,7 @@ export default function Market() {
   useEffect(() => {
     const pull = () =>
       api.get("/market/movers?limit=50").then(({ data }) => {
-        if (data.gainers) setMovers({ gainers: data.gainers, losers: data.losers || [] });
+        if (data.gainers) { setMovers({ gainers: data.gainers, losers: data.losers || [] }); setUpdatedAt(Date.now()); }
       }).catch(() => {});
     pull();
     const id = setInterval(pull, 30000);
@@ -176,6 +197,11 @@ export default function Market() {
         >
           Futures
         </button>
+        {(tab === "gainers" || tab === "losers") && (
+          <div className="ml-auto flex items-center">
+            <LiveBadge ts={updatedAt} />
+          </div>
+        )}
       </div>
 
       {/* Column headers */}
