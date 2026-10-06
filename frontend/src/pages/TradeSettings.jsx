@@ -4,12 +4,13 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, ChevronDown, HelpCircle, Database, Copy, ArrowUpDown,
   Target, RotateCcw, ArrowUpCircle, Settings, PieChart, BarChart3, Repeat,
-  Save, Minus, Plus, Play, Square,
+  Save, Minus, Plus, Play, Square, Clock,
 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
 import useBinanceStream from "@/hooks/useBinanceStream";
 import { fmtNum } from "@/lib/format";
+import { getUpcoming, timeLeft } from "@/lib/upcomingCoins";
 
 const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
 const ROW = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
@@ -68,6 +69,13 @@ export default function TradeSettings() {
   const nav = useNavigate();
   const sym = symbol.toUpperCase();
   const base = sym.replace(/USDT$/, "");
+  const upcoming = getUpcoming(sym);
+  const [tl, setTl] = useState(() => (upcoming ? timeLeft(upcoming.launchAt) : null));
+  useEffect(() => {
+    if (!upcoming) return;
+    const id = setInterval(() => setTl(timeLeft(upcoming.launchAt)), 1000);
+    return () => clearInterval(id);
+  }, [upcoming]);
   const stream = useBinanceStream(sym);
   const [view, setView] = useState("main"); // main | margin | dist
   const [stats, setStats] = useState(null);
@@ -175,8 +183,9 @@ export default function TradeSettings() {
         <button onClick={() => save(goBack)} disabled={saving}
           className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-4"
           style={{ background: GRAD, touchAction: "manipulation" }} data-testid="ts-update">
-          <Save size={20} /> {saving ? "Saving..." : "Update"}
+          <Save size={20} /> {saving ? "Saving..." : upcoming ? "Save Settings" : "Update"}
         </button>
+        {!upcoming && (
         <button onClick={toggleBot} disabled={toggling}
           className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-3"
           style={{ background: running ? "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)" : GRAD, touchAction: "manipulation" }}
@@ -184,6 +193,7 @@ export default function TradeSettings() {
           {running ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
           {toggling ? "Please wait..." : running ? "Stop" : "Start"}
         </button>
+        )}
       </>
     );
   };
@@ -278,6 +288,28 @@ export default function TradeSettings() {
           <ChevronRight size={18} style={{ color: "var(--ink)" }} />
         </div>
         </div>
+
+        {upcoming && (
+          <div className="rounded-2xl px-4 py-4 mb-1" style={{ background: "var(--card-soft-grad)", border: "1.5px solid var(--card-soft-border)" }} data-testid="ts-coming-soon-banner">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-md text-white" style={{ background: "linear-gradient(90deg,#2563EB,#10B981)" }}>COMING SOON</span>
+              <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>{upcoming.name}</span>
+            </div>
+            <div className="text-[11px] font-semibold mb-3" style={{ color: "var(--text-mute)" }}>{upcoming.tagline}</div>
+            <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-1.5">
+                <Clock size={15} style={{ color: "#2563EB" }} />
+                <span className="text-[11px] font-bold" style={{ color: "var(--text-mute)" }}>Launches in</span>
+              </div>
+              <span className="text-[16px] font-black tabular-nums" style={{ color: "#2563EB" }} data-testid="ts-countdown">
+                {tl?.done ? "Launching now" : `${tl?.d ? tl.d + "d " : ""}${String(tl?.h || 0).padStart(2, "0")}:${String(tl?.m || 0).padStart(2, "0")}:${String(tl?.s || 0).padStart(2, "0")}`}
+              </span>
+            </div>
+            <div className="text-[10.5px] font-semibold mt-2.5 leading-snug" style={{ color: "var(--text-mute)" }}>
+              Set up your strategy now — it saves automatically and your bot will be ready to trade the moment {upcoming.asset} goes live.
+            </div>
+          </div>
+        )}
 
         <Row Icon={Database} title="First buy in amount" sub="Initial order amount"
           right={<NumInput value={bot.first_buy_amount} unit="USDT" testid="ts-first-buy" onChange={(v) => setBot({ ...bot, first_buy_amount: v })} />} />

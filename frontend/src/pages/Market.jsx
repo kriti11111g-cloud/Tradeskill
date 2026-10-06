@@ -1,20 +1,42 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Flame, ChevronsUpDown } from "lucide-react";
+import { Flame, ChevronsUpDown, Clock, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
 import api from "@/lib/api";
+import { UPCOMING_COINS, timeLeft } from "@/lib/upcomingCoins";
 
 const TABS = [
   { id: "hot", label: "Hot" },
   { id: "gainers", label: "Gainers" },
   { id: "losers", label: "Losers" },
-  { id: "new", label: "New", dot: true },
+  { id: "coming", label: "Coming Soon", dot: true },
   { id: "volume", label: "24h Vol" },
   { id: "market", label: "Market" },
 ];
+
+// Genius / high-momentum score: 24h change % (primary) + volume factor (secondary)
+const momentumScore = (c, maxVol) => {
+  const chg = c.change_pct || 0;
+  const volFactor = maxVol > 0 ? ((c.volume || 0) / maxVol) * 100 : 0;
+  return chg * 0.7 + volFactor * 0.3;
+};
+
+function Countdown({ launchAt, className, style }) {
+  const [t, setT] = useState(() => timeLeft(launchAt));
+  useEffect(() => {
+    const id = setInterval(() => setT(timeLeft(launchAt)), 1000);
+    return () => clearInterval(id);
+  }, [launchAt]);
+  if (t.done) return <span className={className} style={style}>Launching now</span>;
+  return (
+    <span className={className} style={style}>
+      {t.d > 0 ? `${t.d}d ` : ""}{String(t.h).padStart(2, "0")}:{String(t.m).padStart(2, "0")}:{String(t.s).padStart(2, "0")}
+    </span>
+  );
+}
 
 const fmtPrice = (v) => {
   if (v == null) return "—";
@@ -43,7 +65,7 @@ export default function Market() {
       if (Array.isArray(c) && c.length) setCoins(c);
     } catch {}
     load();
-    const id = setInterval(load, 60000);
+    const id = setInterval(load, 300000); // Genius picks auto-refresh every 5 min
     return () => clearInterval(id);
   }, []);
 
@@ -77,17 +99,18 @@ export default function Market() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coins.map((c) => c.symbol).join(",")]);
 
+  const maxVol = Math.max(...coins.map((c) => c.volume || 0), 0);
   const sorted = [...coins].sort((a, b) => {
     if (colSort) {
       const va = colSort.col === "price" ? a.last_price : a.change_pct;
       const vb = colSort.col === "price" ? b.last_price : b.change_pct;
       return colSort.dir * (vb - va);
     }
+    if (tab === "hot") return momentumScore(b, maxVol) - momentumScore(a, maxVol); // Genius high-momentum
     if (tab === "gainers") return b.change_pct - a.change_pct;
     if (tab === "losers") return a.change_pct - b.change_pct;
-    if (tab === "new") return (b.rank || 999) - (a.rank || 999);
     if (tab === "volume") return b.volume - a.volume;
-    return (a.rank || 999) - (b.rank || 999); // hot & market
+    return (a.rank || 999) - (b.rank || 999); // market
   });
 
   const toggleCol = (col) =>
@@ -145,6 +168,9 @@ export default function Market() {
       {/* Column headers */}
       <div className="px-4 mt-3 flex items-center justify-between">
         <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Name</span>
+        {tab === "coming" ? (
+          <span className="text-[13px] font-semibold" style={{ color: "var(--text-soft)" }}>Launch In</span>
+        ) : (
         <div className="flex items-center gap-6">
           <button
             onClick={() => toggleCol("price")}
@@ -163,10 +189,52 @@ export default function Market() {
             24h chg% <ChevronsUpDown size={13} />
           </button>
         </div>
+        )}
       </div>
       </div>
 
       {/* Coin rows */}
+      {tab === "coming" ? (
+        <div className="px-4 mt-2 space-y-1.5" data-testid="coming-soon-list">
+          <div className="rounded-xl px-3 py-2.5 mb-1 flex items-center gap-2" style={{ background: "var(--surface)", border: "1px dashed var(--border)" }}>
+            <Clock size={16} style={{ color: "#2563EB" }} className="shrink-0" />
+            <span className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text-mute)" }}>
+              Upcoming listings — tap any coin to pre-configure your bot before it goes live.
+            </span>
+          </div>
+          {UPCOMING_COINS.map((c, i) => (
+            <motion.div
+              key={c.symbol}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.04, 0.3) }}
+            >
+              <Link
+                to={`/trade-settings/${c.symbol}`}
+                data-testid={`coming-pair-${c.symbol}`}
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+              >
+                <CoinIcon symbol={c.asset} size={30} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13.5px] font-black truncate" style={{ color: "var(--text)" }}>{c.asset}</span>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: "linear-gradient(90deg,#2563EB,#10B981)" }}>SOON</span>
+                  </div>
+                  <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{c.name} · {c.tagline}</div>
+                </div>
+                <div className="text-right shrink-0 flex items-center gap-1.5">
+                  <div>
+                    <Countdown launchAt={c.launchAt} className="text-[12.5px] font-black tabular-nums block leading-tight" style={{ color: "#2563EB" }} />
+                    <div className="text-[9px] font-semibold" style={{ color: "var(--text-mute)" }}>Pre-configure →</div>
+                  </div>
+                  <ChevronRight size={16} style={{ color: "var(--text-mute)" }} />
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
       <div className="px-4 mt-2 space-y-1.5" data-testid="market-list">
         {sorted.map((p, i) => {
           const up = p.change_pct >= 0;
@@ -232,6 +300,7 @@ export default function Market() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
