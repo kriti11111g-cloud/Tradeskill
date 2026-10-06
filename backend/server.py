@@ -744,6 +744,9 @@ async def pairs_summary(limit: int = 50):
 # Simple in-memory cache for the top-50 list (refresh every 5 min)
 _TOP_CACHE = {"ts": 0.0, "data": None}
 _TOP_REFRESHING = {"v": False}
+# Shared symbol -> logo URL map (populated from CoinGecko markets in top_market,
+# reused by market_movers so Gainers/Losers also get real coin logos).
+_SYMBOL_IMAGE = {}
 
 
 async def _top_market_refresh(limit: int):
@@ -946,6 +949,35 @@ async def _movers_refresh(limit: int, min_volume: float):
         _MOVERS_REFRESHING["v"] = False
 
 
+_IMG_MAP_TS = {"ts": 0.0}
+BINANCE_ASSET_API = "https://www.binance.com/bapi/asset/v2/public/asset/asset/get-all-asset"
+
+
+async def _ensure_symbol_images():
+    """Build/refresh symbol -> official Binance logo URL map from Binance's public
+    get-all-asset endpoint (~1091 assets, the exact logos the Binance app shows).
+    Keyless. Cached 6h."""
+    import time as _t
+    if _SYMBOL_IMAGE and _t.time() - _IMG_MAP_TS["ts"] < 21600:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=15, headers={"User-Agent": _UPCOMING_UA}) as c:
+            r = await c.get(BINANCE_ASSET_API)
+            r.raise_for_status()
+            data = (r.json() or {}).get("data") or []
+        for x in data:
+            if not isinstance(x, dict):
+                continue
+            code = (x.get("assetCode") or "").upper()
+            logo = x.get("logoUrl") or x.get("fullLogoUrl")
+            if code and logo:
+                _SYMBOL_IMAGE[code] = logo
+        if _SYMBOL_IMAGE:
+            _IMG_MAP_TS["ts"] = _t.time()
+    except Exception as e:
+        logger.warning(f"symbol image map build failed: {e}")
+
+
 @api.get("/market/movers")
 async def market_movers(limit: int = 50, min_volume: float = 500000, force: bool = False):
     """Real top gainers & losers computed over the FULL Binance USDT spot universe
@@ -959,6 +991,7 @@ async def market_movers(limit: int = 50, min_volume: float = 500000, force: bool
             asyncio.create_task(_movers_refresh(limit, min_volume))
         return _MOVERS_CACHE["data"]
 
+    await _ensure_symbol_images()
     try:
         async with httpx.AsyncClient(timeout=12) as c:
             r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
@@ -987,6 +1020,7 @@ async def market_movers(limit: int = 50, min_volume: float = 500000, force: bool
         if price <= 0 or vol < min_volume:
             continue
         rows.append({"symbol": sym, "asset": base, "name": base,
+                     "image": _SYMBOL_IMAGE.get(base),
                      "last_price": price, "change_pct": chg, "volume": vol})
 
     gainers = sorted(rows, key=lambda x: x["change_pct"], reverse=True)[:limit]

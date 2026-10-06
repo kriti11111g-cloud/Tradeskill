@@ -37,6 +37,24 @@ const fmtPrice = (v) => {
   return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 };
 
+function CoinLogo({ asset, image, size = 30 }) {
+  const lower = (asset || "").toLowerCase();
+  const srcs = [image, `https://assets.coincap.io/assets/icons/${lower}@2x.png`].filter(Boolean);
+  const [idx, setIdx] = useState(0);
+  if (idx >= srcs.length) return <CoinIcon symbol={asset} size={size} />;
+  return (
+    <img
+      src={srcs[idx]}
+      alt={asset}
+      width={size}
+      height={size}
+      className="rounded-full shrink-0"
+      style={{ width: size, height: size }}
+      onError={() => setIdx((i) => i + 1)}
+    />
+  );
+}
+
 export default function Market() {
   const [coins, setCoins] = useState([]);
   const [tab, setTab] = useState("hot");
@@ -268,18 +286,7 @@ export default function Market() {
                   boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
                 }}
               >
-                {p.image ? (
-                  <img
-                    src={p.image}
-                    alt={p.asset}
-                    width={30}
-                    height={30}
-                    className="rounded-full shrink-0"
-                    onError={(e) => { e.currentTarget.outerHTML = ""; }}
-                  />
-                ) : (
-                  <CoinIcon symbol={p.asset} size={30} />
-                )}
+                <CoinLogo asset={p.asset} image={p.image} size={30} />
                 <div className="flex items-center gap-1 min-w-0 flex-1">
                   <span className="text-[13.5px] font-black truncate" style={{ color: "var(--text)" }}>
                     {p.asset}

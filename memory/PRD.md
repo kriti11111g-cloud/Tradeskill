@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Real coin logos (Binance official) + Gainers badge removed
+- USER ask #1: all coins must show real logos like Binance (small movers were showing monogram).
+- Solution: backend `_ensure_symbol_images()` now builds a symbol->logo map from Binance's OWN public **get-all-asset** endpoint (`bapi/asset/v2/public/asset/asset/get-all-asset`, ~1091 assets, keyless, the exact logos the Binance app uses). Cached 6h. market_movers attaches `image` = this logo for every row -> **100% logo coverage (50/50 gainers + 50/50 losers, 0 monograms)**. Verified images load with no referer/hotlink block (200 image/png).
+- Removed the earlier CoinGecko top-250/500 logo-map approach (incomplete, ~37/50 only). top_market's own list still uses CoinGecko images (fine).
+- Frontend: new `CoinLogo` component (fallback chain: backend Binance logo -> coincap icon -> CoinIcon monogram) used in Market coin rows.
+- Also per user: Gainers "Live · updated" badge REMOVED from UI — auto-refresh keeps running silently in background (30s poll), just not shown.
+- ANSWER to user #2: yes — every 30s the backend re-scans ALL ~362 Binance USDT spot pairs and recomputes top gainers/losers, so any newly-pumping high-% coin appears automatically within ~30s (filters: >=$500k 24h vol, excludes stablecoin + leveraged UP/DOWN/BULL/BEAR pairs).
+
+
 ## Update (06 Oct 2026): Gainers/Losers = REAL Binance movers (full universe)
 - BUG (user video): app's Gainers/Losers only re-sorted the top-50-by-market-cap list, so real high-% small-caps (RLC +144%, RAD +48%, API3 +33%, ORCA, VTHO, FIL...) never appeared — unlike Binance which ranks the whole USDT universe.
 - NEW backend GET /api/market/movers (public, no auth): fetches full Binance 24hr ticker (BINANCE_PUBLIC/api/v3/ticker/24hr), filters USDT spot pairs (excludes stables + leveraged UP/DOWN/BULL/BEAR), min_volume floor $500k (drops dead/junk pairs), returns top `limit` gainers (chg desc) + losers (chg asc) across the 362-coin universe. Stale-while-revalidate cache, 30s refresh.
