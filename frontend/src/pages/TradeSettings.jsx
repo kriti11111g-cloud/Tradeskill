@@ -10,7 +10,7 @@ import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
 import useBinanceStream from "@/hooks/useBinanceStream";
 import { fmtNum } from "@/lib/format";
-import { getUpcoming, timeLeft } from "@/lib/upcomingCoins";
+import { getUpcoming, timeLeft, fetchUpcoming } from "@/lib/upcomingCoins";
 
 const GRAD = "linear-gradient(90deg, #22C55E 0%, #2563EB 100%)";
 const ROW = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" };
@@ -69,10 +69,15 @@ export default function TradeSettings() {
   const nav = useNavigate();
   const sym = symbol.toUpperCase();
   const base = sym.replace(/USDT$/, "");
-  const upcoming = getUpcoming(sym);
+  const [upcoming, setUpcoming] = useState(() => getUpcoming(sym));
   const [tl, setTl] = useState(() => (upcoming ? timeLeft(upcoming.launchAt) : null));
   useEffect(() => {
+    // resolve against the live Binance listing feed too (not just demo list)
+    fetchUpcoming().then(() => setUpcoming(getUpcoming(sym)));
+  }, [sym]);
+  useEffect(() => {
     if (!upcoming) return;
+    setTl(timeLeft(upcoming.launchAt));
     const id = setInterval(() => setTl(timeLeft(upcoming.launchAt)), 1000);
     return () => clearInterval(id);
   }, [upcoming]);

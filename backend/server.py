@@ -806,6 +806,101 @@ async def top_market(limit: int = 50, force: bool = False):
     return result
 
 
+# ==== Upcoming Binance listings (keyless public announcement feed) ====
+_UPCOMING_CACHE = {"ts": 0.0, "data": None}
+_UPCOMING_REFRESHING = {"v": False}
+BINANCE_CMS = "https://www.binance.com/bapi/composite/v1/public/cms"
+_UPCOMING_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+
+
+async def _upcoming_refresh():
+    try:
+        await market_upcoming(force=True)
+    except Exception:
+        pass
+    finally:
+        _UPCOMING_REFRESHING["v"] = False
+
+
+async def _fetch_listing_time(client, code):
+    """Fetch a Binance announcement article and extract the first 'YYYY-MM-DD HH:MM (UTC)'
+    which is the trading-open time for new spot listings."""
+    try:
+        r = await client.get(f"{BINANCE_CMS}/article/detail/query", params={"articleCode": code})
+        r.raise_for_status()
+        body = (r.json().get("data") or {}).get("body") or ""
+        m = re.findall(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*\(UTC", body)
+        if m:
+            return datetime.strptime(m[0], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+    except Exception:
+        pass
+    return None
+
+
+@api.get("/market/upcoming")
+async def market_upcoming(force: bool = False):
+    """Real upcoming spot listings parsed from Binance's public 'New Cryptocurrency
+    Listing' announcements (catalogId=48). Keyless. Returns only FUTURE listings.
+    Stale-while-revalidate cache, refreshed every 30 min."""
+    import time as _t
+    now = _t.time()
+    if not force and _UPCOMING_CACHE["data"] is not None:
+        if now - _UPCOMING_CACHE["ts"] >= 1800 and not _UPCOMING_REFRESHING["v"]:
+            _UPCOMING_REFRESHING["v"] = True
+            asyncio.create_task(_upcoming_refresh())
+        return _UPCOMING_CACHE["data"]
+
+    coins = []
+    try:
+        async with httpx.AsyncClient(timeout=15, headers={"User-Agent": _UPCOMING_UA}) as c:
+            r = await c.get(
+                f"{BINANCE_CMS}/article/list/query",
+                params={"type": 1, "catalogId": 48, "pageNo": 1, "pageSize": 20},
+            )
+            r.raise_for_status()
+            cats = (r.json().get("data") or {}).get("catalogs") or []
+            arts = cats[0].get("articles", []) if cats else []
+            cands = []
+            for a in arts:
+                title = a.get("title") or ""
+                if "Will List" not in title:
+                    continue
+                m = re.search(r"\(([A-Z0-9]{2,10})\)", title)
+                if not m:
+                    continue
+                asset = m.group(1)
+                name = title.replace("Binance Will List", "")
+                name = re.sub(r"\s*\(.*", "", name).strip()
+                name = re.sub(r"\s+with .*$", "", name, flags=re.I).strip() or asset
+                cands.append({"code": a.get("code"), "asset": asset, "name": name, "title": title})
+                if len(cands) >= 8:
+                    break
+            times = await asyncio.gather(*[_fetch_listing_time(c, x["code"]) for x in cands]) if cands else []
+            nowdt = now_utc()
+            seen = set()
+            for x, t in zip(cands, times):
+                if t and t > nowdt and x["asset"] not in seen:
+                    seen.add(x["asset"])
+                    coins.append({
+                        "symbol": f"{x['asset']}USDT",
+                        "asset": x["asset"],
+                        "name": x["name"],
+                        "launchAt": iso(t),
+                        "tagline": "New Binance listing",
+                        "url": f"https://www.binance.com/en/support/announcement/{x['code']}",
+                    })
+            coins.sort(key=lambda z: z["launchAt"])
+    except Exception as e:
+        logger.warning(f"market_upcoming failed: {e}")
+        if _UPCOMING_CACHE["data"] is not None:
+            return _UPCOMING_CACHE["data"]
+
+    result = {"coins": coins, "count": len(coins), "source": "binance", "cached_at": iso(now_utc())}
+    _UPCOMING_CACHE["ts"] = now
+    _UPCOMING_CACHE["data"] = result
+    return result
+
+
 # ==== Bot Config ====
 DEFAULT_MARGIN_CONFIG = [
     {"drop": 2.0, "multiplier": 2.0},

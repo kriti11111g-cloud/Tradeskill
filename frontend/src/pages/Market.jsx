@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
 import api from "@/lib/api";
-import { UPCOMING_COINS, timeLeft } from "@/lib/upcomingCoins";
+import { UPCOMING_COINS, timeLeft, fetchUpcoming } from "@/lib/upcomingCoins";
 
 const TABS = [
   { id: "hot", label: "Hot" },
@@ -41,6 +41,7 @@ export default function Market() {
   const [coins, setCoins] = useState([]);
   const [tab, setTab] = useState("hot");
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
+  const [comingCoins, setComingCoins] = useState(UPCOMING_COINS);
   const wsRef = useRef(null);
 
   const load = () =>
@@ -59,6 +60,14 @@ export default function Market() {
     } catch {}
     load();
     const id = setInterval(load, 300000); // Genius picks auto-refresh every 5 min
+    return () => clearInterval(id);
+  }, []);
+
+  // Live Binance upcoming-listing feed (fallback to demo list when none pending)
+  useEffect(() => {
+    const pull = () => fetchUpcoming().then((feed) => setComingCoins(feed.length ? feed : UPCOMING_COINS));
+    pull();
+    const id = setInterval(pull, 300000);
     return () => clearInterval(id);
   }, []);
 
@@ -193,7 +202,7 @@ export default function Market() {
               Upcoming listings — tap any coin to pre-configure your bot before it goes live.
             </span>
           </div>
-          {UPCOMING_COINS.map((c, i) => (
+          {comingCoins.map((c, i) => (
             <motion.div
               key={c.symbol}
               initial={{ opacity: 0, y: 8 }}

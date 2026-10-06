@@ -1,6 +1,7 @@
-// Hardcoded "Coming Soon" / upcoming listing coins for the Market page.
-// Dates are near-term (today / tomorrow / next few days) and computed fresh at
-// load so the list always feels like real upcoming listings with live timers.
+// Hardcoded "Coming Soon" / upcoming listing coins used as a FALLBACK when the
+// live Binance listing feed (/market/upcoming) has no pending future listings.
+import api from "@/lib/api";
+
 const _now = Date.now();
 const _in = (hours) => new Date(_now + hours * 3600000).toISOString();
 
@@ -15,14 +16,42 @@ export const UPCOMING_COINS = [
 export const isUpcoming = (symbol) => {
   if (!symbol) return false;
   const s = symbol.toUpperCase();
+  if ((_feedCache || []).some((c) => c.symbol === s || c.asset === s)) return true;
   return UPCOMING_COINS.some((c) => c.symbol === s || c.asset === s);
 };
 
 export const getUpcoming = (symbol) => {
   if (!symbol) return null;
   const s = symbol.toUpperCase();
+  const fromFeed = (_feedCache || []).find((c) => c.symbol === s || c.asset === s);
+  if (fromFeed) return fromFeed;
   return UPCOMING_COINS.find((c) => c.symbol === s || c.asset === s) || null;
 };
+
+export const whenLabel = (launchAt) => {
+  const diff = new Date(launchAt).getTime() - Date.now();
+  if (diff <= 0) return "Now";
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "Tomorrow";
+  return `In ${d} days`;
+};
+
+// Shared in-memory cache of the live Binance listing feed (both Market &
+// TradeSettings read it). Returns real upcoming listings, else [] (caller falls
+// back to the hardcoded UPCOMING_COINS demo list).
+let _feedCache = null;
+export const fetchUpcoming = async () => {
+  try {
+    const { data } = await api.get("/market/upcoming");
+    const coins = (data.coins || []).map((c) => ({ ...c, when: whenLabel(c.launchAt) }));
+    _feedCache = coins;
+    return coins;
+  } catch {
+    return _feedCache || [];
+  }
+};
+export const getFeedCache = () => _feedCache;
 
 // Returns {d,h,m,s,done} remaining until launchAt.
 // Self-healing: if the stored date has already passed, roll it forward by

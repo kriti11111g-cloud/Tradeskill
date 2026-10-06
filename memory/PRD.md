@@ -1,5 +1,13 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Coming Soon — REAL Binance listing feed
+- New backend endpoint **GET /api/market/upcoming** (server.py, after top_market): parses Binance's keyless public "New Cryptocurrency Listing" announcements (bapi CMS, catalogId=48). Filters titles with "Will List", extracts asset via `(SYMBOL)` regex + name, fetches each article detail IN PARALLEL and pulls the first `YYYY-MM-DD HH:MM (UTC)` = trading-open time. Returns ONLY future listings, dedup by asset, sorted by soonest. Stale-while-revalidate cache, refresh every 30 min. Reachable from our US container (HTTP 200) AND user's India VPS — NO API KEY needed. (CoinMarketCal needs a key + was unreachable from container, so Binance chosen.)
+- Parsing verified manually (extracted HYPE listing + time). Live endpoint returns {source:"binance", count, coins:[{symbol,asset,name,launchAt,tagline,url}]}. Currently count=0 (no pending spot listing this moment) — correct & expected; populates automatically when Binance announces a new one shortly before listing.
+- Frontend /app/frontend/src/lib/upcomingCoins.js: added fetchUpcoming() (shared in-memory _feedCache), whenLabel(), getFeedCache(); getUpcoming()/isUpcoming() now check live feed first then static demo list. Hardcoded UPCOMING_COINS (MON/BERA/EIGEN/ZRO/SCR, dynamic near-term dates) kept as FALLBACK when feed empty so the tab is never blank.
+- Market.jsx: Coming Soon tab now renders `comingCoins` (= live feed if any, else demo); refreshes every 5 min. TradeSettings.jsx: fetchUpcoming() on mount then re-resolves getUpcoming(sym) so the Coming Soon banner + countdown + hidden-Start also work for REAL feed coins.
+- Frontend-only consumer with fallback to already-tested demo rendering (iteration_27). Webpack clean, backend no errors.
+
+
 ## Update (06 Oct 2026): Market tabs behaviour + Coming Soon listings
 - Market.jsx tabs finalized per user:
   * **Hot** = world top 50 coins (sorted by market-cap rank, gold Flame on top 3)
