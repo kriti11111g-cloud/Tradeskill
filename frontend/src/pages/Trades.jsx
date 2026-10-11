@@ -374,7 +374,7 @@ function BotRow({ bot, onDone }) {
         <button
           onClick={() => hasPos && setAvgOpen(true)}
           className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "#2563EB", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
           data-testid={`bot-average-btn-${bot.symbol}`}
         >
           <TrendingUp size={12} className="shrink-0" />

@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (11 Oct 2026): AVERAGE modal v2 — % chips + confirm + style match
+- Bottom 3 cards (AVERAGE/SBM/TP) ab top row (CYCLE/ONE SHOT/SELL NOW) ke EXACT same size/look/layout: `rounded-lg py-1.5 px-1 gap-1`, icon 12, `text-[10px] font-black`, surface bg + border. AVERAGE text/icon color `var(--ink)` (top cards jaisa); TP green, SBM ink.
+- AverageModal v2: "Quick Select" chips 25/50/75/100% (average-pct-25/50/75/100) = suggested_buy ke bhaag (100% default pre-filled, active chip gradient). Custom amount input bhi. Chips row sirf tab jab suggested_buy>0.
+- Two-step confirm: "Buy" (average-start) turant execute NAHI karta -> "Are you sure?" (average-confirm-text) + No (average-confirm-no) / Yes,Buy (average-confirm-yes). Yes par hi POST /bots/{symbol}/average. Min $10. Backend unchanged (margin_call_count=0 reset, next_buy C1 se).
+- Verified: testing_agent iteration_29 100% pass.
+
+
 ## Update (11 Oct 2026): Trade card bottom row — AVERAGE / SBM / TP + manual DCA ('Average')
 - USER ask (Hindi): Live bot card ke neeche CYCLE/ONE SHOT/SELL NOW jaisi hi ek nayi 3-button line banao (old DATE->NOW . ROUND + Take Profit badge line ko hata kar). 3 cards = **AVERAGE** (blue), **SBM** (middle, grey), **TP** (green, take-profit %).
 - `/app/frontend/src/pages/Trades.jsx` (BotRow): replaced the date/round + TP-badge footer with a `grid-cols-3` row. AVERAGE (bot-average-btn-<SYM>) opens AverageModal; SBM (bot-sbm-btn-<SYM>) -> toast "SBM — Coming soon"; TP (bot-tp-<SYM>) display-only, shows `+{wftPct}%`.

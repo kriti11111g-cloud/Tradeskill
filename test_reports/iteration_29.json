@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend-only testing of the AVERAGE modal on /trades: 25/50/75/100% quick-select chips + two-step Buy->Are you sure? Yes,Buy confirmation. All acceptance criteria pass end-to-end against ARBUSDT (loss -11.67%, suggested_buy=123.66).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_behaviors": [
+    "Admin login via /login succeeds; token stored and /api/auth/me gates /trades.",
+    "Live filter shows 11 running bots with bot-average-btn-<SYMBOL> buttons.",
+    "Bots with no loss (e.g. LITUSDT) return suggested_buy=0 and chips row is correctly hidden (expected: PCTS block renders only when suggested>0).",
+    "On ARBUSDT (suggested_buy=123.66) modal opens; amount input pre-fills with suggested value and 100% chip is highlighted by default.",
+    "Chip 25% -> 30.93 (= 123.73*0.25), 50% -> 61.87, 75% -> 92.80, 100% -> 123.73. Each tap also activates (gradient style) the pressed chip. Values match current suggested*(p/100) within rounding; small drift vs fetched baseline is because /average-preview re-polls fresh live price when modal opens.",
+    "Typing custom '12' in average-amount-input de-highlights all chips.",
+    "'After This Buy' preview section (New Position / New Avg Price / New Down %) is present and updates on amount change.",
+    "Buy button disabled when amount=5 (<$10) and enabled at amount=12.",
+    "Clicking Buy does NOT place an order; shows average-confirm-text 'Are you sure? Buy $12.00 of ARB at market price. New average will be $0.2191 and Safety Call restarts at C1.' plus No/Yes,Buy buttons.",
+    "Clicking 'No' (average-confirm-no) returns to amount/chips view (confirm text disappears, Buy btn visible).",
+    "Clicking 'Yes, Buy' (average-confirm-yes) with $12 executes POST /api/bots/ARBUSDT/average successfully; modal closes; no error/failed text; card refreshes."
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor UX: suggested_buy can change between the dashboard price snapshot and modal open (live price moves), so the user may see small deltas from what was expected; not a bug.",
+    "WebSocket to wss://stream.binance.com fails with 451 in the preview environment (geo-blocked); the UI still functions via REST polling. Pre-existing env limitation, not introduced by this change."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100%"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "None. Used $12 small spend on ARBUSDT as instructed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "AverageModal (Trades.jsx lines 61-208) is working: PCTS=[25,50,75,100] chips, confirming state gates execution via two-step Buy -> Yes,Buy. Chip highlighting uses activePct computed by comparing current input with pctAmount(p). Modal hides chips entirely when suggested_buy=0 (bots with no loss). Keep $12 small-amount discipline for execution."
+}
