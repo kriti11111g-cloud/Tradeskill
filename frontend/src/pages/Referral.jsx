@@ -137,13 +137,15 @@ export default function Referral() {
         {/* ==== Team ==== */}
         {(() => {
           const ds = data?.direct_stats || { activated: 0, not_activated: 0 };
+          const ts = data?.team_stats || { total: 0, activated: 0, not_activated: 0 };
           return (
             <>
               <div className="mt-4">
                 <SectionCard icon={Network} title="Team" testid="ref-team-card">
-                  <div className="flex flex-col items-center justify-center py-5 text-center" data-testid="team-card-placeholder">
-                    <span className="text-[13px] font-display font-black" style={{ color: "var(--text-mute)" }}>Coming soon</span>
-                    <span className="text-[11px] font-semibold mt-1" style={{ color: "var(--text-mute)" }}>New feature on the way</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <BarStat color="var(--primary-deep)" label="Total Team" value={ts.total} testid="team-total" />
+                    <BarStat color="var(--primary)" label="Activated" value={ts.activated} testid="team-active" />
+                    <BarStat color="var(--gold)" label="Not Activated" value={ts.not_activated} testid="team-inactive" />
                   </div>
                 </SectionCard>
               </div>
