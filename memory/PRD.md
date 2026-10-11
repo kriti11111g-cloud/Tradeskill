@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (11 Oct 2026): Revenue group v2 — coin-wise entries + Close button
+- Date group expand hone par ab har inner entry COIN dikhati hai (IncomeRow showCoin: CoinIcon + "SYM / USDT" + time); entry tap -> wahi full trade detail. trade:null -> "Trading Profit"+note fallback.
+- Expanded group ke top par "Close" button (income-day-group-close, date + count) -> ek tap me wapas date card collapse. Bahar ka main card as-is.
+
+
 ## Update (11 Oct 2026): Revenue — Trading Profit grouped by date (UI-only)
 - Income History me `trading_profit` entries ab date-wise group hoti hain (backend untouched). Ek date par >1 entry -> ONE summary card (ProfitDayGroup, testid income-day-group-trading_profit): "Trading Profit" + date + "N trades" + day TOTAL (income-day-group-total). Tap -> income-day-group-detail me us din ki saari individual entries SAME existing card design (IncomeRow, income-row-trading_profit) me khulti hain; har entry apna trade-detail/note-fallback expand karti hai.
 - Single-entry date -> normal IncomeRow (no group). Baaki categories (commission/royalty/direct/etc) bilkul as-is (koi grouping nahi).

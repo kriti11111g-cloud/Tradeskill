@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown, X } from "lucide-react";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
@@ -40,8 +40,9 @@ function TrendTooltip({ active, payload }) {
 }
 
 /* Single income record card (same design, self-managed expand) */
-function IncomeRow({ r, meta }) {
+function IncomeRow({ r, meta, showCoin }) {
   const [open, setOpen] = useState(false);
+  const coin = showCoin && r.trade?.symbol ? r.trade.symbol.replace(/USDT$/, "") : null;
   return (
     <div
       onClick={() => setOpen(!open)}
@@ -50,11 +51,25 @@ function IncomeRow({ r, meta }) {
       data-testid={`income-row-${r.category}`}
     >
       <div className="flex items-center gap-2.5">
-        <div className="shrink-0"><meta.Icon s={30} /></div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{meta.title}</div>
-          <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>{fmtDate(r.created_at)}</div>
-        </div>
+        {coin ? (
+          <>
+            <div className="shrink-0"><CoinIcon symbol={coin} size={30} /></div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{coin} / USDT</div>
+              <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                {new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="shrink-0"><meta.Icon s={30} /></div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{meta.title}</div>
+              <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>{fmtDate(r.created_at)}</div>
+            </div>
+          </>
+        )}
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
             +{fmtNum(r.amount, 2)} USDT
@@ -141,8 +156,21 @@ function ProfitDayGroup({ date, total, count, items }) {
         </div>
       </div>
       {open && (
-        <div className="px-2 pb-2 pt-1 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-day-group-detail">
-          {items.map((it) => <IncomeRow key={it.id} r={it} meta={META.trading_profit} />)}
+        <div className="px-2 pb-2 pt-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-day-group-detail">
+          <div className="flex items-center justify-between px-1 pb-1.5">
+            <span className="text-[11px] font-black tabular-nums" style={{ color: "var(--text-mute)" }}>{fmtDate(date)} · {count} {count > 1 ? "trades" : "trade"}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black select-none"
+              style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
+              data-testid="income-day-group-close"
+            >
+              <X size={13} strokeWidth={2.6} /> Close
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {items.map((it) => <IncomeRow key={it.id} r={it} meta={META.trading_profit} showCoin />)}
+          </div>
         </div>
       )}
     </div>
