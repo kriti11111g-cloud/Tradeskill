@@ -63,8 +63,9 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [amt, setAmt] = useState("");
+  const [confirming, setConfirming] = useState(false);
   useEffect(() => {
-    if (!open) { setData(null); setAmt(""); return; }
+    if (!open) { setData(null); setAmt(""); setConfirming(false); return; }
     setLoading(true);
     api.get(`/bots/${symbol}/average-preview`)
       .then(({ data }) => { setData(data); setAmt(data.suggested_buy ? String(data.suggested_buy) : ""); })
@@ -78,6 +79,7 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   const live = data?.live_price || 0;
   const qty = data?.position_qty || 0;
   const avg = data?.current_avg_price || 0;
+  const suggested = data?.suggested_buy || 0;
   const neg = data && data.current_loss < 0;
   const addQty = buy > 0 && live > 0 ? buy / live : 0;
   const newQty = qty + addQty;
@@ -86,6 +88,9 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   const newLossPct = newAvg > 0 ? ((live - newAvg) / newAvg) * 100 : 0;
   const newNeg = newLossPct < 0;
   const canStart = buy >= 10 && !busy;
+  const PCTS = [25, 50, 75, 100];
+  const pctAmount = (p) => Math.round((suggested * p) / 100 * 100) / 100;
+  const activePct = suggested > 0 ? PCTS.find((p) => Math.abs(buy - pctAmount(p)) < 0.01) : null;
 
   const start = async () => {
     if (!canStart) return;
@@ -126,18 +131,43 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
               <Row l="Current Position" v={`$${fmtNum(qty * live, 2)}`} />
             </div>
 
-            {/* editable amount */}
-            <div className="mt-4">
-              <label className="text-[12px] font-bold" style={{ color: "var(--text-mute)" }}>Buy Amount (USDT)</label>
+            {/* quick % chips — suggested amount ke 4 bhaag */}
+            {suggested > 0 && (
+              <div className="mt-4">
+                <div className="text-[12px] font-bold mb-1.5" style={{ color: "var(--text-mute)" }}>Quick Select</div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {PCTS.map((p) => {
+                    const on = activePct === p;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => { setConfirming(false); setAmt(String(pctAmount(p))); }}
+                        className="py-2 rounded-lg text-[12px] font-black select-none"
+                        style={on
+                          ? { background: GRAD, color: "#fff", touchAction: "manipulation" }
+                          : { background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
+                        data-testid={`average-pct-${p}`}
+                      >
+                        {p}%
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* editable / custom amount */}
+            <div className="mt-3">
+              <label className="text-[12px] font-bold" style={{ color: "var(--text-mute)" }}>Buy Amount (USDT) · Custom</label>
               <input
                 type="number" inputMode="decimal" value={amt}
-                onChange={(e) => setAmt(e.target.value)}
+                onChange={(e) => { setConfirming(false); setAmt(e.target.value); }}
                 className="w-full mt-1 rounded-xl px-3 py-2.5 text-[15px] font-black tabular-nums outline-none"
                 style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)" }}
                 data-testid="average-amount-input"
               />
               <div className="text-[10.5px] mt-1" style={{ color: "var(--text-mute)" }}>
-                Suggested ${fmtNum(data.suggested_buy, 2)} · buys from your exchange balance
+                Suggested (100%) ${fmtNum(suggested, 2)} · buys from your exchange balance
               </div>
             </div>
 
@@ -149,13 +179,27 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
               <Row l="New Down %" v={`${newNeg ? "" : "+"}${fmtNum(newLossPct, 2)}%`} c={newNeg ? "var(--bad)" : "var(--good)"} />
             </div>
 
-            <div className="flex gap-2.5 mt-5">
-              <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-cancel">Cancel</button>
-              <button onClick={start} disabled={!canStart} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: canStart ? GRAD : "#9CA3AF", opacity: busy ? 0.7 : 1, touchAction: "manipulation" }} data-testid="average-start">{busy ? "Starting…" : "START"}</button>
-            </div>
-            <div className="text-[10.5px] mt-2 text-center" style={{ color: "var(--text-mute)" }}>
-              Min $10 · new average becomes the base, Safety Call restarts at C1
-            </div>
+            {confirming ? (
+              <div className="mt-5">
+                <div className="text-[13px] font-bold text-center leading-relaxed" style={{ color: "var(--ink)" }} data-testid="average-confirm-text">
+                  Are you sure? Buy <b>${fmtNum(buy, 2)}</b> of {sym} at market price. New average will be <b>{fmtPrice(newAvg)}</b> and Safety Call restarts at C1.
+                </div>
+                <div className="flex gap-2.5 mt-4">
+                  <button onClick={() => setConfirming(false)} disabled={busy} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-confirm-no">No</button>
+                  <button onClick={start} disabled={busy} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: GRAD, opacity: busy ? 0.7 : 1, touchAction: "manipulation" }} data-testid="average-confirm-yes">{busy ? "Buying…" : "Yes, Buy"}</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2.5 mt-5">
+                  <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-cancel">Cancel</button>
+                  <button onClick={() => canStart && setConfirming(true)} disabled={!canStart} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: canStart ? GRAD : "#9CA3AF", touchAction: "manipulation" }} data-testid="average-start">Buy</button>
+                </div>
+                <div className="text-[10.5px] mt-2 text-center" style={{ color: "var(--text-mute)" }}>
+                  Min $10 · new average becomes the base, Safety Call restarts at C1
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
