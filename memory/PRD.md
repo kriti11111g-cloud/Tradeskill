@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (11 Oct 2026): BUGFIX — Self-commission removed (self-trading)
+- USER rule: user ko KHUD ke trade par kabhi self-commission nahi; commission sirf jab downline/team trade kare (upline differential override).
+- `_distribute_trading_deduction`: "Self commission at trader's own rank" block HATAYA. Ab `highest=0` se differential sidha upline line ko; trader ko kuch nahi. Unpaid -> company_reserve.
+- `_income_breakdown`: `trade_commission` kind ko kinds + cat_of se hataya (ye trading_profit me "Self commission X%" dikhti thi). Ab trading_profit me SIRF real SELL profits.
+- Verified via live API: "self commission" notes=0; trading_profit me trade:null=0.
+
+
 ## Update (11 Oct 2026): Revenue group v2 — coin-wise entries + Close button
 - Date group expand hone par ab har inner entry COIN dikhati hai (IncomeRow showCoin: CoinIcon + "SYM / USDT" + time); entry tap -> wahi full trade detail. trade:null -> "Trading Profit"+note fallback.
 - Expanded group ke top par "Close" button (income-day-group-close, date + count) -> ek tap me wapas date card collapse. Bahar ka main card as-is.

@@ -2226,7 +2226,7 @@ async def list_transactions(
 @api.get("/revenue/income")
 async def revenue_income(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    kinds = ["trade_commission", "team_commission", "direct_bonus", "support_income", "social_bonus", "royalty_income"]
+    kinds = ["team_commission", "direct_bonus", "support_income", "social_bonus", "royalty_income"]
     txns = await db.bot_transactions.find(
         {"user_id": uid, "kind": {"$in": kinds}, "amount": {"$gt": 0}},
         {"_id": 0}).sort("created_at", -1).to_list(3000)
@@ -2237,8 +2237,6 @@ async def revenue_income(user: dict = Depends(get_current_user)):
 
     def cat_of(t):
         k = t["kind"]
-        if k == "trade_commission":
-            return "trading_profit", None  # self trading income
         if k == "direct_bonus":
             return "direct_income", None
         if k in ("support_income", "social_bonus"):
@@ -3005,17 +3003,10 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
                                          {"_id": 0, "id": 1, "referred_by": 1, "rank": 1,
                                           "email": 1, "name": 1})
         trader_label = (trader or {}).get("name") or (trader or {}).get("email", "trader")
+        # No self-commission: a trader NEVER earns commission on their OWN trade.
+        # Commissions flow only UP the sponsor line (an upline earns a differential
+        # override when their downline/team trades). Differential starts from 0.
         highest = 0.0
-
-        # Self commission at trader's own rank
-        self_pct = _rank_pct_of(trader)
-        if self_pct > 0:
-            amt = round(profit * self_pct / 100.0 * scale, 4)
-            ok = await _credit_commission(user_id, amt, "trade_commission",
-                                          f"Self commission {self_pct}% · {symbol}",
-                                          from_user_id=user_id, symbol=symbol)
-            if ok:
-                highest = self_pct
 
         # Differential up the sponsor line
         seen = {user_id}
