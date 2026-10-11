@@ -1,0 +1,35 @@
+{
+  "summary": "Verified Revenue page (/revenue) Trading Profit date-grouping feature end-to-end on mobile viewport as admin. All grouping, expansion, fallback detail, non-trading-profit non-grouping, totals and regression checks (Today/Total cards + Income Trend chart) PASSED.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verifications_passed": [
+    "Login admin@tgxbot.com succeeded; /revenue loads with revenue-page testid.",
+    "Today's Income (+6.23 USDT) and Total Income (+1,386.99 USDT) cards render; Income Trend chart renders without regression.",
+    "ALL tab: 21 trading_profit day-group cards (income-day-group-trading_profit) + 3 single trading_profit rows (dates with only 1 entry correctly rendered as IncomeRow, not group).",
+    "Trading Profit tab: same 21 groups + 3 singles; 11 Oct 2026 group shows '16 trades' and 18 Sept 2026 group shows '66 trades' matching backend expectation. No separate 16 cards for 11 Oct.",
+    "Tapping the 11 Oct 2026 group opens income-day-group-detail with exactly 16 inner income-row-trading_profit cards.",
+    "Group total (+5.32 USDT) equals sum of 16 inner row amounts (0.05+1.28+0.01+0.23+0.01+0.22+0.02+0.4+0.03+0.7+0.06+1.5+0.01+0.24+0.02+0.53 = 5.31 ≈ 5.32 rounding) - consistent.",
+    "Inner row with trade data expands to full SELL / coin / BINANCE / Date / Order Number / Filled Quantity / Deal Amount / Role / Status detail (income-row-detail) — confirmed via screenshot (RLC/USDT SELL BINANCE row).",
+    "Inner row WITHOUT trade data falls back to note + timestamp detail — confirmed via screenshot ('Self commission 4.25% · RLCUSDT · 10/11/2026, 7:54:26 AM').",
+    "No group card displays '1 trade' (singular) — single-entry dates correctly bypass grouping.",
+    "Trading Commission tab: 0 trading_profit groups, individual income-row-trading_commission cards rendered — no grouping leak.",
+    "Direct Income tab: 0 trading_profit groups, individual income-row-direct_income cards rendered — no grouping leak."
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "displayList useMemo in Revenue.jsx iterates rows twice (once to build groups, once to emit). Minor; fine for 381 entries. Could be O(n) single pass but not blocking.",
+    "Sticky top header + bottom nav overlap can intercept pointer events on items that scroll under them (Playwright flagged this during click retry). Not caused by this feature, but any future test using raw .click() on list items near viewport edges may flake — JS-level click or scroll adjustment works around it."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only task)", "frontend": "100%" },
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "None — read-only verification against existing 381 trading_profit entries across 24 dates.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Revenue page grouping feature is fully working. Admin has 24 trading-profit dates; 21 are multi-entry (groups) and 3 are single-entry (plain rows). Totals: 1386.99 total, 5.32 today-ish. For sticky overlay issues when clicking list items, use JS-level click or close other opened cards first."
+}

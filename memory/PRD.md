@@ -1,6 +1,11 @@
 # TGX BOT — Product Requirements Document
 
-## Update (11 Oct 2026): AVERAGE modal v3 — dedicated "Confirm Average Buy" dialog + deploy
+## Update (11 Oct 2026): Revenue — Trading Profit grouped by date (UI-only)
+- Income History me `trading_profit` entries ab date-wise group hoti hain (backend untouched). Ek date par >1 entry -> ONE summary card (ProfitDayGroup, testid income-day-group-trading_profit): "Trading Profit" + date + "N trades" + day TOTAL (income-day-group-total). Tap -> income-day-group-detail me us din ki saari individual entries SAME existing card design (IncomeRow, income-row-trading_profit) me khulti hain; har entry apna trade-detail/note-fallback expand karti hai.
+- Single-entry date -> normal IncomeRow (no group). Baaki categories (commission/royalty/direct/etc) bilkul as-is (koi grouping nahi).
+- Refactor: `IncomeRow` (self-managed expand) + `ProfitDayGroup` components extract kiye; `displayList` useMemo rows ko local-date se group karta hai; openRow shared state hata diya.
+- Verified: testing_agent iteration_31 100% PASS (21 groups + 3 singles, 11 Oct=16 trades / 18 Sep=66 trades, nested expand, trade-detail + note-fallback, no grouping-leak, totals + chart regression OK).
+
 - Confirm step ab inline nahi, ek dedicated centered dialog (average-confirm-dialog, z-110) user mockup jaisa: "?" icon (HelpCircle, blue ring), title "Confirm Average Buy" (average-confirm-title), message "Are you sure you want to buy X.XX USDT more on SYM/USDT for averaging?" (average-confirm-text), summary box {Additional Amount, Estimated New Average, Estimated New Quantity}, buttons Cancel (average-confirm-no) / Confirm (average-confirm-yes, blue #2563EB).
 - Main modal me 2 naye rows: "Estimated P&L at Live Price" aur "Recovery Price" (= new avg); primary button "START AVERAGE BUY" -> setConfirming(true). Amounts 2-decimal (buy.toFixed(2)).
 - Verified: testing_agent iteration_30 7/7 PASS (dialog render, Cancel return, Confirm executes POST /average 200, dialogs close, card refresh). Cosmetic 12->12.00 fix applied.
