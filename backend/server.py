@@ -2382,6 +2382,10 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
         "wallet_connected": wallet_mode != "demo",
         "wallet_error": None,
         "demo_wallet_usdt": round(demo_balance, 4),
+        "fuel_balance": unified,
+        "fuel_low": unified < BOT_FUEL_WARN_BALANCE,
+        "fuel_empty": unified <= 0,
+        "fuel_warn_threshold": BOT_FUEL_WARN_BALANCE,
     }
 
 

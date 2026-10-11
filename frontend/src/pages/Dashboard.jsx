@@ -55,6 +55,29 @@ export default function Dashboard() {
     api.get("/ranks/me").then(({ data }) => setRank(data)).catch(() => {});
   }, []);
 
+  // Low-fuel warning: popup on app open + every hour until topped up
+  useEffect(() => {
+    const warn = (d) => {
+      if (!d) return;
+      if (d.fuel_empty) {
+        toast.error("⛽ Fuel $0 — bot is holding your trades (no sell until you deposit fuel)", {
+          id: "fuel-warn", duration: 8000,
+          action: { label: "Deposit", onClick: () => navigate("/wallet") },
+        });
+      } else if (d.fuel_low) {
+        toast.warning(`⛽ Fuel below $${d.fuel_warn_threshold || 10} — please deposit fuel to keep your bot running`, {
+          id: "fuel-warn", duration: 7000,
+          action: { label: "Deposit", onClick: () => navigate("/wallet") },
+        });
+      }
+    };
+    api.get("/wallet/summary").then(({ data }) => warn(data)).catch(() => {});
+    const id = setInterval(() => {
+      api.get("/wallet/summary").then(({ data }) => warn(data)).catch(() => {});
+    }, 3600000); // hourly
+    return () => clearInterval(id);
+  }, [navigate]);
+
   const totalBalance = wallet?.total_usdt ?? 0;
 
   const currentRank = rank
