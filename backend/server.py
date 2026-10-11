@@ -1478,6 +1478,96 @@ async def sell_now(symbol: str, user: dict = Depends(get_current_user)):
             "price": txn.get("price"), "profit": txn.get("profit")}
 
 
+@api.get("/bots/{symbol}/average-preview")
+async def average_preview(symbol: str, amount: float = 0.0, user: dict = Depends(get_current_user)):
+    """Manual DCA ('Average') preview: current avg, floating loss, suggested buy
+    (amount that pulls the average down close to the live price) and the
+    resulting new average price."""
+    symbol = symbol.upper()
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    if not bot:
+        raise HTTPException(404, "Bot not found")
+    qty = float(bot.get("position_qty", 0.0) or 0.0)
+    avg = float(bot.get("avg_price", 0.0) or 0.0)
+    if qty <= 0 or avg <= 0:
+        raise HTTPException(400, "No open position to average")
+    try:
+        live = await fetch_price(symbol)
+    except Exception:
+        live = avg
+    floating = qty * live - qty * avg
+    floating_pct = ((live - avg) / avg) * 100 if avg > 0 else 0.0
+    # Suggested buy (a sensible default — editable in the UI). Buying an amount
+    # equal to the current market value of the position pulls the average down
+    # to roughly the midpoint between avg and live (loss cut ~in half). Realistic
+    # and meaningful; the user can raise/lower it and watch the new average live.
+    suggested = 0.0
+    if live < avg:
+        suggested = qty * live
+    suggested = max(0.0, round(suggested, 2))
+    buy_amt = float(amount) if amount and amount > 0 else suggested
+    if buy_amt > 0 and live > 0:
+        add_qty = buy_amt / live
+        new_avg = (qty * avg + buy_amt) / (qty + add_qty)
+    else:
+        new_avg = avg
+    return {
+        "symbol": symbol,
+        "live_price": live,
+        "position_qty": qty,
+        "current_avg_price": avg,
+        "current_loss": floating,
+        "current_loss_pct": floating_pct,
+        "suggested_buy": suggested,
+        "buy_amount": round(buy_amt, 2),
+        "new_avg_price": new_avg,
+    }
+
+
+class AverageIn(BaseModel):
+    amount: float
+
+
+@api.post("/bots/{symbol}/average")
+async def average_position(symbol: str, body: AverageIn, user: dict = Depends(get_current_user)):
+    """Manual DCA buy. Adds to the position at market price, then resets the
+    Safety Call counter to C1 so the ladder restarts off the new average."""
+    symbol = symbol.upper()
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    if not bot:
+        raise HTTPException(404, "Bot not found")
+    if float(bot.get("position_qty", 0.0) or 0.0) <= 0:
+        raise HTTPException(400, "No open position to average")
+    amount = float(body.amount or 0.0)
+    if amount < MIN_FIRST_BUY:
+        raise HTTPException(400, f"Minimum average buy is ${MIN_FIRST_BUY:.0f}")
+    try:
+        txn = await _execute_trade(user_id=user["id"], symbol=symbol, side="BUY",
+                                   usdt_amount=amount, source="manual_average")
+    except _TradeError as e:
+        raise HTTPException(e.status, e.msg)
+    # Reset the Safety Call ladder to C1 off the new average price.
+    fresh = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    new_avg = float(fresh.get("avg_price", 0.0) or 0.0)
+    c1 = _get_margin_rule(fresh, 0)
+    next_buy_price = new_avg * (1 - c1["drop"] / 100.0) if new_avg > 0 else 0.0
+    await db.bots.update_one(
+        {"user_id": user["id"], "symbol": symbol},
+        {"$set": {"margin_call_count": 0, "next_buy_price": next_buy_price,
+                  "last_buy_price": txn.get("price"), "peak_price": 0.0,
+                  "dca_bottom_price": 0.0}})
+    await db.bot_events.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+        "kind": "manual_average", "price": txn.get("price"),
+        "amount": txn.get("amount"), "new_avg_price": new_avg,
+        "created_at": iso(now_utc()),
+    })
+    return {"ok": True, "symbol": symbol, "new_avg_price": new_avg,
+            "bought_qty": txn.get("quantity"), "price": txn.get("price"),
+            "next_buy_price": next_buy_price}
+
+
+
 @api.post("/bots/{symbol}/stop")
 async def stop_bot(symbol: str, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()

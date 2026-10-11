@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
@@ -58,10 +58,116 @@ function ConfirmModal({ open, title, desc, confirmLabel, danger, onConfirm, onCa
   );
 }
 
+function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [amt, setAmt] = useState("");
+  useEffect(() => {
+    if (!open) { setData(null); setAmt(""); return; }
+    setLoading(true);
+    api.get(`/bots/${symbol}/average-preview`)
+      .then(({ data }) => { setData(data); setAmt(data.suggested_buy ? String(data.suggested_buy) : ""); })
+      .catch((e) => { toast.error(e?.response?.data?.detail || "Could not load"); onCancel(); })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, symbol]);
+  if (!open) return null;
+
+  const buy = parseFloat(amt) || 0;
+  const live = data?.live_price || 0;
+  const qty = data?.position_qty || 0;
+  const avg = data?.current_avg_price || 0;
+  const neg = data && data.current_loss < 0;
+  const addQty = buy > 0 && live > 0 ? buy / live : 0;
+  const newQty = qty + addQty;
+  const newAvg = newQty > 0 ? (qty * avg + buy) / newQty : avg;
+  const newPosVal = newQty * live;         // position value at live price after buy
+  const newLossPct = newAvg > 0 ? ((live - newAvg) / newAvg) * 100 : 0;
+  const newNeg = newLossPct < 0;
+  const canStart = buy >= 10 && !busy;
+
+  const start = async () => {
+    if (!canStart) return;
+    setBusy(true);
+    const tid = toast.loading(`Averaging ${sym}...`);
+    try {
+      const { data: r } = await api.post(`/bots/${symbol}/average`, { amount: buy });
+      toast.success(`${sym} averaged · New Avg ${fmtPrice(r.new_avg_price)}`, { id: tid });
+      onConfirm();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Average failed", { id: tid });
+      setBusy(false);
+    }
+  };
+
+  const Row = ({ l, v, c }) => (
+    <div className="flex items-center justify-between">
+      <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>{l}</span>
+      <span className="text-[13.5px] font-black tabular-nums" style={{ color: c || "var(--ink)" }}>{v}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.45)", touchAction: "manipulation" }} onClick={onCancel} data-testid="average-modal">
+      <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <TrendingUp size={18} style={{ color: "#2563EB" }} />
+          <div className="font-display font-black text-lg" style={{ color: "var(--ink)" }}>Average {sym}</div>
+        </div>
+        {loading || !data ? (
+          <div className="py-8 text-center text-sm" style={{ color: "var(--text-mute)" }}>Loading…</div>
+        ) : (
+          <>
+            {/* current state */}
+            <div className="mt-4 space-y-2.5">
+              <Row l="Current Avg Price" v={fmtPrice(avg)} />
+              <Row l="Current Loss" v={`${neg ? "-" : "+"}$${fmtNum(Math.abs(data.current_loss), 2)} (${fmtNum(data.current_loss_pct, 2)}%)`} c={neg ? "var(--bad)" : "var(--good)"} />
+              <Row l="Current Position" v={`$${fmtNum(qty * live, 2)}`} />
+            </div>
+
+            {/* editable amount */}
+            <div className="mt-4">
+              <label className="text-[12px] font-bold" style={{ color: "var(--text-mute)" }}>Buy Amount (USDT)</label>
+              <input
+                type="number" inputMode="decimal" value={amt}
+                onChange={(e) => setAmt(e.target.value)}
+                className="w-full mt-1 rounded-xl px-3 py-2.5 text-[15px] font-black tabular-nums outline-none"
+                style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)" }}
+                data-testid="average-amount-input"
+              />
+              <div className="text-[10.5px] mt-1" style={{ color: "var(--text-mute)" }}>
+                Suggested ${fmtNum(data.suggested_buy, 2)} · buys from your exchange balance
+              </div>
+            </div>
+
+            {/* live preview after buy */}
+            <div className="mt-4 pt-3 space-y-2.5" style={{ borderTop: "1px dashed var(--border)" }}>
+              <div className="text-[11px] font-black uppercase tracking-wide" style={{ color: "#2563EB" }}>After This Buy</div>
+              <Row l="New Position" v={`$${fmtNum(newPosVal, 2)}`} />
+              <Row l="New Avg Price" v={fmtPrice(newAvg)} c="var(--ink)" />
+              <Row l="New Down %" v={`${newNeg ? "" : "+"}${fmtNum(newLossPct, 2)}%`} c={newNeg ? "var(--bad)" : "var(--good)"} />
+            </div>
+
+            <div className="flex gap-2.5 mt-5">
+              <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-cancel">Cancel</button>
+              <button onClick={start} disabled={!canStart} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: canStart ? GRAD : "#9CA3AF", opacity: busy ? 0.7 : 1, touchAction: "manipulation" }} data-testid="average-start">{busy ? "Starting…" : "START"}</button>
+            </div>
+            <div className="text-[10.5px] mt-2 text-center" style={{ color: "var(--text-mute)" }}>
+              Min $10 · new average becomes the base, Safety Call restarts at C1
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BotRow({ bot, onDone }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
   const [modal, setModal] = useState(null); // 'sell' | 'oneshot' | 'cycle'
+  const [avgOpen, setAvgOpen] = useState(false);
   const isRunning = String(bot.status || "").toLowerCase() === "running";
   const live = (ticker?.price || 0) > 0 ? ticker.price : bot.avg_price || 0;
   const qty = bot.position_qty || 0;
@@ -70,7 +176,7 @@ function BotRow({ bot, onDone }) {
   const floating = hasPos ? qty * live - qty * avg : 0;
   const floatPct = hasPos && avg > 0 ? ((live - avg) / avg) * 100 : 0;
   const negative = floating < 0;
-  const round = bot.cycles_completed || 0;
+  const round = bot.cycles_completed || 0; // eslint-disable-line no-unused-vars
   const mode = bot.trade_mode || "cycle";
   const sym = bot.symbol.replace(/USDT$/, "");
 
@@ -219,25 +325,35 @@ function BotRow({ bot, onDone }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-1.5 text-[10.5px] font-bold" style={{ color: "var(--text)" }}>
-          <CalendarDays size={13} style={{ color: "var(--ink)" }} />
-          {fmtD(bot.started_at || bot.first_trade_at)} <ArrowRight size={11} /> {isRunning ? "NOW" : fmtD(bot.stopped_at || bot.last_trade_at)}
-          <span style={{ color: "var(--text-mute)" }}>·</span>
-          <span style={{ color: "var(--good)" }}>ROUND {round}</span>
+      {/* AVERAGE · SBM · TP */}
+      <div className="grid grid-cols-3 gap-1.5 mt-2.5" style={{ touchAction: "manipulation" }} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => hasPos && setAvgOpen(true)}
+          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
+          style={{ background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.25)", color: "#2563EB", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
+          data-testid={`bot-average-btn-${bot.symbol}`}
+        >
+          <TrendingUp size={14} className="shrink-0" />
+          <span className="text-[11px] font-black tracking-wide">AVERAGE</span>
+        </button>
+        <button
+          onClick={() => toast.info("SBM — Coming soon")}
+          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
+          style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-mute)", touchAction: "manipulation" }}
+          data-testid={`bot-sbm-btn-${bot.symbol}`}
+        >
+          <Plus size={14} className="shrink-0" />
+          <span className="text-[11px] font-black tracking-wide">SBM</span>
+        </button>
+        <div
+          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
+          style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", color: "var(--good)" }}
+          data-testid={`bot-tp-${bot.symbol}`}
+        >
+          <Database size={14} className="shrink-0" />
+          <span className="text-[11px] font-black tracking-wide">TP</span>
+          <span className="text-[11px] font-black tabular-nums">+{fmtNum(wftPct, 2)}%</span>
         </div>
-        {isRunning && (
-          <div
-            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 leading-none"
-            style={{ border: "1px solid var(--good)", background: "rgba(16,185,129,0.08)" }}
-            data-testid={`bot-wft-${bot.symbol}`}
-          >
-            <span className="text-[8.5px] font-black tracking-[0.08em] uppercase" style={{ color: "var(--text-mute)" }}>Take Profit</span>
-            <span className="text-[11.5px] font-black tabular-nums" style={{ color: "var(--good)" }}>
-              +{fmtNum(wftPct, 2)}%
-            </span>
-          </div>
-        )}
       </div>
 
       <div onClick={(e) => e.stopPropagation()}>
@@ -246,6 +362,13 @@ function BotRow({ bot, onDone }) {
           {...(modalCfg[modal] || {})}
           onConfirm={act}
           onCancel={() => setModal(null)}
+        />
+        <AverageModal
+          open={avgOpen}
+          symbol={bot.symbol}
+          sym={sym}
+          onConfirm={() => { setAvgOpen(false); onDone && onDone(); }}
+          onCancel={() => setAvgOpen(false)}
         />
       </div>
     </div>
