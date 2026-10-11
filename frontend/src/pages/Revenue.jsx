@@ -39,10 +39,119 @@ function TrendTooltip({ active, payload }) {
   );
 }
 
+/* Single income record card (same design, self-managed expand) */
+function IncomeRow({ r, meta }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      onClick={() => setOpen(!open)}
+      className="rounded-xl px-3 py-2 cursor-pointer select-none"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", touchAction: "manipulation" }}
+      data-testid={`income-row-${r.category}`}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="shrink-0"><meta.Icon s={30} /></div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{meta.title}</div>
+          <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>{fmtDate(r.created_at)}</div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
+            +{fmtNum(r.amount, 2)} USDT
+            {open && r.category === "trading_profit" && r.trade?.deal_amount > r.amount && (
+              <span className="ml-1 text-[11px] font-black" data-testid="income-profit-pct">
+                (+{fmtNum((r.amount / (r.trade.deal_amount - r.amount)) * 100, 2)}%)
+              </span>
+            )}
+          </span>
+          <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+        </div>
+      </div>
+      {open && (
+        r.category === "trading_profit" && r.trade ? (
+          <div className="mt-1.5 pt-2 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-row-detail">
+            <div className="flex items-center justify-between pb-1.5" style={{ borderBottom: "1px dashed var(--border)" }}>
+              <div className="flex items-center gap-2">
+                <CoinIcon symbol={r.trade.symbol.replace(/USDT$/, "")} size={26} />
+                <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>
+                  {r.trade.symbol.replace(/USDT$/, "")} / USDT
+                </span>
+                <span className="text-[9.5px] font-black text-white px-2 py-0.5 rounded-md" style={{ background: "#DC2626" }}>SELL</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <img
+                  src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
+                  alt="Binance"
+                  className="w-[18px] h-[18px] rounded-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+                <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }}>BINANCE</span>
+              </div>
+            </div>
+            {[
+              ["Date", new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })],
+              ["Order Number", String(r.trade.order_id || "—")],
+              ["Filled Quantity", r.trade.quantity != null ? `${fmtNum(r.trade.quantity, 4)} ${r.trade.symbol.replace(/USDT$/, "")}` : "—"],
+              ["Deal Amount", r.trade.deal_amount != null ? `${fmtNum(r.trade.deal_amount, 2)} USDT` : "—"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between text-[11px]">
+                <span className="font-semibold" style={{ color: "var(--text-mute)" }}>{k}</span>
+                <span className="font-bold tabular-nums text-right" style={{ color: "var(--ink)" }}>{v}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Role</span>
+              <span className="font-black" style={{ color: "#2563EB" }}>Trade Skill Bot</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Status</span>
+              <span className="font-black" style={{ color: "var(--good)" }}>{r.trade.status || "Completed"}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="income-row-detail">
+            {r.note || meta.title} · {new Date(r.created_at).toLocaleString()}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+/* Trading Profit — one summary card per date; tap opens that day's entries */
+function ProfitDayGroup({ date, total, count, items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="rounded-xl select-none"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", touchAction: "manipulation" }}
+      data-testid="income-day-group-trading_profit"
+    >
+      <div onClick={() => setOpen(!open)} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer">
+        <div className="shrink-0"><IconProfit s={30} /></div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>Trading Profit</div>
+          <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+            {fmtDate(date)} · {count} {count > 1 ? "trades" : "trade"}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }} data-testid="income-day-group-total">+{fmtNum(total, 2)} USDT</span>
+          <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+        </div>
+      </div>
+      {open && (
+        <div className="px-2 pb-2 pt-1 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-day-group-detail">
+          {items.map((it) => <IncomeRow key={it.id} r={it} meta={META.trading_profit} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Revenue() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("all");
-  const [openRow, setOpenRow] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,6 +188,35 @@ export default function Revenue() {
     for (let i = t.length - 1; i >= 0; i--) if (t[i].total > 0) return t[i].total;
     return 0;
   }, [data]);
+
+  // Trading Profit entries ko date-wise group karo (UI-only). Ek date par 1+
+  // entry -> summary group card; 1 entry -> normal card. Baaki categories as-is.
+  const displayList = useMemo(() => {
+    const dayKey = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+    const groups = {};
+    for (const r of rows) {
+      if (r.category !== "trading_profit") continue;
+      const k = dayKey(r.created_at);
+      if (!groups[k]) groups[k] = { items: [], total: 0, date: r.created_at };
+      groups[k].items.push(r);
+      groups[k].total += (r.amount || 0);
+    }
+    const emitted = {};
+    const out = [];
+    for (const r of rows) {
+      if (r.category === "trading_profit") {
+        const k = dayKey(r.created_at);
+        if (emitted[k]) continue;
+        emitted[k] = true;
+        const g = groups[k];
+        if (g.items.length > 1) out.push({ type: "group", key: k, date: g.date, total: g.total, count: g.items.length, items: g.items });
+        else out.push({ type: "single", row: g.items[0] });
+      } else {
+        out.push({ type: "single", row: r });
+      }
+    }
+    return out;
+  }, [rows]);
 
   return (
     <div className="pb-24" data-testid="revenue-page">
@@ -159,7 +297,7 @@ export default function Revenue() {
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => { setTab(t.id); setOpenRow(null); }}
+            onClick={() => setTab(t.id)}
             className="flex-shrink-0 px-4 py-2 rounded-xl text-[12.5px] font-bold transition-all"
             style={
               tab === t.id
@@ -216,91 +354,15 @@ export default function Revenue() {
           </div>
         ) : (
           <div className="space-y-1.5" data-testid="income-history-list">
-            {rows.slice(0, 100).map((r) => {
-              const meta =
-                tab.startsWith("global_")
-                  ? META[tab]
-                  : META[r.category] || { Icon: IconBars, title: r.category };
-              const open = openRow === r.id;
-              return (
-                <div
-                  key={r.id}
-                  onClick={() => setOpenRow(open ? null : r.id)}
-                  className="rounded-xl px-3 py-2 cursor-pointer select-none"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", touchAction: "manipulation" }}
-                  data-testid={`income-row-${r.category}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="shrink-0"><meta.Icon s={30} /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>
-                        {meta.title}
-                      </div>
-                      <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
-                        {fmtDate(r.created_at)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
-                        +{fmtNum(r.amount, 2)} USDT
-                        {open && r.category === "trading_profit" && r.trade?.deal_amount > r.amount && (
-                          <span className="ml-1 text-[11px] font-black" data-testid="income-profit-pct">
-                            (+{fmtNum((r.amount / (r.trade.deal_amount - r.amount)) * 100, 2)}%)
-                          </span>
-                        )}
-                      </span>
-                      <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
-                    </div>
-                  </div>
-                  {open && (
-                    r.category === "trading_profit" && r.trade ? (
-                      <div className="mt-1.5 pt-2 space-y-1.5" style={{ borderTop: "1px dashed var(--border)" }} data-testid="income-row-detail">
-                        <div className="flex items-center justify-between pb-1.5" style={{ borderBottom: "1px dashed var(--border)" }}>
-                          <div className="flex items-center gap-2">
-                            <CoinIcon symbol={r.trade.symbol.replace(/USDT$/, "")} size={26} />
-                            <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>
-                              {r.trade.symbol.replace(/USDT$/, "")} / USDT
-                            </span>
-                            <span className="text-[9.5px] font-black text-white px-2 py-0.5 rounded-md" style={{ background: "#DC2626" }}>SELL</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <img
-                              src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
-                              alt="Binance"
-                              className="w-[18px] h-[18px] rounded-full object-cover"
-                              onError={(e) => { e.currentTarget.style.display = "none"; }}
-                            />
-                            <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }}>BINANCE</span>
-                          </div>
-                        </div>
-                        {[
-                          ["Date", new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })],
-                          ["Order Number", String(r.trade.order_id || "—")],
-                          ["Filled Quantity", r.trade.quantity != null ? `${fmtNum(r.trade.quantity, 4)} ${r.trade.symbol.replace(/USDT$/, "")}` : "—"],
-                          ["Deal Amount", r.trade.deal_amount != null ? `${fmtNum(r.trade.deal_amount, 2)} USDT` : "—"],
-                        ].map(([k, v]) => (
-                          <div key={k} className="flex items-center justify-between text-[11px]">
-                            <span className="font-semibold" style={{ color: "var(--text-mute)" }}>{k}</span>
-                            <span className="font-bold tabular-nums text-right" style={{ color: "var(--ink)" }}>{v}</span>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Role</span>
-                          <span className="font-black" style={{ color: "#2563EB" }}>Trade Skill Bot</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-semibold" style={{ color: "var(--text-mute)" }}>Status</span>
-                          <span className="font-black" style={{ color: "var(--good)" }}>{r.trade.status || "Completed"}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-1.5 pt-1.5 text-[10.5px] leading-snug" style={{ borderTop: "1px dashed var(--border)", color: "var(--text-soft)" }} data-testid="income-row-detail">
-                        {r.note || meta.title} · {new Date(r.created_at).toLocaleString()}
-                      </div>
-                    )
-                  )}
-                </div>
-              );
+            {displayList.slice(0, 100).map((item) => {
+              if (item.type === "group") {
+                return <ProfitDayGroup key={`g-${item.key}`} date={item.date} total={item.total} count={item.count} items={item.items} />;
+              }
+              const r = item.row;
+              const meta = tab.startsWith("global_")
+                ? META[tab]
+                : META[r.category] || { Icon: IconBars, title: r.category };
+              return <IncomeRow key={r.id} r={r} meta={meta} />;
             })}
           </div>
         )}
