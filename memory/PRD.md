@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (06 Oct 2026): Unlimited team count + empty Team card + VPS port fix
+- Team count: removed 10-level cap in `_compute_team_stats` and `/referral` BFS loops -> now walks the ENTIRE downline (while frontier; 100k-user safety cap). Note: "Level 1..10" are RANK names, NOT downline depth; team counts all levels unlimited. Affects Dashboard "Team", Rank page total_team, Referral team_stats.total.
+- Referral.jsx: "Team" SectionCard (ref-team-card) emptied -> "Coming soon" placeholder (team-card-placeholder); "Direct Referrals" card keeps its data. (User will add a different card there later.) Removed unused `ts` var.
+- VPS multi-project PORT conflict RESOLVED: tradego=8001, titan=8011, **tradeskill=8021**. Updated deploy/tradeskill-backend.service (--port 8021) and deploy/nginx-tradeskill.conf (proxy_pass 127.0.0.1:8021). Each project now on unique port -> no more crash-loop/login failures.
+- Login incident RCA: tradeskill-backend was crash-looping because tradego/titan held port 8001/8011; nginx proxied /api to wrong project's backend -> "Invalid"/"Not Found". Fixed by dedicated port 8021. Also added Admin Panel "Reset Login Password" (POST /admin/users/{uid}/reset-password, admin-gated) so user passwords can be reset from UI (no SSH).
+- VPS build MUST use Node v22 (not v18): `PATH="/usr/bin:$PATH" yarn build` (v18 -> "crypto is not defined").
+- DO NOT restore old DB backups (caused jon's TSK100004 password mismatch).
+
+
 ## Update (06 Oct 2026): Coming Soon coins — "Arm Bot for Launch" (pre-trigger)
 - USER ask: Coming Soon coin ki Trade Settings me Save ke neeche Start Bot bhi ho, taaki bot pre-armed rahe aur coin list hote hi auto-buy kar le.
 - TradeSettings.jsx: Start/Stop button ab upcoming coins par bhi dikhta hai (pehle hidden tha). Labels upcoming par: "Arm Bot for Launch" / "Disarm Bot"; toast "Bot armed! It will auto-buy {COIN} the moment it lists".

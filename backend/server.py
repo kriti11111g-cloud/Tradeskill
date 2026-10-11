@@ -138,13 +138,11 @@ async def _compute_team_stats(user_id: str) -> dict:
     - downline_ranks: {rank_level: count}
     """
     direct = await db.users.count_documents({"referred_by": user_id})
-    # Recursive team walk (BFS, capped at 10 levels + 20k users for perf)
+    # Recursive team walk (BFS, UNLIMITED levels; 100k-user safety cap for perf)
     seen = {user_id}
     frontier = [user_id]
     downline_ranks: dict[int, int] = {}
-    for _depth in range(10):
-        if not frontier or len(seen) > 20000:
-            break
+    while frontier and len(seen) <= 100000:
         cursor = db.users.find(
             {"referred_by": {"$in": frontier}}, {"id": 1, "rank": 1, "_id": 0},
         )
@@ -2436,16 +2434,14 @@ async def referral(user: dict = Depends(get_current_user)):
         {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1, "created_at": 1, "activated": 1},
     ).to_list(500)
 
-    # BFS whole team, attributing each member to their root direct (for per-direct team size)
+    # BFS whole team (UNLIMITED levels; 100k-user safety cap), attributing each member to their root direct
     root_of = {d["id"]: d["id"] for d in directs}
     seen = {user["id"], *root_of.keys()}
     frontier = list(root_of.keys())
     team_total = len(directs)
     team_activated = sum(1 for d in directs if d.get("activated"))
     subtree = {d["id"]: 0 for d in directs}
-    for _ in range(10):
-        if not frontier or len(seen) > 20000:
-            break
+    while frontier and len(seen) <= 100000:
         rows = await db.users.find(
             {"referred_by": {"$in": frontier}},
             {"_id": 0, "id": 1, "referred_by": 1, "activated": 1},
