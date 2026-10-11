@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
@@ -87,6 +87,11 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   const newPosVal = newQty * live;         // position value at live price after buy
   const newLossPct = newAvg > 0 ? ((live - newAvg) / newAvg) * 100 : 0;
   const newNeg = newLossPct < 0;
+  const costBasis = qty * avg + buy;        // total invested after this buy
+  const estPnl = newPosVal - costBasis;     // P&L at current live price after buy
+  const estPnlPct = costBasis > 0 ? (estPnl / costBasis) * 100 : 0;
+  const estNeg = estPnl < 0;
+  const qtyDec = newQty >= 1000 ? 2 : newQty >= 1 ? 4 : 6;
   const canStart = buy >= 10 && !busy;
   const PCTS = [25, 50, 75, 100];
   const pctAmount = (p) => Math.round((suggested * p) / 100 * 100) / 100;
@@ -114,6 +119,7 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   );
 
   return (
+    <>
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.45)", touchAction: "manipulation" }} onClick={onCancel} data-testid="average-modal">
       <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
@@ -176,34 +182,62 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
               <div className="text-[11px] font-black uppercase tracking-wide" style={{ color: "#2563EB" }}>After This Buy</div>
               <Row l="New Position" v={`$${fmtNum(newPosVal, 2)}`} />
               <Row l="New Avg Price" v={fmtPrice(newAvg)} c="var(--ink)" />
-              <Row l="New Down %" v={`${newNeg ? "" : "+"}${fmtNum(newLossPct, 2)}%`} c={newNeg ? "var(--bad)" : "var(--good)"} />
+              <Row l="Estimated P&L at Live Price" v={`${estNeg ? "-" : "+"}$${fmtNum(Math.abs(estPnl), 2)} (${fmtNum(estPnlPct, 2)}%)`} c={estNeg ? "var(--bad)" : "var(--good)"} />
+              <Row l="Recovery Price" v={fmtPrice(newAvg)} />
+            </div>
+            <div className="text-[10px] mt-2 leading-relaxed" style={{ color: "var(--text-mute)" }}>
+              This is an estimated value. Final price may vary based on market and executed order.
             </div>
 
-            {confirming ? (
-              <div className="mt-5">
-                <div className="text-[13px] font-bold text-center leading-relaxed" style={{ color: "var(--ink)" }} data-testid="average-confirm-text">
-                  Are you sure? Buy <b>${fmtNum(buy, 2)}</b> of {sym} at market price. New average will be <b>{fmtPrice(newAvg)}</b> and Safety Call restarts at C1.
-                </div>
-                <div className="flex gap-2.5 mt-4">
-                  <button onClick={() => setConfirming(false)} disabled={busy} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-confirm-no">No</button>
-                  <button onClick={start} disabled={busy} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: GRAD, opacity: busy ? 0.7 : 1, touchAction: "manipulation" }} data-testid="average-confirm-yes">{busy ? "Buying…" : "Yes, Buy"}</button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2.5 mt-5">
-                  <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-cancel">Cancel</button>
-                  <button onClick={() => canStart && setConfirming(true)} disabled={!canStart} className="flex-1 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: canStart ? GRAD : "#9CA3AF", touchAction: "manipulation" }} data-testid="average-start">Buy</button>
-                </div>
-                <div className="text-[10.5px] mt-2 text-center" style={{ color: "var(--text-mute)" }}>
-                  Min $10 · new average becomes the base, Safety Call restarts at C1
-                </div>
-              </>
-            )}
+            <div className="flex gap-2.5 mt-4">
+              <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-black select-none" style={{ background: "var(--surface-3)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-cancel">Cancel</button>
+              <button onClick={() => canStart && setConfirming(true)} disabled={!canStart} className="flex-1 py-2.5 rounded-xl text-[12px] font-black text-white select-none tracking-wide" style={{ background: canStart ? GRAD : "#9CA3AF", touchAction: "manipulation" }} data-testid="average-start">START AVERAGE BUY</button>
+            </div>
+            <div className="text-[10.5px] mt-2 text-center" style={{ color: "var(--text-mute)" }}>
+              Min $10 · new average becomes the base, Safety Call restarts at C1
+            </div>
           </>
         )}
       </div>
     </div>
+
+    {/* Dedicated "Confirm Average Buy" dialog */}
+    {confirming && data && (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.55)", touchAction: "manipulation" }} onClick={() => !busy && setConfirming(false)} data-testid="average-confirm-dialog">
+        <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ border: "2.5px solid #2563EB", background: "rgba(37,99,235,0.08)" }}>
+              <HelpCircle size={34} style={{ color: "#2563EB" }} strokeWidth={2.4} />
+            </div>
+          </div>
+          <div className="text-center font-display font-black text-xl mt-4" style={{ color: "var(--ink)" }} data-testid="average-confirm-title">Confirm Average Buy</div>
+          <div className="text-center text-[14px] leading-relaxed mt-2" style={{ color: "var(--text)" }} data-testid="average-confirm-text">
+            Are you sure you want to buy <b>{fmtNum(buy, 2)} USDT</b> more on {sym}/USDT for averaging?
+          </div>
+
+          <div className="mt-4 rounded-xl p-3.5 space-y-2.5" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Additional Amount</span>
+              <span className="text-[13.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{fmtNum(buy, 2)} USDT</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Estimated New Average</span>
+              <span className="text-[13.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{fmtNum(newAvg, newAvg >= 100 ? 2 : 4)} USDT</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Estimated New Quantity</span>
+              <span className="text-[13.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{fmtNum(newQty, qtyDec)} {sym}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 mt-5">
+            <button onClick={() => setConfirming(false)} disabled={busy} className="flex-1 py-3 rounded-xl text-[14px] font-black select-none" style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }} data-testid="average-confirm-no">Cancel</button>
+            <button onClick={start} disabled={busy} className="flex-1 py-3 rounded-xl text-[14px] font-black text-white select-none" style={{ background: "#2563EB", opacity: busy ? 0.7 : 1, touchAction: "manipulation" }} data-testid="average-confirm-yes">{busy ? "Confirming…" : "Confirm"}</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
