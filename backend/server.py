@@ -132,27 +132,28 @@ RANKS = [
 
 
 async def _compute_team_stats(user_id: str) -> dict:
-    """Return current user's referral network stats:
-    - direct_count (immediate downline)
-    - total_team (recursive downline size, capped)
-    - downline_ranks: {rank_level: count}
+    """Rank-qualification stats — ACTIVATED members ONLY (inactive members do NOT
+    count towards rank or the progress bar). The tree is still fully traversed
+    (unlimited levels) so active members below an inactive upline are reached.
     """
-    direct = await db.users.count_documents({"referred_by": user_id})
-    # Recursive team walk (BFS, UNLIMITED levels; 100k-user safety cap for perf)
+    direct = await db.users.count_documents({"referred_by": user_id, "activated": True})
     seen = {user_id}
     frontier = [user_id]
     downline_ranks: dict[int, int] = {}
+    active_total = 0
     while frontier and len(seen) <= 100000:
         cursor = db.users.find(
-            {"referred_by": {"$in": frontier}}, {"id": 1, "rank": 1, "_id": 0},
+            {"referred_by": {"$in": frontier}}, {"id": 1, "rank": 1, "activated": 1, "_id": 0},
         )
         next_frontier = []
         async for u in cursor:
             if u["id"] in seen:
                 continue
             seen.add(u["id"])
-            next_frontier.append(u["id"])
-            # Track rank counts
+            next_frontier.append(u["id"])  # traverse everyone to reach deeper active members
+            if not u.get("activated"):
+                continue  # inactive members are NOT counted for rank
+            active_total += 1
             r_title = u.get("rank", "Level 1").upper()
             for rk in RANKS:
                 if rk["title"] == r_title:
@@ -161,7 +162,7 @@ async def _compute_team_stats(user_id: str) -> dict:
         frontier = next_frontier
     return {
         "direct_count": direct,
-        "total_team": max(0, len(seen) - 1),
+        "total_team": active_total,
         "downline_ranks": downline_ranks,
     }
 
