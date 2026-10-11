@@ -212,13 +212,13 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
           </div>
           <div className="text-center font-display font-black text-xl mt-4" style={{ color: "var(--ink)" }} data-testid="average-confirm-title">Confirm Average Buy</div>
           <div className="text-center text-[14px] leading-relaxed mt-2" style={{ color: "var(--text)" }} data-testid="average-confirm-text">
-            Are you sure you want to buy <b>{fmtNum(buy, 2)} USDT</b> more on {sym}/USDT for averaging?
+            Are you sure you want to buy <b>{buy.toFixed(2)} USDT</b> more on {sym}/USDT for averaging?
           </div>
 
           <div className="mt-4 rounded-xl p-3.5 space-y-2.5" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between">
               <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Additional Amount</span>
-              <span className="text-[13.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{fmtNum(buy, 2)} USDT</span>
+              <span className="text-[13.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{buy.toFixed(2)} USDT</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-mute)" }}>Estimated New Average</span>

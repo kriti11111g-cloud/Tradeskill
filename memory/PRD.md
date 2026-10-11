@@ -1,6 +1,11 @@
 # TGX BOT — Product Requirements Document
 
-## Update (11 Oct 2026): AVERAGE modal v2 — % chips + confirm + style match
+## Update (11 Oct 2026): AVERAGE modal v3 — dedicated "Confirm Average Buy" dialog + deploy
+- Confirm step ab inline nahi, ek dedicated centered dialog (average-confirm-dialog, z-110) user mockup jaisa: "?" icon (HelpCircle, blue ring), title "Confirm Average Buy" (average-confirm-title), message "Are you sure you want to buy X.XX USDT more on SYM/USDT for averaging?" (average-confirm-text), summary box {Additional Amount, Estimated New Average, Estimated New Quantity}, buttons Cancel (average-confirm-no) / Confirm (average-confirm-yes, blue #2563EB).
+- Main modal me 2 naye rows: "Estimated P&L at Live Price" aur "Recovery Price" (= new avg); primary button "START AVERAGE BUY" -> setConfirming(true). Amounts 2-decimal (buy.toFixed(2)).
+- Verified: testing_agent iteration_30 7/7 PASS (dialog render, Cancel return, Confirm executes POST /average 200, dialogs close, card refresh). Cosmetic 12->12.00 fix applied.
+- DEPLOY (user VPS /opt/tradeskill, port 8021): Save to GitHub -> `cd /opt/tradeskill && git pull` -> `cd frontend && PATH="/usr/bin:$PATH" yarn build` -> `sudo systemctl restart tradeskill-backend` -> `sudo systemctl reload nginx`. Backend bhi change (naye average endpoints) isliye restart zaroori.
+
 - Bottom 3 cards (AVERAGE/SBM/TP) ab top row (CYCLE/ONE SHOT/SELL NOW) ke EXACT same size/look/layout: `rounded-lg py-1.5 px-1 gap-1`, icon 12, `text-[10px] font-black`, surface bg + border. AVERAGE text/icon color `var(--ink)` (top cards jaisa); TP green, SBM ink.
 - AverageModal v2: "Quick Select" chips 25/50/75/100% (average-pct-25/50/75/100) = suggested_buy ke bhaag (100% default pre-filled, active chip gradient). Custom amount input bhi. Chips row sirf tab jab suggested_buy>0.
 - Two-step confirm: "Buy" (average-start) turant execute NAHI karta -> "Are you sure?" (average-confirm-text) + No (average-confirm-no) / Yes,Buy (average-confirm-yes). Yes par hi POST /bots/{symbol}/average. Min $10. Backend unchanged (margin_call_count=0 reset, next_buy C1 se).

@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only test of the new 'Confirm Average Buy' dedicated dialog on /trades AverageModal. Logged in as admin, opened AVERAGE on ARBUSDT, verified new preview rows (Estimated P&L at Live Price, Recovery Price), % chips 25/50/75/100, custom amount input disabled behavior below $10, dedicated confirm dialog with title/icon/message/summary box, Cancel returns to Average modal without placing order, and Confirm executes POST /api/bots/ARBUSDT/average (200 OK) with amount=12, closing both dialogs. Bot card refreshed (buys count changed). All critical acceptance criteria PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "AverageModal confirm dialog", "issues": ["Message text shows '12 USDT' instead of '12.00 USDT' (2-decimal format from mockup). Minor fidelity miss - amount is rendered via Number(amount) not Number(amount).toFixed(2) in the confirm-text template literal. Non-blocking."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Minor polish) In Trades.jsx average-confirm-text, format the amount to 2 decimals (e.g. Number(amount).toFixed(2) + ' USDT') to match the mockup wording 'X.XX USDT'."
+  ],
+  "critical_code_review_comments": [
+    "AverageModal is nested inside Trades.jsx and the file is long; consider extracting modal + confirm dialog into its own component for maintainability.",
+    "Browser WebSocket connections to wss://stream.binance.com fail with 451 (geo-blocked) in preview env; polling fallback appears to work but console shows many warnings/errors - consider suppressing or gating the WS attempts behind a feature flag for cleaner dev console."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a", "frontend": "100% (7/7 acceptance checks)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "None. Used existing running bot ARBUSDT with open position; averaged a small amount ($12).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "AverageModal flow (open->preview->confirm dialog->execute) is verified end-to-end on mobile viewport 390x844 for ARBUSDT. POST /api/bots/{symbol}/average returns 200. Only cosmetic improvement: amount formatting (12 -> 12.00) in the confirm message. All data-testids match spec: average-modal, average-pct-25/50/75/100, average-amount-input, average-start, average-confirm-dialog, average-confirm-title, average-confirm-text, average-confirm-no, average-confirm-yes.",
+  "rca of the issue": "N/A - feature works as designed. Only minor cosmetic deviation from mockup ('12 USDT' vs '12.00 USDT') caused by missing toFixed(2) on the amount interpolation in average-confirm-text."
+}
