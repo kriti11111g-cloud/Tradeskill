@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only testing of the new TRADE page bottom 3-card row (AVERAGE/SBM/TP) on LIVE bot cards and the Average manual-DCA modal. All 9 acceptance checks passed end-to-end against the preview URL as admin@tgxbot.com. Found 11 LIVE bot cards each exposing bot-average-btn-<SYMBOL>, bot-sbm-btn-<SYMBOL>, and bot-tp-<SYMBOL>; old 'ROUND N' / '-> NOW' line is gone. TP shows '+1.5%'. SBM shows 'SBM — Coming soon' toast. AVERAGE modal opens with Current Avg Price/Loss/Position, editable amount input, live-updating preview (New Position $20→$32 when amount=12 on LITUSDT), START disabled for amount<10 and enabled for amount>=10, Cancel closes modal, and START executes: success toast 'LIT averaged · New Avg $0.7430' appears and modal closes with card data refreshing (buys count re-fetched).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Trades / Average modal", "issues": ["When current loss is 0% (e.g. LITUSDT just-averaged), the Buy Amount input prefill is empty and helper reads 'Suggested $0 · buys from your exchange balance'. Not a functional bug (START is correctly disabled), but a nicer UX would be to default to a floor of $10 or show the exchange balance as a hint."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Suggested-buy prefill falls back to empty string when backend returns suggested_buy=0 — consider defaulting to max($10, next_buy_margin) so the UI isn't blank on recently-averaged bots.",
+    "Many Binance websocket 451 errors in console (regional block from preview infra) — purely env noise, but adding a graceful retry/backoff with REST polling fallback would reduce console spam."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (9/9 acceptance checks)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "None. Used existing seeded running bots; executed one small $12 average on LITUSDT in Demo mode.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All new AVERAGE/SBM/TP controls verified on /trades. Testids follow pattern bot-average-btn-<SYMBOL>, bot-sbm-btn-<SYMBOL>, bot-tp-<SYMBOL>; modal uses average-modal, average-amount-input, average-start, average-cancel. START executes via POST /api/bots/{symbol}/average and card data refreshes automatically. Admin has 11 RUNNING bots in Demo mode against live Binance prices.",
+  "rca of the issue": "No bugs found — feature works as specified."
+}

@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (11 Oct 2026): Trade card bottom row — AVERAGE / SBM / TP + manual DCA ('Average')
+- USER ask (Hindi): Live bot card ke neeche CYCLE/ONE SHOT/SELL NOW jaisi hi ek nayi 3-button line banao (old DATE->NOW . ROUND + Take Profit badge line ko hata kar). 3 cards = **AVERAGE** (blue), **SBM** (middle, grey), **TP** (green, take-profit %).
+- `/app/frontend/src/pages/Trades.jsx` (BotRow): replaced the date/round + TP-badge footer with a `grid-cols-3` row. AVERAGE (bot-average-btn-<SYM>) opens AverageModal; SBM (bot-sbm-btn-<SYM>) -> toast "SBM — Coming soon"; TP (bot-tp-<SYM>) display-only, shows `+{wftPct}%`.
+- **AverageModal** (new): on open GET `/api/bots/{symbol}/average-preview`. Shows Current Avg Price, Current Loss, Current Position; an EDITABLE "Buy Amount (USDT)" input (testid average-amount-input) prefilled with `suggested_buy`; live "After This Buy" preview (New Position, New Avg Price, New Down %) recomputed client-side. START (average-start) POSTs `/api/bots/{symbol}/average` {amount}; min $10; buy uses exchange/demo balance (NOT fuel — fuel is only for fees).
+- Backend (`server.py`, after sell_now): `GET /bots/{symbol}/average-preview` (returns current_avg_price, current_loss, current_loss_pct, position_qty, live_price, suggested_buy, new_avg_price) and `POST /bots/{symbol}/average` (AverageIn{amount}) -> BUY via _execute_trade(source="manual_average"), then **reset margin_call_count=0** and recompute next_buy_price from C1 margin rule off the NEW avg (Safety Call ladder restarts fresh at C1). Logs bot_event kind "manual_average".
+- `suggested_buy` = qty*live (position market value) when in loss -> pulls avg to ~midpoint (loss ~halved); realistic/editable. (Literal "avg == current price" needs ~infinite capital, so rejected after showing user real numbers; user chose editable preview, option b.)
+- Verified: backend via curl (preview + POST, mc reset, next_buy from new avg). Frontend via testing_agent iteration_28 — 9/9 acceptance checks PASS (cards render, old date/round gone, SBM toast, editable live preview, START executes + card refresh, min-$10 gating, Cancel).
+
+
 ## Update (06 Oct 2026): Unlimited team count + empty Team card + VPS port fix
 - Team count: removed 10-level cap in `_compute_team_stats` and `/referral` BFS loops -> now walks the ENTIRE downline (while frontier; 100k-user safety cap). Note: "Level 1..10" are RANK names, NOT downline depth; team counts all levels unlimited. Affects Dashboard "Team", Rank page total_team, Referral team_stats.total.
 - Referral.jsx: "Team" SectionCard (ref-team-card) emptied -> "Coming soon" placeholder (team-card-placeholder); "Direct Referrals" card keeps its data. (User will add a different card there later.) Removed unused `ts` var.
