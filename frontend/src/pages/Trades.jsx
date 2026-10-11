@@ -325,34 +325,33 @@ function BotRow({ bot, onDone }) {
         </div>
       </div>
 
-      {/* AVERAGE · SBM · TP */}
+      {/* AVERAGE · SBM · TP — top row ke bilkul same size/look/layout */}
       <div className="grid grid-cols-3 gap-1.5 mt-2.5" style={{ touchAction: "manipulation" }} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
         <button
           onClick={() => hasPos && setAvgOpen(true)}
-          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
-          style={{ background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.25)", color: "#2563EB", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "#2563EB", opacity: hasPos ? 1 : 0.45, touchAction: "manipulation" }}
           data-testid={`bot-average-btn-${bot.symbol}`}
         >
-          <TrendingUp size={14} className="shrink-0" />
-          <span className="text-[11px] font-black tracking-wide">AVERAGE</span>
+          <TrendingUp size={12} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">AVERAGE</span>
         </button>
         <button
           onClick={() => toast.info("SBM — Coming soon")}
-          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
-          style={{ background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-mute)", touchAction: "manipulation" }}
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
           data-testid={`bot-sbm-btn-${bot.symbol}`}
         >
-          <Plus size={14} className="shrink-0" />
-          <span className="text-[11px] font-black tracking-wide">SBM</span>
+          <Plus size={12} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">SBM</span>
         </button>
         <div
-          className="rounded-lg py-2 px-1 flex items-center justify-center gap-1.5 select-none"
-          style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", color: "var(--good)" }}
+          className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--good)", touchAction: "manipulation" }}
           data-testid={`bot-tp-${bot.symbol}`}
         >
-          <Database size={14} className="shrink-0" />
-          <span className="text-[11px] font-black tracking-wide">TP</span>
-          <span className="text-[11px] font-black tabular-nums">+{fmtNum(wftPct, 2)}%</span>
+          <Database size={12} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">TP +{fmtNum(wftPct, 2)}%</span>
         </div>
       </div>
 
