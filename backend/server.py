@@ -192,7 +192,8 @@ def _rank_qualifies(stats: dict, rank: dict) -> bool:
 # auto-deducted from the pre-funded Bot Wallet. If balance runs out, bots pause.
 BOT_ACTIVATION_FEE = float(os.environ.get("BOT_ACTIVATION_FEE", "50"))
 BOT_TRADING_FEE_PCT = float(os.environ.get("BOT_TRADING_FEE_PCT", "25"))  # % of profit → fuel
-BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "10"))  # bot pauses below this
+BOT_MIN_FUEL_BALANCE = float(os.environ.get("BOT_MIN_FUEL_BALANCE", "5"))  # min fuel to START a bot
+BOT_FUEL_WARN_BALANCE = float(os.environ.get("BOT_FUEL_WARN_BALANCE", "10"))  # warn popup below this
 MIN_FIRST_BUY = 10.0  # minimum first buy in USDT (below this Binance sells can fail on MIN_NOTIONAL)
 
 # ---- MLM Trading Commission Structure (of PROFIT, totals BOT_TRADING_FEE_PCT=25%) ----
@@ -1886,6 +1887,10 @@ async def _bot_tick(bot: dict):
         return
 
     position_qty = float(bot.get("position_qty", 0.0) or 0)
+    # Fuel gate: at $0 fuel the bot HOLDS — it will NOT sell (even if target hits)
+    # until the user tops up. Buying/DCA and position-holding continue as normal.
+    _bw = await _get_or_create_bot_wallet(user_id)
+    can_sell = float(_bw.get("balance", 0.0) or 0.0) > 0
     avg_price = float(bot.get("avg_price", 0.0) or 0)
     first_buy = float(bot.get("first_buy_amount", 20.0) or 20.0)
     mc_count = int(bot.get("margin_call_count", 0) or 0)
@@ -1926,7 +1931,7 @@ async def _bot_tick(bot: dict):
     # === SUB-POSITION TAKE PROFIT (calls 5+) ===
     # Har sub-position apne tp_price (pichhle call ka average price) par
     # principal + profit ke saath exit hoti hai.
-    if sub_positions and position_qty > 0:
+    if sub_positions and position_qty > 0 and can_sell:
         remaining_subs = []
         sold_any = False
         for sp in sub_positions:
@@ -1976,7 +1981,7 @@ async def _bot_tick(bot: dict):
         peak = price
     if peak > 0:
         pullback_trigger = peak * (1 - tp_callback / 100.0)
-        if price <= pullback_trigger and price > avg_price:
+        if price <= pullback_trigger and price > avg_price and can_sell:
             try:
                 round_num = mc_count + 1
                 await _execute_trade(
@@ -2967,15 +2972,10 @@ async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
 
     balance = float(wallet.get("balance", 0.0) or 0.0)
     if balance <= 0:
-        # No fuel → pause all running bots for this user.
-        await db.bots.update_many(
-            {"user_id": user_id, "status": "running"},
-            {"$set": {"status": "stopped"}},
-        )
-        await _log_bot_txn(user_id, "pause", 0.0,
-                           note="Fuel wallet empty — bots paused", symbol=symbol,
-                           balance_after=0.0)
-        result["paused"] = True
+        # No fuel → DO NOT pause/stop bots and DO NOT touch positions.
+        # Positions are simply HELD; sells are blocked in _bot_tick until the
+        # user tops up fuel. (This defensive branch rarely runs since _bot_tick
+        # already skips the sell when fuel <= 0.)
         return result
 
     deducted = min(fee, balance)
@@ -2992,17 +2992,9 @@ async def _charge_trading_fee(user_id: str, profit: float, symbol: str) -> dict:
     await _distribute_trading_deduction(user_id, profit, deducted, symbol)
     result["deducted"] = deducted
     result["balance_after"] = new_balance
-    if new_balance < BOT_MIN_FUEL_BALANCE:
-        await db.bots.update_many(
-            {"user_id": user_id, "status": "running"},
-            {"$set": {"status": "stopped"}},
-        )
-        await _log_bot_txn(
-            user_id, "pause", 0.0,
-            note=f"Fuel below ${BOT_MIN_FUEL_BALANCE:.0f} minimum — bots paused",
-            symbol=symbol, balance_after=new_balance,
-        )
-        result["paused"] = True
+    # NOTE: bots are intentionally NOT stopped on low fuel. They keep running
+    # (holding positions) down to $0; a "please deposit fuel" popup warns the
+    # user below ${BOT_FUEL_WARN_BALANCE:.0f}. Selling resumes once fuel > 0.
     return result
 
 
