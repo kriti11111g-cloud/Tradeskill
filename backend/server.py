@@ -2012,7 +2012,10 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
     except _TradeError:
         raise
     except KuCoinError as e:
-        msg = f"KuCoin rejected order ({e.code}): {e.message}"
+        if str(e.code) == "400500":
+            msg = f"KuCoin does not allow trading {base_asset} from this server's region. Please choose a different coin (e.g. BTC, ETH, XRP, SOL)."
+        else:
+            msg = f"KuCoin rejected order ({e.code}): {e.message}"
         logger.error(f"[kucoin trade] {symbol} {side}: {msg}")
         await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
         raise _TradeError(400, msg)
