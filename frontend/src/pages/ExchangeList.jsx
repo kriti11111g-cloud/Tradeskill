@@ -47,19 +47,27 @@ const Logo = ({ ex, s = 30, ts = "text-[11px]" }) => (
   </div>
 );
 
+const SUPPORTED = new Set(["binance", "kucoin"]);
+
 export default function ExchangeList() {
-  const [bind, setBind] = useState(null);
+  const [binanceBind, setBinanceBind] = useState(null);
+  const [kucoinBind, setKucoinBind] = useState(null);
   const [ipModal, setIpModal] = useState(null); // exchange whose IP popup is open
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/binance/bind").then(({ data }) => setBind(data)).catch(() => {});
+    api.get("/binance/bind").then(({ data }) => setBinanceBind(data)).catch(() => {});
+    api.get("/kucoin/bind").then(({ data }) => setKucoinBind(data)).catch(() => {});
   }, []);
 
-  const isConnected = !!bind?.bound;
-  const connected = EXCHANGES[0]; // Binance — only supported exchange
-  const others = isConnected ? EXCHANGES.slice(1) : EXCHANGES;
-  const isLive = isConnected && (bind?.mode === "real" || bind?.mode === "testnet");
+  const bindOf = (id) => (id === "kucoin" ? kucoinBind : binanceBind);
+  const connectedId = kucoinBind?.bound ? "kucoin" : binanceBind?.bound ? "binance" : null;
+  const isConnected = !!connectedId;
+  const connected = EXCHANGES.find((e) => e.id === connectedId) || EXCHANGES[0];
+  const others = isConnected ? EXCHANGES.filter((e) => e.id !== connectedId) : EXCHANGES;
+  const connBind = bindOf(connectedId);
+  const isLive = isConnected && (connBind?.mode === "real" || connBind?.mode === "testnet");
+  const bind = binanceBind; // used by IP modal fallback
 
   return (
     <div className="pb-24" data-testid="exchange-list-page">
@@ -95,7 +103,7 @@ export default function ExchangeList() {
             Connected Exchange
           </span>
           <button
-            onClick={() => navigate("/bind-api/binance")}
+            onClick={() => navigate(`/bind-api/${connected.id}`)}
             className="w-full rounded-2xl px-4 pt-5 pb-3 text-left transition active:scale-[0.995]"
             style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC", boxShadow: "0 2px 12px rgba(22,163,74,0.10)" }}
             data-testid="connected-exchange-card"
@@ -148,13 +156,14 @@ export default function ExchangeList() {
 
       {/* Scrollable list — sirf ye scroll hota hai */}
       <div className="px-4 mt-1 space-y-1.5">
-        {others.map((ex, i) => (
+        {others.map((ex, i) => {
+          const b = bindOf(ex.id);
+          const supported = SUPPORTED.has(ex.id);
+          return (
           <button
             key={ex.id}
             onClick={() =>
-              ex.id === "binance"
-                ? navigate("/bind-api/binance")
-                : setIpModal(ex)
+              supported ? navigate(`/bind-api/${ex.id}`) : setIpModal(ex)
             }
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
@@ -169,13 +178,17 @@ export default function ExchangeList() {
               <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{ex.tag}</div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: "var(--surface-3)", color: "var(--text-mute)" }}>
-                Not Bound
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold"
+                style={supported
+                  ? { background: "rgba(37,99,235,0.1)", color: "#2563EB" }
+                  : { background: "var(--surface-3)", color: "var(--text-mute)" }}>
+                {b?.api_key_mask ? (b.mode === "real" ? "Live" : "Demo") : supported ? "Bind" : "Not Bound"}
               </span>
               <ChevronRight size={16} style={{ color: "var(--ink)" }} />
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Whitelist IP popup for other exchanges */}

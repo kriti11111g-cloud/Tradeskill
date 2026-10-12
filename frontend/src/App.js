@@ -63,7 +63,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/market" element={<Market />} />
             <Route path="/bind-api" element={<ExchangeList />} />
-            <Route path="/bind-api/binance" element={<BindAPI />} />
+            <Route path="/bind-api/:exchange" element={<BindAPI />} />
             <Route path="/pair/:symbol" element={<TradingPair />} />
             <Route path="/trade-settings/:symbol" element={<TradeSettings />} />
             <Route path="/wallet" element={<Wallet />} />

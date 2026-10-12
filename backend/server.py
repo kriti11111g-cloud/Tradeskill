@@ -28,6 +28,10 @@ from binance.exceptions import BinanceAPIException, BinanceRequestException
 import re
 import random
 import hashlib
+import base64
+import hmac
+import json as _json
+from decimal import Decimal
 import chain_wallet
 
 
@@ -676,6 +680,81 @@ async def unbind(user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# ==== KuCoin API Keys ====
+class KuCoinBindIn(BaseModel):
+    api_key: str
+    api_secret: str
+    passphrase: str
+    mode: Literal["real", "demo"] = "demo"
+    key_version: str = "3"
+
+
+@api.post("/kucoin/bind")
+async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)):
+    # For live mode, verify the keys actually work before saving.
+    if body.mode == "real":
+        client = KuCoinClient(body.api_key, body.api_secret, body.passphrase, body.key_version)
+        try:
+            await client.accounts(account_type="trade")
+        except KuCoinError as e:
+            if e.code == "400006":
+                raise HTTPException(400, f"KuCoin: server IP not whitelisted. Add {BIND_WHITELIST_IP} to your API key's IP list.")
+            raise HTTPException(400, f"KuCoin rejected keys ({e.code}): {e.message}")
+        except Exception as e:
+            raise HTTPException(400, f"KuCoin unreachable: {e}")
+    doc = {
+        "user_id": user["id"],
+        "api_key_enc": encrypt_text(body.api_key),
+        "api_secret_enc": encrypt_text(body.api_secret),
+        "passphrase_enc": encrypt_text(body.passphrase),
+        "api_key_mask": mask(body.api_key),
+        "mode": body.mode,
+        "key_version": body.key_version or "3",
+        "updated_at": iso(now_utc()),
+    }
+    await db.kucoin_keys.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"activated": True, "active_exchange": "kucoin"}})
+    return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
+
+
+@api.get("/kucoin/bind")
+async def kucoin_get_bind(user: dict = Depends(get_current_user)):
+    row = await db.kucoin_keys.find_one(
+        {"user_id": user["id"]},
+        {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0, "passphrase_enc": 0})
+    if not row:
+        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": BIND_WHITELIST_IP}
+    row["bound"] = row.get("mode") == "real"
+    row["whitelist_ip"] = BIND_WHITELIST_IP
+    return row
+
+
+@api.delete("/kucoin/bind")
+async def kucoin_unbind(user: dict = Depends(get_current_user)):
+    await db.kucoin_keys.delete_one({"user_id": user["id"]})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "binance"}})
+    return {"ok": True}
+
+
+@api.get("/kucoin/account")
+async def kucoin_account(user: dict = Depends(get_current_user)):
+    client, mode = await get_user_kucoin(user["id"])
+    if not client:
+        raise HTTPException(400, "No live KuCoin API keys bound. Bind in real mode first.")
+    try:
+        data = await client.accounts(account_type="trade")
+    except KuCoinError as e:
+        raise HTTPException(400, f"KuCoin error ({e.code}): {e.message}")
+    except Exception as e:
+        raise HTTPException(400, f"KuCoin unreachable: {e}")
+    balances = [
+        {"asset": b["currency"], "free": float(b.get("available", 0) or 0), "locked": float(b.get("holds", 0) or 0)}
+        for b in (data or [])
+        if float(b.get("balance", 0) or 0) > 0
+    ]
+    return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
+
+
 # ==== Public Market Data ====
 @api.get("/market/ticker/{symbol}")
 async def ticker(symbol: str):
@@ -1319,6 +1398,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
     }
     existing = await db.bots.find_one({"user_id": user["id"], "symbol": symbol})
     if not existing:
+        urow = await db.users.find_one({"id": user["id"]}, {"_id": 0, "active_exchange": 1})
         doc.update({
             "id": str(uuid.uuid4()),
             "status": "stopped",
@@ -1326,6 +1406,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
             "position_qty": 0.0,
             "avg_price": 0.0,
             "margin_call_count": 0,
+            "exchange": (urow or {}).get("active_exchange", "binance"),
             "created_at": iso(now_utc()),
         })
     await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": doc}, upsert=True)
@@ -1636,6 +1717,125 @@ async def get_user_binance(user_id: str):
     return client, mode
 
 
+# ==== KuCoin Spot client (async httpx; user provides key+secret+passphrase) ====
+KUCOIN_BASE_URL = os.environ.get("KUCOIN_BASE_URL", "https://api.kucoin.com")
+
+
+class KuCoinError(Exception):
+    def __init__(self, status: int, code: str, message: str):
+        self.status, self.code, self.message = status, code, message
+        super().__init__(f"KuCoin {status}/{code}: {message}")
+
+
+class KuCoinClient:
+    def __init__(self, key, secret, passphrase, key_version="3", base_url=KUCOIN_BASE_URL):
+        self.key, self.secret, self.passphrase = key, secret, passphrase
+        self.key_version, self.base_url = key_version or "3", base_url.rstrip("/")
+
+    @staticmethod
+    def _b64(raw: bytes) -> str:
+        return base64.b64encode(raw).decode()
+
+    def _headers(self, method, endpoint, body, ts):
+        prehash = ts + method.upper() + endpoint + body
+        sign = self._b64(hmac.new(self.secret.encode(), prehash.encode(), hashlib.sha256).digest())
+        pph = self._b64(hmac.new(self.secret.encode(), self.passphrase.encode(), hashlib.sha256).digest())
+        return {
+            "KC-API-KEY": self.key, "KC-API-SIGN": sign, "KC-API-TIMESTAMP": ts,
+            "KC-API-PASSPHRASE": pph, "KC-API-KEY-VERSION": self.key_version,
+            "Content-Type": "application/json",
+        }
+
+    async def request(self, method, endpoint, payload=None, private=True):
+        body = "" if payload is None else _json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        ts = str(int(time.time() * 1000))
+        headers = self._headers(method, endpoint, body, ts) if private else {"Content-Type": "application/json"}
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=15.0) as http:
+            r = await http.request(method.upper(), endpoint, content=body if body else None, headers=headers)
+        try:
+            data = r.json()
+        except ValueError:
+            raise KuCoinError(r.status_code, "NON_JSON", r.text[:300])
+        if r.status_code >= 400 or str(data.get("code")) != "200000":
+            raise KuCoinError(r.status_code, str(data.get("code")), str(data.get("msg", data)))
+        return data["data"]
+
+    async def accounts(self, currency=None, account_type="trade"):
+        q = f"?type={account_type}" + (f"&currency={currency}" if currency else "")
+        return await self.request("GET", "/api/v1/accounts" + q)
+
+    async def ticker(self, symbol):
+        return await self.request("GET", f"/api/v1/market/orderbook/level1?symbol={symbol}", private=False)
+
+    async def symbol_rules(self, symbol):
+        return await self.request("GET", f"/api/v2/symbols/{symbol}", private=False)
+
+    async def market_buy_funds(self, symbol, usdt: Decimal):
+        return await self.request("POST", "/api/v1/hf/orders", {
+            "clientOid": str(uuid.uuid4()), "symbol": symbol, "type": "market",
+            "side": "buy", "funds": format(usdt, "f")})
+
+    async def market_sell_size(self, symbol, base_size: Decimal):
+        return await self.request("POST", "/api/v1/hf/orders", {
+            "clientOid": str(uuid.uuid4()), "symbol": symbol, "type": "market",
+            "side": "sell", "size": format(base_size, "f")})
+
+    async def order(self, order_id):
+        return await self.request("GET", f"/api/v1/hf/orders/{order_id}")
+
+    async def fills(self, symbol, order_id):
+        return await self.request("GET", f"/api/v1/hf/fills?symbol={symbol}&orderId={order_id}&limit=100")
+
+    async def execution(self, symbol, order_id):
+        o = {}
+        for _ in range(30):
+            o = await self.order(order_id)
+            if Decimal(str(o.get("dealSize", "0"))) > 0 and not o.get("active", False):
+                break
+            await asyncio.sleep(0.25)
+        qty = Decimal(str(o.get("dealSize", "0")))
+        funds = Decimal(str(o.get("dealFunds", "0")))
+        fee = Decimal(str(o.get("fee", "0")))
+        try:
+            f = await self.fills(symbol, order_id)
+            items = f.get("items", [])
+            if items:
+                qf = sum((Decimal(str(x["size"])) for x in items), Decimal(0))
+                ff = sum((Decimal(str(x["funds"])) for x in items), Decimal(0))
+                fe = sum((Decimal(str(x.get("fee", "0"))) for x in items), Decimal(0))
+                if qf > 0:
+                    qty, funds, fee = qf, ff, fe
+        except Exception:
+            pass
+        avg = (funds / qty) if qty > 0 else Decimal(0)
+        return {"order_id": order_id, "filled_qty": float(qty), "quote": float(funds),
+                "avg_price": float(avg), "fee": float(fee), "status": o.get("status", "done")}
+
+
+def _kucoin_symbol(symbol: str) -> str:
+    """BTCUSDT -> BTC-USDT (quote assumed USDT)."""
+    s = symbol.upper()
+    return f"{s[:-4]}-USDT" if s.endswith("USDT") else s
+
+
+async def get_user_kucoin(user_id: str):
+    """Return (client, mode). client is None for demo/no-keys."""
+    row = await db.kucoin_keys.find_one({"user_id": user_id})
+    if not row:
+        return None, "demo"
+    mode = row.get("mode", "demo")
+    if mode == "demo":
+        return None, "demo"
+    try:
+        api_key = decrypt_text(row["api_key_enc"])
+        api_secret = decrypt_text(row["api_secret_enc"])
+        passphrase = decrypt_text(row["passphrase_enc"])
+    except Exception as e:
+        logger.error(f"decrypt kucoin keys failed: {e}")
+        raise HTTPException(500, "Failed to load KuCoin API credentials")
+    return KuCoinClient(api_key, api_secret, passphrase, row.get("key_version", "3")), mode
+
+
 def _parse_fill(order: dict, base_asset: str = "") -> tuple[float, float, float]:
     """Return (net_filled_qty, quote_spent, avg_price). Base-asset commission (Binance
     0.1% fee jo bought coin me katati hai) NET ki jati hai — warna sell fail hota hai."""
@@ -1740,6 +1940,94 @@ class _TradeError(Exception):
         super().__init__(msg)
 
 
+async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode):
+    """KuCoin live spot execution — mirrors the Binance real path, reads fills for avg price/qty."""
+    ksym = _kucoin_symbol(symbol)
+    base_asset = symbol.upper()[:-4]
+    try:
+        if side == "BUY":
+            amount = usdt_amount or 0
+            if amount <= 0:
+                raise _TradeError(400, "usdt_amount required for BUY")
+            accepted = await client.market_buy_funds(ksym, Decimal(str(round(amount, 2))))
+            res = await client.execution(ksym, accepted["orderId"])
+        else:
+            qty = quantity or bot.get("position_qty", 0.0)
+            if qty <= 0:
+                raise _TradeError(400, "No position to sell")
+            try:
+                accs = await client.accounts(currency=base_asset, account_type="trade")
+                free = float((accs[0].get("available") if accs else 0) or 0)
+                if free > 0:
+                    qty = min(qty, free)
+            except Exception:
+                pass
+            try:
+                rules = await client.symbol_rules(ksym)
+                inc = Decimal(str(rules.get("baseIncrement", "0.00000001")))
+                qty = float((Decimal(str(qty)) // inc) * inc)
+            except Exception:
+                pass
+            if qty <= 0:
+                raise _TradeError(400, "No sellable balance on KuCoin")
+            accepted = await client.market_sell_size(ksym, Decimal(str(qty)))
+            res = await client.execution(ksym, accepted["orderId"])
+    except _TradeError:
+        raise
+    except KuCoinError as e:
+        raise _TradeError(400, f"KuCoin rejected order ({e.code}): {e.message}")
+    except Exception as e:
+        raise _TradeError(400, f"KuCoin order failed: {e}")
+
+    filled_qty, quote_spent, avg_price = res["filled_qty"], res["quote"], res["avg_price"]
+    if filled_qty <= 0 or avg_price <= 0:
+        raise _TradeError(400, "KuCoin order accepted but not filled — try again")
+
+    if side == "BUY":
+        new_qty = bot.get("position_qty", 0.0) + filled_qty
+        new_amt = bot.get("position_amount", 0.0) + quote_spent
+        new_avg = new_amt / new_qty if new_qty > 0 else 0.0
+        new_wallet = max(0.0, wallet - quote_spent)
+        new_mc = bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0)
+        rule = _get_margin_rule(bot, new_mc)
+        next_buy = avg_price * (1 - rule["drop"] / 100.0)
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {
+            "position_amount": new_amt, "position_qty": new_qty, "avg_price": new_avg,
+            "last_buy_price": avg_price, "next_buy_price": next_buy, "peak_price": 0.0,
+            "dca_bottom_price": 0.0, "margin_call_count": new_mc}}, upsert=True)
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+        profit = 0.0
+    else:
+        cost = filled_qty * bot.get("avg_price", 0.0)
+        profit = quote_spent - cost
+        remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
+        if remaining_qty < 1e-9:
+            remaining_qty = 0.0
+        remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
+        new_wallet = wallet + quote_spent
+        update_set = {"position_qty": remaining_qty, "position_amount": remaining_amt,
+                      "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0}
+        if remaining_qty == 0:
+            update_set.update({"margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
+                               "peak_price": 0.0, "dca_bottom_price": 0.0, "last_sell_price": avg_price,
+                               "cycles_completed": bot.get("cycles_completed", 0) + 1})
+            if bot.get("trade_method") == "One-Shot":
+                update_set["status"] = "stopped"
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+
+    txn = {"id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol, "side": side,
+           "price": avg_price, "quantity": filled_qty, "amount": quote_spent, "profit": profit,
+           "mode": mode, "source": source, "exchange": "kucoin",
+           "binance_order_id": res.get("order_id"), "binance_status": res.get("status"),
+           "created_at": iso(now_utc())}
+    await db.transactions.insert_one(txn)
+    if side == "SELL" and profit > 0 and source not in ("bot_stop", "fresh_start"):
+        await _charge_trading_fee(user_id, profit, symbol)
+    txn.pop("_id", None)
+    return txn
+
+
 async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual"):
     """Shared trade executor used by both the /trade/order endpoint and the bot engine.
     Returns the transaction dict. Raises _TradeError on failure."""
@@ -1751,7 +2039,15 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
     wallet = user.get("wallet_usdt", 0.0)
     bot = await db.bots.find_one({"user_id": user_id, "symbol": symbol}) or {
         "position_amount": 0.0, "position_qty": 0.0, "avg_price": 0.0, "margin_call_count": 0,
+        "exchange": "binance",
     }
+
+    # Route to KuCoin live engine when this bot is a KuCoin bot with real keys.
+    if bot.get("exchange") == "kucoin":
+        kc, kmode = await get_user_kucoin(user_id)
+        if kc and kmode == "real":
+            return await _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, kc, kmode)
+        client, mode = None, "demo"  # KuCoin demo -> shared simulation below
 
     # ----- LIVE (real / testnet) -----
     if client and mode in ("real", "testnet"):

@@ -507,10 +507,16 @@ function HistoryRow({ bot }) {
   );
 }
 
+const EX_META = {
+  binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
+  kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
+};
+
 export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
   const [exUsdt, setExUsdt] = useState(null);
+  const [exMeta, setExMeta] = useState({ id: "binance", name: "Binance" });
   const reloadBots = () => {
     api.get("/bots").then(({ data }) => setBots(data)).catch(() => {});
   };
@@ -525,16 +531,21 @@ export default function Trades() {
       if (c?.bind !== undefined) setBind(c.bind);
     } catch {}
     const load = async () => {
-      const [b, bd] = await Promise.all([
+      const [b, bBn, bKc] = await Promise.all([
         api.get("/bots").then((r) => (Array.isArray(r.data) ? r.data : r.data.bots || [])).catch(() => []),
         api.get("/binance/bind").then((r) => r.data).catch(() => null),
+        api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
       ]);
       setBots(b);
+      // Connected exchange: prefer whichever is live-bound (kucoin > binance), else binance
+      const connId = bKc?.bound ? "kucoin" : bBn?.bound ? "binance" : "binance";
+      const bd = connId === "kucoin" ? bKc : bBn;
       setBind(bd);
+      setExMeta(EX_META[connId]);
       try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
-      // Exchange card par user ka live Binance USDT balance
+      // Exchange card par user ka live USDT balance (jis exchange se bound hai)
       if (bd?.bound) {
-        api.get("/binance/account").then(({ data }) => {
+        api.get(connId === "kucoin" ? "/kucoin/account" : "/binance/account").then(({ data }) => {
           const u = (data.balances || []).find((x) => x.asset === "USDT");
           setExUsdt(u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0);
         }).catch(() => setExUsdt(null));
@@ -623,17 +634,17 @@ export default function Trades() {
           style={CARD}
           data-testid="trade-exchange-card"
         >
-          <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: "#F3BA2F" }}>
-            <span className="text-[13px] font-black text-white">B</span>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0" style={{ background: exMeta.color || "#F3BA2F" }}>
+            <span className="text-[13px] font-black text-white">{exMeta.mono || "B"}</span>
             <img
-              src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
-              alt="Binance"
+              src={exMeta.logo}
+              alt={exMeta.name}
               className="absolute inset-0 w-full h-full object-cover"
               onError={(e) => { e.currentTarget.style.display = "none"; }}
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-black" style={{ color: "var(--ink)" }}>Binance</div>
+            <div className="text-[14px] font-black" style={{ color: "var(--ink)" }}>{exMeta.name}</div>
             <div className="text-[11px]" style={{ color: "var(--text-mute)" }}>Tap to manage your API</div>
           </div>
           <div className="flex flex-col items-end shrink-0">
