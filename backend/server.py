@@ -675,12 +675,13 @@ async def get_server_ip():
         return env_ip
     if _SERVER_IP_CACHE["ip"] and (time.time() - _SERVER_IP_CACHE["ts"] < 3600):
         return _SERVER_IP_CACHE["ip"]
-    for url in ("https://api.ipify.org", "https://ifconfig.me/ip", "https://ipinfo.io/ip"):
+    for url in ("https://api4.ipify.org", "https://ipv4.icanhazip.com", "https://api.ipify.org"):
         try:
-            async with httpx.AsyncClient(timeout=6.0) as h:
+            transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")  # force IPv4
+            async with httpx.AsyncClient(timeout=6.0, transport=transport) as h:
                 r = await h.get(url)
                 ip = (r.text or "").strip()
-                if ip and len(ip) <= 45 and "." in ip:
+                if ip and len(ip) <= 45 and "." in ip and ":" not in ip:
                     _SERVER_IP_CACHE["ip"] = ip
                     _SERVER_IP_CACHE["ts"] = time.time()
                     return ip
@@ -1784,7 +1785,8 @@ class KuCoinClient:
         body = "" if payload is None else _json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         ts = str(int(time.time() * 1000))
         headers = self._headers(method, endpoint, body, ts) if private else {"Content-Type": "application/json"}
-        async with httpx.AsyncClient(base_url=self.base_url, timeout=15.0) as http:
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")  # force IPv4 so KuCoin sees the whitelisted IPv4
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=15.0, transport=transport) as http:
             r = await http.request(method.upper(), endpoint, content=body if body else None, headers=headers)
         try:
             data = r.json()
