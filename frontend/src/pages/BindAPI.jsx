@@ -212,9 +212,9 @@ export default function BindAPI() {
       </div>
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center px-4"
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 py-6"
           onClick={() => { if (!loading) { setConfirmOpen(false); setAck(false); } }} data-testid="confirm-modal">
-          <div className="w-full max-w-md max-h-[85vh] bg-[color:var(--surface)] border border-[color:var(--bad)]/40 rounded-3xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md max-h-[88vh] bg-[color:var(--surface)] border border-[color:var(--bad)]/40 rounded-3xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-4">
               <div className="w-11 h-11 rounded-2xl bg-[color:var(--bad)]/15 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={22} className="text-[color:var(--bad)]" />
