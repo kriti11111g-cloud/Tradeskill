@@ -1,5 +1,9 @@
 # TGX BOT — Product Requirements Document
 
+## Update (12 Oct 2026): Link-preview meta — "emergent.sh" -> TradeSkill
+- `frontend/public/index.html`: meta description update + og:title/og:description/og:site_name(TradeSkill)/og:url/twitter tags. New desc: "TradeSkill — Automated Crypto Trading Bot. Smart DCA strategies, real exchange trading & team rewards." Needs `yarn build` on VPS; WhatsApp caches old preview until refresh.
+
+
 ## Update (12 Oct 2026): One exchange per account (single-bind enforcement)
 - USER: ek ID me sirf ek exchange; doosra add karne ke liye pehle disconnect.
 - Backend: `/binance/bind` block if kucoin_keys exists; `/kucoin/bind` block if binance_keys exists (400 clear msg). Hard guarantee.
