@@ -1,5 +1,14 @@
 # TGX BOT — Product Requirements Document
 
+## Update (12 Oct 2026): KuCoin added as 2nd exchange (full real-trading parity)
+- USER: Binance stays; user KuCoin bhi connect/trade kar sake (apni Key+Secret+Passphrase, Binance jaisa).
+- Backend: `KuCoinClient` (async httpx, KC-API v3 HMAC signing + encrypted passphrase per integration_expert playbook). Symbol map BTCUSDT->BTC-USDT. Endpoints POST/GET/DELETE `/api/kucoin/bind` (real mode VERIFIES keys before save), `/api/kucoin/account`. Keys encrypted in `kucoin_keys`. Bind real -> user.active_exchange='kucoin'.
+- Routing: bots carry `exchange` (set at create from active_exchange). `_execute_trade` -> bot.exchange=='kucoin' + real -> `_execute_kucoin_real` (live order + fills readback); else shared DEMO sim. Binance path UNCHANGED.
+- Frontend: BindAPI generic `/bind-api/:exchange` (KuCoin adds Passphrase, demo+real, no testnet). ExchangeList: binance+kucoin SUPPORTED -> bind form; others Coming-Soon. Trades exchange card shows connected exchange + balance (EX_META).
+- Verified: testing_agent iteration_32 backend 10/10 + frontend 100%. ⚠️ LIVE KuCoin order exec NOT runtime-tested (no real keys in env); signing confirmed correct (400003).
+- PENDING: LBank next. Live KuCoin needs real-key user test on prod (whitelist server IP).
+
+
 ## Update (11 Oct 2026): BUGFIX — Self-commission removed (self-trading)
 - USER rule: user ko KHUD ke trade par kabhi self-commission nahi; commission sirf jab downline/team trade kare (upline differential override).
 - `_distribute_trading_deduction`: "Self commission at trader's own rank" block HATAYA. Ab `highest=0` se differential sidha upline line ko; trader ko kuch nahi. Unpaid -> company_reserve.

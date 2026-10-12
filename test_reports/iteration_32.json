@@ -1,0 +1,46 @@
+{
+  "summary": "End-to-end verification of newly-added KuCoin exchange as a second supported exchange. Backend: 10/10 pytest cases pass across /api/kucoin/bind (GET/POST/DELETE), /api/kucoin/account, demo-bind path, real-mode fake-key rejection, active_exchange user-field flip, and secret non-leakage. Frontend: ExchangeList shows KuCoin row with correct badge; /bind-api/kucoin dedicated page renders passphrase input + demo+real mode toggles (no testnet, correctly), demo-bind flow succeeds showing API Bound card + Whitelist IP + Unbind, Live-mode confirm modal appears and fake real keys get rejected with proper toast containing KuCoin error (400003).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ExchangeList (/bind-api)", "issues": ["After successful DEMO bind, KuCoin is not promoted to the green 'Connected Exchange' card (only real/testnet mode is). This matches server contract (bound=false for demo) and matches Binance behavior, so it is consistent — flagging only for product awareness; not a bug."]}
+    ]
+  },
+  "verifications_passed": [
+    "GET /api/kucoin/bind (unbound) returns bound=false, mode=null, whitelist_ip populated, zero secret fields leaked.",
+    "POST /api/kucoin/bind demo mode -> 200, no outbound KuCoin call, mask returned, DB upserted.",
+    "After demo bind, auth/me.active_exchange == 'kucoin'.",
+    "GET /api/kucoin/account returns 400 while in demo mode (live-only endpoint).",
+    "DELETE /api/kucoin/bind -> 200, GET afterwards is empty, auth/me.active_exchange flips back to 'binance'.",
+    "POST /api/kucoin/bind real mode with fake keys -> 400 'KuCoin rejected...' and no row persisted.",
+    "Missing passphrase -> 422/400 validation error (Pydantic required field).",
+    "Frontend: /bind-api list shows KuCoin at position 9 with 'Bind' badge; row data-testid='exchange-row-kucoin' present.",
+    "Frontend: /bind-api/kucoin shows passphrase input (data-testid='input-passphrase'); mode selector exposes demo + real only (testnet correctly hidden for KuCoin).",
+    "Frontend: demo-bind end-to-end works: 'KuCoin API bound successfully' toast, API Bound card renders mask + DEMO, Server IP whitelist card renders 187.127.98.41.",
+    "Frontend: real-mode submit opens confirm-modal; ack + Enable Live triggers POST and backend 400 surfaces as toast 'KuCoin rejected keys (400003): The API key does not exist or site mismatch.'",
+    "Trades.jsx exchange-card correctly chooses /kucoin/account vs /binance/account based on which exchange is live-bound (code reviewed, not UI-tested since no live KuCoin keys available)."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_kucoin_integration.py",
+    "/app/test_reports/pytest/kucoin_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py KuCoinBindIn requires `passphrase` as a non-optional str — good, but demo mode still mandates it; consider making optional for demo to lower friction (not blocking).",
+    "GET /api/kucoin/bind returns bound=False for demo keys even though a mask exists. Trades.jsx exchange-balance call keys off `bound` to pick kucoin vs binance account, so when user has demo KuCoin keys the Trade page will still hit /binance/account. If product intent is 'demo KuCoin should also fetch KuCoin balance (which is 0 anyway)', revisit the bound definition. Current behavior is consistent and safe.",
+    "server.py line ~2050: `client, mode = None, 'demo'` after the kucoin branch — the subsequent shared-sim path uses `client` and `mode` later; harmless but subtle. Consider explicit return.",
+    "Exchange secrets are properly encrypted (encrypt_text) and masked; no plaintext leakage observed in any API response — good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_kucoin_integration.py (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% (acceptance checks for list visibility, bind page controls, demo-bind, real-mode rejection all pass)"},
+  "test_credentials": "admin@tgxbot.com / Admin@12345",
+  "seed_data_creation": "Transient DEMO KuCoin binding created and then unbound during tests; no persistent test data left behind (teardown fixture cleans the admin's kucoin_keys row).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "KuCoin is the SECOND exchange. Endpoints live at /api/kucoin/{bind,account}; demo mode skips live validation, real mode validates against KuCoin (needs IP whitelist on prod — current server IP is 187.127.98.41). Trades page branches on kucoinBind.bound (==real only) to pick /kucoin/account vs /binance/account. No live KuCoin creds available in this env so live-order execution path cannot be tested here; only VALIDATION/rejection path verified.",
+  "rca of the issue": "N/A - feature works as specified. User's constraint (no live KuCoin keys available) confirmed: live order placement path (_execute_kucoin_real) could not be exercised in this environment, but the only two paths reachable without live keys — demo + real-key rejection — both pass."
+}
