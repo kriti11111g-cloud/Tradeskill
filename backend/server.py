@@ -648,6 +648,9 @@ async def me(user: dict = Depends(get_current_user)):
 # ==== Binance API Keys ====
 @api.post("/binance/bind")
 async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
+    # One exchange per account — block if another exchange is already connected.
+    if await db.kucoin_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add Binance.")
     doc = {
         "user_id": user["id"],
         "api_key_enc": encrypt_text(body.api_key),
@@ -691,6 +694,9 @@ class KuCoinBindIn(BaseModel):
 
 @api.post("/kucoin/bind")
 async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)):
+    # One exchange per account — block if another exchange is already connected.
+    if await db.binance_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add KuCoin.")
     # For live mode, verify the keys actually work before saving.
     if body.mode == "real":
         client = KuCoinClient(body.api_key, body.api_secret, body.passphrase, body.key_version)

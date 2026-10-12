@@ -9,6 +9,8 @@ const EX = {
   binance: {
     name: "Binance",
     path: "/binance/bind",
+    other: "kucoin",
+    otherName: "KuCoin",
     needsPassphrase: false,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
@@ -20,6 +22,8 @@ const EX = {
   kucoin: {
     name: "KuCoin",
     path: "/kucoin/bind",
+    other: "binance",
+    otherName: "Binance",
     needsPassphrase: true,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
@@ -42,11 +46,16 @@ export default function BindAPI() {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ack, setAck] = useState(false);
+  const [blocked, setBlocked] = useState(false); // other exchange already connected
 
   const load = () => api.get(cfg.path).then(({ data }) => setExisting(data)).catch(() => {});
   useEffect(() => {
     setExisting(null);
+    setBlocked(false);
     load();
+    // One exchange per account — check if the OTHER exchange is already connected
+    const otherPath = `/${cfg.other}/bind`;
+    api.get(otherPath).then(({ data }) => setBlocked(!!data?.api_key_mask)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exId]);
 
@@ -89,6 +98,15 @@ export default function BindAPI() {
       <PageHeader title={`Bind ${cfg.name} API`} subtitle="Connect · Trade · Automate" />
 
       <div className="px-4 space-y-4">
+        {blocked && !existing?.api_key_mask && (
+          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.08)", border: "1.5px solid rgba(220,38,38,0.35)" }} data-testid="bind-blocked-notice">
+            <AlertTriangle size={20} className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} />
+            <div className="text-[12px] leading-relaxed" style={{ color: "var(--ink)" }}>
+              <b>{cfg.otherName}</b> already connected hai is account par. Ek account me sirf ek exchange add ho sakta hai —
+              {" "}{cfg.name} add karne ke liye pehle <b>{cfg.otherName}</b> ko disconnect karo.
+            </div>
+          </div>
+        )}
         {existing?.api_key_mask && (
           <div className="app-card !border-[color:var(--gold)]/30 rounded-2xl p-4 flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[color:var(--gold)]/10 flex items-center justify-center">
@@ -180,10 +198,10 @@ export default function BindAPI() {
                 data-testid="input-passphrase" />
             </div>
           )}
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={loading || blocked}
             className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:brightness-110 transition-all hover:glow-primary disabled:opacity-60"
             data-testid="bind-submit">
-            {loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
+            {blocked ? `Disconnect ${cfg.otherName} first` : loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
           </button>
         </form>
 

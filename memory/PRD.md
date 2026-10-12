@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (12 Oct 2026): One exchange per account (single-bind enforcement)
+- USER: ek ID me sirf ek exchange; doosra add karne ke liye pehle disconnect.
+- Backend: `/binance/bind` block if kucoin_keys exists; `/kucoin/bind` block if binance_keys exists (400 clear msg). Hard guarantee.
+- Frontend: BindAPI load par other-exchange check -> red notice (bind-blocked-notice) + submit disabled. ExchangeList: activeId (api_key_mask demo/real); doosre supported exchange tap -> toast "Pehle X disconnect karo".
+- Verified curl both directions: blocked when other present; after DELETE binds fine.
+
+
 ## Update (12 Oct 2026): KuCoin added as 2nd exchange (full real-trading parity)
 - USER: Binance stays; user KuCoin bhi connect/trade kar sake (apni Key+Secret+Passphrase, Binance jaisa).
 - Backend: `KuCoinClient` (async httpx, KC-API v3 HMAC signing + encrypted passphrase per integration_expert playbook). Symbol map BTCUSDT->BTC-USDT. Endpoints POST/GET/DELETE `/api/kucoin/bind` (real mode VERIFIES keys before save), `/api/kucoin/account`. Keys encrypted in `kucoin_keys`. Bind real -> user.active_exchange='kucoin'.

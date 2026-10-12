@@ -61,6 +61,8 @@ export default function ExchangeList() {
   }, []);
 
   const bindOf = (id) => (id === "kucoin" ? kucoinBind : binanceBind);
+  // Account me jo exchange add hai (demo ya real) — one exchange per account
+  const activeId = kucoinBind?.api_key_mask ? "kucoin" : binanceBind?.api_key_mask ? "binance" : null;
   const connectedId = kucoinBind?.bound ? "kucoin" : binanceBind?.bound ? "binance" : null;
   const isConnected = !!connectedId;
   const connected = EXCHANGES.find((e) => e.id === connectedId) || EXCHANGES[0];
@@ -162,9 +164,15 @@ export default function ExchangeList() {
           return (
           <button
             key={ex.id}
-            onClick={() =>
-              supported ? navigate(`/bind-api/${ex.id}`) : setIpModal(ex)
-            }
+            onClick={() => {
+              if (!supported) { setIpModal(ex); return; }
+              if (activeId && ex.id !== activeId) {
+                const activeName = EXCHANGES.find((e) => e.id === activeId)?.name || "exchange";
+                toast.error(`Pehle ${activeName} disconnect karo, tabhi naya exchange add kar sakte ho`);
+                return;
+              }
+              navigate(`/bind-api/${ex.id}`);
+            }}
             className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition active:scale-[0.995]"
             style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
             data-testid={`exchange-row-${ex.id}`}
