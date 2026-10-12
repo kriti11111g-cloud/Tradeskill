@@ -1807,26 +1807,27 @@ class KuCoinClient:
         return await self.request("GET", f"/api/v2/symbols/{symbol}", private=False)
 
     async def market_buy_funds(self, symbol, usdt: Decimal):
-        return await self.request("POST", "/api/v1/hf/orders", {
+        return await self.request("POST", "/api/v1/orders", {
             "clientOid": str(uuid.uuid4()), "symbol": symbol, "type": "market",
             "side": "buy", "funds": format(usdt, "f")})
 
     async def market_sell_size(self, symbol, base_size: Decimal):
-        return await self.request("POST", "/api/v1/hf/orders", {
+        return await self.request("POST", "/api/v1/orders", {
             "clientOid": str(uuid.uuid4()), "symbol": symbol, "type": "market",
             "side": "sell", "size": format(base_size, "f")})
 
     async def order(self, order_id):
-        return await self.request("GET", f"/api/v1/hf/orders/{order_id}")
+        return await self.request("GET", f"/api/v1/orders/{order_id}")
 
     async def fills(self, symbol, order_id):
-        return await self.request("GET", f"/api/v1/hf/fills?symbol={symbol}&orderId={order_id}&limit=100")
+        return await self.request("GET", f"/api/v1/fills?symbol={symbol}&orderId={order_id}&pageSize=100")
 
     async def execution(self, symbol, order_id):
         o = {}
         for _ in range(30):
             o = await self.order(order_id)
-            if Decimal(str(o.get("dealSize", "0"))) > 0 and not o.get("active", False):
+            active = o.get("isActive", o.get("active", False))
+            if Decimal(str(o.get("dealSize", "0"))) > 0 and not active:
                 break
             await asyncio.sleep(0.25)
         qty = Decimal(str(o.get("dealSize", "0")))
@@ -2011,9 +2012,15 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
     except _TradeError:
         raise
     except KuCoinError as e:
-        raise _TradeError(400, f"KuCoin rejected order ({e.code}): {e.message}")
+        msg = f"KuCoin rejected order ({e.code}): {e.message}"
+        logger.error(f"[kucoin trade] {symbol} {side}: {msg}")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
     except Exception as e:
-        raise _TradeError(400, f"KuCoin order failed: {e}")
+        msg = f"KuCoin order failed: {e}"
+        logger.error(f"[kucoin trade] {symbol} {side}: {msg}")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
 
     filled_qty, quote_spent, avg_price = res["filled_qty"], res["quote"], res["avg_price"]
     if filled_qty <= 0 or avg_price <= 0:
