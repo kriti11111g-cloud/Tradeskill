@@ -433,6 +433,17 @@ function BotRow({ bot, onDone }) {
         </div>
       </div>
 
+      {(bot.last_trade_error || bot.stop_reason) && !hasPos && (
+        <div
+          className="mt-2 rounded-lg px-2.5 py-2 text-[10.5px] font-semibold leading-snug"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--bad)" }}
+          data-testid={`bot-error-banner-${bot.symbol}`}
+        >
+          <span className="font-black">Last order failed: </span>
+          {bot.last_trade_error || bot.stop_reason}
+        </div>
+      )}
+
       <div onClick={(e) => e.stopPropagation()}>
         <ConfirmModal
           open={!!modal}
