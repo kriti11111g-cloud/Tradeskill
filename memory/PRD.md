@@ -1,5 +1,9 @@
 # TGX BOT — Product Requirements Document
 
+## Update (12 Oct 2026): og:image banner for link preview
+- TradeSkill banner (25+ exchange logos) `frontend/public/og-banner.jpg` (1254x1254, self-hosted). index.html og:image + twitter:image (summary_large_image) -> https://tradeskill.in/og-banner.jpg. Verified served HTTP 200. Needs `yarn build`; WhatsApp cache refresh delay.
+
+
 ## Update (12 Oct 2026): Link-preview meta — "emergent.sh" -> TradeSkill
 - `frontend/public/index.html`: meta description update + og:title/og:description/og:site_name(TradeSkill)/og:url/twitter tags. New desc: "TradeSkill — Automated Crypto Trading Bot. Smart DCA strategies, real exchange trading & team rewards." Needs `yarn build` on VPS; WhatsApp caches old preview until refresh.
 
