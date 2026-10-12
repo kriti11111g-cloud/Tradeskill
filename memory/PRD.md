@@ -1,5 +1,10 @@
 # TGX BOT — Product Requirements Document
 
+## Update (12 Oct 2026): BUGFIX — whitelist IP now dynamic (KuCoin IP-not-whitelisted)
+- Problem: bind page showed hardcoded 187.127.98.41 (preview IP); live VPS outbound IP differs -> KuCoin 400006.
+- Fix: `get_server_ip()` auto-detects real egress IP (api.ipify.org fallbacks, cached 1h; env BIND_WHITELIST_IP pins). New GET /api/exchange/server-ip. bind GET whitelist_ip + kucoin 400006 msg use it. Verified preview IP 35.184.53.215. On VPS shows VPS real IP -> whitelist THAT on KuCoin (2-5 min apply).
+
+
 ## Update (12 Oct 2026): og:image banner for link preview
 - TradeSkill banner (25+ exchange logos) `frontend/public/og-banner.jpg` (1254x1254, self-hosted). index.html og:image + twitter:image (summary_large_image) -> https://tradeskill.in/og-banner.jpg. Verified served HTTP 200. Needs `yarn build`; WhatsApp cache refresh delay.
 

@@ -664,16 +664,44 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
     return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
 
 
-BIND_WHITELIST_IP = os.environ.get("BIND_WHITELIST_IP", "187.127.98.41")
+_SERVER_IP_CACHE = {"ip": None, "ts": 0.0}
+
+
+async def get_server_ip():
+    """Detect the server's real public outbound IP (the IP an exchange sees).
+    Env BIND_WHITELIST_IP pins it; otherwise auto-detected & cached 1h."""
+    env_ip = os.environ.get("BIND_WHITELIST_IP")
+    if env_ip:
+        return env_ip
+    if _SERVER_IP_CACHE["ip"] and (time.time() - _SERVER_IP_CACHE["ts"] < 3600):
+        return _SERVER_IP_CACHE["ip"]
+    for url in ("https://api.ipify.org", "https://ifconfig.me/ip", "https://ipinfo.io/ip"):
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as h:
+                r = await h.get(url)
+                ip = (r.text or "").strip()
+                if ip and len(ip) <= 45 and "." in ip:
+                    _SERVER_IP_CACHE["ip"] = ip
+                    _SERVER_IP_CACHE["ts"] = time.time()
+                    return ip
+        except Exception:
+            continue
+    return _SERVER_IP_CACHE["ip"] or "your server's public IP"
+
+
+@api.get("/exchange/server-ip")
+async def exchange_server_ip():
+    return {"ip": await get_server_ip()}
+
 
 
 @api.get("/binance/bind")
 async def get_bind(user: dict = Depends(get_current_user)):
     row = await db.binance_keys.find_one({"user_id": user["id"]}, {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0})
     if not row:
-        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": BIND_WHITELIST_IP}
+        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": await get_server_ip()}
     row["bound"] = row.get("mode") in ("real", "testnet")
-    row["whitelist_ip"] = BIND_WHITELIST_IP
+    row["whitelist_ip"] = await get_server_ip()
     return row
 
 
@@ -704,7 +732,7 @@ async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)
             await client.accounts(account_type="trade")
         except KuCoinError as e:
             if e.code == "400006":
-                raise HTTPException(400, f"KuCoin: server IP not whitelisted. Add {BIND_WHITELIST_IP} to your API key's IP list.")
+                raise HTTPException(400, f"KuCoin: server IP not whitelisted. Add {await get_server_ip()} to your API key's IP list.")
             raise HTTPException(400, f"KuCoin rejected keys ({e.code}): {e.message}")
         except Exception as e:
             raise HTTPException(400, f"KuCoin unreachable: {e}")
@@ -729,9 +757,9 @@ async def kucoin_get_bind(user: dict = Depends(get_current_user)):
         {"user_id": user["id"]},
         {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0, "passphrase_enc": 0})
     if not row:
-        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": BIND_WHITELIST_IP}
+        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": await get_server_ip()}
     row["bound"] = row.get("mode") == "real"
-    row["whitelist_ip"] = BIND_WHITELIST_IP
+    row["whitelist_ip"] = await get_server_ip()
     return row
 
 
