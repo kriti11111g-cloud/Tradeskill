@@ -100,7 +100,7 @@ export default function Rank() {
         </div>
       </div>
 
-      <div className="px-4 pt-3 space-y-2.5">
+      <div className="px-4 pt-3 space-y-2">
         {/* HERO */}
         <div className="rounded-2xl overflow-hidden relative text-white px-4 py-5"
              style={{ background: "linear-gradient(115deg,#0F9D58 0%,#1565C0 55%,#1E40AF 100%)", boxShadow: "var(--shadow-lg)" }}
