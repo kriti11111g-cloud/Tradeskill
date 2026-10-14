@@ -217,7 +217,7 @@ export default function Revenue() {
     if (tab === "all") return h;
     if (tab.startsWith("global_")) {
       const lvl = parseInt(tab.split("_")[1], 10);
-      return h.filter((r) => r.category === "trading_commission" && r.level === lvl);
+      return h.filter((r) => (r.category === "trading_commission" || r.category === "royalty_income") && r.level === lvl);
     }
     return h.filter((r) => r.category === tab);
   }, [data, tab]);

@@ -2622,7 +2622,10 @@ async def revenue_income(user: dict = Depends(get_current_user)):
         if k in ("support_income", "social_bonus"):
             return "support_income", None
         if k == "royalty_income":
-            return "royalty_income", None
+            # "Daily royalty - Level 2 - Activation pool" → Global Royalty Level 2
+            m = re.search(r"Level\s*(\d+)", t.get("note") or "")
+            lvl = min(int(m.group(1)), 10) if m else None
+            return "royalty_income", lvl
         if k == "team_commission":  # team's trading commission (level/rank wise)
             m = re.search(r"· L(\d+)$", t.get("note") or "")
             lvl = min(int(m.group(1)) if m else 1, 10)
