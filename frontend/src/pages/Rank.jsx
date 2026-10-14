@@ -134,7 +134,7 @@ export default function Rank() {
         </div>
 
         {/* 7 TYPES OF INCOME — collapsible header */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}>
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }}>
           <button
             onClick={() => setIncomeOpen((v) => !v)}
             className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-80"
@@ -161,7 +161,7 @@ export default function Rank() {
               {incomeCards.map((c) => (
                 <div key={c.title}
                      className="flex items-center gap-2 rounded-lg px-2.5 py-1"
-                     style={{ background: "var(--surface, var(--bg))", border: "1px solid var(--border, var(--border-soft))", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                     style={{ background: "var(--surface, var(--bg))", border: "1px solid #1E40AF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
                      data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
                   <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
                     <c.icon size={13} color={c.color} />
@@ -176,7 +176,7 @@ export default function Rank() {
         </div>
 
         {/* RANK PROGRESS */}
-        <div className="rounded-2xl px-4 py-2.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
+        <div className="rounded-2xl px-4 py-2.5" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }}
              data-testid="rank-progress-block">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
@@ -260,7 +260,7 @@ export default function Rank() {
         </div>
 
         {/* Footer tip */}
-        <div className="rounded-xl px-3 py-2.5 flex items-start gap-2.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)" }}>
+        <div className="rounded-xl px-3 py-2.5 flex items-start gap-2.5" style={{ background: "var(--card)", border: "1px solid #1E40AF" }}>
           <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
             <Lightbulb size={14} color="#2563EB" />
           </div>
@@ -279,7 +279,7 @@ export default function Rank() {
 
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div className="rounded-xl px-3 py-2" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+    <div className="rounded-xl px-3 py-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
       <div className="flex items-center gap-1.5">
         <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: `${color}1A` }}>
           <Icon size={13} color={color} />
