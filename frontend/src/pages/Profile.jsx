@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { rankName } from "@/lib/format";
 import {
   Mail,
   Calendar,
@@ -136,7 +137,7 @@ export default function Profile() {
           <div>
             <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>CURRENT RANK</div>
             <div className="font-display font-black text-2xl leading-tight uppercase" style={{ color: "var(--ink)" }}>
-              {rankInfo?.current_title || user?.rank || "Level 1"}
+              {rankName(rankInfo?.current_title || user?.rank)}
             </div>
           </div>
         </div>
@@ -151,7 +152,7 @@ export default function Profile() {
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>NEXT RANK</div>
                 <div className="font-display font-black text-2xl leading-tight uppercase" style={{ color: "var(--ink)" }}>
-                  {nextRank.title}
+                  {rankName(nextRank.title)}
                 </div>
               </div>
               <span className="px-3 py-1.5 rounded-full text-[11px] font-black shrink-0" style={{ background: "#DBEAFE", color: "#2563EB" }}>

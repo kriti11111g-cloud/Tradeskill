@@ -33,7 +33,7 @@ import {
   Globe,
 } from "lucide-react";
 import api from "@/lib/api";
-import { fmtUSD, fmtPct, fmtNum } from "@/lib/format";
+import { fmtUSD, fmtPct, fmtNum, rankName } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import CoinIcon from "@/components/CoinIcon";
@@ -131,7 +131,7 @@ export default function Dashboard() {
               Rank Achieved
             </div>
             <div className="font-display font-black text-4xl mt-2" data-testid="rankup-title">
-              ★ {rankUp.title}
+              ★ {rankName(rankUp.title)}
             </div>
             <div className="text-[11px] text-white/70 mt-2">
               Congratulations! Aapne saari conditions poori kar li. 🥳
@@ -287,7 +287,7 @@ export default function Dashboard() {
                   Your Rank
                 </div>
                 <div className="text-sm font-black" style={{ color: "var(--text)" }}>
-                  {currentRank.title}
+                  {rankName(currentRank.title)}
                 </div>
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function Dashboard() {
                   Next
                 </div>
                 <div className="text-xs font-black" style={{ color: "#2563EB" }}>
-                  {nextRank.title}
+                  {rankName(nextRank.title)}
                 </div>
               </div>
             )}

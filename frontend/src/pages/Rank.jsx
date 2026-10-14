@@ -1,13 +1,19 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Crown, ChevronLeft, ChevronRight, ChevronDown, Users, Share2,
+  TrendingUp, Rocket, Lightbulb, Target, CheckCircle2, Coins,
+  HandCoins, Bot, Percent, BarChart3, Gift,
+} from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
+
+const vName = (lvl) => `V${lvl}`;
 
 export default function Rank() {
   const [ranks, setRanks] = useState([]);
   const [me, setMe] = useState(null);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const scrollerRef = useRef(null);
+  const [viewLevel, setViewLevel] = useState(null);
+  const [incomeOpen, setIncomeOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -18,403 +24,303 @@ export default function Rank() {
         ]);
         setRanks(c.data?.ranks || []);
         setMe(m.data);
+        setViewLevel(m.data?.current_level ?? 1);
       } catch (e) {
         toast.error(formatApiError(e));
       }
     })();
   }, []);
 
-  // Reorder: [current, next, ...rest by level]
-  const ordered = useMemo(() => {
-    if (!ranks.length) return [];
-    const cur = me?.current_level ?? 1;
-    const nxt = cur < ranks.length ? cur + 1 : null;
-    const first = ranks.find((r) => r.level === cur);
-    const second = nxt ? ranks.find((r) => r.level === nxt) : null;
-    const rest = ranks
-      .filter((r) => r.level !== cur && r.level !== nxt)
-      .sort((a, b) => a.level - b.level);
-    return [first, second, ...rest].filter(Boolean);
-  }, [ranks, me]);
-
-  const scrollTo = (idx) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const child = el.children[idx];
-    if (child) child.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
-  };
-
-  const onScroll = () => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const idx = Math.round(el.scrollLeft / el.clientWidth);
-    if (idx !== activeIdx) setActiveIdx(idx);
-  };
-
-  const activeRank = ordered[activeIdx];
   const currentLevel = me?.current_level ?? 1;
-  const isCurrent = activeRank && activeRank.level === currentLevel;
-  const isNext = activeRank && activeRank.level === currentLevel + 1;
+  const maxLevel = ranks.length || 10;
+  const rank = useMemo(
+    () => ranks.find((r) => r.level === viewLevel) || null,
+    [ranks, viewLevel],
+  );
+  const prevRank = useMemo(
+    () => ranks.find((r) => r.level === viewLevel - 1) || null,
+    [ranks, viewLevel],
+  );
+  const nextRank = useMemo(
+    () => ranks.find((r) => r.level === viewLevel + 1) || null,
+    [ranks, viewLevel],
+  );
+
+  if (!rank) {
+    return (
+      <div className="flex items-center justify-center" style={{ height: "calc(100dvh - 64px)" }} data-testid="rank-page">
+        <div className="text-[color:var(--text-mute)] text-sm">Loading rank details…</div>
+      </div>
+    );
+  }
+
+  const isAchieved = rank.level <= currentLevel;
+  const stats = me?.stats;
+
+  // progress toward THIS rank
+  const prog = (() => {
+    if (!stats) return 100;
+    if (isAchieved) return 100;
+    const parts = [];
+    if (rank.direct_users > 0) parts.push(Math.min(1, (stats.direct_count || 0) / rank.direct_users));
+    if (rank.team_size > 0) parts.push(Math.min(1, (stats.total_team || 0) / rank.team_size));
+    const dr = rank.downline_requirement;
+    if (dr) {
+      const have = Object.entries(stats.downline_ranks || {}).reduce(
+        (acc, [lvl, cnt]) => (Number(lvl) >= dr.min_level ? acc + cnt : acc), 0);
+      parts.push(Math.min(1, have / dr.count));
+    }
+    return parts.length ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100) : 100;
+  })();
+
+  const incomeCards = [
+    { icon: HandCoins, color: "#2563EB", title: "Direct", value: `$${rank.direct_income}`, sub: "Per activation" },
+    { icon: Gift, color: "#16A34A", title: "Support", value: `${rank.support_pct}%`, sub: "Of direct income" },
+    { icon: Bot, color: "#7C3AED", title: "Bot Difference", value: `$${rank.bot_difference_usd ?? 0}`, sub: "Activation override" },
+    { icon: Percent, color: "#EA580C", title: "Trading Commission", value: `${rank.commission_pct}%`, sub: "Of team profit" },
+    { icon: TrendingUp, color: "#DC2626", title: "Commission Difference", value: `${rank.commission_difference_pct ?? rank.commission_pct}%`, sub: "Differential override" },
+    { icon: Coins, color: "#0891B2", title: "Daily Global Pool · Activation", value: `$${rank.activation_pool_usd ?? 0}`, sub: "Pool share / activation" },
+    { icon: BarChart3, color: "#CA8A04", title: "Daily Global Pool · Trading", value: `${rank.trading_royalty_pct ?? 0}%`, sub: "Pool share / profit" },
+  ];
 
   return (
-    <div
-      className="flex flex-col overflow-hidden"
-      style={{ height: "calc(100dvh - 64px)" }}
-      data-testid="rank-page"
-    >
-      <div className="shrink-0 px-4 pt-3 pb-2 flex items-center justify-between">
+    <div className="overflow-y-auto no-scrollbar pb-6" style={{ height: "calc(100dvh - 64px)" }} data-testid="rank-page">
+      {/* Header */}
+      <div className="sticky top-0 z-10 px-4 pt-3 pb-2 flex items-center justify-between"
+           style={{ background: "var(--bg)", borderBottom: "1px solid var(--border-soft)" }}>
         <div className="flex items-baseline gap-2">
           <h1 className="text-base font-black text-[color:var(--text)] tracking-tight">Rank</h1>
-          {activeRank && (
-            <span
-              className="text-[10px] tracking-[0.28em] uppercase font-bold"
-              style={{ color: "var(--gold-deep)" }}
-              data-testid="rank-section-label"
-            >
-              {isCurrent
-                ? "★ Your Current"
-                : isNext
-                ? "→ Next Rank"
-                : `Level ${activeRank.level}`}
-            </span>
-          )}
+          <span className="text-[10px] tracking-[0.2em] uppercase font-bold text-[color:var(--text-mute)]">Details</span>
         </div>
-        <span className="text-[10px] text-[color:var(--text-mute)] font-mono">
-          {activeIdx + 1} / {ordered.length}
-        </span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+             style={{ background: "var(--gold-grad, linear-gradient(90deg,#F59E0B,#FBBF24))", color: "#1a1a1a" }}
+             data-testid="rank-of-badge">
+          <Crown size={13} />
+          <span className="text-[11px] font-black">{vName(rank.level)} OF {maxLevel}</span>
+        </div>
       </div>
 
-      {/* Horizontal snap scroller — one full-viewport card per page */}
-      <div
-        ref={scrollerRef}
-        onScroll={onScroll}
-        className="flex-1 min-h-0 flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
-        style={{ scrollBehavior: "smooth" }}
-        data-testid="rank-pager"
-      >
-        {ordered.map((r) => (
-          <RankPage
-            key={r.level}
-            rank={r}
-            isCurrent={r.level === currentLevel}
-            isAchieved={r.level <= currentLevel}
-            stats={me?.stats}
-          />
-        ))}
-      </div>
-
-      {/* Prev / Next arrows */}
-      {ordered.length > 1 && (
-        <div className="shrink-0 px-4 py-2 flex items-center justify-between">
-          <button
-            onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
-            disabled={activeIdx === 0}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
-            data-testid="btn-rank-prev"
-          >
-            <ChevronLeft size={14} /> Prev
-          </button>
-
-          <div className="flex items-center gap-1.5" data-testid="rank-dots">
-            {ordered.map((r, i) => (
-              <button
-                key={r.level}
-                onClick={() => scrollTo(i)}
-                className="transition-all rounded-full"
-                style={{
-                  width: i === activeIdx ? 20 : 6,
-                  height: 6,
-                  background: i === activeIdx ? "var(--primary)" : "var(--border)",
-                }}
-                aria-label={`Go to rank ${r.level}`}
-              />
-            ))}
+      <div className="px-4 pt-3 space-y-3">
+        {/* HERO */}
+        <div className="rounded-2xl overflow-hidden relative text-white px-4 py-5"
+             style={{ background: "linear-gradient(115deg,#0F9D58 0%,#1565C0 55%,#1E40AF 100%)", boxShadow: "var(--shadow-lg)" }}
+             data-testid={`rank-hero-${rank.level}`}>
+          <div className="flex items-center gap-4">
+            <StarMedallion level={rank.level} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "#FDE68A" }}>
+                <Crown size={13} /> Your Current Rank
+              </div>
+              <div className="font-display font-black leading-none mt-1"
+                   style={{ fontSize: 46, textShadow: "0 2px 10px rgba(0,0,0,.35)" }}
+                   data-testid={`rank-title-${rank.level}`}>
+                {vName(rank.level)}
+              </div>
+              <div className="text-[13px] font-bold tracking-wide" style={{ color: "#FDE68A" }}>
+                {isAchieved ? "RANK ACHIEVED" : "TARGET RANK"}
+              </div>
+              <div className="inline-flex mt-1.5 px-3 py-1 rounded-full text-[11px] font-black"
+                   style={{ background: "rgba(0,0,0,.25)", border: "1px solid rgba(255,255,255,.25)" }}>
+                {vName(rank.level)} OF {maxLevel}
+              </div>
+            </div>
           </div>
-
-          <button
-            onClick={() => scrollTo(Math.min(ordered.length - 1, activeIdx + 1))}
-            disabled={activeIdx === ordered.length - 1}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] text-[color:var(--text-soft)] text-xs disabled:opacity-30"
-            data-testid="btn-rank-next"
-          >
-            Next <ChevronRight size={14} />
-          </button>
+          <div className="flex items-center gap-1.5 mt-3 text-[12px] font-semibold" style={{ color: "#E8F5E9" }}>
+            <BarChart3 size={14} />
+            {isAchieved && nextRank
+              ? `Great progress! Keep growing for ${vName(nextRank.level)}`
+              : isAchieved ? "Top rank reached 👑" : `Keep growing to unlock ${vName(rank.level)}`}
+          </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-function RankPage({ rank, isCurrent, isAchieved, stats }) {
-  const localProgress = useMemo(() => {
-    if (!stats) return null;
-    const directHave = stats.direct_count || 0;
-    const directNeed = rank.direct_users || 0;
-    const teamHave = stats.total_team || 0;
-    const teamNeed = rank.team_size || 0;
-    const dr = rank.downline_requirement;
-    const downlineHave = dr
-      ? Object.entries(stats.downline_ranks || {}).reduce(
-          (acc, [lvl, cnt]) => (Number(lvl) >= dr.min_level ? acc + cnt : acc),
-          0,
-        )
-      : 0;
-    const parts = [];
-    if (directNeed > 0) parts.push(Math.min(1, directHave / directNeed));
-    if (teamNeed > 0) parts.push(Math.min(1, teamHave / teamNeed));
-    if (dr) parts.push(Math.min(1, downlineHave / dr.count));
-    const overall = parts.length
-      ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100)
-      : 100;
-    return {
-      direct_have: directHave,
-      direct_needed: directNeed,
-      team_have: teamHave,
-      team_needed: teamNeed,
-      downline_have: downlineHave,
-      downline_requirement: dr,
-      overall_pct: isAchieved ? 100 : overall,
-    };
-  }, [rank, stats, isAchieved]);
+        {/* 7 TYPES OF INCOME — collapsible header */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}>
+          <button
+            onClick={() => setIncomeOpen((v) => !v)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 active:opacity-80"
+            data-testid="income-toggle-btn"
+          >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                 style={{ background: "rgba(245,158,11,.15)" }}>
+              <Coins size={18} color="#CA8A04" />
+            </div>
+            <div className="flex-1 text-left">
+              <div className="text-[14px] font-black text-[color:var(--text)] leading-tight">
+                7 Types of Income <span style={{ color: "var(--primary)" }}>at {vName(rank.level)}</span>
+              </div>
+              <div className="text-[11px] text-[color:var(--text-mute)]">Earn from multiple income sources</div>
+            </div>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300"
+                 style={{ background: "var(--primary)", color: "#fff", transform: incomeOpen ? "rotate(180deg)" : "none" }}>
+              <ChevronDown size={18} />
+            </div>
+          </button>
 
-  return (
-    <div
-      className="snap-start shrink-0 w-full h-full px-4 pb-2 flex items-center justify-center"
-      data-testid={`rank-page-${rank.level}`}
-    >
-      <div
-        className="w-full rounded-2xl overflow-hidden relative flex flex-col text-white"
-        style={{
-          background: "var(--hero-grad)",
-          border: "1px solid var(--border)",
-          boxShadow: "var(--shadow-lg)",
-        }}
-      >
-        {/* Top row — crown + badges */}
-        <div className="flex items-center justify-between px-4 pt-4">
-          {rank.crown ? (
-            <Crown
-              size={22}
-              color="#FBBF24"
-              style={{ filter: "drop-shadow(0 0 8px var(--gold-glow))" }}
-            />
-          ) : (
-            <span />
-          )}
-          {isCurrent ? (
-            <div
-              className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
-              style={{
-                background: "rgba(10,10,10,0.88)",
-                border: "1px solid rgba(245,158,11,0.65)",
-                color: "#FBBF24",
-              }}
-              data-testid="current-rank-badge"
-            >
-              ★ YOU
-            </div>
-          ) : isAchieved ? (
-            <div
-              className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-black/50 border border-white/25 text-white"
-              data-testid={`achieved-badge-${rank.level}`}
-            >
-              ✓ UNLOCKED
-            </div>
-          ) : (
-            <div className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/10 border border-white/20 text-white/70">
-              LOCKED
+          {incomeOpen && (
+            <div className="grid grid-cols-2 gap-2 px-3 pb-3" data-testid="income-cards">
+              {incomeCards.map((c) => (
+                <div key={c.title}
+                     className="rounded-xl p-3 flex flex-col gap-1.5"
+                     style={{ background: "var(--bg)", border: "1px solid var(--border-soft)" }}
+                     data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${c.color}1A` }}>
+                    <c.icon size={16} color={c.color} />
+                  </div>
+                  <div className="text-[10.5px] font-bold text-[color:var(--text-soft)] leading-tight">{c.title}</div>
+                  <div className="text-[17px] font-black text-[color:var(--text)] leading-none">{c.value}</div>
+                  <div className="text-[9px] text-[color:var(--text-mute)]">{c.sub}</div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Star medallion */}
-        <div className="flex flex-col items-center pt-5 pb-4">
-          <div
-            className="w-28 h-28 rounded-full flex items-center justify-center relative"
-            style={{
-              background:
-                "conic-gradient(from 210deg, #B45309, #F59E0B, #FDE68A, #F59E0B, #B45309, #F59E0B, #FDE68A, #B45309)",
-              boxShadow:
-                "0 8px 24px rgba(0,0,0,0.35), 0 0 40px rgba(245,158,11,0.35)",
-              padding: 4,
-            }}
-          >
-            <div
-              className="w-full h-full rounded-full flex items-center justify-center relative overflow-hidden"
-              style={{
-                background:
-                  "radial-gradient(circle at 32% 28%, #0F4C56 0%, #083344 55%, #041F27 100%)",
-                border: "1px solid rgba(253,230,138,0.35)",
-              }}
-            >
-              <div
-                className="absolute -top-4 -left-3 w-16 h-16 rounded-full opacity-25"
-                style={{ background: "radial-gradient(circle, #FDE68A, transparent 70%)" }}
-              />
-              <svg viewBox="0 0 100 100" className="w-16 h-16 relative" style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.45))" }}>
-                <defs>
-                  <linearGradient id={`starGrad-${rank.level}`} x1="0" y1="0" x2="0.6" y2="1">
-                    <stop offset="0%" stopColor="#FDE68A" />
-                    <stop offset="45%" stopColor="#F59E0B" />
-                    <stop offset="100%" stopColor="#B45309" />
-                  </linearGradient>
-                </defs>
-                <polygon
-                  points="50,6 61.8,36.8 94,36.8 68,56.4 78.2,88 50,69 21.8,88 32,56.4 6,36.8 38.2,36.8"
-                  fill={`url(#starGrad-${rank.level})`}
-                  stroke="#FDE68A"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-                <polygon
-                  points="50,14 58.5,38.5 84,38.5 63.5,53.8 71.5,79 50,63.5 28.5,79 36.5,53.8 16,38.5 41.5,38.5"
-                  fill="rgba(255,255,255,0.14)"
-                />
-                <text
-                  x="50" y="57" textAnchor="middle" fontSize="26" fontWeight="900"
-                  fill="#083344" style={{ fontFamily: "Unbounded, sans-serif" }}
-                >
-                  {rank.level - 1 > 0 ? rank.level - 1 : "S"}
-                </text>
-              </svg>
+        {/* RANK PROGRESS */}
+        <div className="rounded-2xl px-4 py-3.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
+             data-testid="rank-progress-block">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={15} color="var(--primary)" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-[color:var(--text)]">Rank Progress</span>
             </div>
+            <span className="text-[15px] font-black tabular-nums" style={{ color: prog >= 100 ? "var(--good)" : "var(--primary)" }}>{prog}%</span>
           </div>
-          <div
-            className="font-display font-black text-3xl tracking-wide mt-3"
-            style={{
-              background: "linear-gradient(180deg, #FFFFFF 30%, #FDE68A 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))",
-            }}
-            data-testid={`rank-title-${rank.level}`}
-          >
-            {rank.title}
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+            <div className="h-full rounded-full transition-all duration-500"
+                 style={{ width: `${prog}%`, background: prog >= 100 ? "linear-gradient(90deg,#16A34A,#0F9D58)" : "linear-gradient(90deg,#1565C0,#0F9D58)" }} />
           </div>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="h-px w-8" style={{ background: "linear-gradient(90deg, transparent, rgba(253,230,138,0.7))" }} />
-            <span className="text-[10px] uppercase tracking-[0.35em] font-bold" style={{ color: "#FDE68A" }}>
-              Level {rank.level} of 10
-            </span>
-            <span className="h-px w-8" style={{ background: "linear-gradient(90deg, rgba(253,230,138,0.7), transparent)" }} />
+          <div className="text-center text-[11px] font-semibold mt-2 text-[color:var(--text-soft)]">
+            {prog >= 100
+              ? (nextRank ? <>{vName(rank.level)} completed! Now target {vName(nextRank.level)} 🚀</> : "Top rank completed 👑")
+              : `Working toward ${vName(rank.level)}`}
           </div>
         </div>
 
-        {/* Income stats */}
-        <div className="grid grid-cols-3 gap-2 px-4 pb-4">
-          <IncomeStat label="Direct Income" value={`$${rank.direct_income}`} />
-          <IncomeStat label="Commission" value={`${rank.commission_pct}%`} />
-          <IncomeStat label="Support" value={`${rank.support_pct}%`} />
+        {/* Requirements */}
+        <div className="grid grid-cols-2 gap-2">
+          <ReqCard icon={Users} color="#2563EB" label="Required Team" value={rank.team_size} sub="Total team members" testid="req-team" />
+          <ReqCard icon={Share2} color="#16A34A" label="Required Directs" value={rank.direct_users} sub="Direct members" testid="req-directs" />
         </div>
 
-        {/* Processing bar */}
-        {localProgress && (
-          <div
-            className="px-4 py-3 space-y-1.5"
-            style={{
-              background: "rgba(0,0,0,0.35)",
-              borderTop: "1px solid rgba(255,255,255,0.12)",
-            }}
-            data-testid={`rank-processing-${rank.level}`}
+        {/* Previous / Next rank */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Previous */}
+          <button
+            disabled={!prevRank}
+            onClick={() => prevRank && (setViewLevel(prevRank.level), setIncomeOpen(false))}
+            className="rounded-2xl p-3 text-left text-white relative overflow-hidden disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)" }}
+            data-testid="prev-rank-card"
           >
             <div className="flex items-center justify-between">
-              <div
-                className="text-[9px] tracking-[0.28em] uppercase font-bold"
-                style={{ color: "#FBBF24" }}
-              >
-                {isAchieved ? "Achieved" : "Processing"}
+              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.12)" }}>
+                <ChevronLeft size={15} />
               </div>
-              <div className="text-[11px] font-mono font-black tabular-nums text-white">
-                {localProgress.overall_pct}%
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Previous</span>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <MiniStar level={prevRank?.level} />
+              <div>
+                <div className="text-[18px] font-black leading-none">{prevRank ? vName(prevRank.level) : "—"}</div>
+                {prevRank && (
+                  <div className="flex items-center gap-1 text-[10px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
+                    <CheckCircle2 size={11} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
+                  </div>
+                )}
               </div>
             </div>
+          </button>
 
-            <div className="h-1.5 rounded-full bg-white/15 overflow-hidden relative">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${localProgress.overall_pct}%`,
-                  background: isAchieved
-                    ? "linear-gradient(90deg,#16A34A,#0F766E)"
-                    : "var(--gold-grad)",
-                  boxShadow: "0 0 8px rgba(245,158,11,0.5)",
-                }}
-              />
-              {!isAchieved && localProgress.overall_pct > 0 && localProgress.overall_pct < 100 && (
-                <div
-                  className="absolute inset-0 opacity-40 animate-pulse"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(245,158,11,0.55), transparent)",
-                  }}
-                />
-              )}
+          {/* Next */}
+          <button
+            disabled={!nextRank}
+            onClick={() => nextRank && (setViewLevel(nextRank.level), setIncomeOpen(false))}
+            className="rounded-2xl p-3 text-left text-white relative overflow-hidden disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)" }}
+            data-testid="next-rank-card"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.14)" }}>
+                <ChevronRight size={15} />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Next</span>
             </div>
-
-            {!isAchieved && (localProgress.direct_needed > 0 || localProgress.team_needed > 0) ? (
-              <div className="flex items-center justify-between gap-1.5 pt-0.5">
-                {localProgress.direct_needed > 0 && (
-                  <MiniStat label="Direct" have={localProgress.direct_have} need={localProgress.direct_needed} />
-                )}
-                {localProgress.team_needed > 0 && (
-                  <MiniStat label="Team" have={localProgress.team_have} need={localProgress.team_needed} />
-                )}
-                {localProgress.downline_requirement && (
-                  <MiniStat
-                    label={localProgress.downline_requirement.label.replace("2× ", "")}
-                    have={localProgress.downline_have}
-                    need={localProgress.downline_requirement.count}
-                  />
+            <div className="mt-2 flex items-center gap-2">
+              <MiniStar level={nextRank?.level} />
+              <div>
+                <div className="text-[18px] font-black leading-none">{nextRank ? vName(nextRank.level) : "MAX"}</div>
+                {nextRank && (
+                  <div className="flex items-center gap-1 text-[10px] font-bold mt-0.5" style={{ color: "#FDE68A" }}>
+                    <Target size={11} /> Target Rank
+                  </div>
                 )}
               </div>
-            ) : (
-              isCurrent &&
-              stats && (
-                <div className="flex items-center justify-center gap-3 text-[10px]">
-                  <span className="text-white/60">
-                    Directs: <span className="text-white font-bold">{stats.direct_count}</span>
-                  </span>
-                  <span className="text-white/60">
-                    Team: <span className="text-white font-bold">{stats.total_team}</span>
-                  </span>
-                </div>
-              )
-            )}
+            </div>
+          </button>
+        </div>
+
+        {/* Footer tip */}
+        <div className="rounded-2xl px-4 py-3 flex items-start gap-3" style={{ background: "var(--card)", border: "1px solid var(--border-soft)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
+            <Lightbulb size={16} color="#2563EB" />
           </div>
-        )}
+          <div>
+            <div className="text-[13px] font-black text-[color:var(--text)]">Higher Rank = Higher Income</div>
+            <div className="text-[11px] text-[color:var(--text-soft)]">
+              {nextRank ? `Achieve ${vName(nextRank.level)} to unlock more income benefits and global rewards.`
+                        : "You've reached the top rank — maximum income unlocked. 👑"}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function IncomeStat({ label, value }) {
+function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div
-      className="rounded-xl px-2 py-2.5 text-center"
-      style={{
-        background: "rgba(255,255,255,0.10)",
-        border: "1px solid rgba(255,255,255,0.20)",
-      }}
-    >
-      <div className="text-[8px] uppercase tracking-widest font-bold text-white/60">{label}</div>
-      <div className="font-display font-black text-base mt-0.5" style={{ color: "#FBBF24" }}>
-        {value}
+    <div className="rounded-2xl px-3.5 py-3" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}1A` }}>
+          <Icon size={16} color={color} />
+        </div>
+        <span className="text-[9.5px] font-black uppercase tracking-wider text-[color:var(--text-mute)]">{label}</span>
       </div>
+      <div className="text-[22px] font-black text-[color:var(--text)] mt-1 leading-none tabular-nums">{value}</div>
+      <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5">{sub}</div>
     </div>
   );
 }
 
-function MiniStat({ label, have, need }) {
-  const done = have >= need;
+function MiniStar({ level }) {
+  if (!level) return <span className="w-9 h-9" />;
   return (
-    <div className="flex-1 min-w-0 flex items-center justify-between gap-1 px-2 py-1 rounded-md bg-white/10 border border-white/15">
-      <span className="text-white/60 truncate text-[9px] uppercase tracking-wider">{label}</span>
-      <span
-        className="font-mono font-bold tabular-nums shrink-0 text-[10px]"
-        style={{ color: done ? "#6EE7B7" : "#FBBF24" }}
-      >
-        {have}/{need}
-      </span>
+    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+         style={{ background: "radial-gradient(circle at 35% 30%,#F59E0B,#B45309)", border: "1.5px solid #FDE68A" }}>
+      <span className="font-display font-black text-[11px]" style={{ color: "#083344" }}>{`V${level}`}</span>
+    </div>
+  );
+}
+
+function StarMedallion({ level }) {
+  return (
+    <div className="w-[88px] h-[88px] rounded-full flex items-center justify-center relative shrink-0"
+         style={{ background: "conic-gradient(from 210deg,#B45309,#F59E0B,#FDE68A,#F59E0B,#B45309,#F59E0B,#FDE68A,#B45309)", padding: 4, boxShadow: "0 8px 24px rgba(0,0,0,.35)" }}>
+      <div className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+           style={{ background: "radial-gradient(circle at 32% 28%,#0F4C56,#083344 55%,#041F27)", border: "1px solid rgba(253,230,138,.35)" }}>
+        <svg viewBox="0 0 100 100" className="w-12 h-12" style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,.45))" }}>
+          <defs>
+            <linearGradient id={`sg-${level}`} x1="0" y1="0" x2="0.6" y2="1">
+              <stop offset="0%" stopColor="#FDE68A" /><stop offset="45%" stopColor="#F59E0B" /><stop offset="100%" stopColor="#B45309" />
+            </linearGradient>
+          </defs>
+          <polygon points="50,6 61.8,36.8 94,36.8 68,56.4 78.2,88 50,69 21.8,88 32,56.4 6,36.8 38.2,36.8"
+                   fill={`url(#sg-${level})`} stroke="#FDE68A" strokeWidth="1.6" strokeLinejoin="round" />
+          <text x="50" y="58" textAnchor="middle" fontSize="24" fontWeight="900" fill="#083344" style={{ fontFamily: "Unbounded, sans-serif" }}>
+            {`V${level}`}
+          </text>
+        </svg>
+      </div>
     </div>
   );
 }

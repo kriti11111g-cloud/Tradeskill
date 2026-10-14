@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
-import { fmtUSD } from "@/lib/format";
+import { fmtUSD, rankName } from "@/lib/format";
 
 const maskEmail = (email = "") => {
   const [u, d] = email.split("@");
@@ -201,7 +201,7 @@ export default function Referral() {
                       </span>
                       <span className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
                         style={{ color: "#FBBF24", background: "rgba(10,10,10,0.88)", border: "1px solid rgba(245,158,11,0.65)", boxShadow: "0 0 8px rgba(245,158,11,0.3)" }}>
-                        ★ {(t.rank || "Level 1").toUpperCase()}
+                        ★ {rankName(t.rank)}
                       </span>
                     </div>
                     <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--text-mute)" }}>

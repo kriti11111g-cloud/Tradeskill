@@ -6,6 +6,12 @@ export const fmtUSD = (n, digits = 2) => {
   });
 };
 
+export const rankName = (v) => {
+  if (v == null || v === "") return "V1";
+  const m = String(v).match(/(\d+)/);
+  return m ? `V${m[1]}` : String(v);
+};
+
 export const fmtNum = (n, digits = 4) => {
   if (n == null || isNaN(n)) return "0";
   return Number(n).toLocaleString(undefined, {

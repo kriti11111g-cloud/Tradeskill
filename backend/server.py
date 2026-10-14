@@ -3113,7 +3113,20 @@ async def root():
 @api.get("/ranks/config")
 async def ranks_config():
     """Public list of all rank tiers (used by the /rank page)."""
-    return {"ranks": RANKS}
+    prev_direct = 0.0
+    prev_pct = 0.0
+    out = []
+    for r in RANKS:
+        lvl = int(r["level"])
+        d = dict(r)
+        d["trading_royalty_pct"] = TRADING_ROYALTY_BY_LEVEL.get(lvl, 0.0)
+        d["activation_pool_usd"] = ACTIVATION_ROYALTY_PER_LEVEL if lvl in ACTIVATION_ROYALTY_LEVELS else 0.0
+        d["bot_difference_usd"] = round(float(r["direct_income"]) - prev_direct, 2)
+        d["commission_difference_pct"] = round(float(r["commission_pct"]) - prev_pct, 2)
+        out.append(d)
+        prev_direct = float(r["direct_income"])
+        prev_pct = float(r["commission_pct"])
+    return {"ranks": out}
 
 
 async def _pool_levels(kind: str) -> list:

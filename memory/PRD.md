@@ -559,3 +559,9 @@ See `/app/memory/test_credentials.md`
 - Fix (server.py ~3418): in _distribute_trading_deduction, `highest` now advances on the upline's RANK regardless of activation. If the upline can't earn (not activated), its differential slot routes to company_reserve (kind company_reserve) instead of flowing up. This makes a Level-1 user earn ONLY from direct referrals; higher ranks still earn their differential on deep team.
 - Verified via simulation: bug case now pays the distant L1 nothing (slot→reserve); direct L1 sponsor gets 3.5%; L5-over-inactive-L1 gets 3.0%; L5-over-active-L4 gets 0.75%. 12% budget always balances.
 - NOTE: past (already-recorded) wrong commission rows are NOT auto-corrected; only new trades use the fixed logic. Deploy to VPS required.
+
+## 14 Oct 2026 — Rank renamed V1–V10 + Rank Details page redesign
+- Display rank as V1..V10 everywhere (helper rankName() in frontend/src/lib/format.js). Backend rank titles stay "LEVEL N" (logic/data unchanged) — display-only mapping. Applied in Rank, Profile, Dashboard, Referral.
+- Rewrote /rank page (Rank.jsx) to match user's reference: V{n} hero card, collapsible "7 Types of Income at V{n}" (arrow toggle), Rank Progress bar, Required Team/Directs, tappable Previous/Next rank cards, "Higher Rank = Higher Income" footer.
+- 7 income cards populated from enriched /ranks/config (added trading_royalty_pct, activation_pool_usd, bot_difference_usd, commission_difference_pct per rank): Direct $, Support %, Bot Difference $ (direct-income delta vs prev rank), Trading Commission %, Commission Difference % (commission delta vs prev rank), Daily Global Pool·Activation $ ($2 for L2-10), Daily Global Pool·Trading % (TRADING_ROYALTY_BY_LEVEL).
+- Verified via screenshot (collapsed + expanded) with admin (V2). Deploy to VPS required.
