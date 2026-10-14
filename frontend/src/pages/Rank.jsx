@@ -157,18 +157,19 @@ export default function Rank() {
           </button>
 
           {incomeOpen && (
-            <div className="grid grid-cols-2 gap-2 px-3 pb-3" data-testid="income-cards">
-              {incomeCards.map((c) => (
+            <div className="px-4 pb-2" data-testid="income-cards">
+              {incomeCards.map((c, i) => (
                 <div key={c.title}
-                     className="rounded-xl p-3 flex flex-col gap-1.5"
-                     style={{ background: "var(--bg)", border: "1px solid var(--border-soft)" }}
+                     className="flex items-center justify-between py-3"
+                     style={{ borderTop: i === 0 ? "1px solid var(--border-soft)" : "1px solid var(--border-soft)" }}
                      data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${c.color}1A` }}>
-                    <c.icon size={16} color={c.color} />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
+                      <c.icon size={15} color={c.color} />
+                    </div>
+                    <span className="text-[13.5px] font-semibold text-[color:var(--text)] truncate">{c.title}</span>
                   </div>
-                  <div className="text-[10.5px] font-bold text-[color:var(--text-soft)] leading-tight">{c.title}</div>
-                  <div className="text-[17px] font-black text-[color:var(--text)] leading-none">{c.value}</div>
-                  <div className="text-[9px] text-[color:var(--text-mute)]">{c.sub}</div>
+                  <span className="text-[15px] font-black text-[color:var(--text)] tabular-nums shrink-0 pl-2">{c.value}</span>
                 </div>
               ))}
             </div>
