@@ -216,6 +216,9 @@ SUPPORT_INCOME_PCT = 10.0    # % of direct bonus to sponsor's immediate upline
 RANK_PCT_BY_TITLE = {r["title"].upper(): float(r["commission_pct"]) for r in RANKS}
 RANK_BONUS_BY_TITLE = {r["title"].upper(): float(r["direct_income"]) for r in RANKS}
 MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
+# Direct income per rank level + the fixed activation direct-income pot (= Level 10 max).
+DIRECT_INCOME_BY_LEVEL = {int(r["level"]): float(r["direct_income"]) for r in RANKS}
+DIRECT_INCOME_POT = DIRECT_INCOME_BY_LEVEL[max(DIRECT_INCOME_BY_LEVEL)]  # $26.36
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
@@ -3323,6 +3326,14 @@ def _rank_pct_of(user_doc) -> float:
     return RANK_PCT_BY_TITLE.get(((user_doc or {}).get("rank") or "").strip().upper(), 0.0)
 
 
+def _rank_level_of(user_doc) -> int:
+    title = ((user_doc or {}).get("rank") or "LEVEL 1").strip().upper()
+    for r in RANKS:
+        if r["title"].upper() == title:
+            return int(r["level"])
+    return 1
+
+
 async def _company_ledger(kind: str, amount: float, from_user_id: str, note: str = "", symbol: str = None, level: int = None):
     if amount <= 0:
         return
@@ -3526,7 +3537,9 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                        balance_after=new_bal)
     # ---- MLM activation distribution ($50 full accounting) ----
     # $18 royalty ($2 × Levels 2..10) + $2.50 company (5%) + $0.50 meeting (1%)
-    # + rank-based direct bonus + 10% support income → leftover = company reserve
+    # + $26.36 direct-income pot (rank-slab waterfall up the sponsor line)
+    # + $2.64 support income (10% of each direct payout to the recipient's upline)
+    # leftover (orphan slots / no upline) → company reserve
     distributed = 0.0
     for lvl in ACTIVATION_ROYALTY_LEVELS:
         await _company_ledger("activation_royalty", ACTIVATION_ROYALTY_PER_LEVEL, user["id"],
@@ -3543,26 +3556,75 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                           note=f"Physical meeting fund {ACTIVATION_MEETING_PCT:.0f}% of ${BOT_ACTIVATION_FEE:.0f} activation")
     distributed += meeting
 
-    sponsor = None
-    if user.get("referred_by"):
-        sponsor = await db.users.find_one({"id": user["referred_by"]},
-                                          {"_id": 0, "id": 1, "rank": 1, "referred_by": 1,
-                                           "email": 1, "name": 1})
-    if sponsor:
-        bonus = RANK_BONUS_BY_TITLE.get((sponsor.get("rank") or "").strip().upper(), 0.0)
-        if bonus > 0:
-            ok = await _credit_commission(sponsor["id"], bonus, "direct_bonus",
-                                          f"Direct bonus · {user.get('name') or user.get('email','user')} activated",
-                                          from_user_id=user["id"])
-            if ok:
-                distributed += bonus
-                support = round(bonus * SUPPORT_INCOME_PCT / 100.0, 2)
-                if support > 0 and sponsor.get("referred_by"):
-                    ok2 = await _credit_commission(sponsor["referred_by"], support, "support_income",
-                                                   f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${bonus:.2f} direct bonus",
-                                                   from_user_id=user["id"])
-                    if ok2:
-                        distributed += support
+    # ---- Direct income pot ($26.36 fixed) + support income ($2.64 = 10%) ----
+    # Build the chain of ACTIVATED uplines, nearest first (inactive can't earn).
+    actor = user.get("name") or user.get("email", "user")
+    chain = []
+    cur_id = user.get("referred_by")
+    seen = {user["id"]}
+    hops = 0
+    while cur_id and cur_id not in seen and hops < 50:
+        seen.add(cur_id)
+        anc = await db.users.find_one(
+            {"id": cur_id},
+            {"_id": 0, "id": 1, "rank": 1, "referred_by": 1, "email": 1, "name": 1})
+        if not anc:
+            break
+        wa = await db.bot_wallets.find_one({"user_id": anc["id"]}, {"activated": 1})
+        if wa and wa.get("activated"):
+            chain.append(anc)
+        cur_id = anc.get("referred_by")
+        hops += 1
+
+    if chain:
+        base = chain[0]
+        base_level = _rank_level_of(base)
+        base_income = round(min(DIRECT_INCOME_BY_LEVEL.get(base_level, 0.0), DIRECT_INCOME_POT), 4)
+        payouts = [[base, base_income]]          # [recipient_doc, amount]
+        highest = base_level
+        slots_total = 10 - base_level
+        remaining = round(DIRECT_INCOME_POT - base_income, 4)
+        share = (remaining / slots_total) if slots_total > 0 else 0.0
+        # Rank-match cumulative: each upline claims the slots up to its own rank.
+        idx = 1
+        while idx < len(chain) and highest < 10 and share > 0:
+            up = chain[idx]
+            up_level = min(_rank_level_of(up), 10)
+            if up_level > highest:
+                payouts.append([up, round((up_level - highest) * share, 4)])
+                highest = up_level
+            idx += 1
+        # Unclaimed slots (chain ended before Level 10) → split equally among recipients.
+        unclaimed = (slots_total - (highest - base_level)) * share
+        if unclaimed > 0 and payouts:
+            extra = round(unclaimed / len(payouts), 4)
+            for p in payouts:
+                p[1] = round(p[1] + extra, 4)
+        # Credit direct income + 10% support (to each recipient's immediate upline).
+        for recipient, amt in payouts:
+            ok = await _credit_commission(
+                recipient["id"], amt, "direct_bonus",
+                f"Direct income · {actor} activated", from_user_id=user["id"])
+            if not ok:
+                continue
+            distributed += amt
+            support = round(amt * SUPPORT_INCOME_PCT / 100.0, 4)
+            if support <= 0:
+                continue
+            credited = False
+            up_id = recipient.get("referred_by")
+            if up_id:
+                credited = await _credit_commission(
+                    up_id, support, "support_income",
+                    f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} direct · {actor}",
+                    from_user_id=user["id"])
+            if not credited:
+                await _credit_admin_revenue(
+                    support, "support_reserve", user["id"],
+                    note=f"Unclaimed support {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} direct from {actor}")
+            distributed += support
+
+    distributed = round(distributed, 4)
     remainder = round(BOT_ACTIVATION_FEE - distributed, 4)
     if remainder > 0:
         await _credit_admin_revenue(remainder, "activation_reserve", user["id"],

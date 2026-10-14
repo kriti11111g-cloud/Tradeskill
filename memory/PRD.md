@@ -537,3 +537,12 @@ See `/app/memory/test_credentials.md`
 - Timestamp parity fix: KuCoin txn created_at now uses the exchange's actual order/fill time (execution() returns `ts` from order.createdAt / fill.createdAt, ns-safe) instead of server recording time — removes ~2s diff vs KuCoin app. Applies to NEW trades only; existing rows keep old timestamp.
 - Files: backend/server.py (KuCoinClient order/fills/execution, _execute_kucoin_real txn created_at + 400500 msg, revenue_income), frontend/src/pages/Trades.jsx (error banner), frontend/src/pages/Revenue.jsx (dynamic exchange logo/label).
 - NOTE: KuCoin-live path cannot be tested from preview (no live keys there); verified via user deploy on VPS.
+
+## 14 Oct 2026 — NEW Activation Income Distribution ($26.36 fixed pot) — IMPLEMENTED & TESTED
+- Replaced old rank-based direct bonus + flat 10% support with a fixed-pot rank-slab waterfall.
+- Per $50 activation: $18 royalty (9×$2) + $2.50 company (5%) + $0.50 meeting (1%) + $26.36 direct pot + $2.64 support (=10% of $26.36) = $50 exactly.
+- Direct pot ($26.36 = Level 10 max): nearest ACTIVATED upline (sponsor, rank R) gets DIRECT_INCOME_BY_LEVEL[R]; remaining split into (10-R) equal slots; each upline claims slots up to its own rank (rank-match cumulative). Unclaimed slots (short chain) → split equally among the receiving uplines (Q2-B).
+- Support = 10% of each direct payout → that recipient's immediate upline (referred_by). Orphan (no upline) → company reserve (admin wallet, kind support_reserve).
+- Config: DIRECT_INCOME_BY_LEVEL, DIRECT_INCOME_POT (server.py ~line 216); helper _rank_level_of (~line 3325); logic rewritten in the activation distribution block inside /bot-wallet/activate flow (~line 3546).
+- VERIFIED via real end-to-end test (register under sponsor + /api/bot-wallet/activate): chain N->A(L3)->B(L5)->C(L10) → A=$12.00, B=$5.3029, C=$10.6674, royalty=$18, meeting=$0.50. Matches blueprint exactly.
+- NOTE: Trading commission (differential on profit) and royalty pools are SEPARATE and unchanged. Deploy to VPS required.
