@@ -553,3 +553,9 @@ See `/app/memory/test_credentials.md`
 - Verified via simulation: L10 at depth 25 now receives its differential (was dropped before); user case (self L5, highest-below L4) pays 0.75% as expected.
 - Compression rule unchanged (confirmed correct by user): an upline earns only (their rank% − highest paid below); equal/lower ranks below block the override.
 - Deploy to VPS required.
+
+## 14 Oct 2026 — BUGFIX: Differential commission skipped inactive uplines (wrong deep payout)
+- Bug: a Level-1 user was earning 3.5% differential from an 11-levels-deep trader because the 10 inactive uplines between were SKIPPED (highest advanced only on successful _credit_commission). A distant same-rank upline wrongly claimed the slot.
+- Fix (server.py ~3418): in _distribute_trading_deduction, `highest` now advances on the upline's RANK regardless of activation. If the upline can't earn (not activated), its differential slot routes to company_reserve (kind company_reserve) instead of flowing up. This makes a Level-1 user earn ONLY from direct referrals; higher ranks still earn their differential on deep team.
+- Verified via simulation: bug case now pays the distant L1 nothing (slot→reserve); direct L1 sponsor gets 3.5%; L5-over-inactive-L1 gets 3.0%; L5-over-active-L4 gets 0.75%. 12% budget always balances.
+- NOTE: past (already-recorded) wrong commission rows are NOT auto-corrected; only new trades use the fixed logic. Deploy to VPS required.

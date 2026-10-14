@@ -3421,8 +3421,15 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
                 ok = await _credit_commission(anc["id"], amt, "team_commission",
                                               f"Differential {diff}% from {trader_label} · {symbol} · L{hops + 1}",
                                               from_user_id=user_id, symbol=symbol)
-                if ok:
-                    highest = pct
+                if not ok and amt > 0:
+                    # Upline occupies this rank slot but can't earn (not activated).
+                    # The slot still BLOCKS higher same-rank uplines; its differential
+                    # goes to company reserve so a distant upline can't wrongly claim it.
+                    await _credit_admin_revenue(amt, "company_reserve", user_id,
+                                                note=f"Differential {diff}% (upline not activated) from {trader_label} · {symbol}",
+                                                symbol=symbol)
+                # Advance regardless of activation — the rank position itself compresses.
+                highest = pct
             cur = anc.get("referred_by")
             hops += 1
 
