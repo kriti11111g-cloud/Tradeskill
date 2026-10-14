@@ -157,17 +157,17 @@ export default function Rank() {
           </button>
 
           {incomeOpen && (
-            <div className="px-3 pb-3 pt-1 space-y-2" data-testid="income-cards">
+            <div className="px-3 pb-3 pt-1 space-y-1.5" data-testid="income-cards">
               {incomeCards.map((c) => (
                 <div key={c.title}
-                     className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
-                     style={{ background: "var(--surface, var(--bg))", border: "1px solid var(--border, var(--border-soft))", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                     className="flex items-center gap-2 rounded-lg px-2.5 py-1"
+                     style={{ background: "var(--surface, var(--bg))", border: "1px solid var(--border, var(--border-soft))", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
                      data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
-                    <c.icon size={16} color={c.color} />
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
+                    <c.icon size={13} color={c.color} />
                   </div>
-                  <span className="text-[13.5px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
-                  <span className="text-[13px] font-black text-white px-3 py-1.5 rounded-lg shrink-0 tabular-nums"
+                  <span className="text-[12.5px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
+                  <span className="text-[12px] font-black text-white px-2.5 py-0.5 rounded-md shrink-0 tabular-nums"
                         style={{ background: c.color }}>{c.value}</span>
                 </div>
               ))}
