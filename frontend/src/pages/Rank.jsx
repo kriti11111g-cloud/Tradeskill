@@ -157,19 +157,18 @@ export default function Rank() {
           </button>
 
           {incomeOpen && (
-            <div className="px-4 pb-2" data-testid="income-cards">
-              {incomeCards.map((c, i) => (
+            <div className="px-3 pb-3 pt-1 space-y-2" data-testid="income-cards">
+              {incomeCards.map((c) => (
                 <div key={c.title}
-                     className="flex items-center justify-between py-3"
-                     style={{ borderTop: i === 0 ? "1px solid var(--border-soft)" : "1px solid var(--border-soft)" }}
+                     className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+                     style={{ background: "var(--surface, var(--bg))", border: "1px solid var(--border, var(--border-soft))", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
                      data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
-                      <c.icon size={15} color={c.color} />
-                    </div>
-                    <span className="text-[13.5px] font-semibold text-[color:var(--text)] truncate">{c.title}</span>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
+                    <c.icon size={16} color={c.color} />
                   </div>
-                  <span className="text-[15px] font-black text-[color:var(--text)] tabular-nums shrink-0 pl-2">{c.value}</span>
+                  <span className="text-[13.5px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
+                  <span className="text-[13px] font-black text-white px-3 py-1.5 rounded-lg shrink-0 tabular-nums"
+                        style={{ background: c.color }}>{c.value}</span>
                 </div>
               ))}
             </div>
