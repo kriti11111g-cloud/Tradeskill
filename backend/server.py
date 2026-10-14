@@ -1848,6 +1848,7 @@ class KuCoinClient:
         qty = Decimal(str(o.get("dealSize", "0"))) if o else Decimal(0)
         funds = Decimal(str(o.get("dealFunds", "0"))) if o else Decimal(0)
         fee = Decimal(str(o.get("fee", "0"))) if o else Decimal(0)
+        ts_ms = o.get("createdAt") if o else None
         # Authoritative fill data from the fills feed (retried — fills can lag the order).
         for _ in range(8):
             try:
@@ -1859,6 +1860,7 @@ class KuCoinClient:
                     fe = sum((Decimal(str(x.get("fee", "0"))) for x in items), Decimal(0))
                     if qf > 0:
                         qty, funds, fee = qf, ff, fe
+                        ts_ms = items[0].get("createdAt") or items[0].get("tradeTime") or ts_ms
                         break
             except Exception:
                 pass
@@ -1866,8 +1868,19 @@ class KuCoinClient:
                 break
             await asyncio.sleep(0.4)
         avg = (funds / qty) if qty > 0 else Decimal(0)
+        # KuCoin's actual order/fill time (epoch ms; tradeTime may be ns) → UTC ISO.
+        ts_iso = None
+        if ts_ms:
+            try:
+                ms = int(ts_ms)
+                if ms > 1e15:  # nanoseconds
+                    ms = ms // 1_000_000
+                ts_iso = datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+            except Exception:
+                ts_iso = None
         return {"order_id": order_id, "filled_qty": float(qty), "quote": float(funds),
-                "avg_price": float(avg), "fee": float(fee), "status": (o.get("status", "done") if o else "done")}
+                "avg_price": float(avg), "fee": float(fee), "ts": ts_iso,
+                "status": (o.get("status", "done") if o else "done")}
 
 
 def _kucoin_symbol(symbol: str) -> str:
@@ -2091,7 +2104,7 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
            "price": avg_price, "quantity": filled_qty, "amount": quote_spent, "profit": profit,
            "mode": mode, "source": source, "exchange": "kucoin",
            "binance_order_id": res.get("order_id"), "binance_status": res.get("status"),
-           "created_at": iso(now_utc())}
+           "created_at": res.get("ts") or iso(now_utc())}
     await db.transactions.insert_one(txn)
     if side == "SELL" and profit > 0 and source not in ("bot_stop", "fresh_start"):
         await _charge_trading_fee(user_id, profit, symbol)

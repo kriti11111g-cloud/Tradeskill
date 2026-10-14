@@ -528,3 +528,12 @@ See `/app/memory/test_credentials.md`
 - Backend: POST /api/auth/forgot/send (OTP email, 60s cooldown, 5min TTL, db.reset_otps sha256) + POST /api/auth/forgot/reset (validate OTP -> bcrypt password update -> OTP marked used). _send_otp_email extended with "reset" purpose (subject/heading)
 - Frontend: ForgotPassword.jsx (/forgot-password route, dark login theme, 2 steps: email -> OTP+new pw+confirm, resend timer). Login.jsx button now navigates
 - Tested e2e: curl full matrix pass + screenshots dono steps. VPS deploy steps user ko diye (build required)
+
+## 14 Oct 2026 — KuCoin Trade Sync Bugs FIXED (user verified buy/sell + exchange label)
+- Root cause 1 (ZEC no trade): KuCoin error 400500 = token region-blocked (privacy coin). NOT a bug. Added friendly message + red error banner on trade card (Trades.jsx last_trade_error/stop_reason). Mainstream coins (SOL/BTC/ETH) work.
+- Root cause 2 (SOL bought on KuCoin but app showed 0 Buys/no position): KuCoin account is HF-enabled; orders placed via /api/v1/orders route to HF system and were NOT readable via standard /api/v1/orders/{id}. Fixed KuCoinClient.order()/fills()/execution() with HF-endpoint fallback (/api/v1/hf/orders, /api/v1/hf/fills) + fills retry (8x). Buy/sell now record correctly (user confirmed, order IDs match KuCoin app).
+- Added diagnostic log + bot last_trade_error when fill can't be read back (includes orderId + raw res).
+- Exchange label fix: revenue_income sells projection now includes `exchange`; Revenue.jsx shows KuCoin/Binance logo+label dynamically (was hardcoded BINANCE). User confirmed KUCOIN shows correctly.
+- Timestamp parity fix: KuCoin txn created_at now uses the exchange's actual order/fill time (execution() returns `ts` from order.createdAt / fill.createdAt, ns-safe) instead of server recording time — removes ~2s diff vs KuCoin app. Applies to NEW trades only; existing rows keep old timestamp.
+- Files: backend/server.py (KuCoinClient order/fills/execution, _execute_kucoin_real txn created_at + 400500 msg, revenue_income), frontend/src/pages/Trades.jsx (error banner), frontend/src/pages/Revenue.jsx (dynamic exchange logo/label).
+- NOTE: KuCoin-live path cannot be tested from preview (no live keys there); verified via user deploy on VPS.
