@@ -167,7 +167,7 @@ export default function Rank() {
                     <c.icon size={13} color={c.color} />
                   </div>
                   <span className="text-[12.5px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
-                  <span className="text-[12px] font-black text-white px-2.5 py-0.5 rounded-md shrink-0 tabular-nums"
+                  <span className="text-[12px] font-black text-white px-2 py-0.5 rounded-md shrink-0 tabular-nums inline-flex items-center justify-center min-w-[62px]"
                         style={{ background: c.color }}>{c.value}</span>
                 </div>
               ))}
