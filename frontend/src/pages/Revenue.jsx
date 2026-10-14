@@ -34,7 +34,7 @@ function TrendTooltip({ active, payload }) {
   return (
     <div className="rounded-lg px-2.5 py-1.5" style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 4px 14px rgba(0,0,0,0.1)" }}>
       <div className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>{d.date.slice(5)}</div>
-      <div className="text-[13px] font-black" style={{ color: "var(--good)" }}>+{fmtNum(d.total, 2)}</div>
+      <div className="text-[13px] font-black" style={{ color: "var(--good)" }}>+{fmtNum(d.total, 4)}</div>
     </div>
   );
 }
@@ -72,7 +72,7 @@ function IncomeRow({ r, meta, showCoin }) {
         )}
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }}>
-            +{fmtNum(r.amount, 2)} USDT
+            +{fmtNum(r.amount, 4)} USDT
             {open && r.category === "trading_profit" && r.trade?.deal_amount > r.amount && (
               <span className="ml-1 text-[11px] font-black" data-testid="income-profit-pct">
                 (+{fmtNum((r.amount / (r.trade.deal_amount - r.amount)) * 100, 2)}%)
@@ -162,7 +162,7 @@ function ProfitDayGroup({ date, total, count, items }) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }} data-testid="income-day-group-total">+{fmtNum(total, 2)} USDT</span>
+          <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--good)" }} data-testid="income-day-group-total">+{fmtNum(total, 4)} USDT</span>
           <ChevronRight size={16} strokeWidth={2.4} style={{ color: "var(--ink)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function Revenue() {
           <div className="min-w-0">
             <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Today&apos;s Income</div>
             <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="revenue-today">
-              +{fmtNum(today, 2)} <span className="text-[10px]">USDT</span>
+              +{fmtNum(today, 4)} <span className="text-[10px]">USDT</span>
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function Revenue() {
           <div className="min-w-0">
             <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Income</div>
             <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="revenue-total">
-              +{fmtNum(total, 2)} <span className="text-[10px]">USDT</span>
+              +{fmtNum(total, 4)} <span className="text-[10px]">USDT</span>
             </div>
           </div>
         </div>
@@ -307,7 +307,7 @@ export default function Revenue() {
           <div className="relative">
             {lastVal > 0 && (
               <div className="absolute right-1 top-0 z-10 px-2 py-0.5 rounded-md text-[10px] font-black text-white" style={{ background: "var(--good)" }}>
-                +{fmtNum(lastVal, 2)}
+                +{fmtNum(lastVal, 4)}
               </div>
             )}
             <ResponsiveContainer width="100%" height={130}>
@@ -360,7 +360,7 @@ export default function Revenue() {
               <div className="min-w-0">
                 <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Today Earning</div>
                 <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="category-today">
-                  +{fmtNum(catStats.today || 0, 2)} <span className="text-[10px]">USDT</span>
+                  +{fmtNum(catStats.today || 0, 4)} <span className="text-[10px]">USDT</span>
                 </div>
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function Revenue() {
               <div className="min-w-0">
                 <div className="text-[10.5px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Total Earning</div>
                 <div className="text-[16px] font-black tabular-nums leading-tight" style={{ color: "var(--good)" }} data-testid="category-total">
-                  +{fmtNum(catStats.total || 0, 2)} <span className="text-[10px]">USDT</span>
+                  +{fmtNum(catStats.total || 0, 4)} <span className="text-[10px]">USDT</span>
                 </div>
               </div>
             </div>
