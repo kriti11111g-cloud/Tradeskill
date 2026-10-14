@@ -546,3 +546,10 @@ See `/app/memory/test_credentials.md`
 - Config: DIRECT_INCOME_BY_LEVEL, DIRECT_INCOME_POT (server.py ~line 216); helper _rank_level_of (~line 3325); logic rewritten in the activation distribution block inside /bot-wallet/activate flow (~line 3546).
 - VERIFIED via real end-to-end test (register under sponsor + /api/bot-wallet/activate): chain N->A(L3)->B(L5)->C(L10) → A=$12.00, B=$5.3029, C=$10.6674, royalty=$18, meeting=$0.50. Matches blueprint exactly.
 - NOTE: Trading commission (differential on profit) and royalty pools are SEPARATE and unchanged. Deploy to VPS required.
+
+## 14 Oct 2026 — Differential Rank Commission now UNLIMITED depth
+- Removed the `hops < 20` cap in _distribute_trading_deduction (server.py ~3410). Differential now walks the ENTIRE sponsor line.
+- Safety preserved: `seen` set guards referral cycles; loop still early-exits once highest rank % reaches MAX_RANK_PCT (12% = Level 10 fully paid).
+- Verified via simulation: L10 at depth 25 now receives its differential (was dropped before); user case (self L5, highest-below L4) pays 0.75% as expected.
+- Compression rule unchanged (confirmed correct by user): an upline earns only (their rank% − highest paid below); equal/lower ranks below block the override.
+- Deploy to VPS required.

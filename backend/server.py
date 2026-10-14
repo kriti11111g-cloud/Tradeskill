@@ -3403,11 +3403,12 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
         # override when their downline/team trades). Differential starts from 0.
         highest = 0.0
 
-        # Differential up the sponsor line
+        # Differential up the sponsor line (UNLIMITED depth; stops early once the
+        # full 12% budget is paid, and `seen` guards against referral cycles).
         seen = {user_id}
         cur = (trader or {}).get("referred_by")
         hops = 0
-        while cur and cur not in seen and hops < 20 and highest < MAX_RANK_PCT:
+        while cur and cur not in seen and highest < MAX_RANK_PCT:
             seen.add(cur)
             anc = await db.users.find_one({"id": cur},
                                           {"_id": 0, "id": 1, "referred_by": 1, "rank": 1, "email": 1})
