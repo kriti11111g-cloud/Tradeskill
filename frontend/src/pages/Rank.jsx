@@ -100,7 +100,7 @@ export default function Rank() {
         </div>
       </div>
 
-      <div className="px-4 pt-3 space-y-3">
+      <div className="px-4 pt-3 space-y-2.5">
         {/* HERO */}
         <div className="rounded-2xl overflow-hidden relative text-white px-4 py-5"
              style={{ background: "linear-gradient(115deg,#0F9D58 0%,#1565C0 55%,#1E40AF 100%)", boxShadow: "var(--shadow-lg)" }}
@@ -176,20 +176,20 @@ export default function Rank() {
         </div>
 
         {/* RANK PROGRESS */}
-        <div className="rounded-2xl px-4 py-3.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
+        <div className="rounded-2xl px-4 py-2.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
              data-testid="rank-progress-block">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 size={15} color="var(--primary)" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-[color:var(--text)]">Rank Progress</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <BarChart3 size={13} color="var(--primary)" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-[color:var(--text)]">Rank Progress</span>
             </div>
-            <span className="text-[15px] font-black tabular-nums" style={{ color: prog >= 100 ? "var(--good)" : "var(--primary)" }}>{prog}%</span>
+            <span className="text-[13px] font-black tabular-nums" style={{ color: prog >= 100 ? "var(--good)" : "var(--primary)" }}>{prog}%</span>
           </div>
-          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
             <div className="h-full rounded-full transition-all duration-500"
                  style={{ width: `${prog}%`, background: prog >= 100 ? "linear-gradient(90deg,#16A34A,#0F9D58)" : "linear-gradient(90deg,#1565C0,#0F9D58)" }} />
           </div>
-          <div className="text-center text-[11px] font-semibold mt-2 text-[color:var(--text-soft)]">
+          <div className="text-center text-[10px] font-semibold mt-1.5 text-[color:var(--text-soft)]">
             {prog >= 100
               ? (nextRank ? <>{vName(rank.level)} completed! Now target {vName(nextRank.level)} 🚀</> : "Top rank completed 👑")
               : `Working toward ${vName(rank.level)}`}
@@ -208,23 +208,23 @@ export default function Rank() {
           <button
             disabled={!prevRank}
             onClick={() => prevRank && (setViewLevel(prevRank.level), setIncomeOpen(false))}
-            className="rounded-2xl p-3 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-xl p-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="prev-rank-card"
           >
             <div className="flex items-center justify-between">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.12)" }}>
-                <ChevronLeft size={15} />
+              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.12)" }}>
+                <ChevronLeft size={13} />
               </div>
               <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Previous</span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-1.5 flex items-center gap-2">
               <MiniStar level={prevRank?.level} />
               <div>
-                <div className="text-[18px] font-black leading-none">{prevRank ? vName(prevRank.level) : "—"}</div>
+                <div className="text-[15px] font-black leading-none">{prevRank ? vName(prevRank.level) : "—"}</div>
                 {prevRank && (
-                  <div className="flex items-center gap-1 text-[10px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
-                    <CheckCircle2 size={11} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
+                  <div className="flex items-center gap-1 text-[9px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
+                    <CheckCircle2 size={10} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
                   </div>
                 )}
               </div>
@@ -235,23 +235,23 @@ export default function Rank() {
           <button
             disabled={!nextRank}
             onClick={() => nextRank && (setViewLevel(nextRank.level), setIncomeOpen(false))}
-            className="rounded-2xl p-3 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-xl p-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="next-rank-card"
           >
             <div className="flex items-center justify-between">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.14)" }}>
-                <ChevronRight size={15} />
+              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.14)" }}>
+                <ChevronRight size={13} />
               </div>
               <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Next</span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-1.5 flex items-center gap-2">
               <MiniStar level={nextRank?.level} />
               <div>
-                <div className="text-[18px] font-black leading-none">{nextRank ? vName(nextRank.level) : "MAX"}</div>
+                <div className="text-[15px] font-black leading-none">{nextRank ? vName(nextRank.level) : "MAX"}</div>
                 {nextRank && (
-                  <div className="flex items-center gap-1 text-[10px] font-bold mt-0.5" style={{ color: "#FDE68A" }}>
-                    <Target size={11} /> Target Rank
+                  <div className="flex items-center gap-1 text-[9px] font-bold mt-0.5" style={{ color: "#FDE68A" }}>
+                    <Target size={10} /> Target Rank
                   </div>
                 )}
               </div>
@@ -260,13 +260,13 @@ export default function Rank() {
         </div>
 
         {/* Footer tip */}
-        <div className="rounded-2xl px-4 py-3 flex items-start gap-3" style={{ background: "var(--card)", border: "1px solid var(--border-soft)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
-            <Lightbulb size={16} color="#2563EB" />
+        <div className="rounded-xl px-3 py-2.5 flex items-start gap-2.5" style={{ background: "var(--card)", border: "1px solid var(--border-soft)" }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
+            <Lightbulb size={14} color="#2563EB" />
           </div>
           <div>
-            <div className="text-[13px] font-black text-[color:var(--text)]">Higher Rank = Higher Income</div>
-            <div className="text-[11px] text-[color:var(--text-soft)]">
+            <div className="text-[12px] font-black text-[color:var(--text)]">Higher Rank = Higher Income</div>
+            <div className="text-[10px] text-[color:var(--text-soft)]">
               {nextRank ? `Achieve ${vName(nextRank.level)} to unlock more income benefits and global rewards.`
                         : "You've reached the top rank — maximum income unlocked. 👑"}
             </div>
@@ -279,25 +279,25 @@ export default function Rank() {
 
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div className="rounded-2xl px-3.5 py-3" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}1A` }}>
-          <Icon size={16} color={color} />
+    <div className="rounded-xl px-3 py-2" style={{ background: "var(--card)", border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+      <div className="flex items-center gap-1.5">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: `${color}1A` }}>
+          <Icon size={13} color={color} />
         </div>
-        <span className="text-[9.5px] font-black uppercase tracking-wider text-[color:var(--text-mute)]">{label}</span>
+        <span className="text-[9px] font-black uppercase tracking-wider text-[color:var(--text-mute)]">{label}</span>
       </div>
-      <div className="text-[22px] font-black text-[color:var(--text)] mt-1 leading-none tabular-nums">{value}</div>
-      <div className="text-[10px] text-[color:var(--text-mute)] mt-0.5">{sub}</div>
+      <div className="text-[17px] font-black text-[color:var(--text)] mt-0.5 leading-none tabular-nums">{value}</div>
+      <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">{sub}</div>
     </div>
   );
 }
 
 function MiniStar({ level }) {
-  if (!level) return <span className="w-9 h-9" />;
+  if (!level) return <span className="w-7 h-7" />;
   return (
-    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
          style={{ background: "radial-gradient(circle at 35% 30%,#F59E0B,#B45309)", border: "1.5px solid #FDE68A" }}>
-      <span className="font-display font-black text-[11px]" style={{ color: "#083344" }}>{`V${level}`}</span>
+      <span className="font-display font-black text-[9px]" style={{ color: "#083344" }}>{`V${level}`}</span>
     </div>
   );
 }
