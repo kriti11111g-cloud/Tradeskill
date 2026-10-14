@@ -94,13 +94,24 @@ function IncomeRow({ r, meta, showCoin }) {
                 <span className="text-[9.5px] font-black text-white px-2 py-0.5 rounded-md" style={{ background: "#DC2626" }}>SELL</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <img
-                  src="https://coin-images.coingecko.com/markets/images/52/small/binance.jpg"
-                  alt="Binance"
-                  className="w-[18px] h-[18px] rounded-full object-cover"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-                <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }}>BINANCE</span>
+                {(() => {
+                  const isKucoin = String(r.trade.exchange || "binance").toLowerCase() === "kucoin";
+                  const logo = isKucoin
+                    ? "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png"
+                    : "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg";
+                  const label = isKucoin ? "KUCOIN" : "BINANCE";
+                  return (
+                    <>
+                      <img
+                        src={logo}
+                        alt={label}
+                        className="w-[18px] h-[18px] rounded-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                      <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }} data-testid={`revenue-exchange-${r.trade.symbol}`}>{label}</span>
+                    </>
+                  );
+                })()}
               </div>
             </div>
             {[

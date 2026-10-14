@@ -2600,7 +2600,7 @@ async def revenue_income(user: dict = Depends(get_current_user)):
     sells = await db.transactions.find(
         {"user_id": uid, "side": "SELL"},
         {"_id": 0, "id": 1, "profit": 1, "created_at": 1, "symbol": 1,
-         "quantity": 1, "amount": 1, "binance_order_id": 1, "binance_status": 1}).sort("created_at", -1).to_list(3000)
+         "quantity": 1, "amount": 1, "binance_order_id": 1, "binance_status": 1, "exchange": 1}).sort("created_at", -1).to_list(3000)
 
     def cat_of(t):
         k = t["kind"]
@@ -2633,6 +2633,7 @@ async def revenue_income(user: dict = Depends(get_current_user)):
                             "order_id": s.get("binance_order_id") or s.get("id", ""),
                             "quantity": s.get("quantity"),
                             "deal_amount": s.get("amount"),
+                            "exchange": s.get("exchange", "binance"),
                             "status": "Completed",
                         }})
     history.sort(key=lambda x: x["created_at"] or "", reverse=True)
