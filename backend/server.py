@@ -1816,37 +1816,58 @@ class KuCoinClient:
             "clientOid": str(uuid.uuid4()), "symbol": symbol, "type": "market",
             "side": "sell", "size": format(base_size, "f")})
 
-    async def order(self, order_id):
-        return await self.request("GET", f"/api/v1/orders/{order_id}")
+    async def order(self, order_id, symbol=None):
+        # HF-enabled accounts route /api/v1/orders into the HF system; those orders
+        # are NOT visible on the standard endpoint, so fall back to the HF endpoint.
+        try:
+            return await self.request("GET", f"/api/v1/orders/{order_id}")
+        except KuCoinError:
+            q = f"?symbol={symbol}" if symbol else ""
+            return await self.request("GET", f"/api/v1/hf/orders/{order_id}{q}")
 
     async def fills(self, symbol, order_id):
-        return await self.request("GET", f"/api/v1/fills?symbol={symbol}&orderId={order_id}&pageSize=100")
+        try:
+            f = await self.request("GET", f"/api/v1/fills?symbol={symbol}&orderId={order_id}&pageSize=100")
+            if f.get("items"):
+                return f
+        except KuCoinError:
+            pass
+        return await self.request("GET", f"/api/v1/hf/fills?symbol={symbol}&orderId={order_id}&limit=100")
 
     async def execution(self, symbol, order_id):
         o = {}
         for _ in range(30):
-            o = await self.order(order_id)
-            active = o.get("isActive", o.get("active", False))
-            if Decimal(str(o.get("dealSize", "0"))) > 0 and not active:
+            try:
+                o = await self.order(order_id, symbol)
+            except Exception:
+                o = {}
+            active = o.get("isActive", o.get("active", True)) if o else True
+            if o and Decimal(str(o.get("dealSize", "0"))) > 0 and not active:
                 break
             await asyncio.sleep(0.25)
-        qty = Decimal(str(o.get("dealSize", "0")))
-        funds = Decimal(str(o.get("dealFunds", "0")))
-        fee = Decimal(str(o.get("fee", "0")))
-        try:
-            f = await self.fills(symbol, order_id)
-            items = f.get("items", [])
-            if items:
-                qf = sum((Decimal(str(x["size"])) for x in items), Decimal(0))
-                ff = sum((Decimal(str(x["funds"])) for x in items), Decimal(0))
-                fe = sum((Decimal(str(x.get("fee", "0"))) for x in items), Decimal(0))
-                if qf > 0:
-                    qty, funds, fee = qf, ff, fe
-        except Exception:
-            pass
+        qty = Decimal(str(o.get("dealSize", "0"))) if o else Decimal(0)
+        funds = Decimal(str(o.get("dealFunds", "0"))) if o else Decimal(0)
+        fee = Decimal(str(o.get("fee", "0"))) if o else Decimal(0)
+        # Authoritative fill data from the fills feed (retried — fills can lag the order).
+        for _ in range(8):
+            try:
+                f = await self.fills(symbol, order_id)
+                items = f.get("items", [])
+                if items:
+                    qf = sum((Decimal(str(x["size"])) for x in items), Decimal(0))
+                    ff = sum((Decimal(str(x["funds"])) for x in items), Decimal(0))
+                    fe = sum((Decimal(str(x.get("fee", "0"))) for x in items), Decimal(0))
+                    if qf > 0:
+                        qty, funds, fee = qf, ff, fe
+                        break
+            except Exception:
+                pass
+            if qty > 0:
+                break
+            await asyncio.sleep(0.4)
         avg = (funds / qty) if qty > 0 else Decimal(0)
         return {"order_id": order_id, "filled_qty": float(qty), "quote": float(funds),
-                "avg_price": float(avg), "fee": float(fee), "status": o.get("status", "done")}
+                "avg_price": float(avg), "fee": float(fee), "status": (o.get("status", "done") if o else "done")}
 
 
 def _kucoin_symbol(symbol: str) -> str:
@@ -2027,7 +2048,11 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
 
     filled_qty, quote_spent, avg_price = res["filled_qty"], res["quote"], res["avg_price"]
     if filled_qty <= 0 or avg_price <= 0:
-        raise _TradeError(400, "KuCoin order accepted but not filled — try again")
+        oid = res.get("order_id")
+        msg = f"KuCoin order {oid} placed but fill could not be read back — will retry"
+        logger.error(f"[kucoin trade] {symbol} {side}: {msg} (res={res})")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
 
     if side == "BUY":
         new_qty = bot.get("position_qty", 0.0) + filled_qty
