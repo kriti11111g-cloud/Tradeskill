@@ -137,13 +137,15 @@ export default function Rank() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 mt-3 text-[12px] font-semibold" style={{ color: "#E8F5E9" }}>
-            <BarChart3 size={14} />
-            {relation === "active"
-              ? (nextRank ? `Great progress! Keep growing for ${vName(nextRank.level)}` : "Top rank reached 👑")
-              : relation === "achieved"
-              ? `You've already achieved ${vName(rank.level)}`
-              : `Complete the requirements to unlock ${vName(rank.level)}`}
+          <div className="flex items-center gap-1.5 mt-3 text-[12px] font-semibold h-[18px]" style={{ color: "#E8F5E9" }}>
+            <BarChart3 size={14} className="shrink-0" />
+            <span className="truncate">
+              {relation === "active"
+                ? (nextRank ? `Great progress! Keep growing for ${vName(nextRank.level)}` : "Top rank reached 👑")
+                : relation === "achieved"
+                ? `You've already achieved ${vName(rank.level)}`
+                : `Complete the requirements to unlock ${vName(rank.level)}`}
+            </span>
           </div>
         </div>
 
@@ -222,7 +224,7 @@ export default function Rank() {
             disabled={!prevRank}
             onClick={() => prevRank && (setViewLevel(prevRank.level), setIncomeOpen(false))}
             className="rounded-2xl px-4 py-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)" }}
+            style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)", minHeight: 58 }}
             data-testid="prev-rank-card"
           >
             <div className="flex items-center gap-2">
@@ -247,7 +249,7 @@ export default function Rank() {
             disabled={!nextRank}
             onClick={() => nextRank && (setViewLevel(nextRank.level), setIncomeOpen(false))}
             className="rounded-2xl px-4 py-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)" }}
+            style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)", minHeight: 58 }}
             data-testid="next-rank-card"
           >
             <div className="flex items-center gap-2">
