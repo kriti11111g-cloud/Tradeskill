@@ -3451,19 +3451,31 @@ async def _bonanza_credit_user(user_id: str, directs: int, offer: dict) -> dict:
     return {"credited": True, "amount": round(reward, 4), "balance": new_bal}
 
 
+async def _activated_direct_count(user_id: str) -> int:
+    """Count direct referrals who have ACTIVATED A BOT (paid activation fee → bot_wallets.activated)."""
+    direct_ids = [u["id"] async for u in db.users.find({"referred_by": user_id}, {"id": 1, "_id": 0})]
+    if not direct_ids:
+        return 0
+    return await db.bot_wallets.count_documents({"user_id": {"$in": direct_ids}, "activated": True})
+
+
 async def _bonanza_payout_sweep() -> dict:
     """Auto-credit every qualifying sponsor once the deadline passes (idempotent)."""
     offer = await _get_bonanza_offer()
     if now_utc() < datetime.fromisoformat(offer["deadline"]):
         return {"ran": False, "reason": "before_deadline", "credited": 0}
     min_dirs = min(t["directs"] for t in offer["tiers"])
+    # Count sponsors by their BOT-ACTIVATED directs (bot_wallets.activated), not mere referrals.
     pipe = [
-        {"$match": {"activated": True, "referred_by": {"$ne": None}}},
-        {"$group": {"_id": "$referred_by", "n": {"$sum": 1}}},
+        {"$match": {"activated": True}},
+        {"$lookup": {"from": "users", "localField": "user_id", "foreignField": "id", "as": "u"}},
+        {"$unwind": "$u"},
+        {"$match": {"u.referred_by": {"$ne": None}}},
+        {"$group": {"_id": "$u.referred_by", "n": {"$sum": 1}}},
         {"$match": {"n": {"$gte": min_dirs}}},
     ]
     credited = 0
-    async for row in db.users.aggregate(pipe):
+    async for row in db.bot_wallets.aggregate(pipe):
         res = await _bonanza_credit_user(row["_id"], int(row["n"]), offer)
         if res.get("credited"):
             credited += 1
@@ -3473,7 +3485,7 @@ async def _bonanza_payout_sweep() -> dict:
 @api.get("/bonanza")
 async def get_bonanza(user: dict = Depends(get_current_user)):
     offer = await _get_bonanza_offer()
-    directs = await db.users.count_documents({"referred_by": user["id"], "activated": True})
+    directs = await _activated_direct_count(user["id"])
     now = now_utc()
     ended = now >= datetime.fromisoformat(offer["deadline"])
     reward, tier_dirs = _bonanza_reward_for(directs, offer)
@@ -3504,7 +3516,7 @@ async def claim_bonanza(user: dict = Depends(get_current_user)):
     offer = await _get_bonanza_offer()
     if now_utc() < datetime.fromisoformat(offer["deadline"]):
         raise HTTPException(400, "Offer is still running. Claim opens when the timer ends.")
-    directs = await db.users.count_documents({"referred_by": user["id"], "activated": True})
+    directs = await _activated_direct_count(user["id"])
     reward, _ = _bonanza_reward_for(directs, offer)
     if reward <= 0:
         need = min(t["directs"] for t in offer["tiers"])
