@@ -57,6 +57,15 @@ export default function Rank() {
   const isAchieved = rank.level <= currentLevel;
   const stats = me?.stats;
 
+  // "Required Team" display → team size + rank-leg requirement (e.g. "15 + 2V1")
+  const teamReq = (() => {
+    if (rank.level === 1) return "0 + 0";
+    const dr = rank.downline_requirement;
+    const count = dr ? dr.count : 2;
+    const minLvl = dr ? dr.min_level : 1;
+    return `${rank.team_size} + ${count}V${minLvl}`;
+  })();
+
   // relation of the VIEWED rank to the user's actual current rank
   const relation = rank.level === currentLevel ? "active" : rank.level < currentLevel ? "achieved" : "locked";
   const heroLabel = relation === "active" ? "Your Current Rank" : relation === "achieved" ? "Achieved Rank" : "Target Rank";
@@ -202,7 +211,7 @@ export default function Rank() {
 
         {/* Requirements */}
         <div className="grid grid-cols-2 gap-2">
-          <ReqCard icon={Users} color="#2563EB" label="Required Team" value={rank.team_size} sub="Total team members" testid="req-team" />
+          <ReqCard icon={Users} color="#2563EB" label="Required Team" value={teamReq} sub="Team + rank legs" testid="req-team" />
           <ReqCard icon={Share2} color="#16A34A" label="Required Directs" value={rank.direct_users} sub="Direct members" testid="req-directs" />
         </div>
 
@@ -287,7 +296,7 @@ function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
       </div>
       <div className="min-w-0 flex-1">
         <span className="text-[8px] font-black uppercase tracking-widest text-[color:var(--text-mute)] block leading-none truncate">{label}</span>
-        <span className="text-[16px] font-black text-[color:var(--text)] leading-none tabular-nums block mt-0.5">{value}</span>
+        <span className={`${String(value).length > 4 ? "text-[14px]" : "text-[16px]"} font-black text-[color:var(--text)] leading-none tabular-nums block mt-0.5`}>{value}</span>
         <span className="text-[8px] font-semibold text-[color:var(--text-mute)] block leading-none mt-0.5 truncate">{sub}</span>
       </div>
     </div>
