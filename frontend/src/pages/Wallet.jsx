@@ -27,7 +27,7 @@ const KIND_META = {
   pause: { title: "Trading Fee", Icon: IconCoins },
   trading_fee: { title: "Trading Fee", Icon: IconCoins },
   team_commission: { title: "Trading Commission", Icon: IconHandDollar },
-  royalty_income: { title: "Global Level", Icon: IconCrown },
+  royalty_income: { title: "Royalty Income", Icon: IconCrown },
   direct_bonus: { title: "Direct Income", Icon: IconPersonAdd },
   support_income: { title: "Support Income", Icon: IconPeople },
   social_bonus: { title: "Support Income", Icon: IconPeople },
@@ -36,7 +36,7 @@ const KIND_META = {
 const rowMeta = (h) => {
   if (h.kind === "royalty_income") {
     const m = /Level (\d+)/.exec(h.note || "");
-    if (m) return { title: `Global Level-${String(Math.min(parseInt(m[1], 10), 10)).padStart(2, "0")}`, Icon: IconCrown };
+    if (m) return { title: `V${Math.min(parseInt(m[1], 10), 10)}`, Icon: IconCrown };
   }
   return KIND_META[h.kind];
 };

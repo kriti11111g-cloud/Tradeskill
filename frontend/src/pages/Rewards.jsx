@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Gift, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
@@ -6,6 +7,7 @@ import { fmtUSD } from "@/lib/format";
 
 export default function Rewards() {
   const [pool, setPool] = useState(null);
+  const navigate = useNavigate();
   useEffect(() => {
     api.get("/pool/summary").then(({ data }) => setPool(data)).catch(() => {});
   }, []);
@@ -34,11 +36,13 @@ export default function Rewards() {
             </div>
             <div className="grid grid-cols-3 gap-1.5 px-3.5 pb-3">
               {(pool?.[cat.key] || []).map((l) => (
-                <div key={l.level} className="rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center gap-0.5"
-                  style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }} data-testid={`${cat.key}-level-${l.level}`}>
-                  <span className="text-[9px] font-black tracking-wide" style={{ color: "var(--text-mute)" }}>LEVEL {l.level}</span>
+                <button key={l.level} type="button"
+                  onClick={() => navigate(`/revenue?tab=global_${Math.min(l.level, 10)}`)}
+                  className="rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+                  style={{ background: "var(--surface-3)", border: "1px solid var(--border)", touchAction: "manipulation" }} data-testid={`${cat.key}-level-${l.level}`}>
+                  <span className="text-[9px] font-black tracking-wide" style={{ color: "var(--text-mute)" }}>V{l.level}</span>
                   <span className="text-[12.5px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{fmtUSD(l.balance)}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>

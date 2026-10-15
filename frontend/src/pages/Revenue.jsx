@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ChevronRight, CalendarDays, ChevronDown, X } from "lucide-react";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
@@ -17,9 +17,9 @@ const TABS = [
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
   ...Array.from({ length: 10 }, (_, i) => ({
     id: `global_${i + 1}`,
-    label: `Global Level-${String(i + 1).padStart(2, "0")}`,
+    label: `V${i + 1}`,
     Icon: IconCrown,
-    title: `Global Royalty Level-${String(i + 1).padStart(2, "0")}`,
+    title: `V${i + 1} Royalty`,
   })),
 ];
 const META = Object.fromEntries(TABS.filter((t) => t.id !== "all").map((t) => [t.id, t]));
@@ -191,7 +191,9 @@ function ProfitDayGroup({ date, total, count, items }) {
 
 export default function Revenue() {
   const [data, setData] = useState(null);
-  const [tab, setTab] = useState("all");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [tab, setTab] = useState(initialTab && (initialTab === "all" || META[initialTab]) ? initialTab : "all");
   const navigate = useNavigate();
 
   useEffect(() => {
