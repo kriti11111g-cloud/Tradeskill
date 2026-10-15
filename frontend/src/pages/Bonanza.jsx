@@ -116,42 +116,42 @@ export default function Bonanza() {
               const isHighest = data.qualified_tier_directs === t.directs;
               return (
                 <div key={t.directs}
-                     className="rounded-2xl px-3 py-2.5 relative overflow-hidden"
+                     className="rounded-2xl px-3 py-2 relative overflow-hidden"
                      style={{ background: "var(--card)", border: `1px solid ${reached ? meta.color : "var(--border)"}`, boxShadow: "var(--shadow-sm)" }}
                      data-testid={`bonanza-tier-${t.directs}`}>
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: meta.glow }}>
-                      <Icon size={18} color={meta.color} />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.glow }}>
+                      <Icon size={16} color={meta.color} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-black text-[color:var(--text)]">{t.directs} Direct IDs</span>
+                        <span className="text-[12px] font-black text-[color:var(--text)]">{t.directs} Direct IDs</span>
                         {reached && (
                           <span className="inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: meta.color }}>
                             <CheckCircle2 size={8} /> Achieved
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] font-semibold text-[color:var(--text-mute)]">Refer {t.directs} active IDs to unlock</div>
+                      <div className="text-[9px] font-semibold text-[color:var(--text-mute)]">Refer {t.directs} active IDs to unlock</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[18px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
+                      <div className="text-[16px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
                       <div className="text-[8px] font-bold text-[color:var(--text-mute)]">reward</div>
                     </div>
                   </div>
                   {/* Processing bar */}
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between text-[8px] font-bold text-[color:var(--text-mute)] mb-1">
+                  <div className="mt-1.5">
+                    <div className="flex items-center justify-between text-[8px] font-bold text-[color:var(--text-mute)] mb-0.5">
                       <span>Progress</span>
                       <span>{Math.min(data.directs, t.directs)}/{t.directs}</span>
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
                       <div className="h-full rounded-full transition-all duration-700"
                            style={{ width: `${prog}%`, background: `linear-gradient(90deg, ${meta.color}, ${meta.color}cc)` }} />
                     </div>
                   </div>
                   {isHighest && (
-                    <div className="mt-1.5 text-[9px] font-black" style={{ color: meta.color }}>★ Your highest achieved tier</div>
+                    <div className="mt-1 text-[9px] font-black" style={{ color: meta.color }}>★ Your highest achieved tier</div>
                   )}
                 </div>
               );
