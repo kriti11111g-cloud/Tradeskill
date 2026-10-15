@@ -5106,8 +5106,7 @@ def _require_admin(user: dict):
 
 
 @api.post("/admin/banners")
-async def add_banner(body: BannerIn, user: dict = Depends(get_current_user)):
-    _require_admin(user)
+async def add_banner(body: BannerIn, admin: dict = Depends(require_admin)):
     count = await db.banners.count_documents({})
     row = {"id": str(uuid.uuid4()), "image_url": body.image_url,
            "order": count + 1, "created_at": iso(now_utc())}
@@ -5116,8 +5115,7 @@ async def add_banner(body: BannerIn, user: dict = Depends(get_current_user)):
 
 
 @api.delete("/admin/banners/{banner_id}")
-async def delete_banner(banner_id: str, user: dict = Depends(get_current_user)):
-    _require_admin(user)
+async def delete_banner(banner_id: str, admin: dict = Depends(require_admin)):
     res = await db.banners.delete_one({"id": banner_id})
     if res.deleted_count == 0:
         raise HTTPException(404, "Banner not found")
