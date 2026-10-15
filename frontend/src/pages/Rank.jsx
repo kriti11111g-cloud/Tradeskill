@@ -81,7 +81,7 @@ export default function Rank() {
   const incomeCards = [
     { icon: HandCoins, color: "#2563EB", title: "Direct", value: `$${rank.direct_income}`, sub: "Per activation" },
     { icon: Gift, color: "#16A34A", title: "Support", value: `${rank.support_pct}%`, sub: "Of direct income" },
-    { icon: Bot, color: "#7C3AED", title: "Bot Difference", value: `$${rank.bot_difference_usd ?? 0}`, sub: "Activation override" },
+    { icon: Bot, color: "#7C3AED", title: "Bot Difference", value: `$2.04`, sub: "Per activation" },
     { icon: Percent, color: "#EA580C", title: "Trading Commission", value: `${rank.commission_pct}%`, sub: "Of team profit" },
     { icon: TrendingUp, color: "#DC2626", title: "Commission Difference", value: `${rank.commission_difference_pct ?? rank.commission_pct}%`, sub: "Differential override" },
     { icon: Coins, color: "#0891B2", title: "Daily Global Pool · Activation", value: `$${rank.activation_pool_usd ?? 0}`, sub: "Pool share / activation" },
