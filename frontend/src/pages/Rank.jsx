@@ -60,7 +60,7 @@ export default function Rank() {
   // relation of the VIEWED rank to the user's actual current rank
   const relation = rank.level === currentLevel ? "active" : rank.level < currentLevel ? "achieved" : "locked";
   const heroLabel = relation === "active" ? "Your Current Rank" : relation === "achieved" ? "Achieved Rank" : "Target Rank";
-  const heroStatus = relation === "active" ? "ACTIVE" : relation === "achieved" ? "ALREADY ACHIEVED" : "LOCKED";
+  const heroStatus = relation === "active" ? "ACTIVE" : relation === "achieved" ? "ACHIEVED" : "LOCKED";
 
   // progress toward THIS rank
   const prog = (() => {
@@ -122,13 +122,9 @@ export default function Rank() {
                 {vName(rank.level)}
               </div>
               <div className="inline-flex items-center gap-1 text-[13px] font-black tracking-wide"
-                   style={{ color: relation === "locked" ? "#FCA5A5" : relation === "achieved" ? "#6EE7B7" : "#FDE68A" }}>
+                   style={{ color: relation === "locked" ? "#FCA5A5" : "#4ADE80" }}>
                 {relation === "locked" ? <Lock size={13} /> : <CheckCircle2 size={14} />}
                 {heroStatus}
-              </div>
-              <div className="inline-flex mt-1.5 px-3 py-1 rounded-full text-[11px] font-black"
-                   style={{ background: "rgba(0,0,0,.25)", border: "1px solid rgba(255,255,255,.25)" }}>
-                {vName(rank.level)} OF {maxLevel}
               </div>
             </div>
           </div>
