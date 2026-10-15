@@ -388,39 +388,6 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* ============ DURGA PUJA BONANZA BANNER ============ */}
-        <Link
-          to="/bonanza"
-          data-testid="bonanza-banner"
-          className="block rounded-2xl mb-5 relative overflow-hidden group"
-          style={{ boxShadow: "0 8px 24px rgba(194,24,91,0.28)", border: "1px solid rgba(232,168,4,0.5)" }}
-        >
-          <img
-            src="/durga-puja-banner.jpg"
-            alt="Durga Puja Special Offer"
-            className="w-full h-[108px] object-cover"
-          />
-          <div
-            className="absolute inset-0 flex flex-col justify-center px-4"
-            style={{ background: "linear-gradient(90deg, rgba(60,10,30,0.78) 0%, rgba(60,10,30,0.42) 55%, rgba(60,10,30,0.05) 100%)" }}
-          >
-            <div className="flex items-center gap-1 mb-0.5">
-              <Sparkles size={11} style={{ color: "#FFD56B" }} />
-              <span className="text-[9px] uppercase tracking-[0.25em] font-black" style={{ color: "#FFD56B" }}>
-                Durga Puja Special
-              </span>
-            </div>
-            <div className="text-white font-black text-[17px] leading-tight drop-shadow">Festive Bonanza</div>
-            <div className="text-white/90 text-[10px] mt-0.5">Add direct IDs & win up to $25 reward</div>
-            <div
-              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full text-white mt-1.5 w-fit"
-              style={{ background: "linear-gradient(135deg,#E8A804,#FF6F00)" }}
-            >
-              <Gift size={11} /> Claim Now →
-            </div>
-          </div>
-        </Link>
-
 
         {/* ============ SOCIAL MEDIA BONUS BANNER ============ */}
         <Link

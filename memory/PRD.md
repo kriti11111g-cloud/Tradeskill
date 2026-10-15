@@ -1,5 +1,12 @@
 # TGX BOT — Product Requirements Document
 
+## Update (15 Oct 2026): Bonanza banner in home carousel + page hero image
+- User-supplied Durga Puja banner saved `/durga-puja-slide.png` (1954x805, public/).
+- BannerCarousel.jsx: fetches `/api/bonanza`; while `!ended` prepends a tappable Durga Puja slide (→ /bonanza) as FIRST slide in the home top carousel; auto-removed once deadline passes. Slides now support `to` (useNavigate onClick).
+- Bonanza.jsx hero: replaced gradient header with the uploaded image on TOP + countdown timer card BELOW it.
+- Removed the earlier duplicate AI festive card from Dashboard (now lives in the slider). Old /durga-puja-banner.jpg unused.
+- Verified: carousel shows Durga Puja slide first; Bonanza page shows image+countdown. Hot-reload compile OK.
+
 ## Update (15 Oct 2026): Bonanza Phase 2 — Admin control, festive banner, auto-credit cron
 - **Admin Offer Control**: `GET/POST /api/admin/bonanza` (require_admin). Config DB-backed in `bonanza_config` (key=active), module `BONANZA_OFFER` is seed/fallback via `_get_bonanza_offer()`. AdminPanel.jsx new "Bonanza Offer" section: edit title, subtitle, deadline (IST datetime-local → stored RFC3339 +05:30), editable reward tiers (add/remove). Curl-tested GET+POST (wallet-admin JWT).
 - **Festive Banner**: `/durga-puja-banner.jpg` (AI-generated, self-hosted in public/). Dashboard.jsx banner after quick-grid → links to /bonanza with overlay "Festive Bonanza / win up to $25 / CLAIM NOW". Verified rendered.

@@ -81,40 +81,31 @@ export default function Bonanza() {
           <div className="py-24 text-center text-[color:var(--text-mute)]" data-testid="bonanza-loading">Loading offer…</div>
         ) : !data ? null : (
           <>
-            {/* HERO */}
-            <div className="rounded-3xl overflow-hidden relative text-white px-5 py-6"
-                 style={{ background: "linear-gradient(135deg,#C2185B 0%,#E8A804 55%,#FF6F00 100%)", boxShadow: "var(--shadow-lg)" }}
-                 data-testid="bonanza-hero">
-              <div className="absolute -right-6 -top-6 opacity-20">
-                <Sparkles size={120} />
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest" style={{ color: "#FFF3C4" }}>
-                <PartyPopper size={14} /> Limited Time Offer
-              </div>
-              <div className="font-display font-black leading-none mt-2" style={{ fontSize: 30, textShadow: "0 2px 10px rgba(0,0,0,.3)" }}>
-                {data.title}
-              </div>
-              <div className="text-[12px] font-semibold mt-1.5" style={{ color: "#FFF3C4" }}>{data.subtitle}</div>
+            {/* HERO IMAGE (top) */}
+            <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-lg)", border: "1px solid rgba(232,168,4,0.5)" }} data-testid="bonanza-hero">
+              <img src="/durga-puja-slide.png" alt={data.title}
+                   className="w-full object-cover" style={{ aspectRatio: "1952 / 806" }} />
+            </div>
 
-              {/* Countdown */}
-              <div className="mt-4 rounded-2xl px-3 py-3" style={{ background: "rgba(0,0,0,.22)", border: "1px solid rgba(255,255,255,.25)" }}
-                   data-testid="bonanza-countdown">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFF3C4" }}>
-                  <Clock size={12} /> {ended ? "Offer Ended" : "Ends In"}
-                </div>
-                {ended ? (
-                  <div className="text-[18px] font-black">Reward window is open 🎁</div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {[["Days", days], ["Hrs", hours], ["Min", mins], ["Sec", secs]].map(([lbl, val]) => (
-                      <div key={lbl} className="flex-1 rounded-xl py-2 text-center" style={{ background: "rgba(255,255,255,.14)" }}>
-                        <div className="text-[22px] font-black tabular-nums leading-none">{pad(val)}</div>
-                        <div className="text-[8px] font-bold uppercase tracking-wider mt-1 opacity-80">{lbl}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Countdown (below image) */}
+            <div className="rounded-2xl px-4 py-3.5 text-white relative overflow-hidden"
+                 style={{ background: "linear-gradient(135deg,#C2185B 0%,#E8A804 55%,#FF6F00 100%)", boxShadow: "var(--shadow-sm)" }}
+                 data-testid="bonanza-countdown">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "#FFF3C4" }}>
+                <Clock size={12} /> {ended ? "Offer Ended — Reward Window Open 🎁" : "Offer Ends In"}
               </div>
+              {ended ? (
+                <div className="text-[18px] font-black">Reward credited to qualifying wallets 🎁</div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {[["Days", days], ["Hrs", hours], ["Min", mins], ["Sec", secs]].map(([lbl, val]) => (
+                    <div key={lbl} className="flex-1 rounded-xl py-2 text-center" style={{ background: "rgba(0,0,0,.22)" }}>
+                      <div className="text-[22px] font-black tabular-nums leading-none">{pad(val)}</div>
+                      <div className="text-[8px] font-bold uppercase tracking-wider mt-1 opacity-85">{lbl}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Direct progress summary */}

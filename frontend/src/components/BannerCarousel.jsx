@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 
-/* Home top banner slider — admin-managed images, 5s auto-slide */
+/* Home top banner slider — admin-managed images, 5s auto-slide.
+   Durga Puja Bonanza slide auto-appears while the offer is live and
+   auto-removes once the countdown deadline passes. Tapping it opens /bonanza. */
 export const BannerCarousel = () => {
+  const nav = useNavigate();
   const [banners, setBanners] = useState([]);
+  const [bonanzaActive, setBonanzaActive] = useState(false);
   const [idx, setIdx] = useState(0);
   const timer = useRef(null);
 
@@ -19,15 +24,23 @@ export const BannerCarousel = () => {
         try { localStorage.setItem("tgx_banners_cache", JSON.stringify(b)); } catch {}
       }
     }).catch(() => {});
+    api.get("/bonanza").then(({ data }) => setBonanzaActive(!data.ended)).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (banners.length < 2) return;
-    timer.current = setInterval(() => setIdx((i) => (i + 1) % banners.length), 5000);
-    return () => clearInterval(timer.current);
-  }, [banners.length]);
+  const slides = [
+    ...(bonanzaActive
+      ? [{ id: "bonanza-slide", image_url: "/durga-puja-slide.png", to: "/bonanza" }]
+      : []),
+    ...banners,
+  ];
 
-  if (!banners.length) return null;
+  useEffect(() => {
+    if (slides.length < 2) return;
+    timer.current = setInterval(() => setIdx((i) => (i + 1) % slides.length), 5000);
+    return () => clearInterval(timer.current);
+  }, [slides.length]);
+
+  if (!slides.length) return null;
 
   return (
     <div className="relative rounded-2xl overflow-hidden mb-5" style={{ boxShadow: "var(--shadow-sm)" }} data-testid="home-banner-carousel">
@@ -35,20 +48,21 @@ export const BannerCarousel = () => {
         className="flex transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${idx * 100}%)` }}
       >
-        {banners.map((b) => (
+        {slides.map((b) => (
           <img
             key={b.id}
             src={b.image_url}
             alt="banner"
+            onClick={() => b.to && nav(b.to)}
             className="w-full shrink-0 object-cover"
-            style={{ aspectRatio: "1952 / 806" }}
+            style={{ aspectRatio: "1952 / 806", cursor: b.to ? "pointer" : "default" }}
             data-testid={`home-banner-${b.id}`}
           />
         ))}
       </div>
-      {banners.length > 1 && (
+      {slides.length > 1 && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5" data-testid="banner-dots">
-          {banners.map((b, i) => (
+          {slides.map((b, i) => (
             <button
               key={b.id}
               onClick={() => setIdx(i)}
