@@ -244,7 +244,7 @@ SUB_POSITION_START = int(os.environ.get("SUB_POSITION_START", "5"))
 
 DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "30"))  # backup poller
 AUTO_WITHDRAW_ENABLED = os.environ.get("AUTO_WITHDRAW", "true").lower() == "true"
-EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "3"))  # primary event scanner
+EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "2"))  # primary event scanner
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
 SWEEP_ENABLED = os.environ.get("SWEEP_ENABLED", "1") == "1"
 SWEEP_MIN_USDT = float(os.environ.get("SWEEP_MIN_USDT", "1"))

@@ -134,6 +134,12 @@ export default function Wallet() {
     }
   }, []);
 
+  useEffect(() => {
+    const onDeposit = () => load();
+    window.addEventListener("tgx:deposit", onDeposit);
+    return () => window.removeEventListener("tgx:deposit", onDeposit);
+  }, []);
+
   const total = summary?.total_usdt || 0;
 
   return (

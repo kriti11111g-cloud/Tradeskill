@@ -40,11 +40,13 @@ export default function DepositCelebration() {
           api.post("/bot-wallet/deposit-alerts/ack", { ids: fresh.map((a) => a.id) }).catch(() => {});
           queueRef.current.push(...fresh);
           if (!alertRef.current) show(queueRef.current.shift());
+          // Instant balance refresh across open pages (Asset / BotHub)
+          window.dispatchEvent(new CustomEvent("tgx:deposit"));
         }
       } catch { /* ignore */ }
     };
     poll();
-    const id = setInterval(poll, 10000);
+    const id = setInterval(poll, 3000);
     return () => { clearInterval(id); clearTimeout(timerRef.current); };
   }, []);
 

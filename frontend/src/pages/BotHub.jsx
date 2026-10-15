@@ -106,6 +106,12 @@ export default function BotHub() {
   }, [loadStatus, loadTxns, loadWithdrawals]);
 
   useEffect(() => {
+    const onDeposit = () => { loadStatus(); loadTxns(); };
+    window.addEventListener("tgx:deposit", onDeposit);
+    return () => window.removeEventListener("tgx:deposit", onDeposit);
+  }, [loadStatus, loadTxns]);
+
+  useEffect(() => {
     if (modal === "deposit" && !depositInfo) {
       api.get("/bot-wallet/deposit-address")
         .then(({ data }) => setDepositInfo(data))
