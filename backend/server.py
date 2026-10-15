@@ -3780,12 +3780,9 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                 payouts.append([up, round((up_level - highest) * share, 4)])
                 highest = up_level
             idx += 1
-        # Unclaimed slots (chain ended before Level 10) → split equally among recipients.
-        unclaimed = (slots_total - (highest - base_level)) * share
-        if unclaimed > 0 and payouts:
-            extra = round(unclaimed / len(payouts), 4)
-            for p in payouts:
-                p[1] = round(p[1] + extra, 4)
+        # Unclaimed slots (no higher-rank upline to claim them) are NOT
+        # redistributed back to lower recipients — the leftover flows to the
+        # company reserve via the final remainder calculation below.
         # Credit: ONLY the actual direct sponsor gets "Direct income";
         # every other upline (rank-difference slot claimers) gets "Bot difference".
         direct_sponsor_id = user.get("referred_by")

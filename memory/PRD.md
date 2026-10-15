@@ -595,3 +595,11 @@ See `/app/memory/test_credentials.md`
 - Rewrote /rank page (Rank.jsx) to match user's reference: V{n} hero card, collapsible "7 Types of Income at V{n}" (arrow toggle), Rank Progress bar, Required Team/Directs, tappable Previous/Next rank cards, "Higher Rank = Higher Income" footer.
 - 7 income cards populated from enriched /ranks/config (added trading_royalty_pct, activation_pool_usd, bot_difference_usd, commission_difference_pct per rank): Direct $, Support %, Bot Difference $ (direct-income delta vs prev rank), Trading Commission %, Commission Difference % (commission delta vs prev rank), Daily Global Pool·Activation $ ($2 for L2-10), Daily Global Pool·Trading % (TRADING_ROYALTY_BY_LEVEL).
 - Verified via screenshot (collapsed + expanded) with admin (V2). Deploy to VPS required.
+
+## 15 Oct 2026 — Activation direct-income bug fixed (V1 sponsor overpaid)
+- BUG (user reported): V1 sponsor received $16.16 for a direct activation instead of the fixed $8.
+- ROOT CAUSE in /bot-wallet/activate ($26.36 direct pot waterfall): "unclaimed" higher-rank slots (no higher-rank active upline to claim them) were being split back among existing recipients — inflating the direct sponsor's payout (e.g. V1 $8 + $8.16 = $16.16 when a V2 sat above).
+- FIX: removed the unclaimed-slot redistribution block. Unclaimed slots now flow to the company reserve via the final remainder calc. Direct sponsor gets exactly its rank rate ($8 for V1); higher-rank uplines get only their rank-difference slots × $2.04 as "Bot Difference" (activation_difference); support 10% unchanged.
+- VERIFIED (A=V2 <- B=V1 <- C activates): B=$8.00 direct_bonus, A=$2.04 activation_difference + $0.80 support_income, royalty $18 + meeting $0.50 + unclaimed $16.32 → company reserve.
+- NOTE: fix applies to NEW activations only; the user's existing $16.16 record/balance is historical and not auto-corrected.
+- Deploy to VPS required (backend).
