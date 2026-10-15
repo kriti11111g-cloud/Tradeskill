@@ -273,14 +273,14 @@ export default function Rank() {
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
     <div className="rounded-2xl px-4 py-2.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
-        <Icon size={18} color={color} />
+      <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
+        <Icon size={14} color={color} />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="text-[12px] font-black text-[color:var(--text)] block leading-tight">{label}</span>
-        <span className="text-[10px] text-[color:var(--text-mute)]">{sub}</span>
+        <span className="text-[8px] font-black uppercase tracking-widest text-[color:var(--text-mute)] block leading-none truncate">{label}</span>
+        <span className="text-[16px] font-black text-[color:var(--text)] leading-none tabular-nums block mt-0.5">{value}</span>
+        <span className="text-[8px] font-semibold text-[color:var(--text-mute)] block leading-none mt-0.5 truncate">{sub}</span>
       </div>
-      <span className="text-[18px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
     </div>
   );
 }
