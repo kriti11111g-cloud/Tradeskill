@@ -1,5 +1,22 @@
 # TGX BOT — Product Requirements Document
 
+## Update (15 Oct 2026): Bonanza — "Durga Puja Special Offer" (tiered referral reward)
+- NEW festive offer. Home grid: "Team" card removed (Refer+Team dono /referral jaate the); Bonanza card ab /bonanza par jaata hai (pehle Profile me tha, waha se hataya).
+- Backend (`server.py`): `BONANZA_OFFER` config (id durga_puja_2026, deadline 2026-10-19T18:30:00Z = 20 Oct 2026 12:00 AM IST, tiers [5→$10, 10→$25]). Helper `_bonanza_reward_for(directs)` = HIGHEST tier only (6-9 directs → $10, ≥10 → $25, not both).
+  - `GET /api/bonanza`: directs (ACTIVATED direct referrals), qualified_reward, ended, claimable, claimed.
+  - `POST /api/bonanza/claim`: deadline-gated (400 before end), atomic one-time via unique index on bonanza_claims(user_id,offer_id), credits MAIN wallet ($inc balance), logs bot_transactions kind=bonanza + rewards type=bonanza (note "Bonanza · Durga Puja Special Offer"). Shows in history.
+  - Startup index: `bonanza_claims` unique (user_id, offer_id).
+- Frontend: `pages/Bonanza.jsx` — festive gradient hero, LIVE countdown (DD/HH/MM/SS), direct-IDs summary, 2 tier cards w/ progress bars, Claim button LOCKED until timer ends then activates (confetti + toast on claim). Route `/bonanza` in App.js.
+- TESTED (temp past-deadline + demo.team3 9 directs): claim credited $10 (highest tier, not $25/not both), double-claim blocked, txn+reward logged as "Bonanza"; all test data cleaned, deadline reverted to 20 Oct 2026, demo.team3 password reverted to "x".
+- NOTE: Reward credit is via manual Claim button (activates at deadline), per user's latest message ("Claim button activate ho jaye").
+
+## Update (15 Oct 2026): Rank page UI polish (V-ranks)
+- Hero status now relative to user's ACTUAL rank: current→"ACTIVE" (green), lower→"ACHIEVED", higher→"LOCKED" (red lock). Removed inner "Vx OF 10" pill (top-right badge kept).
+- 7 Types income: Bot Difference fixed $2.04 all ranks (V1 shows $0); Commission Difference V1=0% (difference income V2+ only). Required Team card shows "team + 2V(prev)" format (e.g. 15 + 2V1).
+- All outer cards uniform size; tapping "7 Types" hides cards below (only expanded income list shows). Fixed layout shift when navigating ranks (fixed hero/card min-heights) — verified identical heights across V1-V5.
+
+
+
 ## Update (12 Oct 2026): BUGFIX — whitelist IP now dynamic (KuCoin IP-not-whitelisted)
 - Problem: bind page showed hardcoded 187.127.98.41 (preview IP); live VPS outbound IP differs -> KuCoin 400006.
 - Fix: `get_server_ip()` auto-detects real egress IP (api.ipify.org fallbacks, cached 1h; env BIND_WHITELIST_IP pins). New GET /api/exchange/server-ip. bind GET whitelist_ip + kucoin 400006 msg use it. Verified preview IP 35.184.53.215. On VPS shows VPS real IP -> whitelist THAT on KuCoin (2-5 min apply).

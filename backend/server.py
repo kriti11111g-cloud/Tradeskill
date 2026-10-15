@@ -219,6 +219,22 @@ MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
 # Direct income per rank level + the fixed activation direct-income pot (= Level 10 max).
 DIRECT_INCOME_BY_LEVEL = {int(r["level"]): float(r["direct_income"]) for r in RANKS}
 DIRECT_INCOME_POT = DIRECT_INCOME_BY_LEVEL[max(DIRECT_INCOME_BY_LEVEL)]  # $26.36
+
+# ---- Bonanza (Durga Puja Special Offer) ----
+# Tier-based festive reward on ACTIVATED direct referrals. Mutually exclusive:
+# only the HIGHEST achieved tier is paid. Claim unlocks once the countdown ends.
+BONANZA_OFFER = {
+    "id": "durga_puja_2026",
+    "title": "Durga Puja Special Offer",
+    "subtitle": "Add direct IDs & win festive cash rewards",
+    # 20 Oct 2026, 12:00 AM IST  ==  2026-10-19 18:30 UTC
+    "deadline": "2026-10-19T18:30:00+00:00",
+    "tiers": [
+        {"directs": 5, "reward": 10.0},
+        {"directs": 10, "reward": 25.0},
+    ],
+}
+
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
                                             "TGXBOTUSDT-TRC20-DEMO-ADDRESS")
 WITHDRAW_FEE_USDT = float(os.environ.get("WITHDRAW_FEE_USDT", "2"))
@@ -3380,6 +3396,85 @@ async def _credit_commission(user_id: str, amount: float, kind: str, note: str,
     return True
 
 
+def _bonanza_reward_for(directs: int) -> tuple:
+    """Highest achieved tier only → (reward, tier_directs)."""
+    reward, tier_dirs = 0.0, 0
+    for t in BONANZA_OFFER["tiers"]:
+        if directs >= t["directs"]:
+            reward, tier_dirs = float(t["reward"]), int(t["directs"])
+    return reward, tier_dirs
+
+
+@api.get("/bonanza")
+async def get_bonanza(user: dict = Depends(get_current_user)):
+    directs = await db.users.count_documents({"referred_by": user["id"], "activated": True})
+    now = now_utc()
+    deadline = datetime.fromisoformat(BONANZA_OFFER["deadline"])
+    ended = now >= deadline
+    reward, tier_dirs = _bonanza_reward_for(directs)
+    claim = await db.bonanza_claims.find_one(
+        {"user_id": user["id"], "offer_id": BONANZA_OFFER["id"]}, {"_id": 0})
+    return {
+        "id": BONANZA_OFFER["id"],
+        "title": BONANZA_OFFER["title"],
+        "subtitle": BONANZA_OFFER["subtitle"],
+        "deadline": BONANZA_OFFER["deadline"],
+        "server_time": iso(now),
+        "ended": ended,
+        "directs": directs,
+        "tiers": BONANZA_OFFER["tiers"],
+        "qualified_reward": round(reward, 4),
+        "qualified_tier_directs": tier_dirs,
+        "claimed": bool(claim),
+        "claimed_amount": round(float(claim["amount"]), 4) if claim else None,
+        "claimable": ended and reward > 0 and not claim,
+    }
+
+
+@api.post("/bonanza/claim")
+async def claim_bonanza(user: dict = Depends(get_current_user)):
+    from pymongo import ReturnDocument
+    from pymongo.errors import DuplicateKeyError
+    now = now_utc()
+    deadline = datetime.fromisoformat(BONANZA_OFFER["deadline"])
+    if now < deadline:
+        raise HTTPException(400, "Offer is still running. Claim opens when the timer ends.")
+    directs = await db.users.count_documents({"referred_by": user["id"], "activated": True})
+    reward, tier_dirs = _bonanza_reward_for(directs)
+    if reward <= 0:
+        need = BONANZA_OFFER["tiers"][0]["directs"]
+        raise HTTPException(400, f"You need at least {need} direct IDs to claim this reward.")
+    # Atomic one-time claim guard (unique index on user_id+offer_id).
+    try:
+        await db.bonanza_claims.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "offer_id": BONANZA_OFFER["id"],
+            "amount": round(reward, 4),
+            "directs": directs,
+            "tier_directs": tier_dirs,
+            "created_at": iso(now),
+        })
+    except DuplicateKeyError:
+        raise HTTPException(400, "Bonanza reward already claimed.")
+    await _get_or_create_bot_wallet(user["id"])
+    res = await db.bot_wallets.find_one_and_update(
+        {"user_id": user["id"]},
+        {"$inc": {"balance": round(reward, 4)}},
+        return_document=ReturnDocument.AFTER)
+    new_bal = round(float(res.get("balance", 0.0) or 0.0), 4)
+    note = f"Bonanza · {BONANZA_OFFER['title']} ({tier_dirs} direct IDs)"
+    await _log_bot_txn(user["id"], "bonanza", round(reward, 4), note=note,
+                       balance_after=new_bal)
+    await db.rewards.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user["id"], "type": "bonanza",
+        "amount": round(reward, 4), "status": "claimed", "note": note,
+        "created_at": iso(now),
+    })
+    return {"ok": True, "amount": round(reward, 4), "balance": new_bal}
+
+
+
 async def _distribute_trading_deduction(user_id: str, profit: float, deducted: float, symbol: str):
     """Split the 25% profit deduction:
     12% differential rank commissions (self + upline, fully paid at Level 10),
@@ -4903,6 +4998,7 @@ async def startup():
     await db.transactions.create_index([("user_id", 1), ("created_at", -1)])
     await db.bot_wallets.create_index("user_id", unique=True)
     await db.bot_transactions.create_index([("user_id", 1), ("created_at", -1)])
+    await db.bonanza_claims.create_index([("user_id", 1), ("offer_id", 1)], unique=True)
 
     # Seed home banners (idempotent)
     if await db.banners.count_documents({}) == 0:

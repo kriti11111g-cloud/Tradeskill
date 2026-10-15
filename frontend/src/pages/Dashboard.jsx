@@ -348,7 +348,7 @@ export default function Dashboard() {
             { icon: Key, label: "Bind API", to: "/bind-api", testid: "quick-bind-api" },
             { icon: Bot, label: "Bot", to: "/bot", testid: "tile-bot" },
             { icon: UserPlus, label: "Refer", to: "/referral", testid: "quick-referral" },
-            { icon: Gift, label: "Bonanza", comingSoon: true, testid: "quick-bonanza" },
+            { icon: Gift, label: "Bonanza", to: "/bonanza", testid: "quick-bonanza" },
             { icon: Award, label: "Rank", to: "/rank", testid: "tile-rank" },
             { icon: Globe, label: "Pool", to: "/rewards", testid: "quick-pool" },
             { icon: BookOpen, label: "User Guide", to: "/guide", testid: "quick-guide" },
@@ -374,19 +374,6 @@ export default function Dashboard() {
               </>
             );
             const cls = "app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition";
-            if (c.comingSoon) {
-              return (
-                <button
-                  key={c.label}
-                  type="button"
-                  data-testid={c.testid}
-                  onClick={() => toast.info("🎉 Bonanza — Coming Soon!", { description: "Exciting rewards are on the way. Stay tuned!" })}
-                  className={cls}
-                >
-                  {inner}
-                </button>
-              );
-            }
             return (
               <Link
                 key={c.label}

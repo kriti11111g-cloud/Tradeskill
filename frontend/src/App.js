@@ -30,6 +30,7 @@ import Rank from "@/pages/Rank";
 import AdminWithdrawals from "@/pages/AdminWithdrawals";
 import AdminPanel from "@/pages/AdminPanel";
 import SocialBonus from "@/pages/SocialBonus";
+import Bonanza from "@/pages/Bonanza";
 
 export default function App() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/bot" element={<BotHub />} />
             <Route path="/rank" element={<Rank />} />
             <Route path="/social-bonus" element={<SocialBonus />} />
+            <Route path="/bonanza" element={<Bonanza />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/trades" element={<Trades />} />
             <Route path="/revenue" element={<Revenue />} />
