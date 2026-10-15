@@ -5,8 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 
 const TIER_META = {
-  5: { color: "#E8A804", glow: "rgba(232,168,4,.35)", icon: Gift },
-  10: { color: "#DC2626", glow: "rgba(220,38,38,.35)", icon: Trophy },
+  5: { color: "#16A34A", glow: "rgba(22,163,74,.18)", icon: Gift },
+  10: { color: "#2563EB", glow: "rgba(37,99,235,.18)", icon: Trophy },
 };
 
 function pad(n) {
@@ -116,12 +116,12 @@ export default function Bonanza() {
               const isHighest = data.qualified_tier_directs === t.directs;
               return (
                 <div key={t.directs}
-                     className="rounded-2xl px-3 py-2 relative overflow-hidden"
+                     className="rounded-xl px-3 py-1.5 relative overflow-hidden"
                      style={{ background: "var(--card)", border: `1px solid ${reached ? meta.color : "var(--border)"}`, boxShadow: "var(--shadow-sm)" }}
                      data-testid={`bonanza-tier-${t.directs}`}>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.glow }}>
-                      <Icon size={16} color={meta.color} />
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.glow }}>
+                      <Icon size={14} color={meta.color} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -135,12 +135,12 @@ export default function Bonanza() {
                       <div className="text-[9px] font-semibold text-[color:var(--text-mute)]">Refer {t.directs} active IDs to unlock</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[16px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
+                      <div className="text-[15px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
                       <div className="text-[8px] font-bold text-[color:var(--text-mute)]">reward</div>
                     </div>
                   </div>
                   {/* Processing bar */}
-                  <div className="mt-1.5">
+                  <div className="mt-1">
                     <div className="flex items-center justify-between text-[8px] font-bold text-[color:var(--text-mute)] mb-0.5">
                       <span>Progress</span>
                       <span>{Math.min(data.directs, t.directs)}/{t.directs}</span>
