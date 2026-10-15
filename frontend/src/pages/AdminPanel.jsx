@@ -80,6 +80,18 @@ export default function AdminPanel() {
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
+  const activateBot = async () => {
+    if (detail.bot_activated) { toast.info("Is user ka bot already active hai"); return; }
+    if (!window.confirm(`${detail.uid} ka bot FREE activate karein? Koi reward distribute nahi hoga (admin loss nahi).`)) return;
+    setDetailBusy(true);
+    try {
+      await api.post(`/admin/users/${detail.uid}/activate-bot`, {}, cfg);
+      toast.success(`${detail.uid} ka bot activate ho gaya ✅ (no payout)`);
+      setDetail({ ...detail, bot_activated: true, activated: true });
+      loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
   const resetPassword = () => setEdit({
     type: "reset-password", title: "Reset Login Password",
     label: `New login password for ${detail.uid}`, placeholder: "Min 6 characters",
@@ -447,6 +459,11 @@ export default function AdminPanel() {
                     <CheckCircle2 size={16} /> Unblock User
                   </button>
                 </div>
+                <button onClick={activateBot} disabled={detailBusy || detail.bot_activated}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
+                  style={{ border: "1.5px solid #16A34A", color: detail.bot_activated ? "#16A34A" : "#16A34A", background: detail.bot_activated ? "rgba(22,163,74,0.08)" : "transparent", touchAction: "manipulation" }} data-testid="admin-activate-bot">
+                  <Zap size={16} /> {detail.bot_activated ? "Bot Already Active ✓" : "Activate Bot (Free · No Payout)"}
+                </button>
                 <button onClick={resetPassword} disabled={detailBusy}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
                   style={{ border: "1.5px solid #2563EB", color: "#2563EB", touchAction: "manipulation" }} data-testid="admin-reset-password">

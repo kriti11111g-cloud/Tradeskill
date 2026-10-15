@@ -4535,10 +4535,12 @@ async def admin_users(q: str = "", admin: dict = Depends(require_admin)):
                "activated": 1, "created_at": 1, "mobile": 1, "blocked": 1,
                "withdrawal_addresses": 1}).sort("created_at", -1).to_list(200)
     ids = [u["id"] for u in users]
-    wallets = {w["user_id"]: w.get("balance", 0.0) for w in await db.bot_wallets.find(
-        {"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "balance": 1}).to_list(len(ids) or 1)}
+    wmap = {w["user_id"]: w for w in await db.bot_wallets.find(
+        {"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "balance": 1, "activated": 1}).to_list(len(ids) or 1)}
     for u in users:
-        u["balance"] = round(float(wallets.get(u["id"], 0.0)), 2)
+        w = wmap.get(u["id"], {})
+        u["balance"] = round(float(w.get("balance", 0.0) or 0.0), 2)
+        u["bot_activated"] = bool(w.get("activated"))
     return users
 
 
@@ -4755,6 +4757,35 @@ async def admin_set_txn_password(uid: str, body: AdminTxnPwIn, admin: dict = Dep
     logger.info(f"ADMIN SET TXN PASSWORD: {uid}")
     return {"ok": True}
 
+
+
+@api.post("/admin/users/{uid}/activate-bot")
+async def admin_activate_bot(uid: str, admin: dict = Depends(require_admin)):
+    """Free admin activation — marks the user's bot ACTIVE so they count as an
+    active member and become a valid upline for downline rewards, but distributes
+    NO income anywhere (no royalty/daily pool, no direct, no difference, no support).
+    This way the company bears no payout for an admin-granted activation."""
+    u = await db.users.find_one({"uid": uid.upper()}, {"_id": 0, "id": 1, "email": 1})
+    if not u:
+        raise HTTPException(404, "User not found")
+    w = await _get_or_create_bot_wallet(u["id"])
+    if w.get("activated"):
+        return {"ok": True, "already": True, "email": u["email"]}
+    await db.bot_wallets.update_one(
+        {"user_id": u["id"]},
+        {"$set": {"activated": True, "activated_at": iso(now_utc()),
+                  "activated_by_admin": True}})
+    await db.users.update_one({"id": u["id"]}, {"$set": {"activated": True}})
+    # Audit only (admin-only). NOT shown in the user's history. No reward distribution.
+    await db.admin_adjustments.insert_one({
+        "id": str(uuid.uuid4()), "user_id": u["id"], "email": u["email"],
+        "amount": 0.0, "kind": "admin_activate_bot",
+        "note": "Admin free bot activation (no rewards distributed)",
+        "balance_after": round(float(w.get("balance", 0.0) or 0.0), 4),
+        "admin_id": admin["id"], "created_at": iso(now_utc()),
+    })
+    logger.info(f"ADMIN ACTIVATE BOT (no payout): {uid}")
+    return {"ok": True, "email": u["email"], "activated": True}
 
 
 @api.get("/admin/finance-summary")
