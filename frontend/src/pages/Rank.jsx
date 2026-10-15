@@ -176,7 +176,7 @@ export default function Rank() {
         </div>
 
         {/* RANK PROGRESS */}
-        <div className="rounded-2xl px-4 py-2.5 flex flex-col justify-center" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)", minHeight: 72 }}
+        <div className="rounded-2xl px-4 py-2 flex flex-col justify-center" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)", minHeight: 56 }}
              data-testid="rank-progress-block">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function Rank() {
         </div>
 
         {/* Footer tip */}
-        <div className="rounded-2xl px-4 py-2.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", minHeight: 72 }}>
+        <div className="rounded-2xl px-4 py-2 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", minHeight: 56 }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
             <Lightbulb size={18} color="#2563EB" />
           </div>
