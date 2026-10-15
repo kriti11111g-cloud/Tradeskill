@@ -5,8 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 
 const TIER_META = {
-  5: { color: "#16A34A", glow: "rgba(22,163,74,.18)", icon: Gift },
-  10: { color: "#2563EB", glow: "rgba(37,99,235,.18)", icon: Trophy },
+  5: { color: "#16A34A", glow: "rgba(22,163,74,.18)", bg: "linear-gradient(135deg,#E9F9EF,#D7F3E1)", icon: Gift },
+  10: { color: "#2563EB", glow: "rgba(37,99,235,.18)", bg: "linear-gradient(135deg,#EAF1FE,#D9E6FD)", icon: Trophy },
 };
 
 function pad(n) {
@@ -117,37 +117,37 @@ export default function Bonanza() {
               return (
                 <div key={t.directs}
                      className="rounded-xl px-3 py-1.5 relative overflow-hidden"
-                     style={{ background: "var(--card)", border: `1px solid ${reached ? meta.color : "var(--border)"}`, boxShadow: "var(--shadow-sm)" }}
+                     style={{ background: meta.bg, border: `1px solid ${meta.color}`, boxShadow: "var(--shadow-sm)" }}
                      data-testid={`bonanza-tier-${t.directs}`}>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.glow }}>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.7)" }}>
                       <Icon size={14} color={meta.color} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-black text-[color:var(--text)]">{t.directs} Direct IDs</span>
+                        <span className="text-[12px] font-black" style={{ color: "#0F172A" }}>{t.directs} Direct IDs</span>
                         {reached && (
                           <span className="inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: meta.color }}>
                             <CheckCircle2 size={8} /> Achieved
                           </span>
                         )}
                       </div>
-                      <div className="text-[9px] font-semibold text-[color:var(--text-mute)]">Refer {t.directs} active IDs to unlock</div>
+                      <div className="text-[9px] font-semibold" style={{ color: "#64748B" }}>Refer {t.directs} active IDs to unlock</div>
                     </div>
                     <div className="text-right">
                       <div className="text-[15px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
-                      <div className="text-[8px] font-bold text-[color:var(--text-mute)]">reward</div>
+                      <div className="text-[8px] font-bold" style={{ color: "#64748B" }}>reward</div>
                     </div>
                   </div>
                   {/* Processing bar */}
                   <div className="mt-1">
-                    <div className="flex items-center justify-between text-[8px] font-bold text-[color:var(--text-mute)] mb-0.5">
+                    <div className="flex items-center justify-between text-[8px] font-bold mb-0.5" style={{ color: "#64748B" }}>
                       <span>Progress</span>
                       <span>{Math.min(data.directs, t.directs)}/{t.directs}</span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.65)" }}>
                       <div className="h-full rounded-full transition-all duration-700"
-                           style={{ width: `${prog}%`, background: `linear-gradient(90deg, ${meta.color}, ${meta.color}cc)` }} />
+                           style={{ width: `${prog}%`, background: meta.color }} />
                     </div>
                   </div>
                   {isHighest && (
