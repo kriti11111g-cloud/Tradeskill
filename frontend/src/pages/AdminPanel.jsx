@@ -90,6 +90,31 @@ export default function AdminPanel() {
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
+  const changeEmail = async () => {
+    const em = window.prompt(`Change email (Gmail) for ${detail.uid}.\nCurrent: ${detail.email || "—"}\nEnter new email:`, detail.email || "");
+    if (em === null) return;
+    const email = em.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast.error("Enter a valid email address"); return; }
+    setDetailBusy(true);
+    try {
+      const { data } = await api.post(`/admin/users/${detail.uid}/email`, { new_email: email }, cfg);
+      setDetail({ ...detail, email: data.email });
+      toast.success(`${detail.uid} ka email update ho gaya ✅`);
+      loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
+  const setTxnPassword = async () => {
+    const pw = window.prompt(`Set a NEW transaction (withdrawal) password for ${detail.uid} (${detail.email || ""}).\nUser will use this for withdrawals. Min 4 characters:`);
+    if (pw === null) return;
+    if (pw.trim().length < 4) { toast.error("Transaction password must be at least 4 characters"); return; }
+    setDetailBusy(true);
+    try {
+      await api.post(`/admin/users/${detail.uid}/txn-password`, { new_password: pw.trim() }, cfg);
+      toast.success(`${detail.uid} ka transaction password reset ho gaya ✅`);
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
   const cfg = { headers: { Authorization: `Bearer ${walletToken}` } };
 
   const disconnect = useCallback(() => {
@@ -407,6 +432,16 @@ export default function AdminPanel() {
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
                   style={{ border: "1.5px solid #2563EB", color: "#2563EB", touchAction: "manipulation" }} data-testid="admin-reset-password">
                   <KeyRound size={16} /> Reset Login Password
+                </button>
+                <button onClick={changeEmail} disabled={detailBusy}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED", touchAction: "manipulation" }} data-testid="admin-change-email">
+                  <Mail size={16} /> Change Email (Gmail)
+                </button>
+                <button onClick={setTxnPassword} disabled={detailBusy}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
+                  style={{ border: "1.5px solid #EA580C", color: "#EA580C", touchAction: "manipulation" }} data-testid="admin-set-txn-password">
+                  <Lock size={16} /> Reset Transaction Password
                 </button>
                 {detail.blocked && <div className="text-center text-[11px] font-black pb-3" style={{ color: "#DC2626" }}>⚠ This user is currently BLOCKED</div>}
               </div>

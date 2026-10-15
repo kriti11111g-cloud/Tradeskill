@@ -4677,6 +4677,43 @@ async def admin_reset_password(uid: str, body: AdminResetPwIn, admin: dict = Dep
     return {"ok": True}
 
 
+class AdminEmailIn(BaseModel):
+    new_email: str
+
+
+@api.post("/admin/users/{uid}/email")
+async def admin_change_email(uid: str, body: AdminEmailIn, admin: dict = Depends(require_admin)):
+    email = (body.new_email or "").strip().lower()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(400, "Invalid email address")
+    target = await db.users.find_one({"uid": uid.upper()}, {"id": 1, "email": 1})
+    if not target:
+        raise HTTPException(404, "User not found")
+    clash = await db.users.find_one({"email": email, "id": {"$ne": target["id"]}}, {"id": 1})
+    if clash:
+        raise HTTPException(400, "This email is already in use by another account")
+    await db.users.update_one({"id": target["id"]}, {"$set": {"email": email}})
+    logger.info(f"ADMIN CHANGE EMAIL: {uid} {target.get('email')} -> {email}")
+    return {"ok": True, "email": email}
+
+
+class AdminTxnPwIn(BaseModel):
+    new_password: str
+
+
+@api.post("/admin/users/{uid}/txn-password")
+async def admin_set_txn_password(uid: str, body: AdminTxnPwIn, admin: dict = Depends(require_admin)):
+    pw = (body.new_password or "").strip()
+    if len(pw) < 4:
+        raise HTTPException(400, "Transaction password must be at least 4 characters")
+    r = await db.users.update_one({"uid": uid.upper()}, {"$set": {"txn_password_hash": hash_password(pw)}})
+    if not r.matched_count:
+        raise HTTPException(404, "User not found")
+    logger.info(f"ADMIN SET TXN PASSWORD: {uid}")
+    return {"ok": True}
+
+
+
 @api.get("/admin/finance-summary")
 async def admin_finance_summary(admin: dict = Depends(require_admin)):
     """Full accounting: direct, support, both royalty pools (level-wise),
