@@ -275,15 +275,15 @@ export default function Rank() {
 
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
-        <Icon size={15} color={color} />
+    <div className="rounded-xl px-3 py-1.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
+        <Icon size={14} color={color} />
       </div>
       <div className="min-w-0 flex-1">
         <span className="text-[8px] font-black uppercase tracking-wider text-[color:var(--text-mute)] block leading-tight">{label}</span>
-        <span className="text-[9px] text-[color:var(--text-mute)]">{sub}</span>
+        <span className="text-[8px] text-[color:var(--text-mute)]">{sub}</span>
       </div>
-      <span className="text-[18px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
+      <span className="text-[16px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
     </div>
   );
 }
