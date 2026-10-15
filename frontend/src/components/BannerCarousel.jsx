@@ -44,6 +44,16 @@ export const BannerCarousel = () => {
 
   return (
     <div className="relative rounded-2xl overflow-hidden mb-5" style={{ boxShadow: "var(--shadow-sm)" }} data-testid="home-banner-carousel">
+      {/* Live indicator — blinking green dot */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full"
+           style={{ background: "rgba(0,0,0,0.42)", backdropFilter: "blur(4px)" }} data-testid="banner-live-badge">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22C55E", animation: "tgxBlink 1.2s ease-in-out infinite" }} />
+          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#22C55E" }} />
+        </span>
+        <span className="text-[8px] font-black uppercase tracking-wider text-white">Live</span>
+      </div>
+      <style>{`@keyframes tgxBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0;transform:scale(1.8)}}`}</style>
       <div
         className="flex transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${idx * 100}%)` }}
