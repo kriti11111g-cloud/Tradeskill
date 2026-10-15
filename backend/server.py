@@ -4549,16 +4549,26 @@ async def admin_adjust(body: AdminAdjustIn, admin: dict = Depends(require_admin)
         {"$or": [{"email": ident.lower()}, {"uid": ident.upper()}]}, {"_id": 0, "id": 1, "email": 1})
     if not u:
         raise HTTPException(404, "User not found (email ya UID dalo)")
-    if body.amount == 0:
+    amount = float(body.amount)
+    if amount == 0:
         raise HTTPException(400, "Amount cannot be 0")
+    wallet = await _get_or_create_bot_wallet(u["id"])
+    cur = round(float(wallet.get("balance", 0.0) or 0.0), 4)
+    if cur + amount < 0:
+        raise HTTPException(400, f"Insufficient balance. User ke paas sirf ${cur:.2f} hai, ${abs(amount):.2f} deduct nahi ho sakta.")
     res = await db.bot_wallets.find_one_and_update(
-        {"user_id": u["id"]}, {"$inc": {"balance": float(body.amount)}},
-        upsert=True, return_document=True)
+        {"user_id": u["id"]}, {"$inc": {"balance": amount}},
+        return_document=True)
     bal = round(float(res.get("balance", 0.0)), 4)
-    await _log_bot_txn(u["id"], "admin_adjust", float(body.amount),
-                       note=(body.note or f"Admin balance adjustment").strip(),
-                       balance_after=bal)
-    logger.info(f"ADMIN ADJUST: {body.amount:+.2f} USDT -> {u['email']} (bal {bal})")
+    # Audit only — NOT written to the user's visible transaction history.
+    await db.admin_adjustments.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": u["id"], "email": u["email"],
+        "amount": round(amount, 4), "note": (body.note or "").strip(),
+        "balance_after": bal, "admin_id": admin["id"],
+        "created_at": iso(now_utc()),
+    })
+    logger.info(f"ADMIN ADJUST (hidden): {amount:+.2f} USDT -> {u['email']} (bal {bal})")
     return {"ok": True, "email": u["email"], "balance": bal}
 
 

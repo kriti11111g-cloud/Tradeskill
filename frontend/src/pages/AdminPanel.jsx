@@ -176,11 +176,13 @@ export default function AdminPanel() {
 
   useEffect(() => { loadSection(section); }, [section, walletToken]); // eslint-disable-line
 
-  const submitAdjust = async () => {
+  const submitAdjust = async (sign) => {
     if (!adj.identifier || !adj.amount) return toast.error("Email/UID aur amount dalo");
+    const amt = Math.abs(parseFloat(adj.amount)) * sign;
+    if (!amt) return toast.error("Valid amount dalo");
     setAdjBusy(true);
     try {
-      const { data } = await api.post("/admin/adjust", { ...adj, amount: parseFloat(adj.amount) }, cfg);
+      const { data } = await api.post("/admin/adjust", { identifier: adj.identifier, amount: amt, note: adj.note }, cfg);
       toast.success(`${data.email} → new balance $${data.balance}`);
       setAdj({ identifier: "", amount: "", note: "" });
     } catch (e) { guard(e); } finally { setAdjBusy(false); }
@@ -474,23 +476,30 @@ export default function AdminPanel() {
         {section === "adjustment" && (
           <div className="px-4 py-5 space-y-3" style={CARD} data-testid="admin-adjustment">
             <div className="font-display font-black text-[16px]" style={{ color: "var(--ink)" }}>Balance Adjustment</div>
-            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>User ke bot wallet me paisa add (+) ya minus (−) karo. Amount me minus sign use karo debit ke liye.</div>
+            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>User ke bot wallet me paisa add (+) ya deduct (−) karo. Ye adjustment user ki history me <b>show nahi hoga</b>.</div>
             {[
               { k: "identifier", ph: "User Email ya UID (TSK100001)" },
-              { k: "amount", ph: "Amount (e.g. 50 ya -20)" },
+              { k: "amount", ph: "Amount (e.g. 50)" },
               { k: "note", ph: "Note (optional)" },
             ].map((f) => (
               <input key={f.k} value={adj[f.k]} onChange={(e) => setAdj({ ...adj, [f.k]: e.target.value })}
-                placeholder={f.ph} inputMode={f.k === "amount" ? "text" : undefined}
+                placeholder={f.ph} inputMode={f.k === "amount" ? "decimal" : undefined}
                 className="w-full rounded-xl px-3.5 py-3 text-[14px] font-bold outline-none"
                 style={{ background: "var(--surface-3)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }}
                 data-testid={`admin-adj-${f.k}`} />
             ))}
-            <button onClick={submitAdjust} disabled={adjBusy}
-              className="w-full rounded-xl py-3 text-white font-display font-black text-[15px] disabled:opacity-60"
-              style={{ background: BLUE_GRAD, touchAction: "manipulation" }} data-testid="admin-adj-submit">
-              {adjBusy ? "Processing…" : "Apply Adjustment"}
-            </button>
+            <div className="flex gap-2.5">
+              <button onClick={() => submitAdjust(1)} disabled={adjBusy}
+                className="flex-1 rounded-xl py-3 text-white font-display font-black text-[15px] disabled:opacity-60"
+                style={{ background: "#16A34A", touchAction: "manipulation" }} data-testid="admin-adj-add">
+                {adjBusy ? "…" : "+ Add Fund"}
+              </button>
+              <button onClick={() => submitAdjust(-1)} disabled={adjBusy}
+                className="flex-1 rounded-xl py-3 text-white font-display font-black text-[15px] disabled:opacity-60"
+                style={{ background: "#DC2626", touchAction: "manipulation" }} data-testid="admin-adj-deduct">
+                {adjBusy ? "…" : "− Deduct Fund"}
+              </button>
+            </div>
           </div>
         )}
 

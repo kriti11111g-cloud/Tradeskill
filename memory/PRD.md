@@ -603,3 +603,10 @@ See `/app/memory/test_credentials.md`
 - VERIFIED (A=V2 <- B=V1 <- C activates): B=$8.00 direct_bonus, A=$2.04 activation_difference + $0.80 support_income, royalty $18 + meeting $0.50 + unclaimed $16.32 → company reserve.
 - NOTE: fix applies to NEW activations only; the user's existing $16.16 record/balance is historical and not auto-corrected.
 - Deploy to VPS required (backend).
+
+## 15 Oct 2026 — Admin hidden fund adjustment (+/-)
+- /admin/adjust (require_admin) now updates bot wallet balance ONLY — no longer writes a bot_transaction, so it does NOT appear in the user's Asset history. Instead logs to admin_adjustments audit collection (admin-only).
+- Added over-deduct guard: deduction that would take balance below 0 is blocked with a clear error.
+- AdminPanel Adjustment section: explicit green "+ Add Fund" and red "− Deduct Fund" buttons (amount entered positive). Helper text notes it stays hidden from user history.
+- Purpose: let admin manually recover the historical over-paid direct income (e.g. TSK100100 ~$12.78, TSK100102 ~$14.14) without a visible ledger entry.
+- Tested locally: deduct hidden from bot_transactions (0 rows) + audit record created; add works; over-deduct blocked. Deploy to VPS required.
