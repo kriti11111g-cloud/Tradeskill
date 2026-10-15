@@ -18,9 +18,9 @@ const TABS = [
   { id: "bonanza", label: "Bonanza", Icon: IconGift, title: "Bonanza" },
   ...Array.from({ length: 9 }, (_, i) => ({
     id: `global_${i + 2}`,
-    label: `V${i + 2}`,
+    label: `Global-:V${i + 2}`,
     Icon: IconCrown,
-    title: `V${i + 2} Royalty`,
+    title: `Global-:V${i + 2} Royalty`,
   })),
 ];
 const META = Object.fromEntries(TABS.filter((t) => t.id !== "all").map((t) => [t.id, t]));
