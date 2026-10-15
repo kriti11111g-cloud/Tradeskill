@@ -47,6 +47,7 @@ export default function AdminPanel() {
   const [bonanza, setBonanza] = useState(null);
   const [bonanzaBusy, setBonanzaBusy] = useState(false);
   const [edit, setEdit] = useState(null);
+  const [confirmAct, setConfirmAct] = useState(false);
 
   const openUser = (u) => {
     setDetail(u);
@@ -80,14 +81,18 @@ export default function AdminPanel() {
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
-  const activateBot = async () => {
+  const activateBot = () => {
     if (detail.bot_activated) { toast.info("Is user ka bot already active hai"); return; }
-    if (!window.confirm(`${detail.uid} ka bot FREE activate karein? Koi reward distribute nahi hoga (admin loss nahi).`)) return;
+    setConfirmAct(true);
+  };
+
+  const doActivateBot = async () => {
     setDetailBusy(true);
     try {
       await api.post(`/admin/users/${detail.uid}/activate-bot`, {}, cfg);
       toast.success(`${detail.uid} ka bot activate ho gaya ✅ (no payout)`);
       setDetail({ ...detail, bot_activated: true, activated: true });
+      setConfirmAct(false);
       loadSection("users");
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
@@ -690,6 +695,34 @@ export default function AdminPanel() {
                 className="rounded-xl py-3 font-display font-black text-[14px] text-white disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg,#2563EB,#1D4ED8)" }} data-testid="admin-edit-save">
                 {detailBusy ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmAct && detail && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+             style={{ background: "rgba(0,0,0,0.55)" }} data-testid="admin-activate-modal"
+             onClick={() => !detailBusy && setConfirmAct(false)}>
+          <div className="w-full max-w-sm rounded-2xl p-4" style={{ background: "var(--card, #fff)" }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={18} color="#16A34A" />
+              <div className="font-display font-black text-[16px]" style={{ color: "var(--ink)" }}>Activate Bot (Free)</div>
+            </div>
+            <div className="text-[12px] font-semibold mb-4 leading-relaxed" style={{ color: "var(--text-mute)" }}>
+              <b>{detail.uid}</b> ka bot FREE activate karein? Koi reward distribute nahi hoga — na direct, na difference, na support, na pool. Admin ko koi loss nahi hoga.
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setConfirmAct(false)} disabled={detailBusy}
+                className="rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50"
+                style={{ border: "1.5px solid var(--border)", color: "var(--text-mute)" }} data-testid="admin-activate-cancel">
+                Cancel
+              </button>
+              <button onClick={doActivateBot} disabled={detailBusy}
+                className="rounded-xl py-3 font-display font-black text-[14px] text-white disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg,#16A34A,#15803D)" }} data-testid="admin-activate-confirm">
+                {detailBusy ? "Activating…" : "Activate Bot"}
               </button>
             </div>
           </div>
