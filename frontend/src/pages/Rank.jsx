@@ -208,23 +208,21 @@ export default function Rank() {
           <button
             disabled={!prevRank}
             onClick={() => prevRank && (setViewLevel(prevRank.level), setIncomeOpen(false))}
-            className="rounded-xl p-2 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-xl px-3 py-2 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="prev-rank-card"
           >
-            <div className="flex items-center justify-between">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.12)" }}>
-                <ChevronLeft size={13} />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Previous</span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <MiniStar level={prevRank?.level} />
-              <div>
-                <div className="text-[15px] font-black leading-none">{prevRank ? vName(prevRank.level) : "—"}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/70">Previous</span>
+                  <ChevronLeft size={12} className="text-white/70" />
+                </div>
+                <div className="text-[14px] font-black leading-none mt-0.5">{prevRank ? vName(prevRank.level) : "—"}</div>
                 {prevRank && (
-                  <div className="flex items-center gap-1 text-[9px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
-                    <CheckCircle2 size={10} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
+                  <div className="flex items-center gap-1 text-[8px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
+                    <CheckCircle2 size={9} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
                   </div>
                 )}
               </div>
@@ -235,23 +233,21 @@ export default function Rank() {
           <button
             disabled={!nextRank}
             onClick={() => nextRank && (setViewLevel(nextRank.level), setIncomeOpen(false))}
-            className="rounded-xl p-2 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-xl px-3 py-2 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="next-rank-card"
           >
-            <div className="flex items-center justify-between">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,.14)" }}>
-                <ChevronRight size={13} />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/80">Next</span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <MiniStar level={nextRank?.level} />
-              <div>
-                <div className="text-[15px] font-black leading-none">{nextRank ? vName(nextRank.level) : "MAX"}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/80">Next</span>
+                  <ChevronRight size={12} className="text-white/80" />
+                </div>
+                <div className="text-[14px] font-black leading-none mt-0.5">{nextRank ? vName(nextRank.level) : "MAX"}</div>
                 {nextRank && (
-                  <div className="flex items-center gap-1 text-[9px] font-bold mt-0.5" style={{ color: "#FDE68A" }}>
-                    <Target size={10} /> Target Rank
+                  <div className="flex items-center gap-1 text-[8px] font-bold mt-0.5" style={{ color: "#FDE68A" }}>
+                    <Target size={9} /> Target Rank
                   </div>
                 )}
               </div>
@@ -279,15 +275,15 @@ export default function Rank() {
 
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div className="rounded-xl px-3 py-1.5" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
-      <div className="flex items-center gap-1.5">
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: `${color}1A` }}>
-          <Icon size={13} color={color} />
-        </div>
-        <span className="text-[9px] font-black uppercase tracking-wider text-[color:var(--text-mute)]">{label}</span>
+    <div className="rounded-xl px-3 py-2 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
+        <Icon size={15} color={color} />
       </div>
-      <div className="text-[17px] font-black text-[color:var(--text)] mt-0.5 leading-none tabular-nums">{value}</div>
-      <div className="text-[9px] text-[color:var(--text-mute)] mt-0.5">{sub}</div>
+      <div className="min-w-0 flex-1">
+        <span className="text-[8px] font-black uppercase tracking-wider text-[color:var(--text-mute)] block leading-tight">{label}</span>
+        <span className="text-[9px] text-[color:var(--text-mute)]">{sub}</span>
+      </div>
+      <span className="text-[18px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
     </div>
   );
 }
