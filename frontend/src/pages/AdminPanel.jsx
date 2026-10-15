@@ -90,6 +90,20 @@ export default function AdminPanel() {
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
+  const changeName = async () => {
+    const nm = window.prompt(`Change name for ${detail.uid}.\nCurrent: ${detail.name || "—"}\nEnter new name:`, detail.name || "");
+    if (nm === null) return;
+    const name = nm.trim();
+    if (name.length < 2) { toast.error("Name must be at least 2 characters"); return; }
+    setDetailBusy(true);
+    try {
+      const { data } = await api.post(`/admin/users/${detail.uid}/name`, { new_name: name }, cfg);
+      setDetail({ ...detail, name: data.name });
+      toast.success(`${detail.uid} ka name update ho gaya ✅`);
+      loadSection("users");
+    } catch (e) { guard(e); } finally { setDetailBusy(false); }
+  };
+
   const changeEmail = async () => {
     const em = window.prompt(`Change email (Gmail) for ${detail.uid}.\nCurrent: ${detail.email || "—"}\nEnter new email:`, detail.email || "");
     if (em === null) return;
@@ -432,6 +446,11 @@ export default function AdminPanel() {
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
                   style={{ border: "1.5px solid #2563EB", color: "#2563EB", touchAction: "manipulation" }} data-testid="admin-reset-password">
                   <KeyRound size={16} /> Reset Login Password
+                </button>
+                <button onClick={changeName} disabled={detailBusy}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
+                  style={{ border: "1.5px solid #0891B2", color: "#0891B2", touchAction: "manipulation" }} data-testid="admin-change-name">
+                  <Pencil size={16} /> Change Name
                 </button>
                 <button onClick={changeEmail} disabled={detailBusy}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"

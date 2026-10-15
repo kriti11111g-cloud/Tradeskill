@@ -4677,6 +4677,22 @@ async def admin_reset_password(uid: str, body: AdminResetPwIn, admin: dict = Dep
     return {"ok": True}
 
 
+class AdminNameIn(BaseModel):
+    new_name: str
+
+
+@api.post("/admin/users/{uid}/name")
+async def admin_change_name(uid: str, body: AdminNameIn, admin: dict = Depends(require_admin)):
+    name = (body.new_name or "").strip()
+    if len(name) < 2:
+        raise HTTPException(400, "Name must be at least 2 characters")
+    r = await db.users.update_one({"uid": uid.upper()}, {"$set": {"name": name}})
+    if not r.matched_count:
+        raise HTTPException(404, "User not found")
+    logger.info(f"ADMIN CHANGE NAME: {uid} -> {name}")
+    return {"ok": True, "name": name}
+
+
 class AdminEmailIn(BaseModel):
     new_email: str
 
