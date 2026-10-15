@@ -5,7 +5,7 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
-  DatabaseBackup, KeyRound, Gift, Plus, Trash2,
+  DatabaseBackup, KeyRound, Gift, Plus, Trash2, Zap,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";

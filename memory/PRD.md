@@ -610,3 +610,11 @@ See `/app/memory/test_credentials.md`
 - AdminPanel Adjustment section: explicit green "+ Add Fund" and red "− Deduct Fund" buttons (amount entered positive). Helper text notes it stays hidden from user history.
 - Purpose: let admin manually recover the historical over-paid direct income (e.g. TSK100100 ~$12.78, TSK100102 ~$14.14) without a visible ledger entry.
 - Tested locally: deduct hidden from bot_transactions (0 rows) + audit record created; add works; over-deduct blocked. Deploy to VPS required.
+
+## 15 Oct 2026 — Admin FREE bot activation (no payout)
+- New endpoint POST /admin/users/{uid}/activate-bot (require_admin): sets bot_wallets.activated + users.activated = True WITHOUT any reward distribution (no royalty/daily pool, no direct, no difference, no support). Prevents company loss on admin-granted activations.
+- User becomes a valid active member (counts in team/active-member counts via users.activated) and a valid upline (bot_wallets.activated) so DOWNLINE activations pay normally.
+- Audited in admin_adjustments (kind=admin_activate_bot), NOT shown in user history. No $50 fee deducted.
+- admin_users endpoint now returns bot_activated (from bot_wallets) so UI can show status.
+- AdminPanel user detail: green "Activate Bot (Free · No Payout)" button (Zap icon); shows "Bot Already Active ✓" when done; confirm() guard.
+- Tested locally: admin-activate M → activated flags set, 0 rewards/txns/company/revenue distributed, M counts active under upline; then D below M pays → M gets Direct $8, upline gets Difference $4.08 (normal flow). Deploy to VPS required.
