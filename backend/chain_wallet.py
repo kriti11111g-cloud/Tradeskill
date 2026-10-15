@@ -16,7 +16,7 @@ _rpc_idx = {}
 _w3_cache = {}
 _bad_until = {}  # url -> timestamp tak skip karo (dead/rate-limited RPC)
 RPC_BLACKLIST_SECS = int(os.environ.get("RPC_BLACKLIST_SECS", "600"))
-GETLOGS_CHUNK = int(os.environ.get("GETLOGS_CHUNK", "30"))
+GETLOGS_CHUNK = int(os.environ.get("GETLOGS_CHUNK", "10"))
 
 ERC20_ABI = [
     {"constant": True, "inputs": [{"name": "_owner", "type": "address"}],
@@ -89,7 +89,7 @@ def _w3_url(url: str) -> Web3:
     cached = _w3_cache.get(url)
     if cached is not None:
         return cached
-    w3 = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 5}))
+    w3 = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 4}))
     w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
     _w3_cache[url] = w3
     return w3
@@ -127,11 +127,13 @@ def get_latest_block(network: str) -> int:
     return _with_failover(network, lambda w3: w3.eth.block_number)
 
 
-def get_usdt_transfers_to(network: str, addresses: list, from_block: int, to_block: int) -> list:
-    """Event-based detection: USDT Transfer logs jinka `to` hamare deposit addresses me hai.
-    Public RPCs ki getLogs limit ke liye GETLOGS_CHUNK-block chunks me scan hota hai."""
+def get_usdt_transfers_to(network: str, addresses, from_block: int, to_block: int) -> list:
+    """USDT Transfer logs is block-range me jinka `to` hamare deposit addresses me hai.
+    `addresses` = lowercased set/dict (membership). Filter LOCAL hota hai (RPC pe nahi),
+    isliye 1 getLogs call poore block ke saare USDT transfers laata hai aur cost wallet
+    count se INDEPENDENT rehti hai — 100 ya 100k, same speed. Block-range GETLOGS_CHUNK
+    me toda jata hai taaki response RPC ki log-limit ke andar rahe."""
     cfg = NETWORKS[network]
-    topic_addrs = ["0x" + ("0" * 24) + a.lower().replace("0x", "") for a in addresses]
     out = []
     start = from_block
     while start <= to_block:
@@ -139,10 +141,15 @@ def get_usdt_transfers_to(network: str, addresses: list, from_block: int, to_blo
         logs = _with_failover(network, lambda w3, s=start, e=end: w3.eth.get_logs({
             "address": Web3.to_checksum_address(cfg["usdt"]),
             "fromBlock": s, "toBlock": e,
-            "topics": [TRANSFER_TOPIC, None, topic_addrs],
+            "topics": [TRANSFER_TOPIC],
         }))
         for lg in logs:
-            to_addr = "0x" + bytes(lg["topics"][2])[-20:].hex()
+            tp = lg["topics"]
+            if len(tp) < 3:
+                continue
+            to_addr = ("0x" + bytes(tp[2])[-20:].hex()).lower()
+            if to_addr not in addresses:
+                continue
             value = int.from_bytes(bytes(lg["data"]), "big") / (10 ** cfg["decimals"])
             txh = lg["transactionHash"].hex()
             out.append({"to": to_addr, "value": value,

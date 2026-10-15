@@ -242,7 +242,12 @@ WITHDRAW_MIN_USDT = float(os.environ.get("WITHDRAW_MIN_USDT", "10"))
 # Sub-position mode: Call 5 se aage har margin call alag sub-position banti hai
 SUB_POSITION_START = int(os.environ.get("SUB_POSITION_START", "5"))
 
-DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "30"))  # backup poller
+DEPOSIT_WATCH_INTERVAL = int(os.environ.get("DEPOSIT_WATCH_INTERVAL", "15"))  # backup poller
+EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "2"))  # primary event scanner
+MAX_SCAN_CATCHUP = int(os.environ.get("MAX_SCAN_CATCHUP", "500"))  # restart/lag catch-up cap (blocks)
+ADDR_INDEX_REFRESH = int(os.environ.get("ADDR_INDEX_REFRESH", "30"))  # deposit-address cache refresh (s)
+DEEP_RESCAN_INTERVAL = int(os.environ.get("DEEP_RESCAN_INTERVAL", "60"))  # backup deep re-scan (s)
+DEEP_RESCAN_BLOCKS = int(os.environ.get("DEEP_RESCAN_BLOCKS", "200"))  # backup lookback window (blocks)
 AUTO_WITHDRAW_ENABLED = os.environ.get("AUTO_WITHDRAW", "true").lower() == "true"
 EVENT_SCAN_INTERVAL = int(os.environ.get("EVENT_SCAN_INTERVAL", "2"))  # primary event scanner
 # Auto-sweep: deposit address ka USDT automatic cold wallet me move hota hai
@@ -4026,6 +4031,37 @@ async def bot_wallet_transactions(user: dict = Depends(get_current_user),
 _watcher_task = None
 _event_task = None
 _deposit_processing = set()
+# In-memory deposit-address index (addr_lower -> user_id). Wallet count 100 ho ya 100k,
+# scanner ki speed isse INDEPENDENT rehti hai — har block ka getLogs locally filter hota hai.
+_addr_index = {}
+_addr_index_ts = 0.0
+_scan_cursor = {}  # network -> last fully-scanned block (DB me persist bhi hota hai)
+
+
+async def _refresh_addr_index(force: bool = False):
+    """Deposit-address index periodically refresh (default 30s). 100k docs bhi sub-second."""
+    global _addr_index, _addr_index_ts
+    if not force and (time.time() - _addr_index_ts) < ADDR_INDEX_REFRESH and _addr_index:
+        return _addr_index
+    idx = {}
+    cursor = db.bot_wallets.find(
+        {"chain_deposit_address": {"$exists": True, "$ne": None}},
+        {"_id": 0, "user_id": 1, "chain_deposit_address": 1})
+    async for w in cursor:
+        idx[w["chain_deposit_address"].lower()] = w["user_id"]
+    _addr_index = idx
+    _addr_index_ts = time.time()
+    return _addr_index
+
+
+async def _get_scan_cursor(net: str):
+    doc = await db.scan_state.find_one({"_id": net})
+    return doc.get("last_block") if doc else None
+
+
+async def _set_scan_cursor(net: str, block: int):
+    await db.scan_state.update_one(
+        {"_id": net}, {"$set": {"last_block": block}}, upsert=True)
 
 
 async def _process_deposit_wallet(user_id: str, net: str, sweep_to: str, detected_ts: float = None):
@@ -4127,27 +4163,31 @@ async def _confirm_sweep(net: str, tx_hash: str, sweep_id: str, started: float):
 
 
 async def deposit_event_loop():
-    """PRIMARY detector — event-based (USDT Transfer logs), har ~3s naye blocks scan.
-    BSC + Polygon PARALLEL scan hote hain. Deposit detect hote hi instant credit + sweep."""
+    """PRIMARY detector — USDT Transfer logs se naye blocks scan (har ~2s). Local address
+    filter → wallet count (100 ya 100k) se speed INDEPENDENT. Block cursor DB me persist,
+    isliye restart/downtime ke baad bhi koi block miss nahi hota. BSC+Polygon parallel."""
     await asyncio.sleep(5)
-    last_blocks = {}
 
-    async def scan_net(net, addr_map, sweep_to):
+    async def scan_net(net, idx, sweep_to):
         try:
             latest = await asyncio.to_thread(chain_wallet.get_latest_block, net)
-            prev = last_blocks.get(net)
-            if prev is None or latest < prev:
-                last_blocks[net] = latest
+            prev = _scan_cursor.get(net)
+            if prev is None:
+                _scan_cursor[net] = latest
+                await _set_scan_cursor(net, latest)
                 return
-            if latest == prev:
+            if latest <= prev:
                 return
-            frm = max(prev + 1, latest - 120)
+            frm = prev + 1
+            if latest - frm > MAX_SCAN_CATCHUP:
+                logger.warning(f"{net} scanner {latest - frm} blocks behind — capping to last {MAX_SCAN_CATCHUP}")
+                frm = latest - MAX_SCAN_CATCHUP
             transfers = await asyncio.to_thread(
-                chain_wallet.get_usdt_transfers_to, net,
-                list(addr_map.keys()), frm, latest)
-            last_blocks[net] = latest
+                chain_wallet.get_usdt_transfers_to, net, idx, frm, latest)
+            _scan_cursor[net] = latest
+            await _set_scan_cursor(net, latest)
             for t in transfers:
-                uid = addr_map.get(t["to"].lower())
+                uid = idx.get(t["to"])
                 if not uid:
                     continue
                 detected_ts = time.time()
@@ -4160,43 +4200,53 @@ async def deposit_event_loop():
             chain_wallet.rotate_rpc(net)
             logger.warning(f"deposit event scan {net}: {e} — RPC rotated")
 
+    for net in ("BEP20", "POLYGON"):
+        _scan_cursor[net] = await _get_scan_cursor(net)
+    await _refresh_addr_index(force=True)
+
     while True:
         try:
-            wallets = await db.bot_wallets.find(
-                {"chain_deposit_address": {"$exists": True, "$ne": None}},
-                {"_id": 0, "user_id": 1, "chain_deposit_address": 1}).to_list(2000)
-            addr_map = {w["chain_deposit_address"].lower(): w["user_id"] for w in wallets}
-            if not addr_map:
-                await asyncio.sleep(EVENT_SCAN_INTERVAL)
-                continue
-            sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
-            t0 = time.time()
-            await asyncio.gather(
-                scan_net("BEP20", addr_map, sweep_to),
-                scan_net("POLYGON", addr_map, sweep_to))
-            elapsed = time.time() - t0
-            if elapsed > 6:
-                logger.warning(f"deposit event scan slow: {elapsed:.1f}s — RPC latency high")
+            idx = await _refresh_addr_index()
+            if idx:
+                sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
+                t0 = time.time()
+                await asyncio.gather(
+                    scan_net("BEP20", idx, sweep_to),
+                    scan_net("POLYGON", idx, sweep_to))
+                elapsed = time.time() - t0
+                if elapsed > 6:
+                    logger.warning(f"deposit event scan slow: {elapsed:.1f}s — RPC latency high")
         except Exception as e:
             logger.warning(f"deposit event loop: {e}")
         await asyncio.sleep(EVENT_SCAN_INTERVAL)
 
 
 async def deposit_watcher_loop():
-    """BACKUP poller — event scanner kuch miss kare to balance-diff se pakdta hai."""
-    await asyncio.sleep(20)
+    """BACKUP — recent blocks ka periodic DEEP re-scan (logs se, wallet-count INDEPENDENT).
+    Agar primary scanner kuch miss kare (reorg / RPC blip / gap) to yahan pakda jata hai.
+    _process_deposit_wallet idempotent (atomic CAS) hai, isliye double-credit impossible."""
+    await asyncio.sleep(25)
     while True:
         try:
-            wallets = await db.bot_wallets.find(
-                {"chain_deposit_address": {"$exists": True, "$ne": None}},
-                {"_id": 0, "user_id": 1}).to_list(2000)
-            sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
-            for w in wallets:
+            idx = await _refresh_addr_index()
+            if idx:
+                sweep_to = os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")
                 for net in ("BEP20", "POLYGON"):
-                    await _process_deposit_wallet(w["user_id"], net, sweep_to)
+                    try:
+                        latest = await asyncio.to_thread(chain_wallet.get_latest_block, net)
+                        frm = max(0, latest - DEEP_RESCAN_BLOCKS)
+                        transfers = await asyncio.to_thread(
+                            chain_wallet.get_usdt_transfers_to, net, idx, frm, latest)
+                        for t in transfers:
+                            uid = idx.get(t["to"])
+                            if uid:
+                                await _process_deposit_wallet(uid, net, sweep_to)
+                    except Exception as e:
+                        chain_wallet.rotate_rpc(net)
+                        logger.warning(f"deep rescan {net}: {e} — RPC rotated")
         except Exception as e:
             logger.warning(f"deposit watcher error: {e}")
-        await asyncio.sleep(DEPOSIT_WATCH_INTERVAL)
+        await asyncio.sleep(DEEP_RESCAN_INTERVAL)
 
 
 async def _assign_deposit_address(user_id: str) -> dict:
@@ -5317,9 +5367,11 @@ async def startup():
         logger.warning(f"Could not load Binance exchangeInfo at startup: {e}. Using fallback list.")
 
     # Launch the background bot engine
-    global _engine_task, _watcher_task, _royalty_task
+    global _engine_task, _watcher_task, _royalty_task, _event_task
     if _engine_task is None or _engine_task.done():
         _engine_task = asyncio.create_task(bot_engine_loop())
+    if _event_task is None or _event_task.done():
+        _event_task = asyncio.create_task(deposit_event_loop())
     if _watcher_task is None or _watcher_task.done():
         _watcher_task = asyncio.create_task(deposit_watcher_loop())
     if _royalty_task is None or _royalty_task.done():
@@ -5339,9 +5391,11 @@ app.add_middleware(
 
 @app.on_event("shutdown")
 async def shutdown():
-    global _engine_task, _watcher_task
+    global _engine_task, _watcher_task, _event_task
     if _engine_task and not _engine_task.done():
         _engine_task.cancel()
+    if _event_task and not _event_task.done():
+        _event_task.cancel()
     if _watcher_task and not _watcher_task.done():
         _watcher_task.cancel()
     client.close()
