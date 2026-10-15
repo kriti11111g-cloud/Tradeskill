@@ -36,7 +36,7 @@ const KIND_META = {
 const rowMeta = (h) => {
   if (h.kind === "royalty_income") {
     const m = /Level (\d+)/.exec(h.note || "");
-    if (m) return { title: `V${Math.min(parseInt(m[1], 10), 10)}`, Icon: IconCrown };
+    if (m) return { title: `Global-:V${Math.min(parseInt(m[1], 10), 10)}`, Icon: IconCrown };
   }
   return KIND_META[h.kind];
 };
