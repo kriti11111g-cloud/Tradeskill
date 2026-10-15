@@ -349,7 +349,7 @@ export default function Dashboard() {
             { icon: Key, label: "Bind API", to: "/bind-api", testid: "quick-bind-api" },
             { icon: Bot, label: "Bot", to: "/bot", testid: "tile-bot" },
             { icon: UserPlus, label: "Refer", to: "/referral", testid: "quick-referral" },
-            { icon: Gift, label: "Bonanza", to: "/bonanza", testid: "quick-bonanza" },
+            { icon: Gift, label: "Bonanza", to: "/bonanza", testid: "quick-bonanza", live: true },
             { icon: Award, label: "Rank", to: "/rank", testid: "tile-rank" },
             { icon: Globe, label: "Pool", to: "/rewards", testid: "quick-pool" },
             { icon: BookOpen, label: "User Guide", to: "/guide", testid: "quick-guide" },
@@ -374,7 +374,7 @@ export default function Dashboard() {
                 </span>
               </>
             );
-            const cls = "app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition";
+            const cls = "app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition relative";
             return (
               <Link
                 key={c.label}
@@ -382,6 +382,16 @@ export default function Dashboard() {
                 data-testid={c.testid}
                 className={cls}
               >
+                {c.live && (
+                  <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full"
+                        style={{ background: "#16A34A" }} data-testid="tile-live-badge">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-80" style={{ animation: "tgxBlink 1.2s ease-in-out infinite" }} />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                    </span>
+                    <span className="text-[6.5px] font-black uppercase tracking-wider text-white">Live</span>
+                  </span>
+                )}
                 {inner}
               </Link>
             );
