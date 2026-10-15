@@ -2625,7 +2625,7 @@ async def list_transactions(
 @api.get("/revenue/income")
 async def revenue_income(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    kinds = ["team_commission", "direct_bonus", "activation_difference", "support_income", "social_bonus", "royalty_income"]
+    kinds = ["team_commission", "direct_bonus", "activation_difference", "support_income", "social_bonus", "royalty_income", "bonanza"]
     txns = await db.bot_transactions.find(
         {"user_id": uid, "kind": {"$in": kinds}, "amount": {"$gt": 0}},
         {"_id": 0}).sort("created_at", -1).to_list(3000)
@@ -2642,6 +2642,8 @@ async def revenue_income(user: dict = Depends(get_current_user)):
             return "bot_difference", None
         if k in ("support_income", "social_bonus"):
             return "support_income", None
+        if k == "bonanza":
+            return "bonanza", None
         if k == "royalty_income":
             # "Daily royalty - Level 2 - Activation pool" → Global Royalty Level 2
             m = re.search(r"Level\s*(\d+)", t.get("note") or "")

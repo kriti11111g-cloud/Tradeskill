@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
 import CoinIcon from "@/components/CoinIcon";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
-import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconHandDollar } from "@/components/IncomeIcons";
+import { IconPeople as IconGroup, IconProfit, IconBars, IconCoinStack, IconPersonAdd, IconCrown, IconHandDollar, IconGift } from "@/components/IncomeIcons";
 
 const TABS = [
   { id: "all", label: "All" },
@@ -15,11 +15,12 @@ const TABS = [
   { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
   { id: "bot_difference", label: "Bot Difference", Icon: IconCoinStack, title: "Bot Difference" },
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `global_${i + 1}`,
-    label: `V${i + 1}`,
+  { id: "bonanza", label: "Bonanza", Icon: IconGift, title: "Bonanza" },
+  ...Array.from({ length: 9 }, (_, i) => ({
+    id: `global_${i + 2}`,
+    label: `V${i + 2}`,
     Icon: IconCrown,
-    title: `V${i + 1} Royalty`,
+    title: `V${i + 2} Royalty`,
   })),
 ];
 const META = Object.fromEntries(TABS.filter((t) => t.id !== "all").map((t) => [t.id, t]));
