@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { Gift, Users, Clock, CheckCircle2, Trophy } from "lucide-react";
+import { Gift, Clock, CheckCircle2, Trophy } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 
@@ -87,24 +87,6 @@ export default function Bonanza() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Direct progress summary */}
-            <div className="rounded-2xl px-3 py-2 flex items-center gap-2.5" style={{ background: "var(--card)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
-                 data-testid="bonanza-directs">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
-                <Users size={16} color="#2563EB" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[9px] font-bold text-[color:var(--text-mute)]">Your Direct IDs</div>
-                <div className="text-[16px] font-black text-[color:var(--text)] leading-none">{data.directs}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[9px] font-bold text-[color:var(--text-mute)]">Qualified Reward</div>
-                <div className="text-[15px] font-black" style={{ color: data.qualified_reward > 0 ? "var(--good)" : "var(--text-mute)" }}>
-                  ${data.qualified_reward}
-                </div>
-              </div>
             </div>
 
             {/* Offer tiers */}
