@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Crown, ChevronLeft, ChevronRight, ChevronDown, Users, Share2,
   TrendingUp, Rocket, Lightbulb, Target, CheckCircle2, Coins,
-  HandCoins, Bot, Percent, BarChart3, Gift,
+  HandCoins, Bot, Percent, BarChart3, Gift, Lock,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 
@@ -57,6 +57,11 @@ export default function Rank() {
   const isAchieved = rank.level <= currentLevel;
   const stats = me?.stats;
 
+  // relation of the VIEWED rank to the user's actual current rank
+  const relation = rank.level === currentLevel ? "active" : rank.level < currentLevel ? "achieved" : "locked";
+  const heroLabel = relation === "active" ? "Your Current Rank" : relation === "achieved" ? "Achieved Rank" : "Target Rank";
+  const heroStatus = relation === "active" ? "ACTIVE" : relation === "achieved" ? "ALREADY ACHIEVED" : "LOCKED";
+
   // progress toward THIS rank
   const prog = (() => {
     if (!stats) return 100;
@@ -109,15 +114,17 @@ export default function Rank() {
             <StarMedallion level={rank.level} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "#FDE68A" }}>
-                <Crown size={13} /> Your Current Rank
+                <Crown size={13} /> {heroLabel}
               </div>
               <div className="font-display font-black leading-none mt-1"
                    style={{ fontSize: 46, textShadow: "0 2px 10px rgba(0,0,0,.35)" }}
                    data-testid={`rank-title-${rank.level}`}>
                 {vName(rank.level)}
               </div>
-              <div className="text-[13px] font-bold tracking-wide" style={{ color: "#FDE68A" }}>
-                {isAchieved ? "RANK ACHIEVED" : "TARGET RANK"}
+              <div className="inline-flex items-center gap-1 text-[13px] font-black tracking-wide"
+                   style={{ color: relation === "locked" ? "#FCA5A5" : relation === "achieved" ? "#6EE7B7" : "#FDE68A" }}>
+                {relation === "locked" ? <Lock size={13} /> : <CheckCircle2 size={14} />}
+                {heroStatus}
               </div>
               <div className="inline-flex mt-1.5 px-3 py-1 rounded-full text-[11px] font-black"
                    style={{ background: "rgba(0,0,0,.25)", border: "1px solid rgba(255,255,255,.25)" }}>
@@ -127,9 +134,11 @@ export default function Rank() {
           </div>
           <div className="flex items-center gap-1.5 mt-3 text-[12px] font-semibold" style={{ color: "#E8F5E9" }}>
             <BarChart3 size={14} />
-            {isAchieved && nextRank
-              ? `Great progress! Keep growing for ${vName(nextRank.level)}`
-              : isAchieved ? "Top rank reached 👑" : `Keep growing to unlock ${vName(rank.level)}`}
+            {relation === "active"
+              ? (nextRank ? `Great progress! Keep growing for ${vName(nextRank.level)}` : "Top rank reached 👑")
+              : relation === "achieved"
+              ? `You've already achieved ${vName(rank.level)}`
+              : `Complete the requirements to unlock ${vName(rank.level)}`}
           </div>
         </div>
 
@@ -221,7 +230,7 @@ export default function Rank() {
                 <div className="text-[14px] font-black leading-none mt-0.5">{prevRank ? vName(prevRank.level) : "—"}</div>
                 {prevRank && (
                   <div className="flex items-center gap-1 text-[8px] font-bold mt-0.5" style={{ color: "#6EE7B7" }}>
-                    <CheckCircle2 size={9} /> {prevRank.level <= currentLevel ? "Completed" : "Locked"}
+                    <CheckCircle2 size={9} /> {prevRank.level <= currentLevel ? "Achieved" : "Locked"}
                   </div>
                 )}
               </div>
