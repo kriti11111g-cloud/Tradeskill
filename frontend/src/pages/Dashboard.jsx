@@ -348,35 +348,56 @@ export default function Dashboard() {
             { icon: Key, label: "Bind API", to: "/bind-api", testid: "quick-bind-api" },
             { icon: Bot, label: "Bot", to: "/bot", testid: "tile-bot" },
             { icon: UserPlus, label: "Refer", to: "/referral", testid: "quick-referral" },
-            { icon: Users, label: "Team", to: "/referral", testid: "quick-team" },
+            { icon: Gift, label: "Bonanza", comingSoon: true, testid: "quick-bonanza" },
             { icon: Award, label: "Rank", to: "/rank", testid: "tile-rank" },
             { icon: Globe, label: "Pool", to: "/rewards", testid: "quick-pool" },
             { icon: BookOpen, label: "User Guide", to: "/guide", testid: "quick-guide" },
             { icon: Newspaper, label: "News", to: "/news", testid: "quick-news" },
-          ].map((c) => (
-            <Link
-              key={c.label}
-              to={c.to}
-              data-testid={c.testid}
-              className="app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                }}
+          ].map((c) => {
+            const inner = (
+              <>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <c.icon size={17} strokeWidth={2} style={{ color: "var(--ink)" }} />
+                </div>
+                <span
+                  className="text-[9.5px] font-bold text-center leading-tight"
+                  style={{ color: "var(--ink)" }}
+                >
+                  {c.label}
+                </span>
+              </>
+            );
+            const cls = "app-card rounded-2xl flex flex-col items-center justify-center gap-1.5 py-3 px-1 transition";
+            if (c.comingSoon) {
+              return (
+                <button
+                  key={c.label}
+                  type="button"
+                  data-testid={c.testid}
+                  onClick={() => toast.info("🎉 Bonanza — Coming Soon!", { description: "Exciting rewards are on the way. Stay tuned!" })}
+                  className={cls}
+                >
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={c.label}
+                to={c.to}
+                data-testid={c.testid}
+                className={cls}
               >
-                <c.icon size={17} strokeWidth={2} style={{ color: "var(--ink)" }} />
-              </div>
-              <span
-                className="text-[9.5px] font-bold text-center leading-tight"
-                style={{ color: "var(--ink)" }}
-              >
-                {c.label}
-              </span>
-            </Link>
-          ))}
+                {inner}
+              </Link>
+            );
+          })}
         </div>
 
         {/* ============ SOCIAL MEDIA BONUS BANNER ============ */}

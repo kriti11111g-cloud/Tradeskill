@@ -68,7 +68,6 @@ export default function Profile() {
     { icon: Shield, label: "Security Centre", to: "/bind-api", testid: "profile-security" },
     { icon: Settings, label: "System Setting", to: "/guide", testid: "profile-settings" },
     { icon: Headphones, label: "Support", to: "/guide", testid: "profile-support" },
-    { icon: Gift, label: "Bonanza", to: "/rewards", testid: "profile-bonanza" },
   ];
 
   return (
