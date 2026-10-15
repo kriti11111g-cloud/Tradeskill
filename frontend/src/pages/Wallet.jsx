@@ -44,7 +44,7 @@ const rowMeta = (h) => {
 const fmtDT = (iso) => {
   const d = new Date(iso);
   const p = (n) => String(n).padStart(2, "0");
-  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()} ${d.getHours()}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${d.getHours()}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 
 const TetherCoin = ({ s = 44 }) => (
@@ -402,7 +402,7 @@ export default function Wallet() {
             <CalendarDays size={18} strokeWidth={2.2} />
             <span className="text-[13px] font-semibold">
               {filterDate
-                ? new Date(filterDate + "T00:00:00").toLocaleDateString()
+                ? new Date(filterDate + "T00:00:00").toLocaleDateString("en-GB")
                 : "Choose date"}
             </span>
             {filterDate ? (
