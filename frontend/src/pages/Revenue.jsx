@@ -13,6 +13,7 @@ const TABS = [
   { id: "trading_commission", label: "Trading Commission", Icon: IconHandDollar, title: "Trading Commission" },
   { id: "royalty_income", label: "Royalty Income", Icon: IconCrown, title: "Royalty Income" },
   { id: "direct_income", label: "Direct Income", Icon: IconPersonAdd, title: "Direct Income" },
+  { id: "bot_difference", label: "Bot Difference", Icon: IconCoinStack, title: "Bot Difference" },
   { id: "support_income", label: "Support Income", Icon: IconGroup, title: "Support Income" },
   ...Array.from({ length: 10 }, (_, i) => ({
     id: `global_${i + 1}`,

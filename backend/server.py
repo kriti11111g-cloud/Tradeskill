@@ -2625,7 +2625,7 @@ async def list_transactions(
 @api.get("/revenue/income")
 async def revenue_income(user: dict = Depends(get_current_user)):
     uid = user["id"]
-    kinds = ["team_commission", "direct_bonus", "support_income", "social_bonus", "royalty_income"]
+    kinds = ["team_commission", "direct_bonus", "activation_difference", "support_income", "social_bonus", "royalty_income"]
     txns = await db.bot_transactions.find(
         {"user_id": uid, "kind": {"$in": kinds}, "amount": {"$gt": 0}},
         {"_id": 0}).sort("created_at", -1).to_list(3000)
@@ -2638,6 +2638,8 @@ async def revenue_income(user: dict = Depends(get_current_user)):
         k = t["kind"]
         if k == "direct_bonus":
             return "direct_income", None
+        if k == "activation_difference":
+            return "bot_difference", None
         if k in ("support_income", "social_bonus"):
             return "support_income", None
         if k == "royalty_income":
@@ -3784,11 +3786,16 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
             extra = round(unclaimed / len(payouts), 4)
             for p in payouts:
                 p[1] = round(p[1] + extra, 4)
-        # Credit direct income + 10% support (to each recipient's immediate upline).
+        # Credit: ONLY the actual direct sponsor gets "Direct income";
+        # every other upline (rank-difference slot claimers) gets "Bot difference".
+        direct_sponsor_id = user.get("referred_by")
         for recipient, amt in payouts:
+            is_direct = (recipient["id"] == direct_sponsor_id)
+            kind = "direct_bonus" if is_direct else "activation_difference"
+            note = (f"Direct income · {actor} activated" if is_direct
+                    else f"Bot difference income · {actor} activated")
             ok = await _credit_commission(
-                recipient["id"], amt, "direct_bonus",
-                f"Direct income · {actor} activated", from_user_id=user["id"])
+                recipient["id"], amt, kind, note, from_user_id=user["id"])
             if not ok:
                 continue
             distributed += amt
@@ -3800,12 +3807,12 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
             if up_id:
                 credited = await _credit_commission(
                     up_id, support, "support_income",
-                    f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} direct · {actor}",
+                    f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} · {actor}",
                     from_user_id=user["id"])
             if not credited:
                 await _credit_admin_revenue(
                     support, "support_reserve", user["id"],
-                    note=f"Unclaimed support {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} direct from {actor}")
+                    note=f"Unclaimed support {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} from {actor}")
             distributed += support
 
     distributed = round(distributed, 4)
@@ -3855,17 +3862,30 @@ async def bot_wallet_withdraw(body: BotWalletWithdrawIn,
             raise HTTPException(401, "Incorrect transaction password")
     elif not body.password or not verify_password(body.password, (udoc or {}).get("password_hash", "")):
         raise HTTPException(401, "Incorrect password")
+    # ---- Atomic, race-safe money movement ----
+    from pymongo import ReturnDocument
+    # 1) Ensure a valid, unused OTP exists (consumed atomically below)
     otp = await db.withdraw_otps.find_one({"user_id": user["id"]}, {"_id": 0})
     otp_ok = (otp and otp.get("verified") and not otp.get("used")
               and datetime.fromisoformat(otp["created_at"]) > now_utc() - timedelta(minutes=15))
     if not otp_ok:
         raise HTTPException(400, "Email OTP verification required")
-    await db.withdraw_otps.update_one({"user_id": user["id"]},
-                                      {"$set": {"used": True}})
+    # 2) Atomic conditional balance deduction (prevents double-spend under concurrency)
+    wdoc = await db.bot_wallets.find_one_and_update(
+        {"user_id": user["id"], "balance": {"$gte": amount}},
+        {"$inc": {"balance": -amount}},
+        return_document=ReturnDocument.AFTER)
+    if not wdoc:
+        raise HTTPException(400, "Insufficient bot wallet balance")
+    new_balance = round(float(wdoc.get("balance", 0.0) or 0.0), 4)
+    # 3) Atomic one-time OTP consume; if a concurrent request already used it, roll back balance
+    otp_consumed = await db.withdraw_otps.find_one_and_update(
+        {"user_id": user["id"], "verified": True, "used": {"$ne": True}},
+        {"$set": {"used": True}})
+    if not otp_consumed:
+        await db.bot_wallets.update_one({"user_id": user["id"]}, {"$inc": {"balance": amount}})
+        raise HTTPException(400, "Email OTP verification required")
     net_amount = round(amount - WITHDRAW_FEE_USDT, 4)
-    new_balance = round(bal - amount, 4)
-    await db.bot_wallets.update_one(
-        {"user_id": user["id"]}, {"$set": {"balance": new_balance}})
     req = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
