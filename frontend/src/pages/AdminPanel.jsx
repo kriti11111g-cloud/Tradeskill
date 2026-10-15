@@ -5,7 +5,7 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
-  DatabaseBackup, KeyRound,
+  DatabaseBackup, KeyRound, Gift, Plus, Trash2,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -22,6 +22,7 @@ const MENU = [
   { id: "withdrawals", label: "Withdrawals", Icon: ArrowDownToLine },
   { id: "pools", label: "Pools", Icon: CircleDollarSign },
   { id: "settings", label: "Settings", Icon: Settings },
+  { id: "bonanza", label: "Bonanza Offer", Icon: Gift },
   { id: "lock", label: "Lock", Icon: Lock },
 ];
 
@@ -43,6 +44,8 @@ export default function AdminPanel() {
   const [editWallets, setEditWallets] = useState({ bep20: null, polygon: null });
   const [detailBusy, setDetailBusy] = useState(false);
   const [backupBusy, setBackupBusy] = useState(false);
+  const [bonanza, setBonanza] = useState(null);
+  const [bonanzaBusy, setBonanzaBusy] = useState(false);
 
   const openUser = (u) => {
     setDetail(u);
@@ -124,6 +127,7 @@ export default function AdminPanel() {
       if (sec === "deposits") setDeposits((await api.get("/admin/deposits", cfg)).data);
       if (sec === "pools") setFinance((await api.get("/admin/finance-summary", cfg)).data);
       if (sec === "settings") setSettings((await api.get("/admin/settings", cfg)).data);
+      if (sec === "bonanza") setBonanza((await api.get("/admin/bonanza", cfg)).data);
     } catch (e) { guard(e); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletToken, q]);
@@ -146,6 +150,44 @@ export default function AdminPanel() {
       setSettings({ auto_withdraw: data.auto_withdraw });
       toast.success(`Auto Withdrawal ${data.auto_withdraw ? "ON" : "OFF"}`);
     } catch (e) { guard(e); }
+  };
+
+  // Deadline is edited in IST wall-clock; stored as RFC3339 with +05:30 offset.
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const toISTInput = (iso) => {
+    if (!iso) return "";
+    const ms = new Date(iso).getTime() + 330 * 60000;
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+  };
+  const fromISTInput = (val) => (val ? `${val}:00+05:30` : null);
+
+  const setTier = (i, key, val) => {
+    setBonanza((b) => {
+      const tiers = b.tiers.map((t, idx) => (idx === i ? { ...t, [key]: val } : t));
+      return { ...b, tiers };
+    });
+  };
+  const addTier = () => setBonanza((b) => ({ ...b, tiers: [...b.tiers, { directs: "", reward: "" }] }));
+  const removeTier = (i) => setBonanza((b) => ({ ...b, tiers: b.tiers.filter((_, idx) => idx !== i) }));
+
+  const saveBonanza = async () => {
+    const tiers = bonanza.tiers
+      .map((t) => ({ directs: parseInt(t.directs, 10), reward: parseFloat(t.reward) }))
+      .filter((t) => t.directs > 0 && t.reward > 0);
+    if (!tiers.length) return toast.error("Kam se kam ek valid tier daalo (directs & reward > 0)");
+    setBonanzaBusy(true);
+    try {
+      const { data } = await api.post("/admin/bonanza", {
+        title: bonanza.title,
+        subtitle: bonanza.subtitle,
+        deadline: bonanza.deadline,
+        tiers,
+      }, cfg);
+      setBonanza(data);
+      toast.success("Bonanza offer updated ✅");
+    } catch (e) { guard(e); }
+    finally { setBonanzaBusy(false); }
   };
 
   const downloadBackup = async () => {
@@ -463,6 +505,75 @@ export default function AdminPanel() {
             </button>
           </div>
           </>
+        )}
+
+        {section === "bonanza" && bonanza && (
+          <div className="space-y-3" data-testid="admin-bonanza">
+            <div className="px-4 py-4" style={CARD}>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg,#E8A804,#FF6F00)" }}>
+                  <Gift size={17} />
+                </div>
+                <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Bonanza Offer</div>
+              </div>
+
+              <label className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>Title</label>
+              <input value={bonanza.title || ""} onChange={(e) => setBonanza({ ...bonanza, title: e.target.value })}
+                className="w-full mt-1 mb-3 px-3 py-2.5 rounded-xl text-[13px] font-bold outline-none"
+                style={{ background: "var(--bg-base)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }}
+                data-testid="admin-bonanza-title" />
+
+              <label className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>Subtitle</label>
+              <input value={bonanza.subtitle || ""} onChange={(e) => setBonanza({ ...bonanza, subtitle: e.target.value })}
+                className="w-full mt-1 mb-3 px-3 py-2.5 rounded-xl text-[13px] font-bold outline-none"
+                style={{ background: "var(--bg-base)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }}
+                data-testid="admin-bonanza-subtitle" />
+
+              <label className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>Deadline (IST)</label>
+              <input type="datetime-local" value={toISTInput(bonanza.deadline)}
+                onChange={(e) => setBonanza({ ...bonanza, deadline: fromISTInput(e.target.value) })}
+                className="w-full mt-1 mb-1 px-3 py-2.5 rounded-xl text-[13px] font-bold outline-none"
+                style={{ background: "var(--bg-base)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }}
+                data-testid="admin-bonanza-deadline" />
+              <div className="text-[10px] font-semibold mb-3" style={{ color: "var(--text-mute)" }}>
+                Reward auto-credits to users' wallets after this time.
+              </div>
+
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] font-black uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>Reward Tiers (highest achieved only)</label>
+                <button onClick={addTier} className="flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg text-white"
+                  style={{ background: BLUE_GRAD }} data-testid="admin-bonanza-add-tier"><Plus size={12} /> Add</button>
+              </div>
+              <div className="space-y-2">
+                {bonanza.tiers.map((t, i) => (
+                  <div key={i} className="flex items-center gap-2" data-testid={`admin-bonanza-tier-${i}`}>
+                    <div className="flex-1">
+                      <div className="text-[9px] font-bold mb-0.5" style={{ color: "var(--text-mute)" }}>Direct IDs</div>
+                      <input type="number" value={t.directs} onChange={(e) => setTier(i, "directs", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-[13px] font-black outline-none"
+                        style={{ background: "var(--bg-base)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[9px] font-bold mb-0.5" style={{ color: "var(--text-mute)" }}>Reward ($)</div>
+                      <input type="number" value={t.reward} onChange={(e) => setTier(i, "reward", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-[13px] font-black outline-none"
+                        style={{ background: "var(--bg-base)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--ink)" }} />
+                    </div>
+                    <button onClick={() => removeTier(i)} className="mt-4 w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: "#FEE2E2", color: "#DC2626" }} data-testid={`admin-bonanza-remove-tier-${i}`}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={saveBonanza} disabled={bonanzaBusy}
+                className="w-full mt-4 py-3 rounded-xl text-white font-display font-black text-[14px] disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg,#E8A804,#FF6F00)" }} data-testid="admin-bonanza-save-btn">
+                {bonanzaBusy ? "Saving..." : "Save Offer"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

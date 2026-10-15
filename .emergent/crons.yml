@@ -1,0 +1,8 @@
+crons:
+  - name: bonanza-payout
+    description: "Auto-credits Bonanza offer rewards to qualifying users once the countdown deadline passes"
+    cron: "*/15 * * * *"
+    endpoint: "{{BASE_URL}}/api/cron/bonanza-payout"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true

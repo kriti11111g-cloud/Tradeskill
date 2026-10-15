@@ -1,5 +1,11 @@
 # TGX BOT — Product Requirements Document
 
+## Update (15 Oct 2026): Bonanza Phase 2 — Admin control, festive banner, auto-credit cron
+- **Admin Offer Control**: `GET/POST /api/admin/bonanza` (require_admin). Config DB-backed in `bonanza_config` (key=active), module `BONANZA_OFFER` is seed/fallback via `_get_bonanza_offer()`. AdminPanel.jsx new "Bonanza Offer" section: edit title, subtitle, deadline (IST datetime-local → stored RFC3339 +05:30), editable reward tiers (add/remove). Curl-tested GET+POST (wallet-admin JWT).
+- **Festive Banner**: `/durga-puja-banner.jpg` (AI-generated, self-hosted in public/). Dashboard.jsx banner after quick-grid → links to /bonanza with overlay "Festive Bonanza / win up to $25 / CLAIM NOW". Verified rendered.
+- **Auto-Credit (scheduled)**: `.emergent/crons.yml` → `bonanza-payout` cron every */15 calls `POST /api/cron/bonanza-payout` (WEBHOOK_CRON_SECRET bearer auth, constant-time, acks 2xx + asyncio.create_task). `_bonanza_payout_sweep()` after deadline aggregates sponsors with ≥min-tier activated directs, idempotently credits highest tier via `_bonanza_credit_user`. ALSO lazy auto-credit in `GET /api/bonanza` (credits instantly when user opens after deadline). TESTED end-to-end (past deadline): demo.team1(6)+demo.team3(9) → $10 each, idempotent; all reverted.
+- backend/.env: added WEBHOOK_CRON_SECRET.
+
 ## Update (15 Oct 2026): Bonanza — "Durga Puja Special Offer" (tiered referral reward)
 - NEW festive offer. Home grid: "Team" card removed (Refer+Team dono /referral jaate the); Bonanza card ab /bonanza par jaata hai (pehle Profile me tha, waha se hataya).
 - Backend (`server.py`): `BONANZA_OFFER` config (id durga_puja_2026, deadline 2026-10-19T18:30:00Z = 20 Oct 2026 12:00 AM IST, tiers [5→$10, 10→$25]). Helper `_bonanza_reward_for(directs)` = HIGHEST tier only (6-9 directs → $10, ≥10 → $25, not both).
