@@ -160,14 +160,14 @@ export default function Rank() {
             <div className="px-3 pb-3 pt-1 space-y-1.5" data-testid="income-cards">
               {incomeCards.map((c) => (
                 <div key={c.title}
-                     className="flex items-center gap-3 rounded-lg px-4 py-2.5"
+                     className="flex items-center gap-2 rounded-lg px-2.5 py-0.5"
                      style={{ background: "var(--surface, var(--bg))", border: "1px solid #1E40AF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
                      data-testid={`income-card-${c.title.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
-                    <c.icon size={18} color={c.color} />
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: `${c.color}1A` }}>
+                    <c.icon size={13} color={c.color} />
                   </div>
-                  <span className="text-[14px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
-                  <span className="text-[12px] font-black text-white px-2.5 py-1 rounded-md shrink-0 tabular-nums inline-flex items-center justify-center min-w-[62px]"
+                  <span className="text-[12.5px] font-bold text-[color:var(--text)] truncate flex-1">{c.title}</span>
+                  <span className="text-[12px] font-black text-white px-2 py-0.5 rounded-md shrink-0 tabular-nums inline-flex items-center justify-center min-w-[62px]"
                         style={{ background: c.color }}>{c.value}</span>
                 </div>
               ))}
@@ -176,23 +176,20 @@ export default function Rank() {
         </div>
 
         {/* RANK PROGRESS */}
-        <div className="rounded-2xl px-4 py-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }}
+        <div className="rounded-2xl px-4 py-2.5" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }}
              data-testid="rank-progress-block">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <BarChart3 size={13} color="var(--primary)" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-[color:var(--text)]">Rank Progress</span>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
+                <BarChart3 size={18} color="var(--primary)" />
+              </div>
+              <span className="text-[13px] font-black text-[color:var(--text)]">Rank Progress</span>
             </div>
-            <span className="text-[13px] font-black tabular-nums" style={{ color: prog >= 100 ? "var(--good)" : "var(--primary)" }}>{prog}%</span>
+            <span className="text-[15px] font-black tabular-nums" style={{ color: prog >= 100 ? "var(--good)" : "var(--primary)" }}>{prog}%</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
             <div className="h-full rounded-full transition-all duration-500"
                  style={{ width: `${prog}%`, background: prog >= 100 ? "linear-gradient(90deg,#16A34A,#0F9D58)" : "linear-gradient(90deg,#1565C0,#0F9D58)" }} />
-          </div>
-          <div className="text-center text-[10px] font-semibold mt-1.5 text-[color:var(--text-soft)]">
-            {prog >= 100
-              ? (nextRank ? <>{vName(rank.level)} completed! Now target {vName(nextRank.level)} 🚀</> : "Top rank completed 👑")
-              : `Working toward ${vName(rank.level)}`}
           </div>
         </div>
 
@@ -208,7 +205,7 @@ export default function Rank() {
           <button
             disabled={!prevRank}
             onClick={() => prevRank && (setViewLevel(prevRank.level), setIncomeOpen(false))}
-            className="rounded-xl px-3 py-2 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-2xl px-4 py-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B2E66,#123C85)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="prev-rank-card"
           >
@@ -233,7 +230,7 @@ export default function Rank() {
           <button
             disabled={!nextRank}
             onClick={() => nextRank && (setViewLevel(nextRank.level), setIncomeOpen(false))}
-            className="rounded-xl px-3 py-2 text-left text-white relative overflow-hidden disabled:opacity-40"
+            className="rounded-2xl px-4 py-2.5 text-left text-white relative overflow-hidden disabled:opacity-40"
             style={{ background: "linear-gradient(135deg,#0B6E3B,#128A4A)", border: "1px solid rgba(255,255,255,.12)" }}
             data-testid="next-rank-card"
           >
@@ -256,9 +253,9 @@ export default function Rank() {
         </div>
 
         {/* Footer tip */}
-        <div className="rounded-xl px-3 py-2 flex items-start gap-2.5" style={{ background: "var(--card)", border: "1px solid #1E40AF" }}>
-          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
-            <Lightbulb size={14} color="#2563EB" />
+        <div className="rounded-2xl px-4 py-2.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,.12)" }}>
+            <Lightbulb size={18} color="#2563EB" />
           </div>
           <div>
             <div className="text-[12px] font-black text-[color:var(--text)]">Higher Rank = Higher Income</div>
@@ -275,15 +272,15 @@ export default function Rank() {
 
 function ReqCard({ icon: Icon, color, label, value, sub, testid }) {
   return (
-    <div className="rounded-xl px-3 py-1.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
-        <Icon size={14} color={color} />
+    <div className="rounded-2xl px-4 py-2.5 flex items-center gap-2" style={{ background: "var(--card)", border: "1px solid #1E40AF", boxShadow: "var(--shadow-sm)" }} data-testid={testid}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}1A` }}>
+        <Icon size={18} color={color} />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="text-[8px] font-black uppercase tracking-wider text-[color:var(--text-mute)] block leading-tight">{label}</span>
-        <span className="text-[8px] text-[color:var(--text-mute)]">{sub}</span>
+        <span className="text-[12px] font-black text-[color:var(--text)] block leading-tight">{label}</span>
+        <span className="text-[10px] text-[color:var(--text-mute)]">{sub}</span>
       </div>
-      <span className="text-[16px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
+      <span className="text-[18px] font-black text-[color:var(--text)] leading-none tabular-nums shrink-0">{value}</span>
     </div>
   );
 }
