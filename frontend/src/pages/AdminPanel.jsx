@@ -46,6 +46,7 @@ export default function AdminPanel() {
   const [backupBusy, setBackupBusy] = useState(false);
   const [bonanza, setBonanza] = useState(null);
   const [bonanzaBusy, setBonanzaBusy] = useState(false);
+  const [edit, setEdit] = useState(null);
 
   const openUser = (u) => {
     setDetail(u);
@@ -79,53 +80,55 @@ export default function AdminPanel() {
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
-  const resetPassword = async () => {
-    const pw = window.prompt(`Set a NEW login password for ${detail.uid} (${detail.email || ""}).\nUser can log in with this immediately. Min 6 characters:`);
-    if (pw === null) return;
-    if (pw.trim().length < 6) { toast.error("Password must be at least 6 characters"); return; }
-    setDetailBusy(true);
-    try {
-      await api.post(`/admin/users/${detail.uid}/reset-password`, { new_password: pw.trim() }, cfg);
-      toast.success(`${detail.uid} ka password reset ho gaya ✅`);
-    } catch (e) { guard(e); } finally { setDetailBusy(false); }
-  };
+  const resetPassword = () => setEdit({
+    type: "reset-password", title: "Reset Login Password",
+    label: `New login password for ${detail.uid}`, placeholder: "Min 6 characters",
+    value: "", isPassword: true, min: 6,
+  });
 
-  const changeName = async () => {
-    const nm = window.prompt(`Change name for ${detail.uid}.\nCurrent: ${detail.name || "—"}\nEnter new name:`, detail.name || "");
-    if (nm === null) return;
-    const name = nm.trim();
-    if (name.length < 2) { toast.error("Name must be at least 2 characters"); return; }
-    setDetailBusy(true);
-    try {
-      const { data } = await api.post(`/admin/users/${detail.uid}/name`, { new_name: name }, cfg);
-      setDetail({ ...detail, name: data.name });
-      toast.success(`${detail.uid} ka name update ho gaya ✅`);
-      loadSection("users");
-    } catch (e) { guard(e); } finally { setDetailBusy(false); }
-  };
+  const changeName = () => setEdit({
+    type: "name", title: "Change Name",
+    label: `New name for ${detail.uid}`, placeholder: "Full name",
+    value: detail.name || "", isPassword: false, min: 2,
+  });
 
-  const changeEmail = async () => {
-    const em = window.prompt(`Change email (Gmail) for ${detail.uid}.\nCurrent: ${detail.email || "—"}\nEnter new email:`, detail.email || "");
-    if (em === null) return;
-    const email = em.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast.error("Enter a valid email address"); return; }
-    setDetailBusy(true);
-    try {
-      const { data } = await api.post(`/admin/users/${detail.uid}/email`, { new_email: email }, cfg);
-      setDetail({ ...detail, email: data.email });
-      toast.success(`${detail.uid} ka email update ho gaya ✅`);
-      loadSection("users");
-    } catch (e) { guard(e); } finally { setDetailBusy(false); }
-  };
+  const changeEmail = () => setEdit({
+    type: "email", title: "Change Email (Gmail)",
+    label: `New email for ${detail.uid}`, placeholder: "name@gmail.com",
+    value: detail.email || "", isPassword: false, min: 3, isEmail: true,
+  });
 
-  const setTxnPassword = async () => {
-    const pw = window.prompt(`Set a NEW transaction (withdrawal) password for ${detail.uid} (${detail.email || ""}).\nUser will use this for withdrawals. Min 4 characters:`);
-    if (pw === null) return;
-    if (pw.trim().length < 4) { toast.error("Transaction password must be at least 4 characters"); return; }
+  const setTxnPassword = () => setEdit({
+    type: "txn-password", title: "Reset Transaction Password",
+    label: `New transaction password for ${detail.uid}`, placeholder: "Min 4 characters",
+    value: "", isPassword: true, min: 4,
+  });
+
+  const submitEdit = async () => {
+    if (!edit) return;
+    const val = (edit.value || "").trim();
+    if (val.length < (edit.min || 1)) { toast.error(`Minimum ${edit.min} characters required`); return; }
+    if (edit.isEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val.toLowerCase())) { toast.error("Enter a valid email address"); return; }
     setDetailBusy(true);
     try {
-      await api.post(`/admin/users/${detail.uid}/txn-password`, { new_password: pw.trim() }, cfg);
-      toast.success(`${detail.uid} ka transaction password reset ho gaya ✅`);
+      if (edit.type === "reset-password") {
+        await api.post(`/admin/users/${detail.uid}/reset-password`, { new_password: val }, cfg);
+        toast.success(`${detail.uid} ka login password reset ho gaya ✅`);
+      } else if (edit.type === "txn-password") {
+        await api.post(`/admin/users/${detail.uid}/txn-password`, { new_password: val }, cfg);
+        toast.success(`${detail.uid} ka transaction password reset ho gaya ✅`);
+      } else if (edit.type === "name") {
+        const { data } = await api.post(`/admin/users/${detail.uid}/name`, { new_name: val }, cfg);
+        setDetail({ ...detail, name: data.name });
+        toast.success(`${detail.uid} ka name update ho gaya ✅`);
+        loadSection("users");
+      } else if (edit.type === "email") {
+        const { data } = await api.post(`/admin/users/${detail.uid}/email`, { new_email: val.toLowerCase() }, cfg);
+        setDetail({ ...detail, email: data.email });
+        toast.success(`${detail.uid} ka email update ho gaya ✅`);
+        loadSection("users");
+      }
+      setEdit(null);
     } catch (e) { guard(e); } finally { setDetailBusy(false); }
   };
 
@@ -630,6 +633,42 @@ export default function AdminPanel() {
           </div>
         )}
       </div>
+
+      {/* Edit modal (mobile-safe replacement for window.prompt) */}
+      {edit && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+             style={{ background: "rgba(0,0,0,0.55)" }} data-testid="admin-edit-modal"
+             onClick={() => !detailBusy && setEdit(null)}>
+          <div className="w-full max-w-sm rounded-2xl p-4" style={{ background: "var(--card, #fff)" }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="font-display font-black text-[16px] mb-1" style={{ color: "var(--ink)" }}>{edit.title}</div>
+            <div className="text-[11px] font-semibold mb-3" style={{ color: "var(--text-mute)" }}>{edit.label}</div>
+            <input
+              autoFocus
+              type={edit.isPassword ? "text" : (edit.isEmail ? "email" : "text")}
+              value={edit.value}
+              placeholder={edit.placeholder}
+              onChange={(e) => setEdit({ ...edit, value: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter") submitEdit(); }}
+              className="w-full px-3 py-3 rounded-xl text-[14px] font-bold outline-none mb-4"
+              style={{ background: "var(--bg-base)", border: "1.5px solid rgba(37,99,235,0.3)", color: "var(--ink)" }}
+              data-testid="admin-edit-input"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setEdit(null)} disabled={detailBusy}
+                className="rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50"
+                style={{ border: "1.5px solid var(--border)", color: "var(--text-mute)" }} data-testid="admin-edit-cancel">
+                Cancel
+              </button>
+              <button onClick={submitEdit} disabled={detailBusy}
+                className="rounded-xl py-3 font-display font-black text-[14px] text-white disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg,#2563EB,#1D4ED8)" }} data-testid="admin-edit-save">
+                {detailBusy ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
