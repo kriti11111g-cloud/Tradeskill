@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database, HelpCircle } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database, HelpCircle, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
@@ -526,6 +526,7 @@ const EX_META = {
 export default function Trades() {
   const [bots, setBots] = useState(null);
   const [bind, setBind] = useState(null);
+  const [connected, setConnected] = useState(null); // any exchange bound? null=loading
   const [exUsdt, setExUsdt] = useState(null);
   const [exMeta, setExMeta] = useState({ id: "binance", name: "Binance" });
   const reloadBots = () => {
@@ -548,6 +549,8 @@ export default function Trades() {
         api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
       ]);
       setBots(b);
+      // Connected = any bind record exists (demo included) — matches backend trade gate.
+      setConnected(!!(bBn?.mode || bKc?.mode));
       // Connected exchange: prefer whichever is live-bound (kucoin > binance), else binance
       const connId = bKc?.bound ? "kucoin" : bBn?.bound ? "binance" : "binance";
       const bd = connId === "kucoin" ? bKc : bBn;
@@ -674,6 +677,27 @@ export default function Trades() {
           </div>
         </button>
       </div>
+
+      {/* Connect-exchange prompt — jab tak koi exchange bind nahi, trade nahi lagega */}
+      {connected === false && (
+        <div className="px-4 mt-3">
+          <button
+            onClick={() => navigate("/bind-api")}
+            className="w-full flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-left"
+            style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)", touchAction: "manipulation" }}
+            data-testid="trade-connect-banner"
+          >
+            <Link2 size={20} style={{ color: "#B45309" }} className="shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] font-black" style={{ color: "#B45309" }}>Connect an exchange to start trading</div>
+              <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: "#B45309", opacity: 0.85 }}>
+                Binance ya KuCoin bind karein — tab tak koi bot trade nahi lagayega. Tap to connect.
+              </div>
+            </div>
+            <ChevronRight size={18} style={{ color: "#B45309" }} className="shrink-0" />
+          </button>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="px-4 mt-3">

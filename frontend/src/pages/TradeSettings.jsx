@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, ChevronDown, HelpCircle, Database, Copy, ArrowUpDown,
   Target, RotateCcw, ArrowUpCircle, Settings, PieChart, BarChart3, Repeat,
-  Save, Minus, Plus, Play, Square, Clock,
+  Save, Minus, Plus, Play, Square, Clock, Link2,
 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
@@ -87,6 +87,14 @@ export default function TradeSettings() {
   const [bot, setBot] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [connected, setConnected] = useState(null); // exchange bound? null=loading
+
+  useEffect(() => {
+    Promise.all([
+      api.get("/binance/bind").then((r) => r.data).catch(() => null),
+      api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
+    ]).then(([bn, kc]) => setConnected(!!(bn?.mode || kc?.mode)));
+  }, []);
 
   useEffect(() => {
     api.get(`/bots/${sym}`).then(({ data }) => {
@@ -172,6 +180,11 @@ export default function TradeSettings() {
 
   const toggleBot = async () => {
     const running = bot.status === "running";
+    if (!running && connected === false) {
+      toast.error("Please connect an exchange first");
+      nav("/bind-api");
+      return;
+    }
     setToggling(true);
     try {
       const { data } = await api.post(`/bots/${sym}/${running ? "stop" : "start"}`);
@@ -185,6 +198,7 @@ export default function TradeSettings() {
 
   const UpdateBtn = ({ goBack }) => {
     const running = bot.status === "running";
+    const needsExchange = !running && connected === false;
     const startLabel = upcoming ? "Arm Bot for Launch" : "Start";
     return (
       <>
@@ -193,12 +207,22 @@ export default function TradeSettings() {
           style={{ background: GRAD, touchAction: "manipulation" }} data-testid="ts-update">
           <Save size={20} /> {saving ? "Saving..." : upcoming ? "Save Settings" : "Update"}
         </button>
-        <button onClick={toggleBot} disabled={toggling}
+        {needsExchange && (
+          <div className="w-full rounded-2xl px-4 py-3 mt-3 flex items-center gap-2.5"
+            style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.35)" }}
+            data-testid="ts-connect-banner">
+            <Link2 size={18} style={{ color: "#B45309" }} className="shrink-0" />
+            <div className="text-[11.5px] font-bold leading-snug" style={{ color: "#B45309" }}>
+              Bot start karne ke liye pehle ek exchange (Binance/KuCoin) connect karein.
+            </div>
+          </div>
+        )}
+        <button onClick={toggleBot} disabled={toggling || connected === null}
           className="w-full text-white font-display font-black text-lg rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 select-none mt-3"
-          style={{ background: running ? "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)" : GRAD, touchAction: "manipulation" }}
-          data-testid={running ? "ts-stop" : "ts-start"}>
-          {running ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
-          {toggling ? "Please wait..." : running ? (upcoming ? "Disarm Bot" : "Stop") : startLabel}
+          style={{ background: needsExchange ? "#9CA3AF" : (running ? "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)" : GRAD), touchAction: "manipulation" }}
+          data-testid={needsExchange ? "ts-connect-exchange" : (running ? "ts-stop" : "ts-start")}>
+          {needsExchange ? <Link2 size={20} /> : running ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          {toggling ? "Please wait..." : needsExchange ? "Connect Exchange to Start" : running ? (upcoming ? "Disarm Bot" : "Stop") : startLabel}
         </button>
       </>
     );
