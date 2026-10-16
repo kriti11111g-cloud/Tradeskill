@@ -3773,51 +3773,60 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
         base = chain[0]
         base_level = _rank_level_of(base)
         base_income = round(min(DIRECT_INCOME_BY_LEVEL.get(base_level, 0.0), DIRECT_INCOME_POT), 4)
-        payouts = [[base, base_income]]          # [recipient_doc, amount]
-        highest = base_level
         slots_total = 10 - base_level
         remaining = round(DIRECT_INCOME_POT - base_income, 4)
         share = (remaining / slots_total) if slots_total > 0 else 0.0
-        # Rank-match cumulative: each upline claims the slots up to its own rank.
+        # Support pool = 10% of the direct pot, SHIFTED UP one rank:
+        #   base-support (10% of base direct) → first activated upline above base,
+        #   remaining (10% of `remaining`) split equally over (slots_total - 1) rank
+        #   slots, cascaded up by rank exactly like bot difference. Top unclaimed
+        #   slots (no higher-rank upline) → company reserve via final remainder.
+        support_base = round(base_income * SUPPORT_INCOME_PCT / 100.0, 4)
+        support_slots_total = max(slots_total - 1, 0)
+        support_remaining = round(remaining * SUPPORT_INCOME_PCT / 100.0, 4)
+        support_share = (support_remaining / support_slots_total) if support_slots_total > 0 else 0.0
+
+        direct_sponsor_id = user.get("referred_by")
+
+        # 1) Base = direct income ("Direct income" only if it is the real direct
+        #    sponsor, else "Bot difference"). Base gets NO support income.
+        base_kind = "direct_bonus" if base["id"] == direct_sponsor_id else "activation_difference"
+        base_note = (f"Direct income · {actor} activated" if base_kind == "direct_bonus"
+                     else f"Bot difference income · {actor} activated")
+        if await _credit_commission(base["id"], base_income, base_kind, base_note, from_user_id=user["id"]):
+            distributed += base_income
+
+        # 2) Walk activated uplines: bot-difference (rank cascade) + support (shifted up one rank).
+        highest = base_level
+        s_highest = base_level + 1          # base-support conceptually covers rank (base+1)
+        first_upline = True
         idx = 1
-        while idx < len(chain) and highest < 10 and share > 0:
+        while idx < len(chain) and highest < 10:
             up = chain[idx]
             up_level = min(_rank_level_of(up), 10)
             if up_level > highest:
-                payouts.append([up, round((up_level - highest) * share, 4)])
+                diff_amt = round((up_level - highest) * share, 4)
+                if diff_amt > 0 and await _credit_commission(
+                        up["id"], diff_amt, "activation_difference",
+                        f"Bot difference income · {actor} activated", from_user_id=user["id"]):
+                    distributed += diff_amt
+                # --- support ---
+                if first_upline:
+                    sup_amt = support_base
+                    if up_level > s_highest:
+                        sup_amt = round(sup_amt + (up_level - s_highest) * support_share, 4)
+                    first_upline = False
+                elif up_level > s_highest:
+                    sup_amt = round((up_level - s_highest) * support_share, 4)
+                else:
+                    sup_amt = 0.0
+                s_highest = max(s_highest, up_level)
+                if sup_amt > 0 and await _credit_commission(
+                        up["id"], sup_amt, "support_income",
+                        f"Support income · {actor} activated", from_user_id=user["id"]):
+                    distributed += sup_amt
                 highest = up_level
             idx += 1
-        # Unclaimed slots (no higher-rank upline to claim them) are NOT
-        # redistributed back to lower recipients — the leftover flows to the
-        # company reserve via the final remainder calculation below.
-        # Credit: ONLY the actual direct sponsor gets "Direct income";
-        # every other upline (rank-difference slot claimers) gets "Bot difference".
-        direct_sponsor_id = user.get("referred_by")
-        for recipient, amt in payouts:
-            is_direct = (recipient["id"] == direct_sponsor_id)
-            kind = "direct_bonus" if is_direct else "activation_difference"
-            note = (f"Direct income · {actor} activated" if is_direct
-                    else f"Bot difference income · {actor} activated")
-            ok = await _credit_commission(
-                recipient["id"], amt, kind, note, from_user_id=user["id"])
-            if not ok:
-                continue
-            distributed += amt
-            support = round(amt * SUPPORT_INCOME_PCT / 100.0, 4)
-            if support <= 0:
-                continue
-            credited = False
-            up_id = recipient.get("referred_by")
-            if up_id:
-                credited = await _credit_commission(
-                    up_id, support, "support_income",
-                    f"Support income {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} · {actor}",
-                    from_user_id=user["id"])
-            if not credited:
-                await _credit_admin_revenue(
-                    support, "support_reserve", user["id"],
-                    note=f"Unclaimed support {SUPPORT_INCOME_PCT:.0f}% of ${amt:.4f} from {actor}")
-            distributed += support
 
     distributed = round(distributed, 4)
     remainder = round(BOT_ACTIVATION_FEE - distributed, 4)

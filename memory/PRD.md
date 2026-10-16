@@ -6,8 +6,9 @@ Hindi/Hinglish crypto trading + MLM platform. React (Tailwind/Shadcn/Lucide/Sonn
 - Backend ranks LEVEL1–LEVEL10; frontend shows V1–V10.
 - Bot activation fee $50. Direct/difference pot $26.36.
 - Direct income by rank: V1 $8, V2 $9, V3 $12, V4 $15, V5 $18, V6 $20, V7 $22, V8 $23, V9 $24, V10 $26.36.
-- Immediate sponsor → `direct_bonus` (rank amount). Higher strictly-higher-rank active uplines → `activation_difference` (shown as "Bot Difference"). Every payout → 10% `support_income` to recipient's upline.
-- Unclaimed higher-rank slots → company reserve (NOT redistributed). Same-rank/inactive uplines don't claim.
+- Immediate sponsor → `direct_bonus` (rank amount). Higher strictly-higher-rank active uplines → `activation_difference` (shown as "Bot Difference"). 
+- **Support income (2026-06 redesign)**: pool = 10% of direct pot ($2.636). Distributed SHIFTED UP one rank from the direct pot — base's direct sponsor gets NO support; the first upline above base (rank base+1) gets `support_base` = 10%×base_income (e.g. V2 gets $0.80); the remaining 10%×`remaining` is split equally over `(slots_total-1)` rank slots (e.g. V3–V10 get ~$0.23 each = $1.836÷8), cascaded up by rank exactly like bot difference. Top unclaimed slots → company reserve. Verified full/partial chains.
+- Unclaimed higher-rank difference amounts & top support slots → company reserve (NOT redistributed). Same-rank/inactive uplines don't claim.
 
 ## Implemented
 - **2026-06: Asset history missing Bot Difference** — `Wallet.jsx` filters history by `KIND_META[h.kind]`; `activation_difference` was absent → those rows dropped. Added `activation_difference: "Bot Difference"` (IconCoinStack, matches Revenue). `support_income` already present. `trade_commission` (user's own trading profit) stays excluded by design. Frontend compiles clean.
