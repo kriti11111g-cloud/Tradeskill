@@ -11,6 +11,7 @@ Hindi/Hinglish crypto trading + MLM platform. React (Tailwind/Shadcn/Lucide/Sonn
 - Unclaimed higher-rank difference amounts & top support slots → company reserve (NOT redistributed). Same-rank/inactive uplines don't claim.
 
 ## Implemented
+- **2026-06: No trade until an exchange is connected** — bot engine was placing demo trades even when the user never bound any exchange. Added `_has_connected_exchange(uid)` (true if `binance_keys` or `kucoin_keys` record exists). Guards: `start_bot` → 400 "connect an exchange first"; `_bot_tick` → auto-sets bot to `idle` (`stop_reason=no_exchange`), no trade; manual `/average` → 400. Demo-mode binding counts as connected. Verified: no-exchange user blocked + 0 trades; demo-bound user trades normally.
 - **2026-06: Asset history missing Bot Difference** — `Wallet.jsx` filters history by `KIND_META[h.kind]`; `activation_difference` was absent → those rows dropped. Added `activation_difference: "Bot Difference"` (IconCoinStack, matches Revenue). `support_income` already present. `trade_commission` (user's own trading profit) stays excluded by design. Frontend compiles clean.
 - Activation payout labeling: direct vs bot-difference vs support. (tested)
 - Fixed V1 getting $16.16 instead of $8 — unclaimed slots now go to reserve. (tested)

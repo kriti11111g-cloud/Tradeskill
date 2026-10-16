@@ -1525,6 +1525,10 @@ async def override_position(symbol: str, body: PositionOverrideIn, user: dict = 
 @api.post("/bots/{symbol}/start")
 async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     symbol = symbol.upper()
+    # Block bot start if no exchange is connected — no trading until the user
+    # binds an exchange (Binance/KuCoin).
+    if not await _has_connected_exchange(user["id"]):
+        raise HTTPException(400, "Please connect an exchange (Binance or KuCoin) from Bind API before starting the bot.")
     # Block bot start if Bot Wallet is not activated / has no balance
     w = await _get_or_create_bot_wallet(user["id"])
     if not w.get("activated"):
@@ -1673,6 +1677,8 @@ async def average_position(symbol: str, body: AverageIn, user: dict = Depends(ge
     """Manual DCA buy. Adds to the position at market price, then resets the
     Safety Call counter to C1 so the ladder restarts off the new average."""
     symbol = symbol.upper()
+    if not await _has_connected_exchange(user["id"]):
+        raise HTTPException(400, "Please connect an exchange (Binance or KuCoin) first.")
     bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     if not bot:
         raise HTTPException(404, "Bot not found")
@@ -2368,11 +2374,29 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
 
 
 # ---------- Bot Engine (background trader) ----------
+async def _has_connected_exchange(user_id: str) -> bool:
+    """True only if the user has bound an exchange (Binance or KuCoin).
+    No exchange connected → bot must NOT trade (demo included)."""
+    if await db.binance_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        return True
+    if await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        return True
+    return False
+
+
 async def _bot_tick(bot: dict):
     """Evaluate a single running bot: place first buy, DCA (margin call),
     or take-profit sell based on the strategy. Records events in bot_events."""
     user_id = bot["user_id"]
     symbol = bot["symbol"]
+
+    # No exchange connected → do NOT trade. Auto-stop so it stays idle until the
+    # user binds Binance/KuCoin.
+    if not await _has_connected_exchange(user_id):
+        await db.bots.update_one(
+            {"user_id": user_id, "symbol": symbol},
+            {"$set": {"status": "idle", "stop_reason": "no_exchange"}})
+        return
 
     try:
         price = await fetch_price(symbol)
