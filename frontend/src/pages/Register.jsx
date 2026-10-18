@@ -161,8 +161,6 @@ export default function Register() {
     referral_code: (params.get("ref") || "").toUpperCase(),
   });
   const [cc, setCc] = useState("+91");
-  const [leg, setLeg] = useState("");
-  const [legOpen, setLegOpen] = useState(false);
   const [agree, setAgree] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showTxn, setShowTxn] = useState(false);
@@ -222,7 +220,6 @@ export default function Register() {
     if (!verified) { toast.error("Please verify your email with OTP"); return; }
     if (!form.mobile.trim()) { toast.error("Enter your mobile number"); return; }
     if (!form.transaction_password) { toast.error("Set a transaction password"); return; }
-    if (!leg) { toast.error("Please select your leg (Left / Right)"); return; }
     if (!agree) { toast.error("Please agree to Terms & Conditions"); return; }
     setLoading(true);
     try {
@@ -230,7 +227,6 @@ export default function Register() {
         ...form,
         email: form.email.trim().toLowerCase(),
         country_code: cc,
-        leg,
       });
       toast.success("Account created!");
       nav("/");
@@ -370,32 +366,6 @@ export default function Register() {
             <button type="button" onClick={() => setQrOpen(true)} className="shrink-0" data-testid="signup-qr-btn" style={{ touchAction: "manipulation" }}>
               <QrCode size={24} className={iconCls} />
             </button>
-          </div>
-
-          {/* Select Your Leg */}
-          <div className="relative">
-            <button type="button" onClick={() => setLegOpen(!legOpen)}
-              className="w-full flex items-center gap-3 px-4 py-3.5" style={{ ...FIELD, touchAction: "manipulation" }}
-              data-testid="signup-leg">
-              <Share2 size={22} className={iconCls} />
-              <span className={`flex-1 text-left text-[15px] ${leg ? "text-[#0F172A] font-bold" : "text-[#94A3B8]"}`}>
-                {leg ? (leg === "left" ? "Left" : "Right") : "Select Your Leg"}
-              </span>
-              <ChevronDown size={22} className={iconCls} style={{ transform: legOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
-            </button>
-            {legOpen && (
-              <div className="absolute z-20 mt-1 w-full rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid var(--border)", boxShadow: "0 8px 30px rgba(0,0,0,0.12)" }}>
-                {["left", "right"].map((v) => (
-                  <button key={v} type="button"
-                    onClick={() => { setLeg(v); setLegOpen(false); }}
-                    className="w-full text-left px-5 py-3 text-[15px] font-bold text-[#0F172A] hover:bg-[#F0FDF4]"
-                    style={{ touchAction: "manipulation" }}
-                    data-testid={`signup-leg-${v}`}>
-                    {v === "left" ? "Left" : "Right"}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Terms */}

@@ -168,7 +168,7 @@ export default function ExchangeList() {
               if (!supported) { setIpModal(ex); return; }
               if (activeId && ex.id !== activeId) {
                 const activeName = EXCHANGES.find((e) => e.id === activeId)?.name || "exchange";
-                toast.error(`Pehle ${activeName} disconnect karo, tabhi naya exchange add kar sakte ho`);
+                toast.error(`Please disconnect ${activeName} first to add a new exchange`);
                 return;
               }
               navigate(`/bind-api/${ex.id}`);

@@ -135,7 +135,7 @@ export default function Dashboard() {
               ★ {rankName(rankUp.title)}
             </div>
             <div className="text-[11px] text-white/70 mt-2">
-              Congratulations! Aapne saari conditions poori kar li. 🥳
+              Congratulations! You've met all the conditions. 🥳
             </div>
             <button
               className="mt-4 px-6 py-2 rounded-full text-[12px] font-black uppercase tracking-widest"

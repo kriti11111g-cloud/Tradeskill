@@ -71,7 +71,7 @@ export default function DepositCelebration() {
           +{fmtNum(alert.amount, 2)} USDT
         </div>
         <div className="text-[11px] text-white/70 mt-2">
-          {alert.network} · Aapke wallet me credit ho gaya! 🥳
+          {alert.network} · Credited to your wallet! 🥳
         </div>
         <button
           className="mt-4 px-6 py-2 rounded-full text-[12px] font-black uppercase tracking-widest"

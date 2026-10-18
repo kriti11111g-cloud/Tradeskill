@@ -538,6 +538,15 @@ async def register(body: RegisterIn, response: Response):
         if ref:
             referred_by = ref["id"]
 
+    # Leg auto-assigned (UI no longer asks). Alternate legs for each sponsor's directs.
+    if body.leg in ("left", "right"):
+        assigned_leg = body.leg
+    elif referred_by:
+        existing_directs = await db.users.count_documents({"referred_by": referred_by})
+        assigned_leg = "left" if existing_directs % 2 == 0 else "right"
+    else:
+        assigned_leg = "left"
+
     doc = {
         "id": user_id,
         "uid": uid,
@@ -551,7 +560,7 @@ async def register(body: RegisterIn, response: Response):
         "country_code": body.country_code or "+91",
         "mobile": (body.mobile or "").strip() or None,
         "txn_password_hash": hash_password(body.transaction_password) if body.transaction_password else None,
-        "leg": body.leg,
+        "leg": assigned_leg,
         "activated": False,
         "wallet_usdt": 1000.0,  # demo starter balance
         "created_at": iso(now_utc()),

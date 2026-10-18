@@ -102,8 +102,8 @@ export default function BindAPI() {
           <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.08)", border: "1.5px solid rgba(220,38,38,0.35)" }} data-testid="bind-blocked-notice">
             <AlertTriangle size={20} className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} />
             <div className="text-[12px] leading-relaxed" style={{ color: "var(--ink)" }}>
-              <b>{cfg.otherName}</b> already connected hai is account par. Ek account me sirf ek exchange add ho sakta hai —
-              {" "}{cfg.name} add karne ke liye pehle <b>{cfg.otherName}</b> ko disconnect karo.
+              <b>{cfg.otherName}</b> is already connected on this account. Only one exchange can be added per account —
+              {" "}to add {cfg.name}, please disconnect <b>{cfg.otherName}</b> first.
             </div>
           </div>
         )}
