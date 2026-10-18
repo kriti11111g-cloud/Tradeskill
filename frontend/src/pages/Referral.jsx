@@ -207,6 +207,10 @@ export default function Referral() {
                     <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--text-mute)" }}>
                       Joined {fmtDate(t.created_at)}
                     </div>
+                    <div className="text-[9px] font-black mt-0.5" style={{ color: "var(--primary)" }}
+                      data-testid={`direct-team-${i}`}>
+                      Total Team: {t.team_size ?? 0}
+                    </div>
                   </div>
                 </div>
               ))}
