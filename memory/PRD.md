@@ -11,6 +11,7 @@ Hindi/Hinglish crypto trading + MLM platform. React (Tailwind/Shadcn/Lucide/Sonn
 - Unclaimed higher-rank difference amounts & top support slots → company reserve (NOT redistributed). Same-rank/inactive uplines don't claim.
 
 ## Implemented
+- **2026-06: Bonanza reward in Asset history** — `bonanza` kind `bot_transactions` me log hota tha par `Wallet.jsx` KIND_META me nahi tha → Asset history se filter ho jaata tha. Added `bonanza: "Bonanza Reward"` (IconGift). Screenshot-verified (row renders).
 - **2026-06: Direct referral card shows downline count** — har direct referral card (`Referral.jsx`) me joining date ke neeche "Total Team: N" add — N = us direct member ke neeche ka poora team (sabhi levels). Data backend `/referral` ke `team.team_size` se (already BFS se compute hota tha). Screenshot-verified.
 - **2026-06: Register "Select Your Leg" removed + auto-leg** — leg field (Left/Right) UI hata diya (`Register.jsx`); backend ab leg auto-assign karta hai — sponsor ke directs ke hisaab se alternate (even→left, odd→right), no sponsor→left. `leg` backend me placement ke liye use nahi hota, sirf store hota hai.
 - **2026-06: Popups Hindi→English** — Deposit popup ("Credited to your wallet!"), Rank-achieved popup ("Congratulations! You've met all the conditions."), aur exchange-switch warning (BindAPI + ExchangeList: "disconnect X first to add a new exchange") English me.
