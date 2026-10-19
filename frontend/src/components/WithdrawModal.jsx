@@ -237,12 +237,12 @@ export default function WithdrawModal({ balance, onClose, onSubmitted }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-4 px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm py-4 px-4"
       onClick={onClose}
       data-testid="dialog-withdraw"
     >
       <div
-        className="w-full max-w-[440px] my-4 max-h-[85vh] overflow-y-auto overscroll-contain rounded-2xl p-4 border bg-[color:var(--surface)]"
+        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto overscroll-contain rounded-2xl p-4 border bg-[color:var(--surface)]"
         style={{
           borderColor: GOLD_BORDER,
           boxShadow: "0 18px 50px rgba(22,163,74,0.18), 0 0 24px rgba(245,158,11,0.12)",
