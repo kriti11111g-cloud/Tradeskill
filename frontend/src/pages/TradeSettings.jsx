@@ -102,7 +102,7 @@ export default function TradeSettings() {
       setBot({
         ...data,
         margin_config: syncRows(data.margin_config || [], limit),
-        sub_position_tps: syncTps(data.sub_position_tps || [], limit, data.whole_take_profit_ratio || 1.5),
+        sub_position_tps: syncTps(data.sub_position_tps || [], limit, data.whole_take_profit_ratio || 1.25),
       });
     }).catch(() => {});
     api.get(`/market/stats/${sym}`).then(({ data }) => setStats(data)).catch(() => {});
@@ -111,14 +111,14 @@ export default function TradeSettings() {
   const syncRows = (rows, limit) => {
     const out = rows.slice(0, limit).map((r) => ({ drop: r.drop, multiplier: r.multiplier }));
     while (out.length < limit) {
-      const last = out[out.length - 1] || { drop: 2, multiplier: 2 };
+      const last = out[out.length - 1] || { drop: 25, multiplier: 1 };
       out.push({ ...last });
     }
     return out;
   };
   const syncTps = (tps, limit, def) => {
     const out = tps.slice(0, limit).map(Number);
-    while (out.length < limit) out.push(Number(def) || 1.5);
+    while (out.length < limit) out.push(Number(def) || 1.25);
     return out;
   };
 
@@ -129,7 +129,7 @@ export default function TradeSettings() {
       ...b,
       margin_call_limit: limit,
       margin_config: syncRows(b.margin_config, limit),
-      sub_position_tps: syncTps(b.sub_position_tps, limit, b.whole_take_profit_ratio || 1.5),
+      sub_position_tps: syncTps(b.sub_position_tps, limit, b.whole_take_profit_ratio || 1.25),
     }));
   };
 
@@ -144,10 +144,10 @@ export default function TradeSettings() {
         ...bot,
         first_buy_amount: parseFloat(bot.first_buy_amount) || 10,
         margin_call_limit: parseInt(bot.margin_call_limit, 10) || 1,
-        whole_take_profit_ratio: parseFloat(bot.whole_take_profit_ratio) || 1.5,
-        whole_take_profit_callback: parseFloat(bot.whole_take_profit_callback) || 0.3,
+        whole_take_profit_ratio: parseFloat(bot.whole_take_profit_ratio) || 1.25,
+        whole_take_profit_callback: parseFloat(bot.whole_take_profit_callback) || 0.25,
         buy_in_callback: parseFloat(bot.buy_in_callback) || 0.25,
-        sub_take_profit_callback: parseFloat(bot.sub_take_profit_callback) || 0.5,
+        sub_take_profit_callback: parseFloat(bot.sub_take_profit_callback) || 0.25,
         margin_config: bot.margin_config.map((r) => ({ drop: parseFloat(r.drop) || 0, multiplier: parseFloat(r.multiplier) || 1 })),
         sub_position_tps: bot.sub_position_tps.map((v) => parseFloat(v) || 0),
       };

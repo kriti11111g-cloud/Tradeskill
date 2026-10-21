@@ -421,14 +421,14 @@ class MarginRule(BaseModel):
 
 class BotConfigIn(BaseModel):
     symbol: Optional[str] = None  # path param se aata hai
-    first_buy_amount: float = 20.0
+    first_buy_amount: float = 10.0
     open_position_double: bool = True
     margin_call_limit: int = 5
-    whole_take_profit_ratio: float = 1.5
-    whole_take_profit_callback: float = 0.3
+    whole_take_profit_ratio: float = 1.25
+    whole_take_profit_callback: float = 0.25
     buy_in_callback: float = 0.25
     trade_method: Literal["Cycle", "One-Shot"] = "Cycle"
-    sub_take_profit_callback: float = 0.5
+    sub_take_profit_callback: float = 0.25
     margin_config: Optional[List[MarginRule]] = None
     sub_position_tps: Optional[List[float]] = None
 
@@ -1179,22 +1179,22 @@ async def market_movers(limit: int = 50, min_volume: float = 500000, force: bool
 
 # ==== Bot Config ====
 DEFAULT_MARGIN_CONFIG = [
-    {"drop": 2.0, "multiplier": 2.0},
-    {"drop": 3.0, "multiplier": 2.0},
-    {"drop": 4.0, "multiplier": 2.0},
-    {"drop": 6.0, "multiplier": 2.0},
-    {"drop": 10.0, "multiplier": 2.0},
+    {"drop": 25.0, "multiplier": 1.0},
+    {"drop": 25.0, "multiplier": 1.0},
+    {"drop": 25.0, "multiplier": 1.0},
+    {"drop": 25.0, "multiplier": 1.0},
+    {"drop": 100.0, "multiplier": 1.0},
 ]
 
 DEFAULT_BOT_CFG = {
-    "first_buy_amount": 20.0,
+    "first_buy_amount": 10.0,
     "open_position_double": True,
     "margin_call_limit": 5,
-    "whole_take_profit_ratio": 1.5,
-    "whole_take_profit_callback": 0.3,
+    "whole_take_profit_ratio": 1.25,
+    "whole_take_profit_callback": 0.25,
     "buy_in_callback": 0.25,
     "trade_method": "Cycle",
-    "sub_take_profit_callback": 0.5,
+    "sub_take_profit_callback": 0.25,
     "margin_config": DEFAULT_MARGIN_CONFIG,
     "status": "stopped",
     "position_amount": 0.0,
