@@ -146,7 +146,7 @@ export default function TradeSettings() {
         margin_call_limit: parseInt(bot.margin_call_limit, 10) || 1,
         whole_take_profit_ratio: parseFloat(bot.whole_take_profit_ratio) || 1.5,
         whole_take_profit_callback: parseFloat(bot.whole_take_profit_callback) || 0.3,
-        buy_in_callback: parseFloat(bot.buy_in_callback) || 1,
+        buy_in_callback: parseFloat(bot.buy_in_callback) || 0.25,
         sub_take_profit_callback: parseFloat(bot.sub_take_profit_callback) || 0.5,
         margin_config: bot.margin_config.map((r) => ({ drop: parseFloat(r.drop) || 0, multiplier: parseFloat(r.multiplier) || 1 })),
         sub_position_tps: bot.sub_position_tps.map((v) => parseFloat(v) || 0),

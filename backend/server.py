@@ -426,7 +426,7 @@ class BotConfigIn(BaseModel):
     margin_call_limit: int = 5
     whole_take_profit_ratio: float = 1.5
     whole_take_profit_callback: float = 0.3
-    buy_in_callback: float = 1.0
+    buy_in_callback: float = 0.25
     trade_method: Literal["Cycle", "One-Shot"] = "Cycle"
     sub_take_profit_callback: float = 0.5
     margin_config: Optional[List[MarginRule]] = None
@@ -1192,7 +1192,7 @@ DEFAULT_BOT_CFG = {
     "margin_call_limit": 5,
     "whole_take_profit_ratio": 1.5,
     "whole_take_profit_callback": 0.3,
-    "buy_in_callback": 1.0,
+    "buy_in_callback": 0.25,
     "trade_method": "Cycle",
     "sub_take_profit_callback": 0.5,
     "margin_config": DEFAULT_MARGIN_CONFIG,
@@ -1209,7 +1209,7 @@ def _get_margin_rule(bot: dict, round_idx: int) -> dict:
     Falls back to the last rule if round_idx exceeds the config length."""
     cfg = bot.get("margin_config") or DEFAULT_MARGIN_CONFIG
     if not cfg:
-        return {"drop": float(bot.get("buy_in_callback", 1.0) or 1.0), "multiplier": 1.0}
+        return {"drop": float(bot.get("buy_in_callback", 0.25) or 0.25), "multiplier": 1.0}
     idx = min(round_idx, len(cfg) - 1)
     r = cfg[idx]
     return {
@@ -2424,7 +2424,7 @@ async def _bot_tick(bot: dict):
     sub_positions = list(bot.get("sub_positions") or [])
     tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
     tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
-    dca_callback = float(bot.get("buy_in_callback", 0.3) or 0.3)
+    dca_callback = float(bot.get("buy_in_callback", 0.25) or 0.25)
     next_buy = float(bot.get("next_buy_price", 0.0) or 0)
     peak = float(bot.get("peak_price", 0.0) or 0)
     trough = float(bot.get("dca_bottom_price", 0.0) or 0)
