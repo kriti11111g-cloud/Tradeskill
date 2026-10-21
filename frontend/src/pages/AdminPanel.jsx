@@ -374,11 +374,11 @@ export default function AdminPanel() {
                     <div className="text-[12px] font-bold tabular-nums" style={{ color: "var(--text-mute)" }}>$ {Number(u.balance).toFixed(2)}</div>
                   </div>
                   <span className="text-[11px] font-black px-3 py-1 rounded-full shrink-0"
-                    style={u.activated
+                    style={u.bot_activated
                       ? { background: "#DCFCE7", color: "#16A34A" }
                       : { background: "#FEE2E2", color: "#DC2626" }}
                     data-testid={`admin-user-status-${u.uid}`}>
-                    {u.activated ? "Active" : "Inactive"}
+                    {u.bot_activated ? "Active" : "Inactive"}
                   </span>
                   <ChevronRight size={18} style={{ color: BLUE }} className="shrink-0" />
                 </div>

@@ -693,7 +693,6 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
         "updated_at": iso(now_utc()),
     }
     await db.binance_keys.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"activated": True}})
     return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
 
 
@@ -781,7 +780,7 @@ async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)
         "updated_at": iso(now_utc()),
     }
     await db.kucoin_keys.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"activated": True, "active_exchange": "kucoin"}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "kucoin"}})
     return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
 
 
@@ -5380,6 +5379,24 @@ async def startup():
 
     if SWEEP_ENABLED and not (os.environ.get("SWEEP_ADDRESS") or os.environ.get("ADMIN_WALLET_ADDRESS")):
         logger.warning("SWEEP_ENABLED=1 but no SWEEP_ADDRESS/ADMIN_WALLET_ADDRESS set — auto-sweep will not run")
+
+    # One-time: reconcile user.activated with real bot activation (bot_wallets.activated).
+    # Historically, binding an exchange wrongly set user.activated=True without a bot
+    # activation — this corrects such users so admin/referral show correct status.
+    try:
+        if not await db.app_meta.find_one({"_id": "activated_reconcile_v1"}):
+            activated_ids = await db.bot_wallets.distinct("user_id", {"activated": True})
+            reset = await db.users.update_many(
+                {"activated": True, "id": {"$nin": activated_ids}},
+                {"$set": {"activated": False}})
+            fix = await db.users.update_many(
+                {"activated": {"$ne": True}, "id": {"$in": activated_ids}},
+                {"$set": {"activated": True}})
+            await db.app_meta.insert_one({"_id": "activated_reconcile_v1", "done_at": iso(now_utc())})
+            logger.info(f"activated reconcile: reset={reset.modified_count} fixed={fix.modified_count}")
+    except Exception as e:
+        logger.warning(f"activated reconcile failed: {e}")
+
     logger.info("Trade Skill startup complete")
 
     if _tg_real_mode() and os.environ.get("PUBLIC_BASE_URL"):
