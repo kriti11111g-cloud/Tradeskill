@@ -54,3 +54,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - "Admin Activated" badge in user list.
 - Admin audit tab (manual +/- funds + free activations log).
 - Bulk free activate.
+
+## 2026-06 — Bot defaults migration (bot_defaults_refresh_v1)
+- Root cause of "new coin shows old settings on production": existing bot rows were saved while OLD defaults were active (first_buy 20 / tp_ratio 1.5 / tp_cb 0.3 / buy_cb 1 / sub_cb 0.5 / margin 2-3-4-6-10 x2). GET /bots returns saved row over defaults, so stale rows kept showing old values even after deploy.
+- Fix: one-time startup migration (server.py startup, gated by app_meta _id "bot_defaults_refresh_v1") rewrites stale old-default rows to NEW defaults. Filter matches first_buy_amount=20 AND whole_take_profit_ratio=1.5 AND buy_in_callback=1, status != running, and no open position (position_qty 0/None/absent). Running bots, open positions, and genuine custom configs are preserved.
+- Verified on preview: fresh coins already serve new defaults; migration filter matched only the stale stopped row in a synthetic test.
+- Deploy to apply on production: cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn build && sudo systemctl restart tradeskill-backend && sudo systemctl reload nginx  (the backend RESTART runs the migration once).

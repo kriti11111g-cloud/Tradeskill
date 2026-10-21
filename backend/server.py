@@ -5397,6 +5397,32 @@ async def startup():
     except Exception as e:
         logger.warning(f"activated reconcile failed: {e}")
 
+    # One-time: refresh stale bot rows still holding the OLD default trade params
+    # (first_buy 20 / tp_ratio 1.5 / buy_in_callback 1 / margin 2-3-4-6-10 x2) to the
+    # NEW defaults. Only touches non-running bots with no open position so genuine
+    # custom configs and live positions are never clobbered.
+    try:
+        if not await db.app_meta.find_one({"_id": "bot_defaults_refresh_v1"}):
+            new_params = {
+                "first_buy_amount": DEFAULT_BOT_CFG["first_buy_amount"],
+                "margin_call_limit": DEFAULT_BOT_CFG["margin_call_limit"],
+                "whole_take_profit_ratio": DEFAULT_BOT_CFG["whole_take_profit_ratio"],
+                "whole_take_profit_callback": DEFAULT_BOT_CFG["whole_take_profit_callback"],
+                "buy_in_callback": DEFAULT_BOT_CFG["buy_in_callback"],
+                "sub_take_profit_callback": DEFAULT_BOT_CFG["sub_take_profit_callback"],
+                "margin_config": [dict(r) for r in DEFAULT_MARGIN_CONFIG],
+                "sub_position_tps": [DEFAULT_BOT_CFG["whole_take_profit_ratio"]] * DEFAULT_BOT_CFG["margin_call_limit"],
+            }
+            refreshed = await db.bots.update_many(
+                {"first_buy_amount": 20, "whole_take_profit_ratio": 1.5, "buy_in_callback": 1,
+                 "status": {"$ne": "running"},
+                 "$or": [{"position_qty": {"$in": [0, 0.0, None]}}, {"position_qty": {"$exists": False}}]},
+                {"$set": new_params})
+            await db.app_meta.insert_one({"_id": "bot_defaults_refresh_v1", "done_at": iso(now_utc())})
+            logger.info(f"bot defaults refresh: updated={refreshed.modified_count}")
+    except Exception as e:
+        logger.warning(f"bot defaults refresh failed: {e}")
+
     logger.info("Trade Skill startup complete")
 
     if _tg_real_mode() and os.environ.get("PUBLIC_BASE_URL"):
