@@ -28,7 +28,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { TS_LOGO } from "@/pages/Login";
 
-const BLUE_GRAD = "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)";
+const BLUE_GRAD = "linear-gradient(135deg, #2563EB 0%, #1E88E5 45%, #10B981 100%)";
 const CARD = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
