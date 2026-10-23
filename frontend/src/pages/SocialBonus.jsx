@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-const GOLD_BORDER = "rgba(212,160,23,0.45)";
+const GOLD_BORDER = "rgba(16,185,129,0.40)";
 
 const Logos = {
   telegram: (s = 34) => (
@@ -28,8 +28,8 @@ const Logos = {
 const GoldBtn = ({ children, testid, ...props }) => (
   <button
     {...props}
-    className="px-3.5 py-2 rounded-xl text-[11px] font-black text-black flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
-    style={{ background: "linear-gradient(135deg, #F5C518, #E8A804)", boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}
+    className="px-3.5 py-2 rounded-xl text-[11px] font-black text-white flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
+    style={{ background: "linear-gradient(135deg, #2563EB, #10B981)", boxShadow: "0 4px 14px rgba(37,99,235,0.35)" }}
     data-testid={testid}
   >
     {children}
@@ -171,7 +171,7 @@ export default function SocialBonus() {
           <button
             disabled
             className="px-3 py-2 rounded-xl text-[10px] font-black flex items-center gap-1.5 opacity-80"
-            style={{ background: "rgba(245,158,11,0.12)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
+            style={{ background: "rgba(37,99,235,0.12)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
             data-testid={`btn-verifying-${p.id}`}
           >
             <Loader2 size={12} className="animate-spin" /> VERIFYING {rem}s
@@ -204,8 +204,8 @@ export default function SocialBonus() {
           data-testid="social-total-earned"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)", border: `1px solid ${GOLD_BORDER}` }}>
-              <Wallet size={18} className="text-[color:var(--gold-deep,#D97706)]" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(37,99,235,0.12)", border: `1px solid ${GOLD_BORDER}` }}>
+              <Wallet size={18} className="text-[color:#2563EB]" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-mute)]">Total Earned</div>
@@ -214,7 +214,7 @@ export default function SocialBonus() {
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--text-mute)]">Available</div>
-            <div className="text-base font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</div>
+            <div className="text-base font-black text-[color:#2563EB]">${(data?.total_available ?? 1).toFixed(2)}</div>
           </div>
         </div>
 
@@ -223,7 +223,7 @@ export default function SocialBonus() {
           className="rounded-2xl border p-4 relative overflow-hidden"
           style={{
             borderColor: GOLD_BORDER,
-            background: "linear-gradient(135deg, rgba(22,163,74,0.12), rgba(245,158,11,0.08))",
+            background: "linear-gradient(135deg, rgba(22,163,74,0.12), rgba(37,99,235,0.08))",
             boxShadow: "inset 0 0 30px rgba(22,163,74,0.06)",
           }}
           data-testid="social-hero"
@@ -231,24 +231,24 @@ export default function SocialBonus() {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-black text-lg text-[color:var(--text)]">
-                FOLLOW. <span className="text-[color:var(--gold-deep,#D97706)]">VERIFY.</span> EARN.
+                FOLLOW. <span className="text-[color:#2563EB]">VERIFY.</span> EARN.
               </div>
               <p className="text-[11px] text-[color:var(--text-soft)] mt-1 leading-relaxed max-w-[220px]">
                 Ek-ek karke sabhi official channels follow karein aur{" "}
-                <span className="font-black text-[color:var(--gold-deep,#D97706)]">${(data?.total_available ?? 1).toFixed(2)}</span> tak seedha wallet me kamayein.
+                <span className="font-black text-[color:#2563EB]">${(data?.total_available ?? 1).toFixed(2)}</span> tak seedha wallet me kamayein.
               </p>
             </div>
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 qr-float"
-              style={{ background: "rgba(245,158,11,0.15)", border: `1.5px solid ${GOLD_BORDER}`, boxShadow: "0 8px 22px rgba(245,158,11,0.25)" }}
+              style={{ background: "rgba(37,99,235,0.15)", border: `1.5px solid ${GOLD_BORDER}`, boxShadow: "0 8px 22px rgba(37,99,235,0.25)" }}
             >
-              <Gift size={30} className="text-[color:var(--gold-deep,#D97706)]" />
+              <Gift size={30} className="text-[color:#2563EB]" />
             </div>
           </div>
         </div>
 
         {/* Bonus cards */}
-        <div className="text-[10px] tracking-[0.3em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] px-1 pt-1">
+        <div className="text-[10px] tracking-[0.3em] uppercase font-bold text-[color:#2563EB] px-1 pt-1">
           Available Bonuses
         </div>
         <div className="space-y-2" data-testid="social-bonus-list">
@@ -258,7 +258,7 @@ export default function SocialBonus() {
             data.platforms.map((p, i) => (
               <div
                 key={p.id}
-                className="rounded-2xl border p-3 flex items-center gap-3 bg-[color:var(--surface)] transition-all duration-300"
+                className="rounded-2xl border px-3 py-2 flex items-center gap-2.5 bg-[color:var(--surface)] transition-all duration-300"
                 style={{
                   borderColor: p.claimed ? "rgba(22,163,74,0.5)" : p.coming_soon || p.locked ? "var(--border)" : GOLD_BORDER,
                   boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : p.coming_soon || p.locked ? "none" : "0 4px 16px rgba(22,163,74,0.08)",
@@ -266,7 +266,7 @@ export default function SocialBonus() {
                 }}
                 data-testid={`social-card-${p.id}`}
               >
-                <div className="shrink-0" style={{ filter: p.coming_soon || p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(38)}</div>
+                <div className="shrink-0" style={{ filter: p.coming_soon || p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(34)}</div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
                     {String(i + 1).padStart(2, "0")}. {p.name}
@@ -276,7 +276,7 @@ export default function SocialBonus() {
                   </div>
                   <div
                     className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
-                    style={{ background: "rgba(245,158,11,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "var(--gold-deep, #D97706)" }}
+                    style={{ background: "rgba(37,99,235,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
                   >
                     REWARD ${p.reward.toFixed(2)}
                   </div>
@@ -290,8 +290,8 @@ export default function SocialBonus() {
         {/* How it works */}
         <div className="rounded-2xl border p-3.5 bg-[color:var(--surface)]" style={{ borderColor: GOLD_BORDER }} data-testid="social-how-it-works">
           <div className="flex items-center gap-1.5 mb-2.5">
-            <Info size={12} className="text-[color:var(--gold-deep,#D97706)]" />
-            <span className="text-[10px] tracking-[0.25em] uppercase font-bold text-[color:var(--gold-deep,#D97706)]">How it works</span>
+            <Info size={12} className="text-[color:#2563EB]" />
+            <span className="text-[10px] tracking-[0.25em] uppercase font-bold text-[color:#2563EB]">How it works</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {[
@@ -302,7 +302,7 @@ export default function SocialBonus() {
             ].map(({ Icon, t, s }) => (
               <div key={t} className="flex flex-col items-center text-center gap-1">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(22,163,74,0.08)", border: `1px solid ${GOLD_BORDER}` }}>
-                  <Icon size={15} className="text-[color:var(--gold-deep,#D97706)]" />
+                  <Icon size={15} className="text-[color:#2563EB]" />
                 </div>
                 <div className="text-[10px] font-black text-[color:var(--text)]">{t}</div>
                 <div className="text-[8.5px] text-[color:var(--text-mute)] leading-tight">{s}</div>
@@ -314,7 +314,7 @@ export default function SocialBonus() {
         {/* Footer note */}
         <div className="rounded-xl border px-3 py-2.5 flex items-center justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-3)" }}>
           <div className="text-[9px] text-[color:var(--text-mute)] leading-snug pr-2">
-            <span className="font-bold text-[color:var(--gold-deep,#D97706)]">Important:</span> Order me claim karein — Telegram se shuru. Har platform sirf ek baar claim ho sakta hai.
+            <span className="font-bold text-[color:#2563EB]">Important:</span> Order me claim karein — Telegram se shuru. Har platform sirf ek baar claim ho sakta hai.
           </div>
           <div className="flex items-center gap-1 shrink-0 text-[9px] font-black text-[color:var(--good)]">
             <ShieldCheck size={12} /> 100% SAFE
