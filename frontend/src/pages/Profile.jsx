@@ -101,8 +101,9 @@ export default function Profile() {
 
   return (
     <div className="pb-8" style={{ background: "var(--bg-base)", minHeight: "100vh" }}>
-      {/* ===== Header ===== */}
-      <div className="flex items-center justify-between px-4 py-3.5 sticky top-0 z-20" style={{ background: "var(--bg-base)" }}>
+      {/* ===== Fixed region: header + identity card ===== */}
+      <div className="sticky top-0 z-20 px-4 pb-3" style={{ background: "var(--bg-base)" }}>
+      <div className="flex items-center justify-between py-3.5">
         <button onClick={() => navigate("/")} data-testid="profile-back" className="p-1 -ml-1">
           <ChevronLeft size={26} style={{ color: "var(--ink)" }} />
         </button>
@@ -122,9 +123,8 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="px-4 space-y-2.5">
-        {/* ===== Identity card ===== */}
-        <div
+      {/* ===== Identity card (stays fixed) ===== */}
+      <div
           className="relative rounded-3xl p-5 overflow-hidden"
           style={{ background: BLUE_GRAD, boxShadow: "0 8px 24px rgba(37,99,235,0.3)" }}
           data-testid="profile-identity-card"
@@ -200,8 +200,10 @@ export default function Profile() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ===== Menu list ===== */}
+      {/* ===== Menu list (scrolls) ===== */}
+      <div className="px-4 space-y-2.5 pt-3">
         {items.map((it) => (
           <button
             key={it.label}
