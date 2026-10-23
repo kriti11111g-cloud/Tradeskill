@@ -92,7 +92,7 @@ export default function Profile() {
 
   const items = [
     { icon: <Trophy size={26} color="#2563EB" strokeWidth={2.2} />, label: "Current Rank", to: "/rank", testid: "profile-rank" },
-    { icon: <Gift size={26} color="#2563EB" fill="#2563EB" strokeWidth={1.6} />, label: "Referral", to: "/referral", testid: "profile-referral" },
+    { icon: <Gift size={26} color="#2563EB" fill="#DBEAFE" strokeWidth={2} />, label: "Referral", to: "/referral", testid: "profile-referral" },
     { icon: <ShieldCheck size={26} color="#16A34A" fill="#16A34A" strokeWidth={1.6} className="[&>path:last-child]:stroke-white" />, label: "Security Centre", to: "/guide", testid: "profile-security" },
     { icon: <SocialCluster />, label: "Social Media", to: "/social-bonus", testid: "profile-social" },
     { icon: <HelpCircle size={26} color="#2563EB" strokeWidth={2.2} />, label: "Help Center", to: "/guide", testid: "profile-help" },
@@ -122,7 +122,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="px-4 space-y-3.5">
+      <div className="px-4 space-y-2.5">
         {/* ===== Identity card ===== */}
         <div
           className="relative rounded-3xl p-5 overflow-hidden"
@@ -207,7 +207,7 @@ export default function Profile() {
             key={it.label}
             onClick={() => navigate(it.to)}
             data-testid={it.testid}
-            className="w-full rounded-2xl px-4 py-4 flex items-center gap-4 active:scale-[0.99] transition-transform"
+            className="w-full rounded-2xl px-4 py-3 flex items-center gap-4 active:scale-[0.99] transition-transform"
             style={CARD}
           >
             <div className="w-8 flex items-center justify-center shrink-0">{it.icon}</div>
@@ -222,7 +222,7 @@ export default function Profile() {
         {user?.role === "admin" && (
           <button
             onClick={() => navigate("/admin/withdrawals")}
-            className="w-full rounded-2xl px-4 py-4 flex items-center gap-4"
+            className="w-full rounded-2xl px-4 py-3 flex items-center gap-4"
             style={CARD}
             data-testid="profile-admin-withdrawals"
           >
