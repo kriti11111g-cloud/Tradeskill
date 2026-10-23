@@ -129,7 +129,7 @@ export default function SocialBonus() {
           style={{ background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.30)", color: "#2563EB" }}
           data-testid={`coming-soon-${p.id}`}
         >
-          Coming Soon 🚀
+          Soon 🚀
         </span>
       );
     if (p.claimed)
