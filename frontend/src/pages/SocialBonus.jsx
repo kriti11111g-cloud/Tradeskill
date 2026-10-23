@@ -275,22 +275,20 @@ export default function SocialBonus() {
               >
                 <div className="shrink-0">{Logos[p.id]?.(34)}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide truncate">
-                      {String(i + 1).padStart(2, "0")}. {p.name}
-                    </span>
-                    <span
-                      className="shrink-0 px-2 py-0.5 rounded-md text-[8.5px] font-black"
-                      style={{ background: "rgba(37,99,235,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
-                    >
-                      ${p.reward.toFixed(2)}
-                    </span>
+                  <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide truncate">
+                    {String(i + 1).padStart(2, "0")}. {p.name}
                   </div>
                   <div className="text-[10px] text-[color:var(--text-mute)] truncate">
                     {p.desc || "Follow our official channel"}
                   </div>
                 </div>
-                <div className="shrink-0">{renderAction(p)}</div>
+                <span
+                  className="shrink-0 px-2 py-0.5 rounded-md text-[9px] font-black"
+                  style={{ background: "rgba(37,99,235,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
+                >
+                  ${p.reward.toFixed(2)}
+                </span>
+                <div className="w-[86px] flex justify-end shrink-0">{renderAction(p)}</div>
               </div>
             ))
           )}
