@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
-const GOLD_BORDER = "rgba(16,185,129,0.40)";
+const GOLD_BORDER = "rgba(37,99,235,0.40)";
 
 const Logos = {
   telegram: (s = 34) => (
@@ -152,7 +152,7 @@ export default function SocialBonus() {
           onClick={() => doClaim(p)}
           disabled={busy === p.id}
           className="px-4 py-2 rounded-xl text-[11px] font-black text-white transition active:scale-95 disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", border: `1px solid ${GOLD_BORDER}`, boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+          style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", border: `1px solid ${GOLD_BORDER}` }}
           data-testid={`btn-claim-${p.id}`}
         >
           {busy === p.id ? "..." : "CLAIM"}
@@ -200,7 +200,7 @@ export default function SocialBonus() {
         {/* Total earned */}
         <div
           className="rounded-2xl border p-3.5 flex items-center justify-between bg-[color:var(--surface)]"
-          style={{ borderColor: GOLD_BORDER, boxShadow: "0 8px 26px rgba(22,163,74,0.12)" }}
+          style={{ borderColor: GOLD_BORDER }}
           data-testid="social-total-earned"
         >
           <div className="flex items-center gap-2.5">
@@ -223,8 +223,7 @@ export default function SocialBonus() {
           className="rounded-2xl border p-4 relative overflow-hidden"
           style={{
             borderColor: GOLD_BORDER,
-            background: "linear-gradient(135deg, rgba(22,163,74,0.12), rgba(37,99,235,0.08))",
-            boxShadow: "inset 0 0 30px rgba(22,163,74,0.06)",
+            background: "var(--surface)",
           }}
           data-testid="social-hero"
         >
@@ -260,8 +259,7 @@ export default function SocialBonus() {
                 key={p.id}
                 className="rounded-2xl border px-3 py-2 flex items-center gap-2.5 bg-[color:var(--surface)] transition-all duration-300"
                 style={{
-                  borderColor: p.claimed ? "rgba(22,163,74,0.5)" : p.coming_soon || p.locked ? "var(--border)" : GOLD_BORDER,
-                  boxShadow: p.claimed ? "0 0 14px rgba(22,163,74,0.18)" : p.coming_soon || p.locked ? "none" : "0 4px 16px rgba(22,163,74,0.08)",
+                  borderColor: p.coming_soon || p.locked ? "var(--border)" : GOLD_BORDER,
                   opacity: p.coming_soon || p.locked ? 0.65 : 1,
                 }}
                 data-testid={`social-card-${p.id}`}
@@ -303,7 +301,7 @@ export default function SocialBonus() {
               { Icon: Lock, t: "4. Unlock", s: "Agla platform khulega" },
             ].map(({ Icon, t, s }) => (
               <div key={t} className="flex flex-col items-center text-center gap-1">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(22,163,74,0.08)", border: `1px solid ${GOLD_BORDER}` }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "transparent", border: `1px solid ${GOLD_BORDER}` }}>
                   <Icon size={15} className="text-[color:#2563EB]" />
                 </div>
                 <div className="text-[10px] font-black text-[color:var(--text)]">{t}</div>
