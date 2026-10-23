@@ -60,3 +60,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix: one-time startup migration (server.py startup, gated by app_meta _id "bot_defaults_refresh_v1") rewrites stale old-default rows to NEW defaults. Filter matches first_buy_amount=20 AND whole_take_profit_ratio=1.5 AND buy_in_callback=1, status != running, and no open position (position_qty 0/None/absent). Running bots, open positions, and genuine custom configs are preserved.
 - Verified on preview: fresh coins already serve new defaults; migration filter matched only the stale stopped row in a synthetic test.
 - Deploy to apply on production: cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn build && sudo systemctl restart tradeskill-backend && sudo systemctl reload nginx  (the backend RESTART runs the migration once).
+
+## 2026-06 — Profile page redesign (same-to-same with reference)
+- Rebuilt /app/frontend/src/pages/Profile.jsx to match user's reference design.
+- Header: back arrow, centered TradeSkill logo (TS_LOGO img + Trade/Skill text), Headphones + Settings icons (both -> /guide).
+- Blue gradient identity card: circular avatar + camera button (local photo upload via FileReader -> localStorage key ts_avatar_{uid}), green "Verified" pill, "Hi, {name}" + verified badge, email, Joined date, UID with copy-to-clipboard, country with 🇮🇳 flag.
+- Menu rows (icon + label + chevron): Current Rank->/rank, Referral->/referral, Security Centre->/guide, Social Media->/social-bonus, Help Center->/guide, API Management->/bind-api. Admin sees Withdrawals Admin row. Logout at bottom.
+- Verified visually via screenshot (admin login). Theme-aware via CSS vars; blue card constant.

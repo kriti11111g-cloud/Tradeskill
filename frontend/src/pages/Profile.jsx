@@ -1,49 +1,63 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { rankName } from "@/lib/format";
 import {
+  ChevronLeft,
+  Headphones,
+  Settings,
   Mail,
   Calendar,
   User as UserIcon,
   MapPin,
   BadgeCheck,
-  Crown,
-  Wallet as WalletIcon,
-  Shield,
-  Settings,
-  Headphones,
+  Camera,
+  Copy,
+  ChevronRight,
+  Trophy,
   Gift,
-  LogOut,
-  Pencil,
   ShieldCheck,
+  HelpCircle,
+  Cog,
+  Facebook,
+  Instagram,
+  Youtube,
+  Send,
+  LogOut,
+  Shield,
 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
+import { TS_LOGO } from "@/pages/Login";
 
-const GRAD = "linear-gradient(90deg, #2563EB, #10B981)";
+const BLUE_GRAD = "linear-gradient(135deg, #2563EB 0%, #1D4ED8 55%, #1E40AF 100%)";
 const CARD = {
   background: "var(--surface)",
   border: "1px solid var(--border)",
-  boxShadow: "0 1px 8px rgba(0,0,0,0.05)",
+  boxShadow: "0 1px 10px rgba(0,0,0,0.06)",
 };
 
 const fmtJoin = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
+
+function SocialCluster() {
+  return (
+    <div className="grid grid-cols-2 gap-1 w-8 shrink-0">
+      <Facebook size={14} color="#1877F2" fill="#1877F2" strokeWidth={0} />
+      <Send size={14} color="#229ED9" fill="#229ED9" strokeWidth={0} />
+      <Youtube size={15} color="#FF0000" fill="#FF0000" strokeWidth={0} />
+      <Instagram size={14} color="#E1306C" strokeWidth={2.4} />
+    </div>
+  );
+}
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [rankInfo, setRankInfo] = useState(null);
-
-  useEffect(() => {
-    api.get("/ranks/me").then(({ data }) => setRankInfo(data)).catch(() => {});
-  }, []);
+  const fileRef = useRef(null);
+  const avatarKey = `ts_avatar_${user?.uid || user?.id || "me"}`;
+  const [avatar, setAvatar] = useState(() => localStorage.getItem(avatarKey) || "");
 
   const doLogout = async () => {
     await logout();
@@ -51,182 +65,181 @@ export default function Profile() {
     window.location.href = "/login";
   };
 
-  const prog = rankInfo?.progress;
-  const nextRank = rankInfo?.next_rank;
-  const pct = prog
-    ? Math.min(
-        100,
-        Math.round(
-          ((Math.min(1, prog.direct_have / Math.max(1, prog.direct_needed)) +
-            Math.min(1, prog.team_have / Math.max(1, prog.team_needed))) /
-            2) * 100
-        )
-      )
-    : 0;
+  const copyUID = () => {
+    navigator.clipboard?.writeText(user?.uid || "").then(
+      () => toast.success("UID copied"),
+      () => toast.error("Copy failed")
+    );
+  };
 
-  const tiles = [
-    { icon: Shield, label: "Security Centre", to: "/bind-api", testid: "profile-security" },
-    { icon: Settings, label: "System Setting", to: "/guide", testid: "profile-settings" },
-    { icon: Headphones, label: "Support", to: "/guide", testid: "profile-support" },
+  const pickAvatar = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 3 * 1024 * 1024) return toast.error("Image must be under 3MB");
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result;
+      setAvatar(url);
+      try {
+        localStorage.setItem(avatarKey, url);
+      } catch {
+        toast.error("Could not save photo");
+      }
+      toast.success("Profile photo updated");
+    };
+    reader.readAsDataURL(f);
+  };
+
+  const items = [
+    { icon: <Trophy size={26} color="#2563EB" strokeWidth={2.2} />, label: "Current Rank", to: "/rank", testid: "profile-rank" },
+    { icon: <Gift size={26} color="#2563EB" fill="#2563EB" strokeWidth={1.6} />, label: "Referral", to: "/referral", testid: "profile-referral" },
+    { icon: <ShieldCheck size={26} color="#16A34A" fill="#16A34A" strokeWidth={1.6} className="[&>path:last-child]:stroke-white" />, label: "Security Centre", to: "/guide", testid: "profile-security" },
+    { icon: <SocialCluster />, label: "Social Media", to: "/social-bonus", testid: "profile-social" },
+    { icon: <HelpCircle size={26} color="#2563EB" strokeWidth={2.2} />, label: "Help Center", to: "/guide", testid: "profile-help" },
+    { icon: <Cog size={26} color="#16A34A" strokeWidth={2.2} />, label: "API Management", to: "/bind-api", testid: "profile-api" },
   ];
 
   return (
-    <div className="pb-6">
-      <PageHeader title="Profile" subtitle="Account · Settings" showBack={false} right={<ThemeToggle />} />
-
-      <div className="px-4 space-y-3">
-        {/* ===== Identity card ===== */}
-        <div className="rounded-2xl p-4 flex items-center gap-3.5" style={CARD} data-testid="profile-identity-card">
-          <div className="relative shrink-0">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center font-display font-black text-2xl text-white"
-              style={{ background: GRAD, boxShadow: "0 2px 10px rgba(37,99,235,0.35)" }}
-            >
-              {(user?.name || user?.email || "?")[0]?.toUpperCase()}
-            </div>
-            <div
-              className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center"
-              style={{ background: "#16A34A", border: "2px solid var(--surface)" }}
-            >
-              <Pencil size={9} color="#fff" />
-            </div>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1">
-              <span className="font-display font-black text-lg truncate" style={{ color: "var(--ink)" }} data-testid="profile-name">
-                {user?.name || "Trader"}
-              </span>
-              <BadgeCheck size={17} fill="#2563EB" color="var(--surface)" className="shrink-0" />
-            </div>
-            <div className="space-y-1 mt-1">
-              <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text)" }}>
-                <Mail size={12} style={{ color: "var(--ink)" }} />
-                <span className="truncate">{user?.email}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text)" }}>
-                <Calendar size={12} style={{ color: "var(--ink)" }} />
-                Joined on {fmtJoin(user?.created_at)}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text)" }}>
-                <UserIcon size={12} style={{ color: "var(--ink)" }} />
-                UID: <span className="font-black" data-testid="profile-uid">{user?.uid || "—"}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text)" }}>
-                <MapPin size={12} style={{ color: "var(--ink)" }} />
-                <span>🇮🇳 Country: {user?.country || "India"}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center shrink-0 pl-1">
-            <ShieldCheck size={54} strokeWidth={1.6} style={{ color: "#16A34A" }} />
-            <div className="text-[10px] font-black tracking-wider mt-1" style={{ color: "var(--ink)" }}>
-              TRADE SKILL
-            </div>
-            <div className="h-[3px] w-10 rounded-full mt-1" style={{ background: GRAD }} />
-          </div>
+    <div className="pb-8" style={{ background: "var(--bg-base)", minHeight: "100vh" }}>
+      {/* ===== Header ===== */}
+      <div className="flex items-center justify-between px-4 py-3.5 sticky top-0 z-20" style={{ background: "var(--bg-base)" }}>
+        <button onClick={() => navigate("/")} data-testid="profile-back" className="p-1 -ml-1">
+          <ChevronLeft size={26} style={{ color: "var(--ink)" }} />
+        </button>
+        <div className="flex items-center gap-1.5">
+          <img src={TS_LOGO} alt="Trade Skill" className="w-7 h-7 rounded-md object-cover" />
+          <span className="font-display font-black text-xl tracking-tight" style={{ color: "var(--ink)" }}>
+            Trade<span style={{ color: "#2563EB" }}>Skill</span>
+          </span>
         </div>
-
-        {/* ===== Current rank ===== */}
-        <div className="rounded-2xl p-4 flex items-center gap-3.5" style={CARD} data-testid="profile-current-rank">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCFCE7" }}>
-            <Crown size={22} style={{ color: "#16A34A" }} />
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>CURRENT RANK</div>
-            <div className="font-display font-black text-2xl leading-tight uppercase" style={{ color: "var(--ink)" }}>
-              {rankName(rankInfo?.current_title || user?.rank)}
-            </div>
-          </div>
-        </div>
-
-        {/* ===== Next rank ===== */}
-        {nextRank && (
-          <div className="rounded-2xl p-4" style={CARD} data-testid="profile-next-rank">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--surface-3)" }}>
-                <Crown size={22} style={{ color: "var(--ink)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>NEXT RANK</div>
-                <div className="font-display font-black text-2xl leading-tight uppercase" style={{ color: "var(--ink)" }}>
-                  {rankName(nextRank.title)}
-                </div>
-              </div>
-              <span className="px-3 py-1.5 rounded-full text-[11px] font-black shrink-0" style={{ background: "#DBEAFE", color: "#2563EB" }}>
-                Coming Soon
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: GRAD }} />
-              </div>
-              <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--ink)" }}>{pct}%</span>
-            </div>
-            <div className="flex items-center justify-between mt-2 text-[12px] font-semibold" style={{ color: "var(--text)" }}>
-              <span>Directs: <b>{prog?.direct_have ?? 0} / {prog?.direct_needed ?? 0}</b></span>
-              <span>Team: <b>{prog?.team_have ?? 0} / {prog?.team_needed ?? 0}</b></span>
-            </div>
-          </div>
-        )}
-
-        {/* ===== Wallet balance ===== */}
-        <div className="rounded-2xl p-4 flex items-center gap-3.5" style={CARD} data-testid="profile-wallet-card">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--surface-3)" }}>
-            <WalletIcon size={22} style={{ color: "var(--ink)" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>WALLET BALANCE</div>
-            <div className="font-display font-black text-xl leading-tight tabular-nums" style={{ color: "var(--ink)" }}>
-              ${(user?.wallet_usdt || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <button
-            onClick={() => navigate("/wallet")}
-            className="px-4 py-2.5 rounded-full text-[12.5px] font-black text-white shrink-0"
-            style={{ background: GRAD }}
-            data-testid="profile-view-wallet"
-          >
-            View Wallet →
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/guide")} data-testid="profile-support-icon">
+            <Headphones size={23} style={{ color: "var(--ink)" }} strokeWidth={2.2} />
+          </button>
+          <button onClick={() => navigate("/guide")} data-testid="profile-settings-icon">
+            <Settings size={23} style={{ color: "var(--ink)" }} strokeWidth={2.2} />
           </button>
         </div>
+      </div>
 
-        {/* ===== 4 tiles ===== */}
-        <div className="grid grid-cols-4 gap-2.5">
-          {tiles.map((t) => (
-            <Link
-              key={t.label}
-              to={t.to}
-              data-testid={t.testid}
-              className="rounded-2xl flex flex-col items-center justify-center gap-2 py-4 px-1"
-              style={CARD}
-            >
-              <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: "var(--surface-3)" }}>
-                <t.icon size={20} strokeWidth={2} style={{ color: "var(--ink)" }} />
+      <div className="px-4 space-y-3.5">
+        {/* ===== Identity card ===== */}
+        <div
+          className="relative rounded-3xl p-5 overflow-hidden"
+          style={{ background: BLUE_GRAD, boxShadow: "0 8px 24px rgba(37,99,235,0.3)" }}
+          data-testid="profile-identity-card"
+        >
+          <div
+            className="absolute right-[-60px] top-[-40px] w-56 h-56 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%)" }}
+          />
+          <div className="relative flex items-start gap-4">
+            {/* avatar column */}
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative">
+                <div
+                  className="w-[88px] h-[88px] rounded-full overflow-hidden flex items-center justify-center font-display font-black text-3xl text-white"
+                  style={{ border: "3px solid rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.15)" }}
+                >
+                  {avatar ? (
+                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" data-testid="profile-avatar-img" />
+                  ) : (
+                    (user?.name || user?.email || "?")[0]?.toUpperCase()
+                  )}
+                </div>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  data-testid="profile-avatar-camera"
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: "#2563EB", border: "2px solid #fff" }}
+                >
+                  <Camera size={14} color="#fff" />
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickAvatar} data-testid="profile-avatar-input" />
               </div>
-              <span className="text-[10px] font-bold text-center leading-tight" style={{ color: "var(--ink)" }}>
-                {t.label}
-              </span>
-            </Link>
-          ))}
+              <div
+                className="flex items-center gap-1 mt-2.5 px-3 py-1 rounded-full"
+                style={{ background: "#16A34A" }}
+                data-testid="profile-verified-pill"
+              >
+                <BadgeCheck size={13} color="#fff" />
+                <span className="text-white text-[11px] font-black">Verified</span>
+              </div>
+            </div>
+
+            {/* details column */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="font-display font-black text-[22px] text-white truncate" data-testid="profile-name">
+                  Hi, {user?.name || "Trader"}
+                </span>
+                <BadgeCheck size={18} fill="#fff" color="#2563EB" className="shrink-0" />
+              </div>
+
+              <div className="space-y-2 mt-2.5">
+                <div className="flex items-center gap-2 text-white/95 text-[13px]">
+                  <Mail size={15} className="shrink-0 opacity-90" />
+                  <span className="truncate" data-testid="profile-email">{user?.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/95 text-[13px]">
+                  <Calendar size={15} className="shrink-0 opacity-90" />
+                  <span>Joined on {fmtJoin(user?.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/95 text-[13px]">
+                  <UserIcon size={15} className="shrink-0 opacity-90" />
+                  <span>UID: <b data-testid="profile-uid">{user?.uid || "—"}</b></span>
+                  <button onClick={copyUID} data-testid="profile-copy-uid" className="opacity-90 active:opacity-60">
+                    <Copy size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 text-white/95 text-[13px]">
+                  <MapPin size={15} className="shrink-0 opacity-90" />
+                  <span>🇮🇳 Country: {user?.country || "India"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* ===== Menu list ===== */}
+        {items.map((it) => (
+          <button
+            key={it.label}
+            onClick={() => navigate(it.to)}
+            data-testid={it.testid}
+            className="w-full rounded-2xl px-4 py-4 flex items-center gap-4 active:scale-[0.99] transition-transform"
+            style={CARD}
+          >
+            <div className="w-8 flex items-center justify-center shrink-0">{it.icon}</div>
+            <span className="flex-1 text-left font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
+              {it.label}
+            </span>
+            <ChevronRight size={22} style={{ color: "var(--text-mute)" }} />
+          </button>
+        ))}
 
         {/* Admin */}
         {user?.role === "admin" && (
-          <Link
-            to="/admin/withdrawals"
-            className="rounded-2xl p-4 flex items-center gap-3" style={CARD}
+          <button
+            onClick={() => navigate("/admin/withdrawals")}
+            className="w-full rounded-2xl px-4 py-4 flex items-center gap-4"
+            style={CARD}
             data-testid="profile-admin-withdrawals"
           >
-            <Shield size={18} style={{ color: "var(--ink)" }} />
-            <span className="text-sm font-black" style={{ color: "var(--ink)" }}>Withdrawals Admin</span>
-          </Link>
+            <div className="w-8 flex items-center justify-center shrink-0">
+              <Shield size={26} color="#DC2626" strokeWidth={2.2} />
+            </div>
+            <span className="flex-1 text-left font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
+              Withdrawals Admin
+            </span>
+            <ChevronRight size={22} style={{ color: "var(--text-mute)" }} />
+          </button>
         )}
 
+        {/* Logout */}
         <button
           onClick={doLogout}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-display font-bold transition"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-display font-black"
           style={{ background: "rgba(248,113,113,0.10)", border: "1px solid rgba(248,113,113,0.35)", color: "var(--bad)" }}
           data-testid="logout-btn"
         >
