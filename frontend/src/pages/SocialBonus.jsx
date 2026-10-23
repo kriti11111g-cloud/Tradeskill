@@ -120,6 +120,18 @@ export default function SocialBonus() {
   };
 
   const renderAction = (p) => {
+    // Only Telegram has the real follow/verify/claim flow. All other
+    // platforms are shown as enabled with a "Coming Soon" badge.
+    if (p.id !== "telegram")
+      return (
+        <span
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase"
+          style={{ background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.30)", color: "#2563EB" }}
+          data-testid={`coming-soon-${p.id}`}
+        >
+          Coming Soon 🚀
+        </span>
+      );
     if (p.claimed)
       return (
         <span className="flex items-center gap-1 text-[11px] font-black text-[color:var(--good)]" data-testid={`claimed-${p.id}`}>
@@ -258,13 +270,10 @@ export default function SocialBonus() {
               <div
                 key={p.id}
                 className="rounded-2xl border px-3 py-2 flex items-center gap-2.5 bg-[color:var(--surface)] transition-all duration-300"
-                style={{
-                  borderColor: p.coming_soon || p.locked ? "var(--border)" : GOLD_BORDER,
-                  opacity: p.coming_soon || p.locked ? 0.65 : 1,
-                }}
+                style={{ borderColor: GOLD_BORDER }}
                 data-testid={`social-card-${p.id}`}
               >
-                <div className="shrink-0" style={{ filter: p.coming_soon || p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(34)}</div>
+                <div className="shrink-0">{Logos[p.id]?.(34)}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide truncate">
@@ -278,7 +287,7 @@ export default function SocialBonus() {
                     </span>
                   </div>
                   <div className="text-[10px] text-[color:var(--text-mute)] truncate">
-                    {p.coming_soon ? "Jald hi available hoga" : p.locked ? `Pehle ${data.platforms[i - 1]?.name} claim karein` : p.desc}
+                    {p.desc || "Follow our official channel"}
                   </div>
                 </div>
                 <div className="shrink-0">{renderAction(p)}</div>
