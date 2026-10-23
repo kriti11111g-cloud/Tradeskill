@@ -211,7 +211,7 @@ export default function Profile() {
             style={CARD}
           >
             <div className="w-8 flex items-center justify-center shrink-0">{it.icon}</div>
-            <span className="flex-1 text-left font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
+            <span className="flex-1 text-left font-medium text-[17px]" style={{ color: "var(--ink)" }}>
               {it.label}
             </span>
             <ChevronRight size={22} style={{ color: "var(--text-mute)" }} />
@@ -229,7 +229,7 @@ export default function Profile() {
             <div className="w-8 flex items-center justify-center shrink-0">
               <Shield size={26} color="#DC2626" strokeWidth={2.2} />
             </div>
-            <span className="flex-1 text-left font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>
+            <span className="flex-1 text-left font-medium text-[17px]" style={{ color: "var(--ink)" }}>
               Withdrawals Admin
             </span>
             <ChevronRight size={22} style={{ color: "var(--text-mute)" }} />
