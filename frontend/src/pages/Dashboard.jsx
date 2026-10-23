@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [rank, setRank] = useState(null);
   const [rankUp, setRankUp] = useState(null);
   const navigate = useNavigate();
+  const avatar = localStorage.getItem(`ts_avatar_${user?.uid || user?.id || "me"}`);
 
   useEffect(() => {
     api.get("/market/top?limit=8").then(({ data }) => setPairs(data.coins || [])).catch(() => {});
@@ -153,10 +154,16 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center relative"
-              style={{ background: "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center relative overflow-hidden"
+              style={{ background: avatar ? "var(--surface)" : "var(--primary-grad)", boxShadow: "var(--shadow-sm)" }}
+              onClick={() => navigate("/profile")}
+              data-testid="home-avatar"
             >
-              <Zap size={18} className="text-white" strokeWidth={2.5} />
+              {avatar ? (
+                <img src={avatar} alt="dp" className="w-full h-full object-cover" />
+              ) : (
+                <Zap size={18} className="text-white" strokeWidth={2.5} />
+              )}
               <div
                 className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
                 style={{
