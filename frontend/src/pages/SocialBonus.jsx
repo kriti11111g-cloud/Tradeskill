@@ -268,17 +268,19 @@ export default function SocialBonus() {
               >
                 <div className="shrink-0" style={{ filter: p.coming_soon || p.locked ? "grayscale(0.8)" : "none" }}>{Logos[p.id]?.(34)}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide">
-                    {String(i + 1).padStart(2, "0")}. {p.name}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-black text-[color:var(--text)] uppercase tracking-wide truncate">
+                      {String(i + 1).padStart(2, "0")}. {p.name}
+                    </span>
+                    <span
+                      className="shrink-0 px-2 py-0.5 rounded-md text-[8.5px] font-black"
+                      style={{ background: "rgba(37,99,235,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
+                    >
+                      ${p.reward.toFixed(2)}
+                    </span>
                   </div>
                   <div className="text-[10px] text-[color:var(--text-mute)] truncate">
                     {p.coming_soon ? "Jald hi available hoga" : p.locked ? `Pehle ${data.platforms[i - 1]?.name} claim karein` : p.desc}
-                  </div>
-                  <div
-                    className="inline-block mt-1 px-2 py-0.5 rounded-md text-[9px] font-black"
-                    style={{ background: "rgba(37,99,235,0.1)", border: `1px solid ${GOLD_BORDER}`, color: "#2563EB" }}
-                  >
-                    REWARD ${p.reward.toFixed(2)}
                   </div>
                 </div>
                 <div className="shrink-0">{renderAction(p)}</div>
