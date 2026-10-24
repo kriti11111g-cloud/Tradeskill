@@ -6,6 +6,7 @@ import {
   KeyRound, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck, Trash2, Save, Search,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
+import { useTheme } from "@/context/ThemeContext";
 
 const EX = {
   binance: {
@@ -44,29 +45,35 @@ const EX = {
   },
 };
 
-// ---- Dark premium palette (hardcoded for this screen) ----
-const PAGE_BG = "radial-gradient(130% 80% at 50% 0%, #0E2A44 0%, #081322 55%, #060E1A 100%)";
+// ---- Premium glow palette (adapts to day/night mode) ----
 const BLUE_GRAD = "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)";
-const C = {
-  card: "rgba(13,27,48,0.72)",
-  cardBorder: "rgba(59,130,246,0.22)",
-  inner: "rgba(6,14,26,0.85)",
-  white: "#EAF2FF",
-  mute: "#8CA3C0",
-  blue: "#4F9BFF",
-};
-const cardStyle = {
-  background: C.card,
-  border: `1px solid ${C.cardBorder}`,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
-  backdropFilter: "blur(14px)",
-};
 
 export default function BindAPI() {
   const params = useParams();
   const navigate = useNavigate();
   const exId = (params.exchange || "binance").toLowerCase();
   const cfg = EX[exId] || EX.binance;
+
+  const { mode: themeMode } = useTheme();
+  const dark = themeMode === "dark";
+  const C = dark ? {
+    card: "rgba(13,27,48,0.72)", cardBorder: "rgba(59,130,246,0.22)", inner: "rgba(6,14,26,0.85)",
+    white: "#EAF2FF", mute: "#8CA3C0", blue: "#4F9BFF",
+    headerBg: "rgba(6,14,26,0.6)", modeOff: "rgba(10,22,40,0.6)", modeOffBorder: "rgba(255,255,255,0.08)",
+  } : {
+    card: "rgba(255,255,255,0.96)", cardBorder: "rgba(37,99,235,0.16)", inner: "#F1F6FF",
+    white: "#0F2340", mute: "#64748B", blue: "#2563EB",
+    headerBg: "rgba(255,255,255,0.8)", modeOff: "#F1F6FF", modeOffBorder: "rgba(15,35,64,0.08)",
+  };
+  const PAGE_BG = dark
+    ? "radial-gradient(130% 80% at 50% 0%, #0E2A44 0%, #081322 55%, #060E1A 100%)"
+    : "radial-gradient(130% 80% at 50% 0%, #EAF2FF 0%, #F5F9FF 55%, #FFFFFF 100%)";
+  const cardStyle = {
+    background: C.card,
+    border: `1px solid ${C.cardBorder}`,
+    boxShadow: dark ? "0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)" : "0 6px 20px rgba(37,99,235,0.08)",
+    backdropFilter: "blur(14px)",
+  };
 
   const [existing, setExisting] = useState(null);
   const [apiKey, setApiKey] = useState("");
@@ -139,13 +146,13 @@ export default function BindAPI() {
   return (
     <div className="min-h-screen pb-10" style={{ background: PAGE_BG, color: C.white }} data-testid={`bind-page-${exId}`}>
       {/* ===== Header ===== */}
-      <div className="flex items-center justify-between px-4 py-4 sticky top-0 z-20" style={{ background: "rgba(6,14,26,0.6)", backdropFilter: "blur(10px)" }}>
+      <div className="flex items-center justify-between px-4 py-4 sticky top-0 z-20" style={{ background: C.headerBg, backdropFilter: "blur(10px)" }}>
         <button onClick={() => navigate(-1)} data-testid="bind-back" className="p-1 -ml-1">
           <ChevronLeft size={26} color={C.white} />
         </button>
         <div className="flex items-center gap-1.5">
           <BarChart3 size={24} color={C.blue} strokeWidth={2.6} />
-          <span className="font-display font-black text-xl tracking-tight text-white">
+          <span className="font-display font-black text-xl tracking-tight" style={{ color: C.white }}>
             Trade<span style={{ color: C.blue }}>Skill</span>
           </span>
         </div>
@@ -160,7 +167,7 @@ export default function BindAPI() {
         {blocked && !existing?.api_key_mask && (
           <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.12)", border: "1.5px solid rgba(248,113,113,0.45)" }} data-testid="bind-blocked-notice">
             <AlertTriangle size={20} className="shrink-0 mt-0.5" color="#F87171" />
-            <div className="text-[12px] leading-relaxed text-white">
+            <div className="text-[12px] leading-relaxed" style={{ color: C.white }}>
               <b>{blocked}</b> is already connected on this account. Only one exchange can be added per account — to add {cfg.name}, please disconnect <b>{blocked}</b> first.
             </div>
           </div>
@@ -173,7 +180,7 @@ export default function BindAPI() {
               <ShieldCheck size={20} color="#22C55E" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-sm text-white">API Bound</div>
+              <div className="font-display font-bold text-sm" style={{ color: C.white }}>API Bound</div>
               <div className="text-xs mt-0.5 font-mono" style={{ color: C.mute }}>
                 {existing.api_key_mask} · <span className="uppercase">{existing.mode}</span>
               </div>
@@ -191,7 +198,7 @@ export default function BindAPI() {
               <Globe size={19} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display font-black text-[14px] text-white leading-tight">Server IP — Whitelist This</div>
+              <div className="font-display font-black text-[14px] leading-tight" style={{ color: C.white }}>Server IP — Whitelist This</div>
               <div className="text-[10.5px] mt-0.5 leading-snug" style={{ color: C.mute }}>
                 Add this IP to your {cfg.name} API whitelist for secure access.
               </div>
@@ -213,7 +220,7 @@ export default function BindAPI() {
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-1.5">
               <BarChart3 size={17} color={C.blue} strokeWidth={2.6} />
-              <span className="font-display font-black text-[12.5px] uppercase tracking-wider text-white">Trading Mode</span>
+              <span className="font-display font-black text-[12.5px] uppercase tracking-wider" style={{ color: C.white }}>Trading Mode</span>
             </div>
             <Info size={15} color={C.mute} />
           </div>
@@ -230,7 +237,7 @@ export default function BindAPI() {
                   className={`text-left rounded-xl p-2.5 transition-all ${full ? "col-span-2" : ""}`}
                   style={sel
                     ? { background: BLUE_GRAD, border: "1px solid #7FB4FF", boxShadow: "0 0 18px rgba(59,130,246,0.45)" }
-                    : { background: "rgba(10,22,40,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}
+                    : { background: C.modeOff, border: `1px solid ${C.modeOffBorder}` }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -281,7 +288,7 @@ export default function BindAPI() {
               <KeyRound size={19} />
             </div>
             <div className="min-w-0">
-              <div className="font-display font-black text-[14px] text-white">API Credentials</div>
+              <div className="font-display font-black text-[14px]" style={{ color: C.white }}>API Credentials</div>
               <div className="text-[10.5px] mt-0.5 leading-snug" style={{ color: C.mute }}>
                 Enter your {cfg.name} API key and secret to connect.
               </div>
@@ -347,7 +354,7 @@ export default function BindAPI() {
           </button>
 
           <div className="text-[10px] leading-relaxed px-0.5" style={{ color: C.mute }}>
-            <span className="text-white font-bold">Tip:</span> {cfg.keyHint} Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span>. Never share your secret.
+            <span className="font-bold" style={{ color: C.white }}>Tip:</span> {cfg.keyHint} Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span>. Never share your secret.
           </div>
         </form>
       </div>
@@ -362,17 +369,17 @@ export default function BindAPI() {
                 <AlertTriangle size={22} color="#F87171" />
               </div>
               <div>
-                <div className="font-display font-black text-lg tracking-tight text-white">Enable Live Trading?</div>
+                <div className="font-display font-black text-lg tracking-tight" style={{ color: C.white }}>Enable Live Trading?</div>
                 <div className="text-xs mt-1" style={{ color: C.mute }}>This places real orders with real funds on {cfg.name}.</div>
               </div>
             </div>
-            <label className="flex items-start gap-2 text-xs cursor-pointer mb-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: C.white }}>
+            <label className="flex items-start gap-2 text-xs cursor-pointer mb-3 rounded-xl p-3" style={{ background: C.modeOff, border: `1px solid ${C.modeOffBorder}`, color: C.white }}>
               <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="accent-[#F87171] w-4 h-4 mt-0.5" data-testid="confirm-ack" />
               <span>I understand the risks and want to enable live trading with my {cfg.name} funds.</span>
             </label>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button type="button" onClick={() => { setConfirmOpen(false); setAck(false); }} disabled={loading}
-                className="py-3 rounded-xl font-display font-bold text-sm text-white disabled:opacity-60" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} data-testid="confirm-cancel">
+                className="py-3 rounded-xl font-display font-bold text-sm disabled:opacity-60" style={{ background: C.modeOff, border: `1px solid ${C.modeOffBorder}`, color: C.white }} data-testid="confirm-cancel">
                 Cancel
               </button>
               <button type="button" onClick={doBind} disabled={!ack || loading}
