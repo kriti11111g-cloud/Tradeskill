@@ -78,3 +78,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend: BindAPI.jsx EX.lbank entry (no passphrase) + generalized multi-"others" one-exchange blocking; ExchangeList.jsx SUPPORTED adds lbank + lbankBind state/activeId/connectedId.
 - Verified on preview: bind/get/delete + both-direction one-exchange blocking via curl; signing fixture; LBank bind page + exchange-list "Bind" badge via screenshot.
 - NOT testable in preview: live LBank order execution (needs user's real LBank key with this server IP whitelisted). User must bind real keys on production + whitelist the production server egress IP.
+
+## 2026-06 — BindAPI page premium dark redesign
+- Rewrote /app/frontend/src/pages/BindAPI.jsx to a hardcoded dark/glowing-blue premium theme matching user's mockup (applies to all exchanges: binance/kucoin/lbank).
+- Sections: custom dark header (back + TradeSkill logo + headphones/settings), glowing Server IP whitelist card (Copy button + big mono IP), Trading Mode as two big selectable cards (DEMO/REAL, radio selectors, glowing blue when selected; 3rd mode col-span-2 for Binance testnet), contextual note/red live-trading warning banner, API Credentials card with icon inputs + eye toggles (key/secret/passphrase), glowing "Save API Settings" button.
+- All prior logic preserved: load/bind/unbind, one-exchange-per-account block (multi-other), real-mode confirm modal (restyled dark), passphrase for KuCoin.
+- Verified via screenshots on lbank (REAL + red banner) and kucoin (passphrase field + save button).

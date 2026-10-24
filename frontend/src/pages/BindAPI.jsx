@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { KeyRound, ShieldCheck, Trash2, AlertTriangle, Globe, Copy } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import {
+  ChevronLeft, Headphones, Settings, BarChart3, Info, Globe, Copy,
+  KeyRound, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck, Trash2, Save, Search,
+} from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 
 const EX = {
@@ -42,8 +44,27 @@ const EX = {
   },
 };
 
+// ---- Dark premium palette (hardcoded for this screen) ----
+const PAGE_BG = "radial-gradient(130% 80% at 50% 0%, #0E2A44 0%, #081322 55%, #060E1A 100%)";
+const BLUE_GRAD = "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)";
+const C = {
+  card: "rgba(13,27,48,0.72)",
+  cardBorder: "rgba(59,130,246,0.22)",
+  inner: "rgba(6,14,26,0.85)",
+  white: "#EAF2FF",
+  mute: "#8CA3C0",
+  blue: "#4F9BFF",
+};
+const cardStyle = {
+  background: C.card,
+  border: `1px solid ${C.cardBorder}`,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03)",
+  backdropFilter: "blur(14px)",
+};
+
 export default function BindAPI() {
   const params = useParams();
+  const navigate = useNavigate();
   const exId = (params.exchange || "binance").toLowerCase();
   const cfg = EX[exId] || EX.binance;
 
@@ -55,14 +76,16 @@ export default function BindAPI() {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ack, setAck] = useState(false);
-  const [blocked, setBlocked] = useState(null); // name of other exchange already connected
+  const [blocked, setBlocked] = useState(null);
+  const [showKey, setShowKey] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   const load = () => api.get(cfg.path).then(({ data }) => setExisting(data)).catch(() => {});
   useEffect(() => {
     setExisting(null);
     setBlocked(null);
     load();
-    // One exchange per account — check if ANY other exchange is already connected
     cfg.others.forEach((o) => {
       api.get(o.path).then(({ data }) => { if (data?.api_key_mask) setBlocked(o.name); }).catch(() => {});
     });
@@ -103,157 +126,266 @@ export default function BindAPI() {
     }
   };
 
+  const copyIp = () => {
+    navigator.clipboard.writeText(existing?.whitelist_ip || "");
+    toast.success("IP copied!");
+  };
+
+  const modeDesc = (m) =>
+    m === "demo" ? "Practice trading with virtual funds."
+    : m === "testnet" ? "Places test orders on Binance Testnet."
+    : `Place live orders on ${cfg.name} using your funds.`;
+
   return (
-    <div data-testid={`bind-page-${exId}`}>
-      <PageHeader title={`Bind ${cfg.name} API`} subtitle="Connect · Trade · Automate" />
-
-      <div className="px-4 space-y-4">
-        {blocked && !existing?.api_key_mask && (
-          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.08)", border: "1.5px solid rgba(220,38,38,0.35)" }} data-testid="bind-blocked-notice">
-            <AlertTriangle size={20} className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} />
-            <div className="text-[12px] leading-relaxed" style={{ color: "var(--ink)" }}>
-              <b>{blocked}</b> is already connected on this account. Only one exchange can be added per account —
-              {" "}to add {cfg.name}, please disconnect <b>{blocked}</b> first.
-            </div>
-          </div>
-        )}
-        {existing?.api_key_mask && (
-          <div className="app-card !border-[color:var(--gold)]/30 rounded-2xl p-4 flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[color:var(--gold)]/10 flex items-center justify-center">
-              <ShieldCheck size={20} className="text-[color:var(--gold)]" />
-            </div>
-            <div className="flex-1">
-              <div className="font-display font-bold text-sm">API Bound</div>
-              <div className="text-xs text-[color:var(--text-mute)] mt-0.5 font-mono">
-                {existing.api_key_mask} · <span className="uppercase">{existing.mode}</span>
-              </div>
-            </div>
-            <button onClick={unbind} className="w-9 h-9 rounded-xl bg-[color:var(--bad)]/10 border border-[color:var(--bad)]/30 flex items-center justify-center hover:bg-[color:var(--bad)]/20" data-testid="unbind-btn">
-              <Trash2 size={16} className="text-[color:var(--bad)]" />
-            </button>
-          </div>
-        )}
-
-        {existing?.whitelist_ip && (
-          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "var(--lp-card-grad)", border: "1.5px solid var(--lp-border)" }} data-testid="whitelist-ip-card">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)" }}>
-              <Globe size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-display font-bold text-sm" style={{ color: "var(--ink)" }}>Server IP — Whitelist This</div>
-              <div className="text-[11px] mt-0.5 leading-snug" style={{ color: "var(--text-mute)" }}>
-                {cfg.name} API settings me "Restrict access to trusted IPs" me ye IP add karo:
-              </div>
-              <div className="font-mono font-black text-[15px] mt-1.5 tabular-nums" style={{ color: "var(--lp-blue)" }} data-testid="whitelist-ip-value">
-                {existing.whitelist_ip}
-              </div>
-            </div>
-            <button onClick={() => { navigator.clipboard.writeText(existing.whitelist_ip); toast.success("IP copied!"); }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "var(--surface-3)", border: "1px solid var(--lp-border)", touchAction: "manipulation" }} data-testid="whitelist-ip-copy">
-              <Copy size={15} style={{ color: "var(--lp-blue)" }} />
-            </button>
-          </div>
-        )}
-
-        <div className="app-card rounded-2xl p-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold mb-3">Trading Mode</div>
-          <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${cfg.modes.length}, minmax(0, 1fr))` }}>
-            {cfg.modes.map((m) => (
-              <button key={m.id} onClick={() => setMode(m.id)} data-testid={`mode-${m.id}`}
-                className={`py-3 px-2 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all ${
-                  mode === m.id
-                    ? m.id === "demo" ? "bg-[color:var(--good)] text-white"
-                      : m.id === "testnet" ? "bg-[color:var(--gold)] text-white"
-                      : "bg-[color:var(--bad)] text-white glow-danger"
-                    : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"
-                }`}>
-                <div>{m.label}</div>
-                <div className="text-[8px] font-normal opacity-70 mt-0.5">{m.desc}</div>
-              </button>
-            ))}
-          </div>
-          <div className="text-xs text-[color:var(--text-mute)] mt-3 leading-relaxed">
-            {mode === "demo" && `Demo mode uses live market prices with a virtual balance. No real funds at risk. No ${cfg.name} account required.`}
-            {mode === "testnet" && "Testnet mode places REAL orders on Binance's Spot Testnet (fake funds). Get keys at testnet.binance.vision."}
-            {mode === "real" && `⚠️ Real mode places LIVE orders on ${cfg.name} with your funds. Enable only Read Info + Spot Trading. Use IP whitelist. Not reversible.`}
-          </div>
+    <div className="min-h-screen pb-10" style={{ background: PAGE_BG, color: C.white }} data-testid={`bind-page-${exId}`}>
+      {/* ===== Header ===== */}
+      <div className="flex items-center justify-between px-4 py-4 sticky top-0 z-20" style={{ background: "rgba(6,14,26,0.6)", backdropFilter: "blur(10px)" }}>
+        <button onClick={() => navigate(-1)} data-testid="bind-back" className="p-1 -ml-1">
+          <ChevronLeft size={26} color={C.white} />
+        </button>
+        <div className="flex items-center gap-1.5">
+          <BarChart3 size={24} color={C.blue} strokeWidth={2.6} />
+          <span className="font-display font-black text-xl tracking-tight text-white">
+            Trade<span style={{ color: C.blue }}>Skill</span>
+          </span>
         </div>
-
-        <form onSubmit={save} className="app-card rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <KeyRound size={18} className="text-[color:var(--gold-deep)]" />
-            <div className="font-display font-bold text-sm">API Credentials</div>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">API Key</label>
-            <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} required
-              placeholder={`Paste your ${cfg.name} API key`}
-              className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)] font-mono text-sm"
-              data-testid="input-apikey" />
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">API Secret</label>
-            <input type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required
-              placeholder={`Paste your ${cfg.name} secret`}
-              className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)] font-mono text-sm"
-              data-testid="input-secret" />
-          </div>
-          {cfg.needsPassphrase && (
-            <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-mute)] font-bold">API Passphrase</label>
-              <input type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} required
-                placeholder="Passphrase set during key creation"
-                className="w-full mt-1.5 bg-[color:var(--bg-base)] border border-[color:var(--border)] rounded-xl px-4 py-3 focus:outline-none focus:border-[color:var(--primary)] transition-all placeholder:text-[color:var(--text-mute)] font-mono text-sm"
-                data-testid="input-passphrase" />
-            </div>
-          )}
-          <button type="submit" disabled={loading || !!blocked}
-            className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:brightness-110 transition-all hover:glow-primary disabled:opacity-60"
-            data-testid="bind-submit">
-            {blocked ? `Disconnect ${blocked} first` : loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
-          </button>
-        </form>
-
-        <div className="text-xs text-[color:var(--text-mute)] px-2 leading-relaxed">
-          <span className="text-[color:var(--text)] font-bold">Tip:</span> {cfg.keyHint} Enable only{" "}
-          <span className="text-[color:var(--primary)]">Read Info + Spot Trading</span>. Never share your secret.
+        <div className="flex items-center gap-3.5">
+          <button onClick={() => navigate("/guide")}><Headphones size={22} color={C.white} strokeWidth={2.2} /></button>
+          <button onClick={() => navigate("/guide")}><Settings size={22} color={C.white} strokeWidth={2.2} /></button>
         </div>
       </div>
 
+      <div className="px-4 space-y-5 pt-2">
+        {/* ===== Blocked notice ===== */}
+        {blocked && !existing?.api_key_mask && (
+          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.12)", border: "1.5px solid rgba(248,113,113,0.45)" }} data-testid="bind-blocked-notice">
+            <AlertTriangle size={20} className="shrink-0 mt-0.5" color="#F87171" />
+            <div className="text-[12px] leading-relaxed text-white">
+              <b>{blocked}</b> is already connected on this account. Only one exchange can be added per account — to add {cfg.name}, please disconnect <b>{blocked}</b> first.
+            </div>
+          </div>
+        )}
+
+        {/* ===== API Bound card (when connected) ===== */}
+        {existing?.api_key_mask && (
+          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ ...cardStyle, border: "1px solid rgba(34,197,94,0.4)" }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(34,197,94,0.15)" }}>
+              <ShieldCheck size={20} color="#22C55E" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-bold text-sm text-white">API Bound</div>
+              <div className="text-xs mt-0.5 font-mono" style={{ color: C.mute }}>
+                {existing.api_key_mask} · <span className="uppercase">{existing.mode}</span>
+              </div>
+            </div>
+            <button onClick={unbind} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)" }} data-testid="unbind-btn">
+              <Trash2 size={16} color="#F87171" />
+            </button>
+          </div>
+        )}
+
+        {/* ===== Server IP card ===== */}
+        <div className="rounded-3xl p-4" style={{ ...cardStyle, boxShadow: "0 0 28px rgba(37,99,235,0.18), 0 10px 30px rgba(0,0,0,0.45)" }} data-testid="whitelist-ip-card">
+          <div className="flex items-start gap-3">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ background: BLUE_GRAD, boxShadow: "0 0 20px rgba(59,130,246,0.55)" }}>
+              <Globe size={26} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-black text-[18px] text-white leading-tight">Server IP — Whitelist This</div>
+              <div className="text-[12px] mt-1 leading-snug" style={{ color: C.mute }}>
+                Add this IP to your {cfg.name} API whitelist to allow secure access from TradeSkill.
+              </div>
+            </div>
+            <button onClick={copyIp} className="flex items-center gap-1.5 px-3 py-2 rounded-xl shrink-0 font-bold text-[13px]" style={{ background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.5)", color: C.blue }} data-testid="whitelist-ip-copy">
+              <Copy size={15} /> Copy
+            </button>
+          </div>
+          <div className="flex items-center justify-between rounded-2xl px-4 py-3 mt-3" style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)" }}>
+            <span className="font-mono font-black text-[22px] tabular-nums mx-auto" style={{ color: C.blue }} data-testid="whitelist-ip-value">
+              {existing?.whitelist_ip || "—"}
+            </span>
+            <button onClick={copyIp}><Copy size={18} color={C.blue} /></button>
+          </div>
+        </div>
+
+        {/* ===== Trading Mode ===== */}
+        <div className="rounded-3xl p-4" style={cardStyle}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={20} color={C.blue} strokeWidth={2.6} />
+              <span className="font-display font-black text-[15px] uppercase tracking-wider text-white">Trading Mode</span>
+            </div>
+            <Info size={18} color={C.mute} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {cfg.modes.map((m, idx) => {
+              const sel = mode === m.id;
+              const full = idx === cfg.modes.length - 1 && cfg.modes.length % 2 === 1;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(m.id)}
+                  data-testid={`mode-${m.id}`}
+                  className={`text-left rounded-2xl p-3.5 transition-all ${full ? "col-span-2" : ""}`}
+                  style={sel
+                    ? { background: BLUE_GRAD, border: "1px solid #7FB4FF", boxShadow: "0 0 26px rgba(59,130,246,0.5)" }
+                    : { background: "rgba(10,22,40,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: sel ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)" }}>
+                        <BarChart3 size={20} color={sel ? "#fff" : C.mute} strokeWidth={2.4} />
+                      </div>
+                      <div>
+                        <div className="font-display font-black text-[16px]" style={{ color: sel ? "#fff" : C.white }}>{m.label.toUpperCase()}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: sel ? "rgba(255,255,255,0.85)" : C.mute }}>
+                          {m.id === "real" ? "Live Trading" : m.id === "testnet" ? "Testnet" : "Simulated"}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ border: `2px solid ${sel ? "#fff" : "rgba(255,255,255,0.3)"}` }}>
+                      {sel && <span className="w-2.5 h-2.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                  <div className="text-[12px] mt-2.5 leading-snug" style={{ color: sel ? "rgba(255,255,255,0.92)" : C.mute }}>
+                    {modeDesc(m.id)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {mode === "real" ? (
+            <div className="rounded-2xl p-3.5 mt-3 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.12)", border: "1.5px solid rgba(248,113,113,0.5)" }}>
+              <AlertTriangle size={22} color="#F87171" className="shrink-0 mt-0.5" />
+              <div className="text-[12px] leading-relaxed" style={{ color: "#FCA5A5" }}>
+                <b className="text-[#F87171]">Real mode places live orders on {cfg.name} using your funds.</b> Enable only Read Info + Spot Trading, and whitelist this IP. This setting cannot be reversed.
+              </div>
+            </div>
+          ) : mode === "testnet" ? (
+            <div className="rounded-2xl p-3.5 mt-3 text-[12px] leading-relaxed" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.35)", color: "#FCD34D" }}>
+              Testnet mode places REAL orders on Binance's Spot Testnet (fake funds). Get keys at testnet.binance.vision.
+            </div>
+          ) : (
+            <div className="rounded-2xl p-3.5 mt-3 text-[12px] leading-relaxed" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.25)", color: C.mute }}>
+              Demo mode uses live market prices with a virtual balance. No real funds at risk. No {cfg.name} account required.
+            </div>
+          )}
+        </div>
+
+        {/* ===== API Credentials ===== */}
+        <form onSubmit={save} className="rounded-3xl p-4 space-y-4" style={cardStyle}>
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ background: BLUE_GRAD, boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
+              <KeyRound size={24} />
+            </div>
+            <div className="min-w-0">
+              <div className="font-display font-black text-[18px] text-white">API Credentials</div>
+              <div className="text-[12px] mt-0.5 leading-snug" style={{ color: C.mute }}>
+                Enter your {cfg.name} API key and secret to connect with TradeSkill.
+              </div>
+            </div>
+          </div>
+
+          {/* API KEY */}
+          <div>
+            <label className="text-[11px] uppercase tracking-[0.18em] font-black" style={{ color: C.mute }}>API Key</label>
+            <div className="relative mt-1.5">
+              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
+              <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} required type={showKey ? "text" : "password"}
+                placeholder={`Paste your ${cfg.name} API key`}
+                className="w-full rounded-2xl pl-11 pr-11 py-3.5 font-mono text-sm outline-none transition-all"
+                style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
+                data-testid="input-apikey" />
+              <button type="button" onClick={() => setShowKey((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                {showKey ? <EyeOff size={18} color={C.mute} /> : <Eye size={18} color={C.mute} />}
+              </button>
+            </div>
+          </div>
+
+          {/* API SECRET */}
+          <div>
+            <label className="text-[11px] uppercase tracking-[0.18em] font-black" style={{ color: C.mute }}>API Secret</label>
+            <div className="relative mt-1.5">
+              <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
+              <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required type={showSecret ? "text" : "password"}
+                placeholder={`Paste your ${cfg.name} secret`}
+                className="w-full rounded-2xl pl-11 pr-11 py-3.5 font-mono text-sm outline-none transition-all"
+                style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
+                data-testid="input-secret" />
+              <button type="button" onClick={() => setShowSecret((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                {showSecret ? <EyeOff size={18} color={C.mute} /> : <Eye size={18} color={C.mute} />}
+              </button>
+            </div>
+          </div>
+
+          {/* PASSPHRASE (KuCoin) */}
+          {cfg.needsPassphrase && (
+            <div>
+              <label className="text-[11px] uppercase tracking-[0.18em] font-black" style={{ color: C.mute }}>API Passphrase</label>
+              <div className="relative mt-1.5">
+                <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
+                <input value={passphrase} onChange={(e) => setPassphrase(e.target.value)} required type={showPass ? "text" : "password"}
+                  placeholder="Passphrase set during key creation"
+                  className="w-full rounded-2xl pl-11 pr-11 py-3.5 font-mono text-sm outline-none transition-all"
+                  style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
+                  data-testid="input-passphrase" />
+                <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                  {showPass ? <EyeOff size={18} color={C.mute} /> : <Eye size={18} color={C.mute} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !!blocked}
+            className="w-full flex items-center justify-center gap-2 font-display font-black text-white rounded-2xl py-4 transition-all disabled:opacity-50"
+            style={{ background: BLUE_GRAD, boxShadow: "0 0 26px rgba(59,130,246,0.55)" }}
+            data-testid="bind-submit">
+            <Save size={19} />
+            {blocked ? `Disconnect ${blocked} first` : loading ? "Saving..." : "Save API Settings"}
+          </button>
+
+          <div className="text-[11px] leading-relaxed px-1" style={{ color: C.mute }}>
+            <span className="text-white font-bold">Tip:</span> {cfg.keyHint} Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span>. Never share your secret.
+          </div>
+        </form>
+      </div>
+
+      {/* ===== Confirm modal (Real) ===== */}
       {confirmOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 py-6"
           onClick={() => { if (!loading) { setConfirmOpen(false); setAck(false); } }} data-testid="confirm-modal">
-          <div className="w-full max-w-md max-h-[88vh] bg-[color:var(--surface)] border border-[color:var(--bad)]/40 rounded-3xl p-5 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md max-h-[88vh] rounded-3xl p-5 overflow-y-auto" style={{ ...cardStyle, border: "1px solid rgba(248,113,113,0.45)" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-11 h-11 rounded-2xl bg-[color:var(--bad)]/15 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle size={22} className="text-[color:var(--bad)]" />
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(248,113,113,0.15)" }}>
+                <AlertTriangle size={22} color="#F87171" />
               </div>
               <div>
-                <div className="font-display font-black text-lg tracking-tight">Enable Live Trading?</div>
-                <div className="text-xs text-[color:var(--text-mute)] mt-1">This places real orders with real funds on {cfg.name}.</div>
+                <div className="font-display font-black text-lg tracking-tight text-white">Enable Live Trading?</div>
+                <div className="text-xs mt-1" style={{ color: C.mute }}>This places real orders with real funds on {cfg.name}.</div>
               </div>
             </div>
-            <label className="flex items-start gap-2 text-xs text-[color:var(--text-soft)] cursor-pointer mb-3 rounded-xl bg-[color:var(--text)]/5 border border-[color:var(--border-soft)] p-3">
+            <label className="flex items-start gap-2 text-xs cursor-pointer mb-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: C.white }}>
               <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="accent-[#F87171] w-4 h-4 mt-0.5" data-testid="confirm-ack" />
               <span>I understand the risks and want to enable live trading with my {cfg.name} funds.</span>
             </label>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button type="button" onClick={() => { setConfirmOpen(false); setAck(false); }} disabled={loading}
-                className="py-3 rounded-xl bg-[color:var(--surface-2)] border border-[color:var(--border)] font-display font-bold text-sm hover:bg-[color:var(--text)]/10 transition disabled:opacity-60" data-testid="confirm-cancel">
+                className="py-3 rounded-xl font-display font-bold text-sm text-white disabled:opacity-60" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} data-testid="confirm-cancel">
                 Cancel
               </button>
               <button type="button" onClick={doBind} disabled={!ack || loading}
-                className="py-3 rounded-xl bg-[color:var(--bad)] text-white font-display font-bold text-sm disabled:opacity-40 hover:brightness-110 transition" data-testid="confirm-proceed">
+                className="py-3 rounded-xl text-white font-display font-bold text-sm disabled:opacity-40" style={{ background: "#DC2626" }} data-testid="confirm-proceed">
                 {loading ? "Binding..." : "Enable Live"}
               </button>
             </div>
-            <div className="text-[10px] uppercase tracking-widest text-[color:var(--text-mute)] font-black mb-2">What you are agreeing to</div>
-            <ul className="space-y-2 text-xs text-[color:var(--text-soft)] leading-relaxed">
-              <li>• Every Buy/Sell will hit your <span className="text-[color:var(--bad)] font-bold">live {cfg.name} account</span>.</li>
-              <li>• Losses from market moves or misconfigured strategy are <span className="text-[color:var(--bad)] font-bold">irreversible</span>.</li>
-              <li>• Enable only <span className="text-[color:var(--primary)]">Read Info + Spot Trading</span> permissions on your key.</li>
-              <li>• Turn on <span className="text-[color:var(--primary)]">IP whitelist</span> for extra safety.</li>
+            <div className="text-[10px] uppercase tracking-widest font-black mb-2" style={{ color: C.mute }}>What you are agreeing to</div>
+            <ul className="space-y-2 text-xs leading-relaxed" style={{ color: C.mute }}>
+              <li>• Every Buy/Sell will hit your <span className="text-[#F87171] font-bold">live {cfg.name} account</span>.</li>
+              <li>• Losses from market moves or misconfigured strategy are <span className="text-[#F87171] font-bold">irreversible</span>.</li>
+              <li>• Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span> permissions on your key.</li>
+              <li>• Turn on <span style={{ color: C.blue }}>IP whitelist</span> for extra safety.</li>
               <li>• Trade Skill will never withdraw funds — that permission is not requested.</li>
             </ul>
           </div>
