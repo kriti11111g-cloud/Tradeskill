@@ -161,7 +161,7 @@ export default function BindAPI() {
         </div>
       </div>
 
-      <div className="px-4 space-y-4 pt-2">
+      <div className="px-4 space-y-3 pt-2">
         {/* ===== Blocked notice ===== */}
         {blocked && !existing?.api_key_mask && (
           <div className="rounded-2xl p-3.5 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.12)", border: "1.5px solid rgba(248,113,113,0.45)" }} data-testid="bind-blocked-notice">
@@ -191,32 +191,32 @@ export default function BindAPI() {
         )}
 
         {/* ===== Server IP card ===== */}
-        <div className="rounded-3xl p-4" style={{ ...cardStyle, boxShadow: dark ? "0 0 26px rgba(37,99,235,0.18), 0 10px 30px rgba(0,0,0,0.45)" : "0 6px 22px rgba(37,99,235,0.12)" }} data-testid="whitelist-ip-card">
+        <div className="rounded-2xl p-3.5" style={{ ...cardStyle, boxShadow: dark ? "0 0 22px rgba(37,99,235,0.16), 0 8px 24px rgba(0,0,0,0.4)" : "0 6px 20px rgba(37,99,235,0.1)" }} data-testid="whitelist-ip-card">
           <div className="flex items-start gap-3">
-            <div className="w-13 h-13 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ width: 52, height: 52, background: BLUE_GRAD, boxShadow: "0 0 18px rgba(59,130,246,0.5)" }}>
-              <Globe size={24} />
+            <div className="rounded-xl flex items-center justify-center text-white shrink-0" style={{ width: 44, height: 44, background: BLUE_GRAD, boxShadow: "0 0 16px rgba(59,130,246,0.5)" }}>
+              <Globe size={21} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-display font-black text-[17px] leading-tight" style={{ color: C.white }}>Server IP — Whitelist This</div>
-              <div className="text-[11.5px] mt-1 leading-snug" style={{ color: C.mute }}>
+              <div className="font-display font-black text-[15px] leading-tight" style={{ color: C.white }}>Server IP — Whitelist This</div>
+              <div className="text-[11px] mt-0.5 leading-snug" style={{ color: C.mute }}>
                 Add this IP to your {cfg.name} API whitelist to allow secure access from TradeSkill.
               </div>
             </div>
-            <button onClick={copyIp} className="flex items-center gap-1.5 px-3 py-2 rounded-xl shrink-0 font-bold text-[12.5px]" style={{ background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.5)", color: C.blue }} data-testid="whitelist-ip-copy">
+            <button onClick={copyIp} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shrink-0 font-bold text-[12px]" style={{ background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.5)", color: C.blue }} data-testid="whitelist-ip-copy">
               <Copy size={14} /> Copy
             </button>
           </div>
-          <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 mt-3" style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)" }}>
-            <span className="font-mono font-black text-[20px] tabular-nums mx-auto" style={{ color: C.blue }} data-testid="whitelist-ip-value">
+          <div className="flex items-center justify-between rounded-xl px-4 py-2 mt-2.5" style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)" }}>
+            <span className="font-mono font-black text-[18px] tabular-nums mx-auto" style={{ color: C.blue }} data-testid="whitelist-ip-value">
               {existing?.whitelist_ip || "—"}
             </span>
-            <button onClick={copyIp}><Copy size={17} color={C.blue} /></button>
+            <button onClick={copyIp}><Copy size={16} color={C.blue} /></button>
           </div>
         </div>
 
         {/* ===== Trading Mode ===== */}
-        <div className="rounded-3xl p-4" style={cardStyle}>
-          <div className="flex items-center justify-between mb-3.5">
+        <div className="rounded-2xl p-3.5" style={cardStyle}>
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <BarChart3 size={19} color={C.blue} strokeWidth={2.6} />
               <span className="font-display font-black text-[14px] uppercase tracking-wider" style={{ color: C.white }}>Trading Mode</span>
@@ -281,14 +281,14 @@ export default function BindAPI() {
         </div>
 
         {/* ===== API Credentials ===== */}
-        <form onSubmit={save} className="rounded-3xl p-4 space-y-3.5" style={cardStyle}>
+        <form onSubmit={save} className="rounded-2xl p-3.5 space-y-3" style={cardStyle}>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl flex items-center justify-center text-white shrink-0" style={{ width: 52, height: 52, background: BLUE_GRAD, boxShadow: "0 0 18px rgba(59,130,246,0.45)" }}>
-              <KeyRound size={23} />
+            <div className="rounded-xl flex items-center justify-center text-white shrink-0" style={{ width: 44, height: 44, background: BLUE_GRAD, boxShadow: "0 0 16px rgba(59,130,246,0.45)" }}>
+              <KeyRound size={20} />
             </div>
             <div className="min-w-0">
-              <div className="font-display font-black text-[17px]" style={{ color: C.white }}>API Credentials</div>
-              <div className="text-[11.5px] mt-0.5 leading-snug" style={{ color: C.mute }}>
+              <div className="font-display font-black text-[15px]" style={{ color: C.white }}>API Credentials</div>
+              <div className="text-[11px] mt-0.5 leading-snug" style={{ color: C.mute }}>
                 Enter your {cfg.name} API key and secret to connect with TradeSkill.
               </div>
             </div>
@@ -301,7 +301,7 @@ export default function BindAPI() {
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
               <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} required type={showKey ? "text" : "password"}
                 placeholder={`Paste your ${cfg.name} API key`}
-                className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13.5px] outline-none transition-all"
+                className="w-full rounded-xl pl-10 pr-10 py-2.5 font-mono text-[13px] outline-none transition-all"
                 style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
                 data-testid="input-apikey" />
               <button type="button" onClick={() => setShowKey((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -317,7 +317,7 @@ export default function BindAPI() {
               <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
               <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required type={showSecret ? "text" : "password"}
                 placeholder={`Paste your ${cfg.name} secret`}
-                className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13.5px] outline-none transition-all"
+                className="w-full rounded-xl pl-10 pr-10 py-2.5 font-mono text-[13px] outline-none transition-all"
                 style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
                 data-testid="input-secret" />
               <button type="button" onClick={() => setShowSecret((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -334,7 +334,7 @@ export default function BindAPI() {
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
                 <input value={passphrase} onChange={(e) => setPassphrase(e.target.value)} required type={showPass ? "text" : "password"}
                   placeholder="Passphrase set during key creation"
-                  className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13.5px] outline-none transition-all"
+                  className="w-full rounded-xl pl-10 pr-10 py-2.5 font-mono text-[13px] outline-none transition-all"
                   style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.25)", color: C.white }}
                   data-testid="input-passphrase" />
                 <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -345,10 +345,10 @@ export default function BindAPI() {
           )}
 
           <button type="submit" disabled={loading || !!blocked}
-            className="w-full flex items-center justify-center gap-2 font-display font-black text-white rounded-2xl py-3.5 text-[15px] transition-all disabled:opacity-50"
-            style={{ background: BLUE_GRAD, boxShadow: "0 0 22px rgba(59,130,246,0.5)" }}
+            className="w-full flex items-center justify-center gap-2 font-display font-black text-white rounded-xl py-3 text-[14px] transition-all disabled:opacity-50"
+            style={{ background: BLUE_GRAD, boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
             data-testid="bind-submit">
-            <Save size={18} />
+            <Save size={17} />
             {blocked ? `Disconnect ${blocked} first` : loading ? "Saving..." : "Save API Settings"}
           </button>
 
