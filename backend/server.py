@@ -2473,13 +2473,13 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
         raise
     except LBankError as e:
         hints = {
-            "10008": "LBank ne October 2025 se retail/individual accounts ke liye API se trading (order lagana) band kar di hai — ye sirf institutional partners ke liye khuli hai. Isliye keys, IP aur permissions sahi hone ke baad bhi order reject hota hai. Live bot ke liye kripya Binance ya KuCoin connect karein; LBank sirf balance dekhne ke liye chalega.",
-            "10022": "LBank API permission/IP problem. Is server ke IP ko LBank key me whitelist karein aur Spot Trading permission ON rakhein.",
-            "10023": "LBank: is pair pe market trading supported nahi hai.",
-            "10024": "LBank: aapka account is pair ko trade nahi kar sakta.",
-            "10020": "LBank: order amount minimum se kam hai. First buy amount thoda badhayein.",
-            "10126": "LBank: minimum order amount poora nahi hua. Amount badhayein.",
-            "10127": "LBank: quantity precision galat.",
+            "10008": "LBank disabled API trading (placing orders) for retail/individual accounts from October 2025 — it is now open only to institutional partners. That's why orders are rejected even when your keys, IP and permissions are correct. For live bots, please connect Binance or KuCoin; LBank will work for viewing balance only.",
+            "10022": "LBank API permission/IP problem. Whitelist this server's IP on your LBank key and keep Spot Trading permission ON.",
+            "10023": "LBank: market trading is not supported for this pair.",
+            "10024": "LBank: your account is not allowed to trade this pair.",
+            "10020": "LBank: order amount is below the minimum. Increase your first buy amount a little.",
+            "10126": "LBank: minimum order amount not met. Increase the amount.",
+            "10127": "LBank: quantity precision is incorrect.",
         }
         hint = hints.get(str(e.code))
         msg = f"LBank rejected order ({e.code}): {e.message}" + (f" — {hint}" if hint else "")
