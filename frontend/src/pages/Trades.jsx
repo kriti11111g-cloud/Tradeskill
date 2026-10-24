@@ -521,6 +521,7 @@ function HistoryRow({ bot }) {
 const EX_META = {
   binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
   kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
+  lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", logo: "https://coin-images.coingecko.com/markets/images/50/small/lbank.jpg" },
 };
 
 export default function Trades() {
@@ -543,23 +544,24 @@ export default function Trades() {
       if (c?.bind !== undefined) setBind(c.bind);
     } catch {}
     const load = async () => {
-      const [b, bBn, bKc] = await Promise.all([
+      const [b, bBn, bKc, bLb] = await Promise.all([
         api.get("/bots").then((r) => (Array.isArray(r.data) ? r.data : r.data.bots || [])).catch(() => []),
         api.get("/binance/bind").then((r) => r.data).catch(() => null),
         api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
+        api.get("/lbank/bind").then((r) => r.data).catch(() => null),
       ]);
       setBots(b);
       // Connected = any bind record exists (demo included) — matches backend trade gate.
-      setConnected(!!(bBn?.mode || bKc?.mode));
-      // Connected exchange: prefer whichever is live-bound (kucoin > binance), else binance
-      const connId = bKc?.bound ? "kucoin" : bBn?.bound ? "binance" : "binance";
-      const bd = connId === "kucoin" ? bKc : bBn;
+      setConnected(!!(bBn?.mode || bKc?.mode || bLb?.mode));
+      // Connected exchange: whichever is actually bound (one exchange per account)
+      const connId = bLb?.mode ? "lbank" : bKc?.mode ? "kucoin" : bBn?.mode ? "binance" : "binance";
+      const bd = connId === "lbank" ? bLb : connId === "kucoin" ? bKc : bBn;
       setBind(bd);
       setExMeta(EX_META[connId]);
       try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
       // Exchange card par user ka live USDT balance (jis exchange se bound hai)
       if (bd?.bound) {
-        api.get(connId === "kucoin" ? "/kucoin/account" : "/binance/account").then(({ data }) => {
+        api.get(`/${connId}/account`).then(({ data }) => {
           const u = (data.balances || []).find((x) => x.asset === "USDT");
           setExUsdt(u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0);
         }).catch(() => setExUsdt(null));
@@ -691,7 +693,7 @@ export default function Trades() {
             <div className="flex-1 min-w-0">
               <div className="text-[12.5px] font-black" style={{ color: "#B45309" }}>Connect an exchange to start trading</div>
               <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: "#B45309", opacity: 0.85 }}>
-                Binance ya KuCoin bind karein — tab tak koi bot trade nahi lagayega. Tap to connect.
+                Binance, KuCoin ya LBank bind karein — tab tak koi bot trade nahi lagayega. Tap to connect.
               </div>
             </div>
             <ChevronRight size={18} style={{ color: "#B45309" }} className="shrink-0" />

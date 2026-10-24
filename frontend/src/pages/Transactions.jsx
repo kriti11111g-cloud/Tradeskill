@@ -8,6 +8,8 @@ import CoinIcon from "@/components/CoinIcon";
 
 const filters = ["ALL", "SELL", "BUY"];
 const monoNum = { fontVariantNumeric: "tabular-nums" };
+const EX_NAME = { binance: "Binance", kucoin: "KuCoin", lbank: "LBank" };
+const EX_COLOR = { binance: "#F59E0B", kucoin: "#24AE8F", lbank: "#1E88E5" };
 
 const fmtDateUTC = (iso) => {
   if (!iso) return "";
@@ -48,9 +50,9 @@ function WalletBar({ wallet }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <BinanceLogo size={10} />
-            <div className="text-[8px] uppercase tracking-widest text-[#F59E0B] font-bold">
-              Binance Spot
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: EX_COLOR[wallet.exchange] || "#F59E0B" }} />
+            <div className="text-[8px] uppercase tracking-widest font-bold" style={{ color: EX_COLOR[wallet.exchange] || "#F59E0B" }}>
+              {EX_NAME[wallet.exchange] || "Binance"} Spot
             </div>
             <span
               className={`text-[7px] uppercase tracking-widest font-bold px-1 py-px rounded-full leading-none ${wallet.connected ? "bg-[color:var(--good)]/15 text-[color:var(--good)] border border-[color:var(--good)]/40" : "bg-[color:var(--text)]/5 text-[color:var(--text-mute)] border border-[color:var(--border)]"}`}
@@ -231,8 +233,8 @@ export default function Transactions() {
                       {t.side}
                     </span>
                     <span className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
-                      <BinanceLogo size={9} />
-                      Binance
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: EX_COLOR[t.exchange] || "#F59E0B" }} />
+                      {EX_NAME[t.exchange] || "Binance"}
                     </span>
                   </div>
                   {/* Price row */}

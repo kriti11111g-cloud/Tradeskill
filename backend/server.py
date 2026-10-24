@@ -826,6 +826,40 @@ async def kucoin_account(user: dict = Depends(get_current_user)):
     return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
 
 
+@api.get("/lbank/account")
+async def lbank_account(user: dict = Depends(get_current_user)):
+    client, mode = await get_user_lbank(user["id"])
+    if not client:
+        raise HTTPException(400, "No live LBank API keys bound. Bind in real mode first.")
+    try:
+        data = (await client.user_info()).get("data")
+    except LBankError as e:
+        raise HTTPException(400, f"LBank error ({e.code}): {e.message}")
+    except Exception as e:
+        raise HTTPException(400, f"LBank unreachable: {e}")
+    rows = data if isinstance(data, list) else (data or {}).get("balances", []) if isinstance(data, dict) else []
+    balances = []
+    for b in rows or []:
+        coin = str(b.get("coin") or b.get("asset") or b.get("currency") or "").upper()
+        free = 0.0
+        for k in ("usableAmt", "free", "available"):
+            if b.get(k) is not None:
+                try:
+                    free = float(b[k]); break
+                except Exception:
+                    pass
+        locked = 0.0
+        for k in ("freeze", "freezeAmt", "locked", "hold"):
+            if b.get(k) is not None:
+                try:
+                    locked = float(b[k]); break
+                except Exception:
+                    pass
+        if coin and (free > 0 or locked > 0):
+            balances.append({"asset": coin, "free": free, "locked": locked})
+    return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
+
+
 # ==== LBank API Keys ====
 class LBankBindIn(BaseModel):
     api_key: str
@@ -3234,21 +3268,39 @@ async def wallet_summary(user: dict = Depends(get_current_user)):
 
 @api.get("/wallet/spot")
 async def wallet_spot(user: dict = Depends(get_current_user)):
-    """Returns the user's spot USDT balance.
-    - No API bound → demo wallet balance (mode='demo').
-    - API bound & reachable → live Binance USDT free balance (mode='real'/'testnet').
-    - API bound but Binance blocks the server region → usdt_balance=0.0 with an
-      `error` field explaining the geo-restriction. We deliberately do NOT leak
-      the demo wallet in that case so the user isn't misled about their funds.
-    """
+    """Returns the user's spot USDT balance from whichever exchange is bound
+    (LBank / KuCoin / Binance). No API bound → demo wallet balance.
+    Response includes an `exchange` field so the UI can label it correctly."""
+    uid = user["id"]
     demo_balance = round(float(user.get("wallet_usdt", 0.0)), 4)
-    client, mode = await get_user_binance(user["id"])
+
+    # LBank
+    lb, lmode = await get_user_lbank(uid)
+    if lb and lmode == "real":
+        try:
+            usdt = await lb.free_balance("usdt")
+            return {"exchange": "lbank", "mode": lmode, "connected": True, "usdt_balance": round(usdt, 4)}
+        except Exception as e:
+            logger.warning(f"wallet/spot lbank fetch failed for {uid}: {e}")
+            return {"exchange": "lbank", "mode": lmode, "connected": False, "usdt_balance": 0.0,
+                    "error": f"LBank connection failed: {str(e)[:120]}"}
+
+    # KuCoin
+    kc, kmode = await get_user_kucoin(uid)
+    if kc and kmode == "real":
+        try:
+            accts = await kc.accounts(account_type="trade")
+            usdt = next((float(b.get("available", 0) or 0) for b in (accts or []) if b.get("currency") == "USDT"), 0.0)
+            return {"exchange": "kucoin", "mode": kmode, "connected": True, "usdt_balance": round(usdt, 4)}
+        except Exception as e:
+            logger.warning(f"wallet/spot kucoin fetch failed for {uid}: {e}")
+            return {"exchange": "kucoin", "mode": kmode, "connected": False, "usdt_balance": 0.0,
+                    "error": f"KuCoin connection failed: {str(e)[:120]}"}
+
+    # Binance
+    client, mode = await get_user_binance(uid)
     if not client:
-        return {
-            "mode": "demo",
-            "connected": False,
-            "usdt_balance": demo_balance,
-        }
+        return {"exchange": "binance", "mode": "demo", "connected": False, "usdt_balance": demo_balance}
     try:
         data = await run_in_threadpool(client.get_account)
         usdt = 0.0
@@ -3256,14 +3308,10 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
             if b.get("asset") == "USDT":
                 usdt = float(b.get("free", 0))
                 break
-        return {
-            "mode": mode,
-            "connected": True,
-            "usdt_balance": round(usdt, 4),
-        }
+        return {"exchange": "binance", "mode": mode, "connected": True, "usdt_balance": round(usdt, 4)}
     except Exception as e:
         msg = str(e)
-        logger.warning(f"wallet/spot binance fetch failed for {user['id']}: {msg}")
+        logger.warning(f"wallet/spot binance fetch failed for {uid}: {msg}")
         friendly = (
             "Binance is unreachable from this server region (geo-restriction). "
             "Your funds are safe in Binance — we just cannot read the balance from here. "
@@ -3271,12 +3319,7 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
             if "restricted location" in msg.lower() or "eligibility" in msg.lower()
             else f"Binance connection failed: {msg[:120]}"
         )
-        return {
-            "mode": mode,
-            "connected": False,
-            "usdt_balance": 0.0,
-            "error": friendly,
-        }
+        return {"exchange": "binance", "mode": mode, "connected": False, "usdt_balance": 0.0, "error": friendly}
 
 
 # ==== Referral ====
