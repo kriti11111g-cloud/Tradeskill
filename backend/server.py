@@ -2524,6 +2524,21 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         "exchange": "binance",
     }
 
+    # Resolve the user's ACTUAL connected exchange at execution time (one exchange per
+    # account). bot.exchange is frozen at creation and can be stale (e.g. bot made before
+    # the user bound LBank), so we trust the live bind records and self-heal the bot doc.
+    if await db.lbank_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        conn_ex = "lbank"
+    elif await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        conn_ex = "kucoin"
+    elif await db.binance_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        conn_ex = "binance"
+    else:
+        conn_ex = None
+    if conn_ex and bot.get("exchange") != conn_ex:
+        bot["exchange"] = conn_ex
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"exchange": conn_ex}})
+
     # Route to KuCoin live engine when this bot is a KuCoin bot with real keys.
     if bot.get("exchange") == "kucoin":
         kc, kmode = await get_user_kucoin(user_id)
