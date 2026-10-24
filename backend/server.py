@@ -2149,18 +2149,42 @@ class LBankClient:
             pass
         return 6
 
+    async def _create_order(self, business: dict):
+        """Place order; try supplement endpoint first, fall back to legacy /v2/create_order.do
+        on 10008 (some spot accounts reject the supplement pair list). Remembers which
+        endpoint worked so order lookups use the matching one."""
+        try:
+            res = await self.private("/v2/supplement/create_order.do", business)
+            self._order_ep = "supplement"
+            return res
+        except LBankError as e:
+            if str(e.code) != "10008":
+                raise
+            res = await self.private("/v2/create_order.do", business)
+            self._order_ep = "legacy"
+            return res
+
     async def market_buy_quote(self, symbol, quote: Decimal):
-        return await self.private("/v2/supplement/create_order.do", {
-            "symbol": symbol, "type": "buy_market", "price": format(quote, "f"),
-            "custom_id": uuid.uuid4().hex})
+        return await self._create_order({"symbol": symbol, "type": "buy_market", "price": format(quote, "f")})
 
     async def market_sell_base(self, symbol, base_qty: Decimal):
-        return await self.private("/v2/supplement/create_order.do", {
-            "symbol": symbol, "type": "sell_market", "amount": format(base_qty, "f"),
-            "custom_id": uuid.uuid4().hex})
+        return await self._create_order({"symbol": symbol, "type": "sell_market", "amount": format(base_qty, "f")})
 
     async def order_info(self, symbol, order_id):
-        return await self.private("/v2/supplement/orders_info.do", {"symbol": symbol, "orderId": order_id})
+        ep = getattr(self, "_order_ep", "supplement")
+        paths = ["/v2/supplement/orders_info.do", "/v2/orders_info.do"]
+        if ep == "legacy":
+            paths = ["/v2/orders_info.do", "/v2/supplement/orders_info.do"]
+        last = None
+        for p in paths:
+            try:
+                return await self.private(p, {"symbol": symbol, "orderId": order_id})
+            except LBankError as e:
+                last = e
+                continue
+        if last:
+            raise last
+        return {}
 
     async def execution(self, symbol, order_id):
         """Poll order info until the market order fills; return normalized fill data."""
