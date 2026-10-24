@@ -2473,7 +2473,7 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
         raise
     except LBankError as e:
         hints = {
-            "10008": "LBank ne pair reject kiya. Zyadatar ye tab hota hai jab API key me Spot Trading permission ON nahi hai (sirf Read ON hai) ya ye pair aapke account pe tradable nahi. LBank → API Management me Read + Spot Trading dono enable karein aur is server IP ko whitelist karein.",
+            "10008": "LBank ne October 2025 se retail/individual accounts ke liye API se trading (order lagana) band kar di hai — ye sirf institutional partners ke liye khuli hai. Isliye keys, IP aur permissions sahi hone ke baad bhi order reject hota hai. Live bot ke liye kripya Binance ya KuCoin connect karein; LBank sirf balance dekhne ke liye chalega.",
             "10022": "LBank API permission/IP problem. Is server ke IP ko LBank key me whitelist karein aur Spot Trading permission ON rakhein.",
             "10023": "LBank: is pair pe market trading supported nahi hai.",
             "10024": "LBank: aapka account is pair ko trade nahi kar sakta.",
