@@ -832,31 +832,16 @@ async def lbank_account(user: dict = Depends(get_current_user)):
     if not client:
         raise HTTPException(400, "No live LBank API keys bound. Bind in real mode first.")
     try:
-        data = (await client.user_info()).get("data")
+        resp = await client.user_info()
     except LBankError as e:
         raise HTTPException(400, f"LBank error ({e.code}): {e.message}")
     except Exception as e:
         raise HTTPException(400, f"LBank unreachable: {e}")
-    rows = data if isinstance(data, list) else (data or {}).get("balances", []) if isinstance(data, dict) else []
-    balances = []
-    for b in rows or []:
-        coin = str(b.get("coin") or b.get("asset") or b.get("currency") or "").upper()
-        free = 0.0
-        for k in ("usableAmt", "free", "available"):
-            if b.get(k) is not None:
-                try:
-                    free = float(b[k]); break
-                except Exception:
-                    pass
-        locked = 0.0
-        for k in ("freeze", "freezeAmt", "locked", "hold"):
-            if b.get(k) is not None:
-                try:
-                    locked = float(b[k]); break
-                except Exception:
-                    pass
-        if coin and (free > 0 or locked > 0):
-            balances.append({"asset": coin, "free": free, "locked": locked})
+    m = LBankClient._parse_balances(resp)
+    balances = [
+        {"asset": asset, "free": v["free"], "locked": v["locked"]}
+        for asset, v in m.items() if v["free"] > 0 or v["locked"] > 0
+    ]
     return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
 
 
@@ -2095,24 +2080,63 @@ class LBankClient:
     async def user_info(self):
         return await self.private("/v2/supplement/user_info.do")
 
+    @staticmethod
+    def _parse_balances(resp: dict) -> dict:
+        """Normalize LBank user_info into {ASSET: {'free':float,'locked':float}}.
+        Handles both the list shape and the {'info':{'free':{...},'freeze':{...}}} shape."""
+        out = {}
+
+        def put(asset, free=0.0, locked=0.0):
+            a = str(asset).upper()
+            if not a:
+                return
+            cur = out.setdefault(a, {"free": 0.0, "locked": 0.0})
+            try:
+                cur["free"] += float(free or 0)
+            except Exception:
+                pass
+            try:
+                cur["locked"] += float(locked or 0)
+            except Exception:
+                pass
+
+        data = resp.get("data")
+        rows = None
+        if isinstance(data, list):
+            rows = data
+        elif isinstance(data, dict):
+            rows = data.get("balances") if isinstance(data.get("balances"), list) else None
+            # dict-of-coins shape: data.free / data.freeze
+            if rows is None and isinstance(data.get("free"), dict):
+                for coin, v in data["free"].items():
+                    put(coin, v, (data.get("freeze") or {}).get(coin, 0))
+                return out
+        if rows is not None:
+            for b in rows:
+                coin = b.get("coin") or b.get("asset") or b.get("currency")
+                free = next((b[k] for k in ("usableAmt", "free", "available") if b.get(k) is not None), 0)
+                locked = next((b[k] for k in ("freeze", "freezeAmt", "locked", "hold") if b.get(k) is not None), 0)
+                put(coin, free, locked)
+            return out
+        # legacy info shape
+        info = resp.get("info") if isinstance(resp.get("info"), dict) else None
+        if info and isinstance(info.get("free"), dict):
+            frz = info.get("freeze") or {}
+            for coin, v in info["free"].items():
+                put(coin, v, frz.get(coin, 0))
+        return out
+
+    async def balances_map(self) -> dict:
+        try:
+            return self._parse_balances(await self.user_info())
+        except Exception:
+            return {}
+
     async def free_balance(self, asset: str) -> float:
         """Best-effort free balance of a coin; returns 0.0 if unreadable."""
-        asset = asset.lower()
-        try:
-            data = (await self.user_info()).get("data")
-        except Exception:
-            return 0.0
-        rows = data if isinstance(data, list) else (data or {}).get("balances", []) if isinstance(data, dict) else []
-        for b in rows or []:
-            coin = str(b.get("coin") or b.get("asset") or b.get("currency") or "").lower()
-            if coin == asset:
-                for k in ("usableAmt", "free", "available", "freeze"):
-                    if b.get(k) is not None:
-                        try:
-                            return float(b[k])
-                        except Exception:
-                            pass
-        return 0.0
+        m = await self.balances_map()
+        row = m.get(str(asset).upper())
+        return float(row["free"]) if row else 0.0
 
     async def accuracy(self, symbol: str) -> int:
         """Base-quantity decimal places for a symbol; 6 as a safe default."""
