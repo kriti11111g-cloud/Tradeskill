@@ -5454,14 +5454,18 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
     </td></tr>
   </table>
 </body></html>"""
-        if EMAIL_OTP_MODE == "resend":
+        resend_key = os.environ.get("RESEND_API_KEY")
+        if resend_key:
             import requests as _rq
             r = _rq.post(
                 "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}"},
+                headers={"Authorization": f"Bearer {resend_key}"},
                 json={"from": os.environ.get("RESEND_FROM", "Trade Skill <no-reply@tradeskill.in>"),
-                      "to": [to_email], "subject": subject, "html": html, "text": text},
+                      "to": [to_email], "subject": subject, "html": html, "text": text,
+                      "reply_to": os.environ.get("RESEND_REPLY_TO", "support@tradeskill.in")},
                 timeout=15)
+            if r.status_code >= 400:
+                logger.error(f"Resend send failed {r.status_code}: {r.text[:300]}")
             r.raise_for_status()
             return True
         import smtplib
