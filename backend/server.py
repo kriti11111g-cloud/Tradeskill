@@ -2448,7 +2448,17 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
     except _TradeError:
         raise
     except LBankError as e:
-        msg = f"LBank rejected order ({e.code}): {e.message}"
+        hints = {
+            "10008": "LBank ne pair reject kiya. Zyadatar ye tab hota hai jab API key me Spot Trading permission ON nahi hai (sirf Read ON hai) ya ye pair aapke account pe tradable nahi. LBank → API Management me Read + Spot Trading dono enable karein aur is server IP ko whitelist karein.",
+            "10022": "LBank API permission/IP problem. Is server ke IP ko LBank key me whitelist karein aur Spot Trading permission ON rakhein.",
+            "10023": "LBank: is pair pe market trading supported nahi hai.",
+            "10024": "LBank: aapka account is pair ko trade nahi kar sakta.",
+            "10020": "LBank: order amount minimum se kam hai. First buy amount thoda badhayein.",
+            "10126": "LBank: minimum order amount poora nahi hua. Amount badhayein.",
+            "10127": "LBank: quantity precision galat.",
+        }
+        hint = hints.get(str(e.code))
+        msg = f"LBank rejected order ({e.code}): {e.message}" + (f" — {hint}" if hint else "")
         logger.error(f"[lbank trade] {symbol} {side}: {msg}")
         await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
         raise _TradeError(400, msg)
