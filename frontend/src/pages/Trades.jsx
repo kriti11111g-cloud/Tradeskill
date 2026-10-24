@@ -521,7 +521,7 @@ function HistoryRow({ bot }) {
 const EX_META = {
   binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
   kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
-  lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", logo: "https://coin-images.coingecko.com/markets/images/50/small/lbank.jpg" },
+  lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", logo: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528" },
 };
 
 export default function Trades() {

@@ -10,6 +10,22 @@ const filters = ["ALL", "SELL", "BUY"];
 const monoNum = { fontVariantNumeric: "tabular-nums" };
 const EX_NAME = { binance: "Binance", kucoin: "KuCoin", lbank: "LBank" };
 const EX_COLOR = { binance: "#F59E0B", kucoin: "#24AE8F", lbank: "#1E88E5" };
+const EX_LOGO = {
+  binance: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg",
+  kucoin: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png",
+  lbank: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528",
+};
+const ExBadge = ({ ex, size = 11 }) => {
+  const id = EX_NAME[ex] ? ex : "binance";
+  return (
+    <span className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
+      <span className="rounded-full overflow-hidden shrink-0 flex items-center justify-center" style={{ width: size, height: size, background: EX_COLOR[id] }}>
+        <img src={EX_LOGO[id]} alt={EX_NAME[id]} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      </span>
+      {EX_NAME[id]}
+    </span>
+  );
+};
 
 const fmtDateUTC = (iso) => {
   if (!iso) return "";
@@ -50,7 +66,9 @@ function WalletBar({ wallet }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: EX_COLOR[wallet.exchange] || "#F59E0B" }} />
+            <span className="rounded-full overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 12, height: 12, background: EX_COLOR[wallet.exchange] || "#F59E0B" }}>
+              <img src={EX_LOGO[wallet.exchange] || EX_LOGO.binance} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            </span>
             <div className="text-[8px] uppercase tracking-widest font-bold" style={{ color: EX_COLOR[wallet.exchange] || "#F59E0B" }}>
               {EX_NAME[wallet.exchange] || "Binance"} Spot
             </div>
@@ -232,10 +250,7 @@ export default function Transactions() {
                     >
                       {t.side}
                     </span>
-                    <span className="flex items-center gap-1 text-[8px] uppercase tracking-widest text-[color:var(--text-mute)] font-bold">
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: EX_COLOR[t.exchange] || "#F59E0B" }} />
-                      {EX_NAME[t.exchange] || "Binance"}
-                    </span>
+                    <ExBadge ex={t.exchange} size={11} />
                   </div>
                   {/* Price row */}
                   <div className="flex items-baseline gap-1.5 mt-1" style={monoNum}>
