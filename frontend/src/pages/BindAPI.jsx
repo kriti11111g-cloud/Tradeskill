@@ -86,6 +86,22 @@ export default function BindAPI() {
   const [showKey, setShowKey] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [diag, setDiag] = useState(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+
+  const runDiag = async (place) => {
+    if (place && !window.confirm("This will attempt a REAL $5 market buy on LBank to test if trading works. Continue?")) return;
+    setDiagLoading(true);
+    setDiag(null);
+    try {
+      const { data } = await api.get("/lbank/diagnose", { params: { place, amount: 5, symbol: "SOLUSDT" } });
+      setDiag(data);
+    } catch (err) {
+      setDiag({ error: formatApiError(err) });
+    } finally {
+      setDiagLoading(false);
+    }
+  };
 
   const load = () => api.get(cfg.path).then(({ data }) => setExisting(data)).catch(() => {});
   useEffect(() => {
@@ -182,6 +198,29 @@ export default function BindAPI() {
             <button onClick={unbind} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)" }} data-testid="unbind-btn">
               <Trash2 size={16} color="#F87171" />
             </button>
+          </div>
+        )}
+
+        {/* ===== LBank Diagnostic (LBank only) ===== */}
+        {exId === "lbank" && existing?.api_key_mask && (
+          <div className="rounded-3xl p-5" style={cardStyle} data-testid="lbank-diagnose-card">
+            <div className="font-display font-semibold text-[15.5px] mb-1" style={{ color: C.white }}>LBank Connection Test</div>
+            <div className="text-[11.5px] leading-relaxed mb-4" style={{ color: C.mute }}>
+              Asks LBank directly whether your account can place orders. Send me the result as a screenshot.
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => runDiag(false)} disabled={diagLoading} className="rounded-xl px-3 py-2.5 font-semibold text-[12.5px]" style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.35)", color: C.blue }} data-testid="lbank-diagnose-check">
+                {diagLoading ? "Checking…" : "Check Connection"}
+              </button>
+              <button onClick={() => runDiag(true)} disabled={diagLoading} className="rounded-xl px-3 py-2.5 font-semibold text-[12.5px]" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.4)", color: "#EF4444" }} data-testid="lbank-diagnose-order">
+                Test Real $5 Order
+              </button>
+            </div>
+            {diag && (
+              <pre className="mt-4 rounded-2xl p-3 text-[10.5px] leading-relaxed overflow-x-auto whitespace-pre-wrap break-words" style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.18)", color: C.white, maxHeight: 360 }} data-testid="lbank-diagnose-result">
+                {JSON.stringify(diag, null, 2)}
+              </pre>
+            )}
           </div>
         )}
 

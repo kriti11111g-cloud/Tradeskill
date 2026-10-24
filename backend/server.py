@@ -845,7 +845,55 @@ async def lbank_account(user: dict = Depends(get_current_user)):
     return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
 
 
-# ==== LBank API Keys ====
+@api.get("/lbank/diagnose")
+async def lbank_diagnose(
+    place: bool = False,
+    amount: float = 5.0,
+    symbol: str = "SOLUSDT",
+    user: dict = Depends(get_current_user),
+):
+    """Live LBank diagnostic: proves (from the user's own account) whether the pair is
+    listed and whether a real spot order is accepted. Returns LBank's raw responses.
+    Call with ?place=true&amount=5 to actually attempt a tiny market buy."""
+    client, mode = await get_user_lbank(user["id"])
+    if not client:
+        raise HTTPException(400, "No live LBank API keys bound. Bind in real mode first.")
+    lsym = _lbank_symbol(symbol)
+    out = {"mode": mode, "base_url": client.base_url, "app_symbol": symbol, "lbank_symbol": lsym}
+
+    # 1) Is the pair listed for this account?
+    try:
+        cp = await client.public("/v2/currencyPairs.do")
+        pairs = cp.get("data") if isinstance(cp, dict) else None
+        if isinstance(pairs, list):
+            out["currency_pairs_count"] = len(pairs)
+            out["symbol_listed"] = lsym in pairs
+        else:
+            out["currency_pairs_raw"] = str(cp)[:300]
+    except Exception as e:
+        out["currency_pairs_error"] = str(e)
+
+    # 2) Does balance read (private auth) work?
+    try:
+        ui = await client.user_info()
+        out["user_info_ok"] = True
+        out["user_info_error_code"] = str(ui.get("error_code", "0"))
+    except Exception as e:
+        out["user_info_ok"] = False
+        out["user_info_error"] = str(e)
+
+    # 3) Optionally attempt a real tiny market buy and capture LBank's exact response.
+    if place:
+        business = {"symbol": lsym, "type": "buy_market", "price": format(Decimal(str(amount)), "f")}
+        attempts = {}
+        for ep in ["/v2/supplement/create_order.do", "/v2/create_order.do"]:
+            raw = await client.raw_private(ep, business)
+            attempts[ep] = raw
+            body = raw.get("body") if isinstance(raw, dict) else None
+            if isinstance(body, dict) and str(body.get("error_code", "x")) == "0":
+                break  # order accepted — do not fire the second endpoint
+        out["order_attempts"] = attempts
+    return out
 class LBankBindIn(BaseModel):
     api_key: str
     api_secret: str
@@ -2070,6 +2118,17 @@ class LBankClient:
         if r.status_code >= 400 or not ok:
             raise LBankError(r.status_code, str(data.get("error_code")), str(data.get("msg", data))[:300])
         return data
+
+    async def raw_private(self, path, params=None):
+        """Signed POST that returns the FULL raw LBank JSON without raising — for diagnostics."""
+        form = self._sign({"api_key": self.key, **(params or {})})
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=15.0, transport=transport) as http:
+            r = await http.post(path, data=form, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            return {"http_status": r.status_code, "body": r.json()}
+        except ValueError:
+            return {"http_status": r.status_code, "body_text": r.text[:500]}
 
     async def public(self, path, params=None):
         transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
