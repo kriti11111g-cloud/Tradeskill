@@ -137,11 +137,6 @@ export default function BindAPI() {
     toast.success("IP copied!");
   };
 
-  const modeDesc = (m) =>
-    m === "demo" ? "Practice trading with virtual funds."
-    : m === "testnet" ? "Places test orders on Binance Testnet."
-    : `Place live orders on ${cfg.name} using your funds.`;
-
   return (
     <div className="min-h-screen pb-10" style={{ background: PAGE_BG, color: C.white }} data-testid={`bind-page-${exId}`}>
       {/* ===== Header ===== */}
@@ -233,30 +228,25 @@ export default function BindAPI() {
                   key={m.id}
                   onClick={() => setMode(m.id)}
                   data-testid={`mode-${m.id}`}
-                  className={`text-left rounded-2xl p-4 transition-all ${full ? "col-span-2" : ""}`}
+                  className={`rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 transition-all ${full ? "col-span-2" : ""}`}
                   style={sel
-                    ? { background: BLUE_GRAD, border: "1px solid rgba(127,180,255,0.6)", boxShadow: "0 0 16px rgba(59,130,246,0.28)" }
+                    ? { background: BLUE_GRAD, border: "1px solid rgba(127,180,255,0.6)", boxShadow: "0 0 14px rgba(59,130,246,0.25)" }
                     : { background: C.modeOff, border: `1px solid ${C.modeOffBorder}` }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: sel ? "rgba(255,255,255,0.16)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(15,35,64,0.05)") }}>
-                        <BarChart3 size={18} color={sel ? "#fff" : C.mute} strokeWidth={2.1} />
-                      </div>
-                      <div>
-                        <div className="font-display font-semibold text-[15px] tracking-tight" style={{ color: sel ? "#fff" : C.white }}>{m.label.toUpperCase()}</div>
-                        <div className="text-[9px] font-medium uppercase tracking-[0.12em] mt-1" style={{ color: sel ? "rgba(255,255,255,0.8)" : C.mute }}>
-                          {m.id === "real" ? "Live Trading" : m.id === "testnet" ? "Testnet" : "Simulated"}
-                        </div>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: sel ? "rgba(255,255,255,0.16)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(15,35,64,0.05)") }}>
+                      <BarChart3 size={15} color={sel ? "#fff" : C.mute} strokeWidth={2.1} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-display font-semibold text-[13.5px] tracking-tight leading-none" style={{ color: sel ? "#fff" : C.white }}>{m.label.toUpperCase()}</div>
+                      <div className="text-[8.5px] font-medium uppercase tracking-[0.1em] mt-1 leading-none" style={{ color: sel ? "rgba(255,255,255,0.8)" : C.mute }}>
+                        {m.id === "real" ? "Live Trading" : m.id === "testnet" ? "Testnet" : "Simulated"}
                       </div>
                     </div>
-                    <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 18, height: 18, border: `2px solid ${sel ? "#fff" : C.mute}` }}>
-                      {sel && <span className="w-2 h-2 rounded-full bg-white" />}
-                    </span>
                   </div>
-                  <div className="text-[11.5px] mt-3 leading-relaxed" style={{ color: sel ? "rgba(255,255,255,0.9)" : C.mute }}>
-                    {modeDesc(m.id)}
-                  </div>
+                  <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 17, height: 17, border: `2px solid ${sel ? "#fff" : C.mute}` }}>
+                    {sel && <span className="w-[7px] h-[7px] rounded-full bg-white" />}
+                  </span>
                 </button>
               );
             })}
