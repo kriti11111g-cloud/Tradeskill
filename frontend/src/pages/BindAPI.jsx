@@ -9,8 +9,7 @@ const EX = {
   binance: {
     name: "Binance",
     path: "/binance/bind",
-    other: "kucoin",
-    otherName: "KuCoin",
+    others: [{ id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }],
     needsPassphrase: false,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
@@ -22,14 +21,24 @@ const EX = {
   kucoin: {
     name: "KuCoin",
     path: "/kucoin/bind",
-    other: "binance",
-    otherName: "Binance",
+    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }],
     needsPassphrase: true,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
       { id: "real", label: "Real", desc: "Live Trading" },
     ],
     keyHint: "Generate keys in KuCoin → API Management. Enable General + Spot Trading only. Set the API Passphrase you chose while creating the key.",
+  },
+  lbank: {
+    name: "LBank",
+    path: "/lbank/bind",
+    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }],
+    needsPassphrase: false,
+    modes: [
+      { id: "demo", label: "Demo", desc: "Simulated" },
+      { id: "real", label: "Real", desc: "Live Trading" },
+    ],
+    keyHint: "Generate keys in LBank → API Management. Choose HmacSHA256, enable Read + Spot Trading only (never withdrawals), and bind this server's IP.",
   },
 };
 
@@ -46,16 +55,17 @@ export default function BindAPI() {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ack, setAck] = useState(false);
-  const [blocked, setBlocked] = useState(false); // other exchange already connected
+  const [blocked, setBlocked] = useState(null); // name of other exchange already connected
 
   const load = () => api.get(cfg.path).then(({ data }) => setExisting(data)).catch(() => {});
   useEffect(() => {
     setExisting(null);
-    setBlocked(false);
+    setBlocked(null);
     load();
-    // One exchange per account — check if the OTHER exchange is already connected
-    const otherPath = `/${cfg.other}/bind`;
-    api.get(otherPath).then(({ data }) => setBlocked(!!data?.api_key_mask)).catch(() => {});
+    // One exchange per account — check if ANY other exchange is already connected
+    cfg.others.forEach((o) => {
+      api.get(o.path).then(({ data }) => { if (data?.api_key_mask) setBlocked(o.name); }).catch(() => {});
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exId]);
 
@@ -102,8 +112,8 @@ export default function BindAPI() {
           <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.08)", border: "1.5px solid rgba(220,38,38,0.35)" }} data-testid="bind-blocked-notice">
             <AlertTriangle size={20} className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} />
             <div className="text-[12px] leading-relaxed" style={{ color: "var(--ink)" }}>
-              <b>{cfg.otherName}</b> is already connected on this account. Only one exchange can be added per account —
-              {" "}to add {cfg.name}, please disconnect <b>{cfg.otherName}</b> first.
+              <b>{blocked}</b> is already connected on this account. Only one exchange can be added per account —
+              {" "}to add {cfg.name}, please disconnect <b>{blocked}</b> first.
             </div>
           </div>
         )}
@@ -198,10 +208,10 @@ export default function BindAPI() {
                 data-testid="input-passphrase" />
             </div>
           )}
-          <button type="submit" disabled={loading || blocked}
+          <button type="submit" disabled={loading || !!blocked}
             className="w-full bg-[color:var(--primary)] text-white font-display font-bold rounded-xl py-3.5 hover:brightness-110 transition-all hover:glow-primary disabled:opacity-60"
             data-testid="bind-submit">
-            {blocked ? `Disconnect ${cfg.otherName} first` : loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
+            {blocked ? `Disconnect ${blocked} first` : loading ? "Binding..." : mode === "real" ? "Bind API (Live Trading)" : "Bind API"}
           </button>
         </form>
 

@@ -47,23 +47,25 @@ const Logo = ({ ex, s = 30, ts = "text-[11px]" }) => (
   </div>
 );
 
-const SUPPORTED = new Set(["binance", "kucoin"]);
+const SUPPORTED = new Set(["binance", "kucoin", "lbank"]);
 
 export default function ExchangeList() {
   const [binanceBind, setBinanceBind] = useState(null);
   const [kucoinBind, setKucoinBind] = useState(null);
+  const [lbankBind, setLbankBind] = useState(null);
   const [ipModal, setIpModal] = useState(null); // exchange whose IP popup is open
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get("/binance/bind").then(({ data }) => setBinanceBind(data)).catch(() => {});
     api.get("/kucoin/bind").then(({ data }) => setKucoinBind(data)).catch(() => {});
+    api.get("/lbank/bind").then(({ data }) => setLbankBind(data)).catch(() => {});
   }, []);
 
-  const bindOf = (id) => (id === "kucoin" ? kucoinBind : binanceBind);
+  const bindOf = (id) => (id === "kucoin" ? kucoinBind : id === "lbank" ? lbankBind : binanceBind);
   // Account me jo exchange add hai (demo ya real) — one exchange per account
-  const activeId = kucoinBind?.api_key_mask ? "kucoin" : binanceBind?.api_key_mask ? "binance" : null;
-  const connectedId = kucoinBind?.bound ? "kucoin" : binanceBind?.bound ? "binance" : null;
+  const activeId = kucoinBind?.api_key_mask ? "kucoin" : lbankBind?.api_key_mask ? "lbank" : binanceBind?.api_key_mask ? "binance" : null;
+  const connectedId = kucoinBind?.bound ? "kucoin" : lbankBind?.bound ? "lbank" : binanceBind?.bound ? "binance" : null;
   const isConnected = !!connectedId;
   const connected = EXCHANGES.find((e) => e.id === connectedId) || EXCHANGES[0];
   const others = isConnected ? EXCHANGES.filter((e) => e.id !== connectedId) : EXCHANGES;

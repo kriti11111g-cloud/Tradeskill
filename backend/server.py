@@ -684,6 +684,8 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
     # One exchange per account — block if another exchange is already connected.
     if await db.kucoin_keys.find_one({"user_id": user["id"]}):
         raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add Binance.")
+    if await db.lbank_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "LBank is already connected to this account. Disconnect LBank first to add Binance.")
     doc = {
         "user_id": user["id"],
         "api_key_enc": encrypt_text(body.api_key),
@@ -758,6 +760,8 @@ async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)
     # One exchange per account — block if another exchange is already connected.
     if await db.binance_keys.find_one({"user_id": user["id"]}):
         raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add KuCoin.")
+    if await db.lbank_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "LBank is already connected to this account. Disconnect LBank first to add KuCoin.")
     # For live mode, verify the keys actually work before saving.
     if body.mode == "real":
         client = KuCoinClient(body.api_key, body.api_secret, body.passphrase, body.key_version)
@@ -820,6 +824,63 @@ async def kucoin_account(user: dict = Depends(get_current_user)):
         if float(b.get("balance", 0) or 0) > 0
     ]
     return {"mode": mode, "canTrade": True, "accountType": "trade", "balances": balances}
+
+
+# ==== LBank API Keys ====
+class LBankBindIn(BaseModel):
+    api_key: str
+    api_secret: str
+    mode: Literal["real", "demo"] = "demo"
+
+
+@api.post("/lbank/bind")
+async def lbank_bind(body: LBankBindIn, user: dict = Depends(get_current_user)):
+    # One exchange per account — block if another exchange is already connected.
+    if await db.binance_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add LBank.")
+    if await db.kucoin_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add LBank.")
+    # For live mode, verify the keys actually work before saving.
+    if body.mode == "real":
+        client = LBankClient(body.api_key, body.api_secret)
+        try:
+            await client.user_info()
+        except LBankError as e:
+            if str(e.code) in ("10022", "10025"):
+                raise HTTPException(400, f"LBank: server IP not whitelisted. Add {await get_server_ip()} to your API key's IP list.")
+            raise HTTPException(400, f"LBank rejected keys ({e.code}): {e.message}")
+        except Exception as e:
+            raise HTTPException(400, f"LBank unreachable: {e}")
+    doc = {
+        "user_id": user["id"],
+        "api_key_enc": encrypt_text(body.api_key),
+        "api_secret_enc": encrypt_text(body.api_secret),
+        "api_key_mask": mask(body.api_key),
+        "mode": body.mode,
+        "updated_at": iso(now_utc()),
+    }
+    await db.lbank_keys.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "lbank"}})
+    return {"ok": True, "mask": doc["api_key_mask"], "mode": body.mode}
+
+
+@api.get("/lbank/bind")
+async def lbank_get_bind(user: dict = Depends(get_current_user)):
+    row = await db.lbank_keys.find_one(
+        {"user_id": user["id"]},
+        {"_id": 0, "api_key_enc": 0, "api_secret_enc": 0})
+    if not row:
+        return {"mode": None, "api_key_mask": None, "bound": False, "whitelist_ip": await get_server_ip()}
+    row["bound"] = row.get("mode") == "real"
+    row["whitelist_ip"] = await get_server_ip()
+    return row
+
+
+@api.delete("/lbank/bind")
+async def lbank_unbind(user: dict = Depends(get_current_user)):
+    await db.lbank_keys.delete_one({"user_id": user["id"]})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "binance"}})
+    return {"ok": True}
 
 
 # ==== Public Market Data ====
@@ -1536,7 +1597,7 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     # Block bot start if no exchange is connected — no trading until the user
     # binds an exchange (Binance/KuCoin).
     if not await _has_connected_exchange(user["id"]):
-        raise HTTPException(400, "Please connect an exchange (Binance or KuCoin) from Bind API before starting the bot.")
+        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin or LBank) from Bind API before starting the bot.")
     # Block bot start if Bot Wallet is not activated / has no balance
     w = await _get_or_create_bot_wallet(user["id"])
     if not w.get("activated"):
@@ -1686,7 +1747,7 @@ async def average_position(symbol: str, body: AverageIn, user: dict = Depends(ge
     Safety Call counter to C1 so the ladder restarts off the new average."""
     symbol = symbol.upper()
     if not await _has_connected_exchange(user["id"]):
-        raise HTTPException(400, "Please connect an exchange (Binance or KuCoin) first.")
+        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin or LBank) first.")
     bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     if not bot:
         raise HTTPException(404, "Bot not found")
@@ -1945,7 +2006,155 @@ async def get_user_kucoin(user_id: str):
     return KuCoinClient(api_key, api_secret, passphrase, row.get("key_version", "3")), mode
 
 
+# ==== LBank Spot client (async httpx; user provides key+secret; HmacSHA256 signing) ====
+LBANK_BASE_URL = os.environ.get("LBANK_BASE_URL", "https://api.lbank.info")
+
+
+class LBankError(Exception):
+    def __init__(self, status: int, code: str, message: str):
+        self.status, self.code, self.message = status, code, message
+        super().__init__(f"LBank {status}/{code}: {message}")
+
+
+def _lbank_symbol(symbol: str) -> str:
+    """BTCUSDT -> btc_usdt (quote assumed USDT)."""
+    s = symbol.upper()
+    return f"{s[:-4].lower()}_usdt" if s.endswith("USDT") else s.lower()
+
+
+class LBankClient:
+    def __init__(self, key, secret, base_url=LBANK_BASE_URL):
+        self.key, self.secret = key, secret
+        self.base_url = base_url.rstrip("/")
+
+    def _sign(self, form: dict) -> dict:
+        # LBank HmacSHA256: MD5(sorted param string).upper() -> HMAC-SHA256(secret, md5).hex
+        p = {k: str(v) for k, v in form.items() if v is not None}
+        p["signature_method"] = "HmacSHA256"
+        p["timestamp"] = str(int(time.time() * 1000))
+        p["echostr"] = pysecrets.token_hex(18)  # 36-char alphanumeric
+        canonical = "&".join(f"{k}={p[k]}" for k in sorted(p))
+        md5u = hashlib.md5(canonical.encode("utf-8")).hexdigest().upper()
+        p["sign"] = hmac.new(self.secret.encode("utf-8"), md5u.encode("utf-8"), hashlib.sha256).hexdigest()
+        return p
+
+    async def private(self, path, params=None):
+        form = self._sign({"api_key": self.key, **(params or {})})
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")  # force IPv4 for whitelist
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=15.0, transport=transport) as http:
+            r = await http.post(path, data=form, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            data = r.json()
+        except ValueError:
+            raise LBankError(r.status_code, "NON_JSON", r.text[:300])
+        ok = str(data.get("error_code", "0")) in ("0", "") and data.get("result") not in (False, "false")
+        if r.status_code >= 400 or not ok:
+            raise LBankError(r.status_code, str(data.get("error_code")), str(data.get("msg", data))[:300])
+        return data
+
+    async def public(self, path, params=None):
+        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=12.0, transport=transport) as http:
+            r = await http.get(path, params=params or {})
+        return r.json()
+
+    async def user_info(self):
+        return await self.private("/v2/supplement/user_info.do")
+
+    async def free_balance(self, asset: str) -> float:
+        """Best-effort free balance of a coin; returns 0.0 if unreadable."""
+        asset = asset.lower()
+        try:
+            data = (await self.user_info()).get("data")
+        except Exception:
+            return 0.0
+        rows = data if isinstance(data, list) else (data or {}).get("balances", []) if isinstance(data, dict) else []
+        for b in rows or []:
+            coin = str(b.get("coin") or b.get("asset") or b.get("currency") or "").lower()
+            if coin == asset:
+                for k in ("usableAmt", "free", "available", "freeze"):
+                    if b.get(k) is not None:
+                        try:
+                            return float(b[k])
+                        except Exception:
+                            pass
+        return 0.0
+
+    async def accuracy(self, symbol: str) -> int:
+        """Base-quantity decimal places for a symbol; 6 as a safe default."""
+        try:
+            data = (await self.public("/v2/accuracy.do")).get("data", [])
+            for row in data or []:
+                if str(row.get("symbol", "")).lower() == symbol:
+                    return int(float(row.get("quantityAccuracy", 6)))
+        except Exception:
+            pass
+        return 6
+
+    async def market_buy_quote(self, symbol, quote: Decimal):
+        return await self.private("/v2/supplement/create_order.do", {
+            "symbol": symbol, "type": "buy_market", "price": format(quote, "f"),
+            "custom_id": uuid.uuid4().hex})
+
+    async def market_sell_base(self, symbol, base_qty: Decimal):
+        return await self.private("/v2/supplement/create_order.do", {
+            "symbol": symbol, "type": "sell_market", "amount": format(base_qty, "f"),
+            "custom_id": uuid.uuid4().hex})
+
+    async def order_info(self, symbol, order_id):
+        return await self.private("/v2/supplement/orders_info.do", {"symbol": symbol, "orderId": order_id})
+
+    async def execution(self, symbol, order_id):
+        """Poll order info until the market order fills; return normalized fill data."""
+        qty = funds = Decimal(0)
+        status = "0"
+        ts_iso = None
+        for _ in range(30):
+            try:
+                d = (await self.order_info(symbol, order_id)).get("data")
+                o = d[0] if isinstance(d, list) and d else (d if isinstance(d, dict) else {})
+            except Exception:
+                o = {}
+            if o:
+                qty = Decimal(str(o.get("executedQty", o.get("dealQuantity", "0")) or "0"))
+                funds = Decimal(str(o.get("cummulativeQuoteQty", o.get("dealVolumePrice", "0")) or "0"))
+                status = str(o.get("status", "0"))
+                tms = o.get("updateTime") or o.get("time")
+                if tms:
+                    try:
+                        ts_iso = datetime.fromtimestamp(int(tms) / 1000, tz=timezone.utc).isoformat()
+                    except Exception:
+                        ts_iso = None
+                if status == "2" and qty > 0:
+                    break
+                if qty > 0 and status in ("-1", "3"):
+                    break
+            await asyncio.sleep(0.3)
+        avg = (funds / qty) if qty > 0 else Decimal(0)
+        return {"order_id": order_id, "filled_qty": float(qty), "quote": float(funds),
+                "avg_price": float(avg), "fee": 0.0, "ts": ts_iso,
+                "status": "done" if status == "2" else status}
+
+
+async def get_user_lbank(user_id: str):
+    """Return (client, mode). client is None for demo/no-keys."""
+    row = await db.lbank_keys.find_one({"user_id": user_id})
+    if not row:
+        return None, "demo"
+    mode = row.get("mode", "demo")
+    if mode == "demo":
+        return None, "demo"
+    try:
+        api_key = decrypt_text(row["api_key_enc"])
+        api_secret = decrypt_text(row["api_secret_enc"])
+    except Exception as e:
+        logger.error(f"decrypt lbank keys failed: {e}")
+        raise HTTPException(500, "Failed to load LBank API credentials")
+    return LBankClient(api_key, api_secret), mode
+
+
 def _parse_fill(order: dict, base_asset: str = "") -> tuple[float, float, float]:
+
     """Return (net_filled_qty, quote_spent, avg_price). Base-asset commission (Binance
     0.1% fee jo bought coin me katati hai) NET ki jati hai — warna sell fail hota hai."""
     fills = order.get("fills") or []
@@ -2150,6 +2359,99 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
     return txn
 
 
+async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode):
+    """LBank live spot execution — mirrors the KuCoin real path, reads fills for avg price/qty."""
+    lsym = _lbank_symbol(symbol)
+    base_asset = symbol.upper()[:-4]
+    try:
+        if side == "BUY":
+            amount = usdt_amount or 0
+            if amount <= 0:
+                raise _TradeError(400, "usdt_amount required for BUY")
+            accepted = await client.market_buy_quote(lsym, Decimal(str(round(amount, 2))))
+            oid = (accepted.get("data") or {}).get("order_id") or (accepted.get("data") or {}).get("orderId")
+            res = await client.execution(lsym, oid)
+        else:
+            qty = quantity or bot.get("position_qty", 0.0)
+            if qty <= 0:
+                raise _TradeError(400, "No position to sell")
+            free = await client.free_balance(base_asset)
+            if free > 0:
+                qty = min(qty, free)
+            acc = await client.accuracy(lsym)
+            q = Decimal(str(qty))
+            step = Decimal(1).scaleb(-acc)  # 10^-acc
+            qty = float((q // step) * step)
+            if qty <= 0:
+                raise _TradeError(400, "No sellable balance on LBank")
+            accepted = await client.market_sell_base(lsym, Decimal(str(qty)))
+            oid = (accepted.get("data") or {}).get("order_id") or (accepted.get("data") or {}).get("orderId")
+            res = await client.execution(lsym, oid)
+    except _TradeError:
+        raise
+    except LBankError as e:
+        msg = f"LBank rejected order ({e.code}): {e.message}"
+        logger.error(f"[lbank trade] {symbol} {side}: {msg}")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
+    except Exception as e:
+        msg = f"LBank order failed: {e}"
+        logger.error(f"[lbank trade] {symbol} {side}: {msg}")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
+
+    filled_qty, quote_spent, avg_price = res["filled_qty"], res["quote"], res["avg_price"]
+    if filled_qty <= 0 or avg_price <= 0:
+        msg = f"LBank order {res.get('order_id')} placed but fill could not be read back — will retry"
+        logger.error(f"[lbank trade] {symbol} {side}: {msg} (res={res})")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
+
+    if side == "BUY":
+        new_qty = bot.get("position_qty", 0.0) + filled_qty
+        new_amt = bot.get("position_amount", 0.0) + quote_spent
+        new_avg = new_amt / new_qty if new_qty > 0 else 0.0
+        new_wallet = max(0.0, wallet - quote_spent)
+        new_mc = bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0)
+        rule = _get_margin_rule(bot, new_mc)
+        next_buy = avg_price * (1 - rule["drop"] / 100.0)
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {
+            "position_amount": new_amt, "position_qty": new_qty, "avg_price": new_avg,
+            "last_buy_price": avg_price, "next_buy_price": next_buy, "peak_price": 0.0,
+            "dca_bottom_price": 0.0, "margin_call_count": new_mc}}, upsert=True)
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+        profit = 0.0
+    else:
+        cost = filled_qty * bot.get("avg_price", 0.0)
+        profit = quote_spent - cost
+        remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
+        if remaining_qty < 1e-9:
+            remaining_qty = 0.0
+        remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
+        new_wallet = wallet + quote_spent
+        update_set = {"position_qty": remaining_qty, "position_amount": remaining_amt,
+                      "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0}
+        if remaining_qty == 0:
+            update_set.update({"margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
+                               "peak_price": 0.0, "dca_bottom_price": 0.0, "last_sell_price": avg_price,
+                               "cycles_completed": bot.get("cycles_completed", 0) + 1})
+            if bot.get("trade_method") == "One-Shot":
+                update_set["status"] = "stopped"
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+
+    txn = {"id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol, "side": side,
+           "price": avg_price, "quantity": filled_qty, "amount": quote_spent, "profit": profit,
+           "mode": mode, "source": source, "exchange": "lbank",
+           "binance_order_id": res.get("order_id"), "binance_status": res.get("status"),
+           "created_at": res.get("ts") or iso(now_utc())}
+    await db.transactions.insert_one(txn)
+    if side == "SELL" and profit > 0 and source not in ("bot_stop", "fresh_start"):
+        await _charge_trading_fee(user_id, profit, symbol)
+    txn.pop("_id", None)
+    return txn
+
+
 async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual"):
     """Shared trade executor used by both the /trade/order endpoint and the bot engine.
     Returns the transaction dict. Raises _TradeError on failure."""
@@ -2170,6 +2472,13 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         if kc and kmode == "real":
             return await _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, kc, kmode)
         client, mode = None, "demo"  # KuCoin demo -> shared simulation below
+
+    # Route to LBank live engine when this bot is an LBank bot with real keys.
+    if bot.get("exchange") == "lbank":
+        lb, lmode = await get_user_lbank(user_id)
+        if lb and lmode == "real":
+            return await _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, lb, lmode)
+        client, mode = None, "demo"  # LBank demo -> shared simulation below
 
     # ----- LIVE (real / testnet) -----
     if client and mode in ("real", "testnet"):
@@ -2383,11 +2692,13 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
 
 # ---------- Bot Engine (background trader) ----------
 async def _has_connected_exchange(user_id: str) -> bool:
-    """True only if the user has bound an exchange (Binance or KuCoin).
+    """True only if the user has bound an exchange (Binance, KuCoin or LBank).
     No exchange connected → bot must NOT trade (demo included)."""
     if await db.binance_keys.find_one({"user_id": user_id}, {"_id": 1}):
         return True
     if await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        return True
+    if await db.lbank_keys.find_one({"user_id": user_id}, {"_id": 1}):
         return True
     return False
 

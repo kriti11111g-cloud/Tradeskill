@@ -67,3 +67,14 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Blue gradient identity card: circular avatar + camera button (local photo upload via FileReader -> localStorage key ts_avatar_{uid}), green "Verified" pill, "Hi, {name}" + verified badge, email, Joined date, UID with copy-to-clipboard, country with 🇮🇳 flag.
 - Menu rows (icon + label + chevron): Current Rank->/rank, Referral->/referral, Security Centre->/guide, Social Media->/social-bonus, Help Center->/guide, API Management->/bind-api. Admin sees Withdrawals Admin row. Logout at bottom.
 - Verified visually via screenshot (admin login). Theme-aware via CSS vars; blue card constant.
+
+## 2026-06 — LBank exchange integration (3rd connectable exchange)
+- Added LBank spot exchange alongside Binance + KuCoin (one-exchange-per-account rule enforced across all three).
+- Backend (server.py):
+  - LBankClient (httpx async, HmacSHA256 signing: MD5(sorted params).upper() -> HMAC-SHA256(secret) hex; echostr via pysecrets.token_hex(18); IPv4-forced transport for IP whitelist). Methods: user_info/free_balance/accuracy/market_buy_quote(price=quote spend)/market_sell_base(amount=base qty)/order_info/execution/ticker. Symbol map _lbank_symbol: BTCUSDT->btc_usdt.
+  - Endpoints: POST/GET/DELETE /api/lbank/bind (demo+real, real validates keys via user_info, 10022/10025 -> IP-whitelist error). active_exchange set to lbank.
+  - get_user_lbank(); _has_connected_exchange() now includes lbank_keys; _execute_trade routes bot.exchange=="lbank" -> _execute_lbank_real (mirrors KuCoin: buy by quote, sell clamped to free balance + accuracy floor, avg from cummulativeQuoteQty/executedQty).
+  - Storage: db.lbank_keys (api_key_enc/api_secret_enc Fernet). Env override: LBANK_BASE_URL (default https://api.lbank.info).
+- Frontend: BindAPI.jsx EX.lbank entry (no passphrase) + generalized multi-"others" one-exchange blocking; ExchangeList.jsx SUPPORTED adds lbank + lbankBind state/activeId/connectedId.
+- Verified on preview: bind/get/delete + both-direction one-exchange blocking via curl; signing fixture; LBank bind page + exchange-list "Bind" badge via screenshot.
+- NOT testable in preview: live LBank order execution (needs user's real LBank key with this server IP whitelisted). User must bind real keys on production + whitelist the production server egress IP.
