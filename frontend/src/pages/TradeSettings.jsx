@@ -93,7 +93,8 @@ export default function TradeSettings() {
     Promise.all([
       api.get("/binance/bind").then((r) => r.data).catch(() => null),
       api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
-    ]).then(([bn, kc]) => setConnected(!!(bn?.mode || kc?.mode)));
+      api.get("/lbank/bind").then((r) => r.data).catch(() => null),
+    ]).then(([bn, kc, lb]) => setConnected(!!(bn?.mode || kc?.mode || lb?.mode)));
   }, []);
 
   useEffect(() => {
@@ -213,7 +214,7 @@ export default function TradeSettings() {
             data-testid="ts-connect-banner">
             <Link2 size={18} style={{ color: "#B45309" }} className="shrink-0" />
             <div className="text-[11.5px] font-bold leading-snug" style={{ color: "#B45309" }}>
-              Bot start karne ke liye pehle ek exchange (Binance/KuCoin) connect karein.
+              Bot start karne ke liye pehle ek exchange (Binance/KuCoin/LBank) connect karein.
             </div>
           </div>
         )}
