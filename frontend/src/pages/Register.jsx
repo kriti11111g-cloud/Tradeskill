@@ -385,6 +385,18 @@ export default function Register() {
             {loading ? "Creating..." : "Create Account"} <ArrowRight size={20} strokeWidth={2.6} />
           </button>
         </form>
+
+        {/* Already have an account? */}
+        <button
+          type="button"
+          onClick={() => nav("/login")}
+          data-testid="signup-goto-login"
+          className="mt-4 w-full rounded-2xl py-3.5 flex items-center justify-center gap-2 select-none"
+          style={{ background: "#fff", border: "1.5px solid #E2E8F0", boxShadow: "0 4px 14px rgba(15,23,42,0.05)", touchAction: "manipulation" }}
+        >
+          <span className="text-[14.5px] font-medium text-[#475569]">Already have an account?</span>
+          <span className="text-[14.5px] font-black" style={{ color: "#14B8A6" }}>Login</span>
+        </button>
       </div>
 
       {qrOpen && (
