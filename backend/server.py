@@ -4274,7 +4274,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     cur_id = user.get("referred_by")
     seen = {user["id"]}
     hops = 0
-    while cur_id and cur_id not in seen and hops < 50:
+    while cur_id and cur_id not in seen:   # UNLIMITED depth (cycle-guarded by `seen`), like trading commission
         seen.add(cur_id)
         anc = await db.users.find_one(
             {"id": cur_id},

@@ -95,3 +95,6 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 ## 2026-10 — Level (L{n}) shown in Bot Difference & Support income + Register login link
 - Bot Difference Income & Support Income transaction notes now append "· L{level}" (genealogy depth, L1=direct) like Trading Commission's "Differential x% from Y · SYM · L{n}". Done in activation payout (server.py ~4286 chain build stores anc['_glevel']=hops+1; notes at base_note, bot-difference upline, support_income upline). Only NEW income gets level; old records unchanged. Frontend needs no change (renders note verbatim).
 - Register.jsx: added "Already have an account? Login" card below Create Account button (data-testid signup-goto-login) → nav('/login'). Verified via screenshot.
+
+## 2026-10 — Bot difference & support income: removed 50-level depth cap (now UNLIMITED)
+- Activation income chain-build loop (server.py ~4277) had `hops < 50` cap. Removed → now `while cur_id and cur_id not in seen:` (cycle-guarded only), matching trading commission's unlimited-depth differential. Bot difference + support income now flow rank-to-rank with NO fixed depth limit; stop only when an equal/higher rank appears below (natural differential rule) or at rank ceiling LEVEL 10. Confirmed via code trace that logic already matched user's rank-to-rank expectation; only the depth cap was the limit.
