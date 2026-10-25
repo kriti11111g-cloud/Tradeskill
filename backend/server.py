@@ -4283,6 +4283,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
             break
         wa = await db.bot_wallets.find_one({"user_id": anc["id"]}, {"activated": 1})
         if wa and wa.get("activated"):
+            anc["_glevel"] = hops + 1
             chain.append(anc)
         cur_id = anc.get("referred_by")
         hops += 1
@@ -4309,8 +4310,8 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
         # 1) Base = direct income ("Direct income" only if it is the real direct
         #    sponsor, else "Bot difference"). Base gets NO support income.
         base_kind = "direct_bonus" if base["id"] == direct_sponsor_id else "activation_difference"
-        base_note = (f"Direct income · {actor} activated" if base_kind == "direct_bonus"
-                     else f"Bot difference income · {actor} activated")
+        base_note = (f"Direct income · {actor} activated · L{base['_glevel']}" if base_kind == "direct_bonus"
+                     else f"Bot difference income · {actor} activated · L{base['_glevel']}")
         if await _credit_commission(base["id"], base_income, base_kind, base_note, from_user_id=user["id"]):
             distributed += base_income
 
@@ -4326,7 +4327,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                 diff_amt = round((up_level - highest) * share, 4)
                 if diff_amt > 0 and await _credit_commission(
                         up["id"], diff_amt, "activation_difference",
-                        f"Bot difference income · {actor} activated", from_user_id=user["id"]):
+                        f"Bot difference income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
                     distributed += diff_amt
                 # --- support ---
                 if first_upline:
@@ -4341,7 +4342,7 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                 s_highest = max(s_highest, up_level)
                 if sup_amt > 0 and await _credit_commission(
                         up["id"], sup_amt, "support_income",
-                        f"Support income · {actor} activated", from_user_id=user["id"]):
+                        f"Support income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
                     distributed += sup_amt
                 highest = up_level
             idx += 1
