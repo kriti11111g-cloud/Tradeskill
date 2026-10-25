@@ -98,3 +98,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 
 ## 2026-10 — Bot difference & support income: removed 50-level depth cap (now UNLIMITED)
 - Activation income chain-build loop (server.py ~4277) had `hops < 50` cap. Removed → now `while cur_id and cur_id not in seen:` (cycle-guarded only), matching trading commission's unlimited-depth differential. Bot difference + support income now flow rank-to-rank with NO fixed depth limit; stop only when an equal/higher rank appears below (natural differential rule) or at rank ceiling LEVEL 10. Confirmed via code trace that logic already matched user's rank-to-rank expectation; only the depth cap was the limit.
+
+## 2026-10 — Level shown on ALL income (retroactive backfill)
+- Asset/wallet screen uses GET /bot-wallet/transactions → renders txn.note verbatim (Wallet.jsx L504). Level now shows as "· L{n}" in note for bot_difference/support/direct income.
+- NEW records: level baked into note at activation payout (done earlier).
+- OLD records: one-time startup migration income_level_backfill_v1 (app_meta guarded, idempotent, skips notes already matching `· L\d+`). Matches from_user_id via rewards collection (user_id+note+amount), then _genealogy_level(recipient,from_user) walks sponsor line up (direct child=L1). Social follow rewards correctly get no level (no from_user_id). Verified preview: 5 records updated, e.g. "Support income ... · L2", "Direct bonus · Test Grand activated · L1". Runs on prod DB automatically on deploy/restart.
+- Added helper _genealogy_level() near _rank_level_of() (server.py ~3892).

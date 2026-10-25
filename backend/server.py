@@ -3890,6 +3890,25 @@ def _rank_level_of(user_doc) -> int:
     return 1
 
 
+async def _genealogy_level(recipient_id: str, from_user_id: str, cache: dict) -> Optional[int]:
+    """How many levels BELOW `recipient_id` the `from_user_id` sits (direct child = L1).
+    Walks UP the sponsor line from from_user until recipient is reached."""
+    cur = from_user_id
+    seen = set()
+    for hop in range(1, 101):
+        if not cur or cur in seen:
+            return None
+        seen.add(cur)
+        if cur not in cache:
+            doc = await db.users.find_one({"id": cur}, {"_id": 0, "referred_by": 1})
+            cache[cur] = (doc or {}).get("referred_by")
+        parent = cache[cur]
+        if parent == recipient_id:
+            return hop
+        cur = parent
+    return None
+
+
 async def _company_ledger(kind: str, amount: float, from_user_id: str, note: str = "", symbol: str = None, level: int = None):
     if amount <= 0:
         return
@@ -5913,6 +5932,34 @@ async def startup():
             logger.info(f"bot defaults refresh: updated={refreshed.modified_count}")
     except Exception as e:
         logger.warning(f"bot defaults refresh failed: {e}")
+
+    # One-time: backfill genealogy level (· L{n}) into OLD bot-difference / support /
+    # direct income transaction notes so the Asset/wallet screen shows which level the
+    # earning came from (new records already carry it). Matches from_user_id via the
+    # rewards collection, then walks the sponsor line. Idempotent (skips notes w/ · L).
+    try:
+        if not await db.app_meta.find_one({"_id": "income_level_backfill_v1"}):
+            kinds = ["activation_difference", "support_income", "social_bonus", "direct_bonus"]
+            ref_cache = {}
+            updated = 0
+            cursor = db.bot_transactions.find(
+                {"kind": {"$in": kinds}, "note": {"$not": {"$regex": r"· L\d+"}}})
+            async for t in cursor:
+                rw = await db.rewards.find_one(
+                    {"user_id": t["user_id"], "note": t.get("note"), "amount": t.get("amount")},
+                    {"_id": 0, "from_user_id": 1})
+                fuid = (rw or {}).get("from_user_id")
+                if not fuid:
+                    continue
+                lvl = await _genealogy_level(t["user_id"], fuid, ref_cache)
+                if lvl:
+                    await db.bot_transactions.update_one(
+                        {"id": t["id"]}, {"$set": {"note": f"{t.get('note', '')} · L{lvl}"}})
+                    updated += 1
+            await db.app_meta.insert_one({"_id": "income_level_backfill_v1", "done_at": iso(now_utc())})
+            logger.info(f"income level backfill: updated={updated}")
+    except Exception as e:
+        logger.warning(f"income level backfill failed: {e}")
 
     logger.info("Trade Skill startup complete")
 
