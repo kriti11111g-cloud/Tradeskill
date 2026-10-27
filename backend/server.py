@@ -4334,36 +4334,40 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
         if await _credit_commission(base["id"], base_income, base_kind, base_note, from_user_id=user["id"]):
             distributed += base_income
 
-        # 2) Walk activated uplines: bot-difference (rank cascade) + support (shifted up one rank).
+        # 2) Walk activated uplines. Bot-difference cascades by RANK (only a higher rank
+        #    overrides). Support income is SEPARATE: the base's immediate activated upline
+        #    ALWAYS gets support_base (10% of base's direct), regardless of rank; any extra
+        #    support slots then cascade up by rank.
         highest = base_level
         s_highest = base_level + 1          # base-support conceptually covers rank (base+1)
         first_upline = True
         idx = 1
-        while idx < len(chain) and highest < 10:
+        while idx < len(chain) and (first_upline or highest < 10 or s_highest < 10):
             up = chain[idx]
             up_level = min(_rank_level_of(up), 10)
+            # --- bot difference (rank cascade; only higher ranks override) ---
             if up_level > highest:
                 diff_amt = round((up_level - highest) * share, 4)
                 if diff_amt > 0 and await _credit_commission(
                         up["id"], diff_amt, "activation_difference",
                         f"Bot difference income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
                     distributed += diff_amt
-                # --- support ---
-                if first_upline:
-                    sup_amt = support_base
-                    if up_level > s_highest:
-                        sup_amt = round(sup_amt + (up_level - s_highest) * support_share, 4)
-                    first_upline = False
-                elif up_level > s_highest:
-                    sup_amt = round((up_level - s_highest) * support_share, 4)
-                else:
-                    sup_amt = 0.0
-                s_highest = max(s_highest, up_level)
-                if sup_amt > 0 and await _credit_commission(
-                        up["id"], sup_amt, "support_income",
-                        f"Support income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
-                    distributed += sup_amt
                 highest = up_level
+            # --- support income (NOT gated by the bot-difference rank check) ---
+            if first_upline:
+                sup_amt = support_base
+                if up_level > s_highest:
+                    sup_amt = round(sup_amt + (up_level - s_highest) * support_share, 4)
+                first_upline = False
+            elif up_level > s_highest:
+                sup_amt = round((up_level - s_highest) * support_share, 4)
+            else:
+                sup_amt = 0.0
+            s_highest = max(s_highest, up_level)
+            if sup_amt > 0 and await _credit_commission(
+                    up["id"], sup_amt, "support_income",
+                    f"Support income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
+                distributed += sup_amt
             idx += 1
 
     distributed = round(distributed, 4)

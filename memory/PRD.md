@@ -104,3 +104,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - NEW records: level baked into note at activation payout (done earlier).
 - OLD records: one-time startup migration income_level_backfill_v1 (app_meta guarded, idempotent, skips notes already matching `· L\d+`). Matches from_user_id via rewards collection (user_id+note+amount), then _genealogy_level(recipient,from_user) walks sponsor line up (direct child=L1). Social follow rewards correctly get no level (no from_user_id). Verified preview: 5 records updated, e.g. "Support income ... · L2", "Direct bonus · Test Grand activated · L1". Runs on prod DB automatically on deploy/restart.
 - Added helper _genealogy_level() near _rank_level_of() (server.py ~3892).
+
+## 2026-10 — BUGFIX: Support income blocked when immediate upline rank <= base rank
+- Bug: in activation payout (server.py ~4337), support income payment was nested INSIDE the bot-difference `if up_level > highest:` rank gate. When the base's immediate activated upline had equal/lower rank (e.g. both LEVEL 1), the gate failed (1>1 false) and the upline got ZERO support income — but per design (SUPPORT_INCOME_PCT comment "10% of direct bonus to sponsor's immediate upline") they must always get support_base.
+- Fix: moved support computation OUT of the rank gate; first activated upline ALWAYS receives support_base (10% of base direct income) regardless of rank; extra support slots still cascade by rank. Loop condition now `(first_upline or highest<10 or s_highest<10)`.
+- Verified via simulation with real constants: A=V1($8 direct), upline V1 → support $0.80 ✓; upline V3 → bot_diff $4.08 + support $1.03 ✓.
+- PAST missed support income NOT auto-recovered (went to company reserve). Optional safe recovery migration offered to user (skip already-paid, credit only missing) — pending user go-ahead.
