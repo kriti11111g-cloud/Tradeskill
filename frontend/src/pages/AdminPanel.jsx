@@ -5,9 +5,9 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
-  DatabaseBackup, KeyRound, Gift, Plus, Trash2, Zap,
+  DatabaseBackup, KeyRound, Gift, Plus, Trash2, Zap, LogIn,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
 
 const BLUE = "#2563EB";
@@ -52,6 +52,22 @@ export default function AdminPanel() {
   const openUser = (u) => {
     setDetail(u);
     setEditWallets({ bep20: null, polygon: null });
+  };
+
+  const impersonate = async () => {
+    if (!detail) return;
+    if (!window.confirm(`Login as ${detail.name || detail.uid} (${detail.uid})?\nYou will open this user's account. A banner will let you return to Admin.`)) return;
+    setDetailBusy(true);
+    try {
+      const { data } = await api.post(`/admin/users/${detail.uid}/impersonate`, {}, cfg);
+      localStorage.setItem("tgx_prev_token", localStorage.getItem("tgx_token") || "");
+      localStorage.setItem("tgx_token", data.token);
+      localStorage.setItem("tgx_impersonating", JSON.stringify(data.user));
+      window.location.href = "/";
+    } catch (e) {
+      toast.error(formatApiError(e));
+      setDetailBusy(false);
+    }
   };
 
   const saveWallets = async () => {
@@ -488,6 +504,11 @@ export default function AdminPanel() {
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2"
                   style={{ border: "1.5px solid #EA580C", color: "#EA580C", touchAction: "manipulation" }} data-testid="admin-set-txn-password">
                   <Lock size={16} /> Reset Transaction Password
+                </button>
+                <button onClick={impersonate} disabled={detailBusy}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2 text-white"
+                  style={{ background: "linear-gradient(90deg,#B45309,#92400E)", touchAction: "manipulation" }} data-testid="admin-login-as-user">
+                  <LogIn size={16} /> Login as this User
                 </button>
                 {detail.blocked && <div className="text-center text-[11px] font-black pb-3" style={{ color: "#DC2626" }}>⚠ This user is currently BLOCKED</div>}
               </div>

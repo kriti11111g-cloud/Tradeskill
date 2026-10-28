@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import DepositCelebration from "@/components/DepositCelebration";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 export default function AppShell() {
   return (
@@ -17,6 +18,7 @@ export default function AppShell() {
         }}
         data-testid="app-shell"
       >
+        <ImpersonationBanner />
         <Outlet />
         <BottomNav />
         <DepositCelebration />

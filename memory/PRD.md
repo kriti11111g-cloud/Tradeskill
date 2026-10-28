@@ -114,3 +114,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 ## 2026-10 — Register: show sponsor name under referral code
 - Backend: public GET /api/auth/sponsor?code= → {found, name, uid} (resolves referral_code or uid). server.py before /auth/register.
 - Frontend Register.jsx: useEffect on form.referral_code (immediate async + cancelled flag; NO setTimeout — dev StrictMode cleared the timeout) fetches sponsor; renders "✓ Sponsor: {name}" green semibold (#059669 + emerald check) below referral field (data-testid signup-sponsor-name), or "Referral code not found" (signup-sponsor-invalid). Verified via screenshot (Sponsor: Test User). Dev-mode first-load timing can lag a few sec; production build instant.
+
+## 2026-10 — Admin "Login as this User" (impersonation)
+- Backend: POST /api/admin/users/{user_id}/impersonate (require_admin / wallet_admin only). Accepts uid OR id. Mints a normal user access token via create_access_token, logs to impersonation_log collection (admin_id, target). Rejects impersonating another admin. Returns {token, user:{uid,name,email}}.
+- get_current_user already prefers Authorization Bearer over cookie → impersonation works by swapping localStorage tgx_token (admin cookie untouched).
+- Frontend: AdminPanel.jsx user-detail → "Login as this User" button (data-testid admin-login-as-user) → confirm → saves tgx_prev_token, sets tgx_token=impersonation token + tgx_impersonating={uid,name}, hard-redirect to '/'. New component ImpersonationBanner.jsx in AppShell shows amber sticky banner "Admin view: {name} ({uid})" + "Exit to Admin" (data-testid impersonation-banner / impersonation-exit-btn) → restores admin token, redirects to /admin.
+- Verified via curl: admin→impersonate returns token; token /auth/me = target user (role user); impersonation token BLOCKED from admin endpoints (403); non-wallet_admin token rejected. Frontend compiles clean.

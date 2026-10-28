@@ -5191,6 +5191,31 @@ async def admin_adjust(body: AdminAdjustIn, admin: dict = Depends(require_admin)
     return {"ok": True, "email": u["email"], "balance": bal}
 
 
+@api.post("/admin/users/{user_id}/impersonate")
+async def admin_impersonate(user_id: str, admin: dict = Depends(require_admin)):
+    """Admin-only: mint a login token for the target user so the admin can open
+    that user's account. Audited. The admin's own session is untouched (the frontend
+    keeps the admin token and can switch back)."""
+    target = await db.users.find_one(
+        {"$or": [{"id": user_id}, {"uid": user_id.upper()}]},
+        {"_id": 0, "id": 1, "uid": 1, "email": 1, "name": 1, "role": 1})
+    if not target:
+        raise HTTPException(404, "User not found")
+    if target.get("role") == "admin":
+        raise HTTPException(400, "Cannot impersonate another admin")
+    token = create_access_token(target["id"], target["email"])
+    await db.impersonation_log.insert_one({
+        "id": str(uuid.uuid4()),
+        "admin_id": admin["id"], "admin_email": admin.get("email"),
+        "target_id": target["id"], "target_uid": target.get("uid"),
+        "target_email": target.get("email"),
+        "created_at": iso(now_utc()),
+    })
+    logger.info(f"ADMIN IMPERSONATE: {admin.get('email')} -> {target.get('uid')} ({target.get('email')})")
+    return {"ok": True, "token": token,
+            "user": {"uid": target.get("uid"), "name": target.get("name"), "email": target.get("email")}}
+
+
 @api.get("/admin/deposits")
 async def admin_deposits(admin: dict = Depends(require_admin)):
     rows = await db.bot_transactions.find(
