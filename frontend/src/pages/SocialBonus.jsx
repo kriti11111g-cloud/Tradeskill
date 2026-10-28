@@ -85,7 +85,7 @@ export default function SocialBonus() {
     try {
       const { data: r } = await api.get("/social-bonus/telegram/link");
       window.open(r.url, "_blank", "noopener");
-      toast.info("Telegram me START dabayen, phir wapas aakar VERIFY karein");
+      toast.info("Tap START in Telegram, then come back and tap VERIFY");
     } catch (e) {
       toast.error(formatApiError(e));
     }
@@ -96,7 +96,7 @@ export default function SocialBonus() {
     try {
       await api.post(`/social-bonus/verify/${p.id}`);
       await load();
-      toast.success(`${p.name} follow verified ✅ — ab CLAIM dabayen`);
+      toast.success(`${p.name} follow verified ✅ — now tap CLAIM`);
     } catch (e) {
       if (e?.response?.status === 428) doTgConnect();
       else toast.error(formatApiError(e));
@@ -245,8 +245,8 @@ export default function SocialBonus() {
                 FOLLOW. <span className="text-[color:#2563EB]">VERIFY.</span> EARN.
               </div>
               <p className="text-[11px] text-[color:var(--text-soft)] mt-1 leading-relaxed max-w-[220px]">
-                Ek-ek karke sabhi official channels follow karein aur{" "}
-                <span className="font-black text-[color:#2563EB]">${(data?.total_available ?? 1).toFixed(2)}</span> tak seedha wallet me kamayein.
+                Follow every official channel one by one and earn up to{" "}
+                <span className="font-black text-[color:#2563EB]">${(data?.total_available ?? 1).toFixed(2)}</span> straight to your wallet.
               </p>
             </div>
             <div
@@ -302,10 +302,10 @@ export default function SocialBonus() {
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {[
-              { Icon: UserPlus, t: "1. Follow", s: "Channel follow karein" },
-              { Icon: BadgeCheck, t: "2. Verify", s: "System follow verify karega" },
-              { Icon: DollarSign, t: "3. Claim", s: "$0.20 wallet me instantly" },
-              { Icon: Lock, t: "4. Unlock", s: "Agla platform khulega" },
+              { Icon: UserPlus, t: "1. Follow", s: "Follow the channel" },
+              { Icon: BadgeCheck, t: "2. Verify", s: "System verifies your follow" },
+              { Icon: DollarSign, t: "3. Claim", s: "$0.20 to wallet instantly" },
+              { Icon: Lock, t: "4. Unlock", s: "Next platform unlocks" },
             ].map(({ Icon, t, s }) => (
               <div key={t} className="flex flex-col items-center text-center gap-1">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "transparent", border: `1px solid ${GOLD_BORDER}` }}>
@@ -321,7 +321,7 @@ export default function SocialBonus() {
         {/* Footer note */}
         <div className="rounded-xl border px-3 py-2.5 flex items-center justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-3)" }}>
           <div className="text-[9px] text-[color:var(--text-mute)] leading-snug pr-2">
-            <span className="font-bold text-[color:#2563EB]">Important:</span> Order me claim karein — Telegram se shuru. Har platform sirf ek baar claim ho sakta hai.
+            <span className="font-bold text-[color:#2563EB]">Important:</span> Claim in order — starting with Telegram. Each platform can be claimed only once.
           </div>
           <div className="flex items-center gap-1 shrink-0 text-[9px] font-black text-[color:var(--good)]">
             <ShieldCheck size={12} /> 100% SAFE

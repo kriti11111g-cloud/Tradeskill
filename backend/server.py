@@ -5677,7 +5677,7 @@ async def social_bonus_follow(platform: str,
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     if platform not in SOCIAL_ENABLED:
-        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
+        raise HTTPException(400, "Coming Soon — only Telegram is available right now")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
@@ -5697,7 +5697,7 @@ async def social_bonus_verify(platform: str, user: dict = Depends(get_current_us
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     if platform not in SOCIAL_ENABLED:
-        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
+        raise HTTPException(400, "Coming Soon — only Telegram is available right now")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
@@ -5716,7 +5716,10 @@ async def social_bonus_verify(platform: str, user: dict = Depends(get_current_us
         res = await _tg_api("getChatMember", chat_id=TELEGRAM_CHANNEL,
                             user_id=tg["tg_user_id"])
         st = (res.get("result") or {}).get("status")
-        if not (res.get("ok") and st in ("member", "administrator", "creator")):
+        if not res.get("ok"):
+            logger.warning(f"TG getChatMember failed: {res}")
+            raise HTTPException(400, "Could not check your membership. The bot must be an ADMIN of the channel. Please contact support.")
+        if st not in ("member", "administrator", "creator"):
             raise HTTPException(400, "You haven't joined the channel yet — join first, then verify")
     else:
         elapsed = (now_utc() - datetime.fromisoformat(c["follow_started_at"])).total_seconds()
@@ -5766,7 +5769,7 @@ async def telegram_webhook(secret: str, request: Request):
             _chan_url = f"https://t.me/{_chan}" if _chan else "https://t.me/tradeskill_in"
             await _tg_api(
                 "sendMessage", chat_id=msg.get("chat", {}).get("id"),
-                text="✅ Account linked!\n\n📢 Ab niche button se humara channel JOIN karein, phir app me wapas aakar VERIFY dabayein.",
+                text="✅ Account linked!\n\n📢 Now tap the button below to JOIN our channel, then return to the app and tap VERIFY.",
                 reply_markup={"inline_keyboard": [[{"text": "📢 Join Channel", "url": _chan_url}]]})
     return {"ok": True}
 
@@ -5776,7 +5779,7 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
     if platform not in _SOCIAL_IDS:
         raise HTTPException(404, "Unknown platform")
     if platform not in SOCIAL_ENABLED:
-        raise HTTPException(400, "Coming Soon — abhi sirf Telegram available hai")
+        raise HTTPException(400, "Coming Soon — only Telegram is available right now")
     doc = await db.social_bonus.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
     claims = doc.get("claims") or {}
     c = claims.get(platform, {})
