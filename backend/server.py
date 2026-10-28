@@ -5610,7 +5610,7 @@ async def withdraw_otp_verify(body: OtpVerifyIn,
 
 SOCIAL_BONUS_AMOUNT = float(os.environ.get("SOCIAL_BONUS_AMOUNT", "0.20"))
 SOCIAL_PLATFORMS = [
-    {"id": "telegram", "name": "Telegram", "desc": "Join our Telegram channel", "url": "https://t.me/hubxbot", "action": "Join our Telegram channel"},
+    {"id": "telegram", "name": "Telegram", "desc": "Join our Telegram channel", "url": "https://t.me/tradeskill_in", "action": "Join our Telegram channel"},
     {"id": "whatsapp", "name": "WhatsApp", "desc": "Join our WhatsApp channel", "url": "https://whatsapp.com/channel/hubxbot", "action": "Join our WhatsApp channel"},
     {"id": "instagram", "name": "Instagram", "desc": "Follow our Instagram page", "url": "https://instagram.com/hubxbot", "action": "Follow our Instagram page"},
     {"id": "facebook", "name": "Facebook", "desc": "Follow our Facebook page", "url": "https://facebook.com/hubxbot", "action": "Follow our Facebook page"},
