@@ -5762,8 +5762,12 @@ async def telegram_webhook(secret: str, request: Request):
                 {"$set": {"telegram": {"tg_user_id": frm["id"],
                                        "tg_username": frm.get("username"),
                                        "linked_at": iso(now_utc())}}}, upsert=True)
-            await _tg_api("sendMessage", chat_id=msg.get("chat", {}).get("id"),
-                          text="✅ Account linked! Now join our channel and tap VERIFY in the app.")
+            _chan = TELEGRAM_CHANNEL.lstrip("@")
+            _chan_url = f"https://t.me/{_chan}" if _chan else "https://t.me/tradeskill_in"
+            await _tg_api(
+                "sendMessage", chat_id=msg.get("chat", {}).get("id"),
+                text="✅ Account linked!\n\n📢 Ab niche button se humara channel JOIN karein, phir app me wapas aakar VERIFY dabayein.",
+                reply_markup={"inline_keyboard": [[{"text": "📢 Join Channel", "url": _chan_url}]]})
     return {"ok": True}
 
 
