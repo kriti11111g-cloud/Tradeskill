@@ -171,6 +171,7 @@ export default function Register() {
   const [resendIn, setResendIn] = useState(0);
   const [qrOpen, setQrOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sponsorName, setSponsorName] = useState("");
   const otpRefs = useRef([]);
 
   useEffect(() => {
@@ -178,6 +179,20 @@ export default function Register() {
     const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [resendIn]);
+
+  // Resolve sponsor name from referral code (debounced)
+  useEffect(() => {
+    const code = (form.referral_code || "").trim();
+    if (code.length < 4) { setSponsorName(""); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get("/auth/sponsor", { params: { code } });
+        if (!cancelled) setSponsorName(data?.found ? (data.name || "") : "__notfound__");
+      } catch { if (!cancelled) setSponsorName(""); }
+    })();
+    return () => { cancelled = true; };
+  }, [form.referral_code]);
 
   const sendOtp = async () => {
     if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) { toast.error("Enter a valid email first"); return; }
@@ -367,6 +382,19 @@ export default function Register() {
               <QrCode size={24} className={iconCls} />
             </button>
           </div>
+          {/* Sponsor name under referral code */}
+          {sponsorName && sponsorName !== "__notfound__" && (
+            <div className="flex items-center gap-1.5 px-4 -mt-1" data-testid="signup-sponsor-name">
+              <CheckCircle2 size={14} className="shrink-0" style={{ color: "#10B981" }} />
+              <span className="text-[12.5px] font-normal text-[#64748B]">Sponsor: <span className="font-semibold" style={{ color: "#059669" }}>{sponsorName}</span></span>
+            </div>
+          )}
+          {sponsorName === "__notfound__" && (
+            <div className="flex items-center gap-1.5 px-4 -mt-1" data-testid="signup-sponsor-invalid">
+              <X size={13} className="text-rose-500 shrink-0" />
+              <span className="text-[12px] font-normal text-rose-500">Referral code not found</span>
+            </div>
+          )}
 
           {/* Terms */}
           <label className="flex items-center gap-3 px-1 pt-1 cursor-pointer select-none" style={{ touchAction: "manipulation" }}>

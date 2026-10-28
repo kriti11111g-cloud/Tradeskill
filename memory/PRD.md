@@ -110,3 +110,7 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix: moved support computation OUT of the rank gate; first activated upline ALWAYS receives support_base (10% of base direct income) regardless of rank; extra support slots still cascade by rank. Loop condition now `(first_upline or highest<10 or s_highest<10)`.
 - Verified via simulation with real constants: A=V1($8 direct), upline V1 → support $0.80 ✓; upline V3 → bot_diff $4.08 + support $1.03 ✓.
 - PAST missed support income NOT auto-recovered (went to company reserve). Optional safe recovery migration offered to user (skip already-paid, credit only missing) — pending user go-ahead.
+
+## 2026-10 — Register: show sponsor name under referral code
+- Backend: public GET /api/auth/sponsor?code= → {found, name, uid} (resolves referral_code or uid). server.py before /auth/register.
+- Frontend Register.jsx: useEffect on form.referral_code (immediate async + cancelled flag; NO setTimeout — dev StrictMode cleared the timeout) fetches sponsor; renders "✓ Sponsor: {name}" green semibold (#059669 + emerald check) below referral field (data-testid signup-sponsor-name), or "Referral code not found" (signup-sponsor-invalid). Verified via screenshot (Sponsor: Test User). Dev-mode first-load timing can lag a few sec; production build instant.

@@ -514,6 +514,20 @@ async def signup_otp_verify(body: SignupOtpVerifyIn):
     return {"verified": True}
 
 
+@api.get("/auth/sponsor")
+async def resolve_sponsor(code: str):
+    """Public: resolve a referral/UID code to the sponsor's display name (for signup)."""
+    code = (code or "").strip().upper()
+    if not code:
+        return {"found": False}
+    ref = await db.users.find_one(
+        {"$or": [{"referral_code": code}, {"uid": code}]},
+        {"_id": 0, "name": 1, "uid": 1})
+    if not ref:
+        return {"found": False}
+    return {"found": True, "name": ref.get("name") or ref.get("uid"), "uid": ref.get("uid")}
+
+
 @api.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
     email = body.email.lower()
