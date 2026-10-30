@@ -32,3 +32,10 @@
 ## 2026-06 — Team member cards: genealogy depth "Level X" label
 - team-by-rank now computes each member's depth below the logged-in user during BFS (direct = Level 1, their referrals = Level 2, ...). Added `depth` to each member payload.
 - Referral MemberRow shows a thin "Level {depth}" label under the email (only when depth present). Verified: directs show Level 1, sub-members Level 2.
+
+## 2026-06 — OTP delivery fix (signup / forgot / withdrawal)
+- ROOT CAUSE: RESEND_API_KEY was invalid (401 "API key is invalid") -> every _send_otp_email raised -> "Could not send OTP email" on signup, forgot-password and withdrawal.
+- FIX: switched _send_otp_email to Emergent managed email proxy (https://integrations.emergentagent.com/api/v1/email/send, X-Email-Key). No Resend account/key or domain verification needed; platform-verified domain delivers to any recipient. Added _assert_safe_email guardrail gate (no forms/credential-asks/unsafe links). Existing OTP HTML template reused.
+- backend/.env (PREVIEW) added: EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME="Trade Skill". RESEND_API_KEY no longer read (left in place, harmless).
+- Verified: send to delivered@resend.dev -> HTTP 200 ok:true. (demo.team1@tgxbot.com -> 422 undeliverable because tgxbot.com is a fake domain; real emails deliver.)
+- PRODUCTION TODO (VPS): add EMERGENT_EMAIL_KEY=ek_0a1558a448e6abbe7684590104fe54e0 and EMAIL_FROM_NAME="Trade Skill" to /opt/tradeskill backend .env, then redeploy + restart backend. Sends draw from the Emergent account credits/Universal Key.
