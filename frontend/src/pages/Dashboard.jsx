@@ -32,6 +32,8 @@ import {
   UserPlus,
   Globe,
   Sparkles,
+  Bitcoin,
+  LineChart,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum, rankName } from "@/lib/format";
@@ -247,22 +249,40 @@ export default function Dashboard() {
         {/* ============ TOP BANNER SLIDER (balance hero ki jagah) ============ */}
         <BannerCarousel />
 
-        {/* ============ SEARCH BAR ============ */}
-        <Link
-          to="/market"
-          data-testid="dash-search"
-          className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 mb-5"
-          style={{
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
-          <Search size={16} color="var(--text-mute)" />
-          <span className="text-sm" style={{ color: "var(--text-mute)" }}>
-            Search coins, pairs, wallets
-          </span>
-        </Link>
+        {/* ============ MARKET TYPE CARDS (Crypto / Forex) ============ */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <Link
+            to="/market"
+            data-testid="market-card-crypto"
+            className="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-3.5 font-display font-bold text-sm transition-all"
+            style={{
+              background: "linear-gradient(135deg, #16A34A, #2563EB)",
+              color: "#fff",
+              border: "1px solid transparent",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <Bitcoin size={18} />
+            <span>Crypto</span>
+          </Link>
+          <button
+            type="button"
+            data-testid="market-card-forex"
+            onClick={() =>
+              toast.info("Forex trading is coming soon! 🚀", { duration: 2500 })
+            }
+            className="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-3.5 font-display font-bold text-sm transition-all"
+            style={{
+              background: "var(--surface-2)",
+              color: "var(--text-mute)",
+              border: "1px solid var(--border)",
+              backdropFilter: "blur(20px)",
+            }}
+          >
+            <LineChart size={18} />
+            <span>Forex</span>
+          </button>
+        </div>
 
         {/* ============ RANK PROGRESS CARD (Gold accent) ============ */}
         <Link
