@@ -31,6 +31,11 @@ export const BannerCarousel = () => {
     ...(bonanzaActive
       ? [{ id: "bonanza-slide", image_url: "/durga-puja-slide.png", to: "/bonanza" }]
       : []),
+    {
+      id: "telegram-slide",
+      image_url: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/3f7ecce357b74b36_file_000000001ff881f4ba1a41f35d76d4d0.png",
+      to: "/social-bonus",
+    },
     ...banners,
   ];
 
