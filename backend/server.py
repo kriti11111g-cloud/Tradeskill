@@ -5699,9 +5699,11 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
             r.raise_for_status()
             return True
 
-        # Resend (production) — uses your own RESEND_API_KEY + verified domain
+        # Resend (production) — prefer whenever a RESEND_API_KEY is configured
+        # (managed mode handled above; demo handled below). Matches pre-existing
+        # behaviour so a VPS set to EMAIL_OTP_MODE="smtp" still uses Resend.
         resend_key = os.environ.get("RESEND_API_KEY")
-        if EMAIL_OTP_MODE == "resend" and resend_key:
+        if resend_key:
             r = _rq.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}"},
