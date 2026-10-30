@@ -262,7 +262,13 @@ export default function Dashboard() {
               boxShadow: "var(--shadow-sm)",
             }}
           >
-            <Bitcoin size={18} />
+            <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+              <circle cx="16" cy="16" r="16" fill="#F7931A" />
+              <path
+                d="M21.7 14.3c.3-1.9-1.2-3-3.2-3.6l.7-2.6-1.6-.4-.6 2.5c-.4-.1-.9-.2-1.3-.3l.6-2.6-1.6-.4-.7 2.6c-.3-.1-.7-.2-1-.2l-2.2-.6-.4 1.7s1.2.3 1.2.3c.6.2.8.6.7 1l-.8 3c0 .1.1 0 .1.1l-.1 0-1.1 4.2c-.1.2-.3.5-.7.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.1.5c.4.1.8.2 1.1.3l-.7 2.7 1.6.4.7-2.6c.4.1.9.2 1.3.3l-.6 2.6 1.6.4.7-2.7c2.8.5 4.9.3 5.7-2.2.7-2-.03-3.2-1.5-4 1.1-.2 1.9-1 2.1-2.5zm-3.7 5.2c-.5 2-3.8.9-4.9.6l.9-3.5c1.1.3 4.5.8 4 2.9zm.5-5.3c-.4 1.8-3.2.9-4.1.7l.8-3.2c.9.2 3.8.6 3.3 2.5z"
+                fill="#fff"
+              />
+            </svg>
             <span>Crypto</span>
           </Link>
           <button
@@ -279,7 +285,24 @@ export default function Dashboard() {
               backdropFilter: "blur(20px)",
             }}
           >
-            <LineChart size={18} />
+            <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+              <defs>
+                <linearGradient id="fxGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#2563EB" />
+                  <stop offset="100%" stopColor="#16A34A" />
+                </linearGradient>
+              </defs>
+              <circle cx="16" cy="16" r="16" fill="url(#fxGrad)" />
+              <path
+                d="M8.5 12.5A8 8 0 0 1 22 10.3l1.3-1.3v4.2h-4.2l1.5-1.5a6 6 0 0 0-9.9 1.3.9.9 0 0 1-1.7-.5z"
+                fill="#fff"
+              />
+              <path
+                d="M23.5 19.5A8 8 0 0 1 10 21.7l-1.3 1.3v-4.2h4.2l-1.5 1.5a6 6 0 0 0 9.9-1.3.9.9 0 0 1 1.7.5z"
+                fill="#fff"
+              />
+              <text x="16" y="19.5" textAnchor="middle" fontSize="8" fontWeight="900" fill="#fff" fontFamily="Arial, sans-serif">$€</text>
+            </svg>
             <span>Forex</span>
           </button>
         </div>
