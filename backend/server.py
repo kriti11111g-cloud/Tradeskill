@@ -3562,6 +3562,62 @@ async def referral(user: dict = Depends(get_current_user)):
     }
 
 
+@api.get("/referral/team-by-rank")
+async def referral_team_by_rank(user: dict = Depends(get_current_user)):
+    """Whole downline (unlimited levels) grouped by rank V1..V10. Each member
+    carries name, activation, rank, joining date and their own total team size."""
+    members: dict = {}   # id -> user doc
+    parent: dict = {}    # id -> referred_by
+    seen = {user["id"]}
+    frontier = [user["id"]]
+    CAP = 50000
+    while frontier and len(seen) <= CAP:
+        rows = await db.users.find(
+            {"referred_by": {"$in": frontier}},
+            {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1,
+             "created_at": 1, "activated": 1, "referred_by": 1},
+        ).to_list(5000)
+        nxt = []
+        for r in rows:
+            if r["id"] in seen:
+                continue
+            seen.add(r["id"])
+            nxt.append(r["id"])
+            members[r["id"]] = r
+            parent[r["id"]] = r.get("referred_by")
+        frontier = nxt
+
+    # Each member's own subtree size: walk ancestors, +1 for every upline in team
+    subtree = {mid: 0 for mid in members}
+    for mid in members:
+        p = parent.get(mid)
+        hops = 0
+        while p and p != user["id"] and p in subtree and hops <= CAP:
+            subtree[p] += 1
+            p = parent.get(p)
+            hops += 1
+
+    by_level: dict = {i: [] for i in range(1, 11)}
+    for mid, d in members.items():
+        lvl = _rank_level_of(d)
+        by_level.setdefault(lvl, []).append({
+            "email": d.get("email", ""),
+            "name": d.get("name"),
+            "rank": d.get("rank", "LEVEL 1"),
+            "activated": bool(d.get("activated")),
+            "created_at": d.get("created_at"),
+            "team_size": subtree.get(mid, 0),
+        })
+    for i in by_level:
+        by_level[i].sort(key=lambda m: m.get("created_at") or "", reverse=True)
+
+    ranks = [{"level": i, "count": len(by_level.get(i, []))} for i in range(1, 11)]
+    return {
+        "ranks": ranks,
+        "members_by_level": {str(i): by_level.get(i, []) for i in range(1, 11)},
+    }
+
+
 # ==== Rewards ====
 @api.get("/rewards")
 async def list_rewards(user: dict = Depends(get_current_user)):

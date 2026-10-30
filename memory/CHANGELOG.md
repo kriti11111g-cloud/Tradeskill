@@ -17,3 +17,9 @@
   - DEFAULT_BOT_CFG includes trade_mode.
 - Verified via API: Settings One-Shot -> both GET endpoints show method=One-Shot/mode=oneshot; toggle cycle -> both Cycle; reverse toggle oneshot -> Settings shows One-Shot.
 - 'Open position double' amount logic left unchanged per user ("ise rahne do").
+
+## 2026-06 — Referral: Direct / Team tabs + Team-by-Rank drilldown
+- Added Direct + Team same-size tab cards above the referral list (Direct selected by default).
+- Backend: new GET /referral/team-by-rank — BFS whole downline, groups all members by rank V1..V10, returns per-rank counts + members (name, activated, rank, created_at, own team_size).
+- Frontend (Referral.jsx): Team tab -> V1..V10 rank list (with counts) -> tap a rank -> members shown in the SAME card format as Direct Referrals (name, Active/Inactive, ★rank, Joined date, Total Team). Extracted shared MemberRow component. Back button returns to rank list.
+- Verified in preview: Direct list, Team rank list (18 @ V1 for demo.team1), V1 members drilldown all render correctly.

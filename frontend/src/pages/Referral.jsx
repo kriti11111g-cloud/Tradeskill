@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
 import { fmtUSD, rankName } from "@/lib/format";
@@ -26,10 +26,19 @@ const CARD = { background: "var(--surface)", border: "1px solid var(--border)", 
 export default function Referral() {
   const nav = useNavigate();
   const [data, setData] = useCachedState("referral_data", null);
+  const [tab, setTab] = useState("direct");
+  const [teamData, setTeamData] = useCachedState("referral_team_by_rank", null);
+  const [viewRank, setViewRank] = useState(null);
 
   useEffect(() => {
     api.get("/referral").then(({ data }) => setData(data));
   }, []);
+
+  const openTeam = () => {
+    setTab("team");
+    setViewRank(null);
+    api.get("/referral/team-by-rank").then(({ data }) => setTeamData(data)).catch(() => {});
+  };
 
   const code = data?.referral_code || "";
   const link = code ? `${window.location.origin}/register?ref=${code}` : "";
@@ -164,60 +173,97 @@ export default function Referral() {
           );
         })()}
 
-        {/* ==== Direct Referrals list ==== */}
-        <div className="mt-5">
-          <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Direct Referrals</div>
-          {(!data?.team || data.team.length === 0) && (
-            <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-team">
-              Share your code to grow your team.
-            </div>
-          )}
-          {data?.team?.length > 0 && (
-            <div className="space-y-2.5" data-testid="direct-list">
-              {data.team.map((t, i) => (
-                <div key={t.email} className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
-                  style={{
-                    background: "var(--surface-2)",
-                    border: t.activated ? "1.5px solid #16A34A" : "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
-                    boxShadow: t.activated ? "0 2px 14px rgba(22,163,74,0.30)" : "0 2px 12px rgba(245,158,11,0.12)",
-                  }}
-                  data-testid={`direct-row-${i}`}>
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[12px] text-white"
-                      style={{ background: "var(--primary-grad)" }}>
-                      {(t.name || t.email || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-display font-bold text-[13px] truncate" style={{ color: "var(--ink)" }}>
-                        {t.name || t.email.split("@")[0]}
-                      </div>
-                      <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{maskEmail(t.email)}</div>
-                    </div>
-                  </div>
-                  <div className="text-right pl-2 shrink-0">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <span className="text-[8px] uppercase tracking-widest font-black"
-                        style={{ color: t.activated ? "var(--primary)" : "#DC2626" }} data-testid={`direct-status-${i}`}>
-                        ● {t.activated ? "Active" : "Inactive"}
-                      </span>
-                      <span className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
-                        style={{ color: "#FBBF24", background: "rgba(10,10,10,0.88)", border: "1px solid rgba(245,158,11,0.65)", boxShadow: "0 0 8px rgba(245,158,11,0.3)" }}>
-                        ★ {rankName(t.rank)}
-                      </span>
-                    </div>
-                    <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--text-mute)" }}>
-                      Joined {fmtDate(t.created_at)}
-                    </div>
-                    <div className="text-[9px] font-black mt-0.5" style={{ color: "var(--primary)" }}
-                      data-testid={`direct-team-${i}`}>
-                      Total Team: {t.team_size ?? 0}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* ==== Direct / Team tabs (same-size cards) ==== */}
+        <div className="grid grid-cols-2 gap-3 mt-5" data-testid="ref-tabs">
+          <button onClick={() => { setTab("direct"); setViewRank(null); }} data-testid="ref-tab-direct"
+            className="rounded-2xl px-3 py-3 flex items-center justify-center gap-2 font-display font-black text-[15px]"
+            style={{ touchAction: "manipulation", ...(tab === "direct"
+              ? { background: "linear-gradient(90deg,#2563EB 0%,#16A34A 100%)", color: "#fff", boxShadow: "0 4px 16px rgba(22,163,74,0.30)" }
+              : { background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--border)" }) }}>
+            <Users size={18} /> Direct
+          </button>
+          <button onClick={openTeam} data-testid="ref-tab-team"
+            className="rounded-2xl px-3 py-3 flex items-center justify-center gap-2 font-display font-black text-[15px]"
+            style={{ touchAction: "manipulation", ...(tab === "team"
+              ? { background: "linear-gradient(90deg,#2563EB 0%,#16A34A 100%)", color: "#fff", boxShadow: "0 4px 16px rgba(22,163,74,0.30)" }
+              : { background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--border)" }) }}>
+            <Network size={18} /> Team
+          </button>
         </div>
+
+        {/* ==== DIRECT panel ==== */}
+        {tab === "direct" && (
+          <div className="mt-4" data-testid="direct-panel">
+            <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Direct Referrals</div>
+            {(!data?.team || data.team.length === 0) && (
+              <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-team">
+                Share your code to grow your team.
+              </div>
+            )}
+            {data?.team?.length > 0 && (
+              <div className="space-y-2.5" data-testid="direct-list">
+                {data.team.map((t, i) => <MemberRow key={t.email} t={t} i={i} prefix="direct" />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==== TEAM panel ==== */}
+        {tab === "team" && (
+          <div className="mt-4" data-testid="team-panel">
+            {viewRank === null ? (
+              <>
+                <div className="font-display font-bold text-lg mb-3" style={{ color: "var(--ink)" }}>Team by Rank</div>
+                {!teamData && (
+                  <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="team-loading">Loading team…</div>
+                )}
+                {teamData && (
+                  <div className="space-y-2.5" data-testid="rank-list">
+                    {teamData.ranks.map((r) => (
+                      <button key={r.level} onClick={() => setViewRank(r.level)} data-testid={`rank-row-${r.level}`}
+                        className="w-full rounded-2xl px-3.5 py-3 flex items-center justify-between"
+                        style={{ touchAction: "manipulation", background: "var(--surface-2)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] uppercase tracking-wider font-black px-2.5 py-1 rounded-full"
+                            style={{ color: "#FBBF24", background: "rgba(10,10,10,0.88)", border: "1px solid rgba(245,158,11,0.65)", boxShadow: "0 0 8px rgba(245,158,11,0.3)" }}>
+                            ★ V{r.level}
+                          </span>
+                          <span className="font-display font-bold text-[14px]" style={{ color: "var(--ink)" }}>Rank V{r.level}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display font-black text-[16px] tabular-nums" style={{ color: "var(--primary)" }} data-testid={`rank-count-${r.level}`}>{r.count}</span>
+                          <span className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>members</span>
+                          <ChevronRight size={18} style={{ color: "var(--text-mute)" }} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <button onClick={() => setViewRank(null)} data-testid="rank-back"
+                    className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--surface-3)", touchAction: "manipulation" }}>
+                    <ChevronLeft size={20} style={{ color: "var(--ink)" }} />
+                  </button>
+                  <div className="font-display font-bold text-lg" style={{ color: "var(--ink)" }}>Rank V{viewRank} Members</div>
+                </div>
+                {(() => {
+                  const list = teamData?.members_by_level?.[String(viewRank)] || [];
+                  if (list.length === 0) {
+                    return <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-rank">No members at this rank yet.</div>;
+                  }
+                  return (
+                    <div className="space-y-2.5" data-testid="rank-members-list">
+                      {list.map((t, i) => <MemberRow key={t.email + i} t={t} i={i} prefix="rank" />)}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        )}
 
         {/* ==== Commission Log removed per user request ==== */}
 
@@ -233,6 +279,48 @@ export default function Referral() {
     </div>
   );
 }
+
+const MemberRow = ({ t, i, prefix }) => (
+  <div className="rounded-2xl px-3 py-2.5 flex items-center justify-between"
+    style={{
+      background: "var(--surface-2)",
+      border: t.activated ? "1.5px solid #16A34A" : "1.5px solid color-mix(in srgb, var(--gold) 55%, transparent)",
+      boxShadow: t.activated ? "0 2px 14px rgba(22,163,74,0.30)" : "0 2px 12px rgba(245,158,11,0.12)",
+    }}
+    data-testid={`${prefix}-row-${i}`}>
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-display font-black text-[12px] text-white"
+        style={{ background: "var(--primary-grad)" }}>
+        {(t.name || t.email || "?").charAt(0).toUpperCase()}
+      </div>
+      <div className="min-w-0">
+        <div className="font-display font-bold text-[13px] truncate" style={{ color: "var(--ink)" }}>
+          {t.name || t.email.split("@")[0]}
+        </div>
+        <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{maskEmail(t.email)}</div>
+      </div>
+    </div>
+    <div className="text-right pl-2 shrink-0">
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="text-[8px] uppercase tracking-widest font-black"
+          style={{ color: t.activated ? "var(--primary)" : "#DC2626" }} data-testid={`${prefix}-status-${i}`}>
+          ● {t.activated ? "Active" : "Inactive"}
+        </span>
+        <span className="text-[8px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full inline-block"
+          style={{ color: "#FBBF24", background: "rgba(10,10,10,0.88)", border: "1px solid rgba(245,158,11,0.65)", boxShadow: "0 0 8px rgba(245,158,11,0.3)" }}>
+          ★ {rankName(t.rank)}
+        </span>
+      </div>
+      <div className="text-[9px] font-mono mt-0.5" style={{ color: "var(--text-mute)" }}>
+        Joined {fmtDate(t.created_at)}
+      </div>
+      <div className="text-[9px] font-black mt-0.5" style={{ color: "var(--primary)" }} data-testid={`${prefix}-team-${i}`}>
+        Total Team: {t.team_size ?? 0}
+      </div>
+    </div>
+  </div>
+);
+
 
 const SectionCard = ({ icon: Icon, title, children, testid }) => (
   <div className="app-card rounded-2xl p-3" data-testid={testid}>
