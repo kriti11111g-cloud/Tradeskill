@@ -4,3 +4,16 @@
 - Wired into: Dashboard (pairs/wallet/rank), Market (movers; coins already cached), Rank (ranks/me), Rewards (pool), Referral (data). Wallet & Revenue already had their own caches.
 - Removed now-unused imports (Search/Bitcoin/LineChart in Dashboard; useState in Rewards/Referral).
 - Verified: login + navigation across /rank /rewards /referral /market /revenue, no crashes.
+
+## 2026-06 — Cycle / One-Shot sync fix (trade_method <-> trade_mode)
+- BUG: Trade Settings saved `trade_method` ("Cycle"/"One-Shot") while Trade screen read/wrote `trade_mode` ("cycle"/"oneshot"). Two disconnected fields -> setting One-Shot in Settings still showed Cycle in Trade section; user had to re-toggle manually.
+- FIX (backend/server.py): treat One-Shot as a single concept kept in lockstep.
+  - Added `_is_oneshot(bot)` and `_normalize_trade_fields(doc)` helpers.
+  - Settings save (POST /bots/{sym}) now also writes trade_mode synced from trade_method.
+  - Mode toggle (POST /bots/{sym}/mode) now also writes trade_method synced from trade_mode.
+  - Bot start preserves the chosen one-shot state (no longer force-resets to cycle).
+  - sell-now + take-profit one-shot completion reset BOTH fields together.
+  - GET /bots and GET /bots/{sym} normalize both fields (fixes legacy/out-of-sync docs for display).
+  - DEFAULT_BOT_CFG includes trade_mode.
+- Verified via API: Settings One-Shot -> both GET endpoints show method=One-Shot/mode=oneshot; toggle cycle -> both Cycle; reverse toggle oneshot -> Settings shows One-Shot.
+- 'Open position double' amount logic left unchanged per user ("ise rahne do").

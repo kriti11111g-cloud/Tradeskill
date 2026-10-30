@@ -1336,6 +1336,7 @@ DEFAULT_BOT_CFG = {
     "whole_take_profit_callback": 0.25,
     "buy_in_callback": 0.25,
     "trade_method": "Cycle",
+    "trade_mode": "cycle",
     "sub_take_profit_callback": 0.25,
     "margin_config": DEFAULT_MARGIN_CONFIG,
     "status": "stopped",
@@ -1358,6 +1359,21 @@ def _get_margin_rule(bot: dict, round_idx: int) -> dict:
         "drop": float(r.get("drop", 2.0) or 2.0),
         "multiplier": float(r.get("multiplier", 2.0) or 2.0),
     }
+
+
+def _is_oneshot(bot: dict) -> bool:
+    """One-Shot is a single concept exposed in two places (Trade Settings ->
+    trade_method 'One-Shot', Trade screen quick toggle -> trade_mode 'oneshot').
+    A bot is One-Shot if EITHER field says so (covers legacy / out-of-sync docs)."""
+    return bot.get("trade_mode") == "oneshot" or bot.get("trade_method") == "One-Shot"
+
+
+def _normalize_trade_fields(doc: dict) -> None:
+    """Force trade_method and trade_mode to agree so both screens show the same state."""
+    one = _is_oneshot(doc)
+    doc["trade_method"] = "One-Shot" if one else "Cycle"
+    doc["trade_mode"] = "oneshot" if one else "cycle"
+
 
 
 def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
@@ -1483,6 +1499,7 @@ async def list_bots(user: dict = Depends(get_current_user)):
         range_by_sym[a["_id"]] = {"first_at": a["first_at"], "last_at": a["last_at"]}
 
     for r in rows:
+        _normalize_trade_fields(r)
         c = counts_by_sym.get(r["symbol"], {"buy_count": 0, "sell_count": 0})
         r["buy_count"] = c["buy_count"]
         r["sell_count"] = c["sell_count"]
@@ -1506,6 +1523,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     else:
         # Fill missing defaults for older docs
         merged = {**DEFAULT_BOT_CFG, **row}
+    _normalize_trade_fields(merged)
 
     # Compute derived triggers so UI can show "Operation Reminder"
     avg_price = float(merged.get("avg_price", 0) or 0)
@@ -1600,6 +1618,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
         "whole_take_profit_callback": cfg.whole_take_profit_callback,
         "buy_in_callback": cfg.buy_in_callback,
         "trade_method": cfg.trade_method,
+        "trade_mode": "oneshot" if cfg.trade_method == "One-Shot" else "cycle",
         "sub_take_profit_callback": cfg.sub_take_profit_callback,
         "margin_config": mc_docs,
         "sub_position_tps": tps,
@@ -1721,7 +1740,9 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
             "position_qty": 0.0, "position_amount": 0.0, "avg_price": 0.0,
             "margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
             "peak_price": 0.0, "dca_bottom_price": 0.0, "sub_positions": [],
-            "cycles_completed": 0, "stop_reason": "", "trade_mode": "cycle",
+            "cycles_completed": 0, "stop_reason": "",
+            "trade_mode": "oneshot" if _is_oneshot(bot or {}) else "cycle",
+            "trade_method": "One-Shot" if _is_oneshot(bot or {}) else "Cycle",
         }},
         upsert=True,
     )
@@ -1737,7 +1758,8 @@ async def set_bot_mode(symbol: str, body: dict, user: dict = Depends(get_current
         raise HTTPException(400, "mode must be 'cycle' or 'oneshot'")
     r = await db.bots.update_one(
         {"user_id": user["id"], "symbol": symbol},
-        {"$set": {"trade_mode": tmode}})
+        {"$set": {"trade_mode": tmode,
+                  "trade_method": "One-Shot" if tmode == "oneshot" else "Cycle"}})
     if r.matched_count == 0:
         raise HTTPException(404, "Bot not found")
     return {"symbol": symbol, "trade_mode": tmode}
@@ -1763,10 +1785,10 @@ async def sell_now(symbol: str, user: dict = Depends(get_current_user)):
         "created_at": iso(now_utc()),
     })
     # ONE SHOT me manual sell ke baad bhi re-buy nahi hona chahiye — stop
-    if str(bot.get("trade_mode", "cycle")) == "oneshot":
+    if _is_oneshot(bot):
         await db.bots.update_one(
             {"user_id": user["id"], "symbol": symbol},
-            {"$set": {"status": "stopped", "trade_mode": "cycle",
+            {"$set": {"status": "stopped", "trade_mode": "cycle", "trade_method": "Cycle",
                       "stopped_at": iso(now_utc())}})
     return {"ok": True, "symbol": symbol, "sold_qty": txn.get("quantity"),
             "price": txn.get("price"), "profit": txn.get("profit")}
@@ -3012,10 +3034,10 @@ async def _bot_tick(bot: dict):
                 })
                 logger.info(f"bot {symbol}: TAKE PROFIT sold at {price} (peak {peak})")
                 # ONE SHOT mode: profit book hote hi bot ruk jata hai — re-buy nahi
-                if str(bot.get("trade_mode", "cycle")) == "oneshot":
+                if _is_oneshot(bot):
                     await db.bots.update_one(
                         {"user_id": user_id, "symbol": symbol},
-                        {"$set": {"status": "stopped", "trade_mode": "cycle",
+                        {"$set": {"status": "stopped", "trade_mode": "cycle", "trade_method": "Cycle",
                                   "stopped_at": iso(now_utc())}})
                     await db.bot_events.insert_one({
                         "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
