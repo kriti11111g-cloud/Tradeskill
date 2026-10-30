@@ -33,7 +33,7 @@ export const BannerCarousel = () => {
       : []),
     {
       id: "telegram-slide",
-      image_url: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/3f7ecce357b74b36_file_000000001ff881f4ba1a41f35d76d4d0.png",
+      image_url: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/5ed406b00e1334f2_file_0000000073e882109b55be0f6b140555.png",
       to: "/social-bonus",
     },
     ...banners,
