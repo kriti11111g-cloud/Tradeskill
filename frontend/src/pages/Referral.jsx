@@ -29,6 +29,8 @@ export default function Referral() {
   const [tab, setTab] = useState("direct");
   const [teamData, setTeamData] = useCachedState("referral_team_by_rank", null);
   const [viewRank, setViewRank] = useState(null);
+  const [rankPage, setRankPage] = useState(0);
+  const PAGE = 20;
 
   useEffect(() => {
     api.get("/referral").then(({ data }) => setData(data));
@@ -220,7 +222,7 @@ export default function Referral() {
                 {teamData && (
                   <div className="space-y-2.5" data-testid="rank-list">
                     {teamData.ranks.map((r) => (
-                      <button key={r.level} onClick={() => setViewRank(r.level)} data-testid={`rank-row-${r.level}`}
+                      <button key={r.level} onClick={() => { setViewRank(r.level); setRankPage(0); }} data-testid={`rank-row-${r.level}`}
                         className="w-full rounded-2xl px-3.5 py-3 flex items-center justify-between"
                         style={{ touchAction: "manipulation", background: "var(--surface-2)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
                         <div className="flex items-center gap-3">
@@ -254,10 +256,36 @@ export default function Referral() {
                   if (list.length === 0) {
                     return <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-rank">No members at this rank yet.</div>;
                   }
+                  const total = list.length;
+                  const totalPages = Math.ceil(total / PAGE);
+                  const start = rankPage * PAGE;
+                  const slice = list.slice(start, start + PAGE);
                   return (
-                    <div className="space-y-2.5" data-testid="rank-members-list">
-                      {list.map((t, i) => <MemberRow key={t.email + i} t={t} i={i} prefix="rank" />)}
-                    </div>
+                    <>
+                      <div className="text-[11px] font-semibold mb-2" style={{ color: "var(--text-mute)" }} data-testid="rank-range">
+                        Showing {start + 1}–{Math.min(start + PAGE, total)} of {total}
+                      </div>
+                      <div className="space-y-2.5" data-testid="rank-members-list">
+                        {slice.map((t, i) => <MemberRow key={t.email + (start + i)} t={t} i={start + i} prefix="rank" />)}
+                      </div>
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between gap-3 mt-4" data-testid="rank-pager">
+                          <button onClick={() => setRankPage((p) => Math.max(0, p - 1))} disabled={rankPage === 0} data-testid="rank-prev"
+                            className="flex-1 rounded-xl py-2.5 font-display font-black text-[14px] flex items-center justify-center gap-1"
+                            style={{ touchAction: "manipulation", opacity: rankPage === 0 ? 0.4 : 1,
+                              background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--border)" }}>
+                            <ChevronLeft size={16} /> Prev
+                          </button>
+                          <span className="text-[12px] font-black tabular-nums" style={{ color: "var(--text-mute)" }}>{rankPage + 1}/{totalPages}</span>
+                          <button onClick={() => setRankPage((p) => Math.min(totalPages - 1, p + 1))} disabled={rankPage >= totalPages - 1} data-testid="rank-next"
+                            className="flex-1 rounded-xl py-2.5 font-display font-black text-[14px] flex items-center justify-center gap-1 text-white"
+                            style={{ touchAction: "manipulation", opacity: rankPage >= totalPages - 1 ? 0.4 : 1,
+                              background: "linear-gradient(90deg,#2563EB 0%,#16A34A 100%)" }}>
+                            Next <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </>
                   );
                 })()}
               </>

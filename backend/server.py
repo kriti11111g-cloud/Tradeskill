@@ -5958,6 +5958,7 @@ async def startup():
     # Indexes
     await db.users.create_index("email", unique=True)
     await db.users.create_index("referral_code")
+    await db.users.create_index("referred_by")
     await db.bots.create_index([("user_id", 1), ("symbol", 1)], unique=True)
     await db.transactions.create_index([("user_id", 1), ("created_at", -1)])
     await db.bot_wallets.create_index("user_id", unique=True)
