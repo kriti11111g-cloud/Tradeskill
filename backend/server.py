@@ -3568,10 +3568,13 @@ async def referral_team_by_rank(user: dict = Depends(get_current_user)):
     carries name, activation, rank, joining date and their own total team size."""
     members: dict = {}   # id -> user doc
     parent: dict = {}    # id -> referred_by
+    depth_of: dict = {}  # id -> genealogy depth below the logged-in user (direct = 1)
     seen = {user["id"]}
     frontier = [user["id"]]
     CAP = 50000
+    depth = 0
     while frontier and len(seen) <= CAP:
+        depth += 1
         rows = await db.users.find(
             {"referred_by": {"$in": frontier}},
             {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1,
@@ -3585,6 +3588,7 @@ async def referral_team_by_rank(user: dict = Depends(get_current_user)):
             nxt.append(r["id"])
             members[r["id"]] = r
             parent[r["id"]] = r.get("referred_by")
+            depth_of[r["id"]] = depth
         frontier = nxt
 
     # Each member's own subtree size: walk ancestors, +1 for every upline in team
@@ -3607,6 +3611,7 @@ async def referral_team_by_rank(user: dict = Depends(get_current_user)):
             "activated": bool(d.get("activated")),
             "created_at": d.get("created_at"),
             "team_size": subtree.get(mid, 0),
+            "depth": depth_of.get(mid, 0),
         })
     for i in by_level:
         by_level[i].sort(key=lambda m: m.get("created_at") or "", reverse=True)

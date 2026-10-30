@@ -326,6 +326,11 @@ const MemberRow = ({ t, i, prefix }) => (
           {t.name || t.email.split("@")[0]}
         </div>
         <div className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-mute)" }}>{maskEmail(t.email)}</div>
+        {t.depth != null && t.depth > 0 && (
+          <div className="text-[9px] font-semibold tracking-wide mt-0.5" style={{ color: "var(--primary-deep)" }} data-testid={`${prefix}-depth-${i}`}>
+            Level {t.depth}
+          </div>
+        )}
       </div>
     </div>
     <div className="text-right pl-2 shrink-0">

@@ -28,3 +28,7 @@
 - ROOT CAUSE of "Team" tab long loading: no index on users.referred_by -> every BFS level did a full collection scan (very slow on large production teams). Added db.users.create_index("referred_by") at startup + created it on live DB. Rank list now loads ~0.2s.
 - Added 20-per-page pagination in the rank member drilldown (Referral.jsx): "Showing X–Y of Z", Prev/Next buttons (first page auto). Client-side slicing of the fetched rank list.
 - Verified in preview with 26 V1 members: page1 1–20, Next -> 21–26, Prev/Next enable/disable correctly.
+
+## 2026-06 — Team member cards: genealogy depth "Level X" label
+- team-by-rank now computes each member's depth below the logged-in user during BFS (direct = Level 1, their referrals = Level 2, ...). Added `depth` to each member payload.
+- Referral MemberRow shows a thin "Level {depth}" label under the email (only when depth present). Verified: directs show Level 1, sub-members Level 2.
