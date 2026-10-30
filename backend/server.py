@@ -5174,7 +5174,7 @@ async def admin_adjust(body: AdminAdjustIn, admin: dict = Depends(require_admin)
     wallet = await _get_or_create_bot_wallet(u["id"])
     cur = round(float(wallet.get("balance", 0.0) or 0.0), 4)
     if cur + amount < 0:
-        raise HTTPException(400, f"Insufficient balance. User ke paas sirf ${cur:.2f} hai, ${abs(amount):.2f} deduct nahi ho sakta.")
+        raise HTTPException(400, f"Insufficient balance. User only has ${cur:.2f}, cannot deduct ${abs(amount):.2f}.")
     res = await db.bot_wallets.find_one_and_update(
         {"user_id": u["id"]}, {"$inc": {"balance": amount}},
         return_document=True)
@@ -5789,6 +5789,16 @@ async def social_bonus_claim(platform: str, user: dict = Depends(get_current_use
         raise HTTPException(400, "Locked — claim the previous platform first")
     if not c.get("followed"):
         raise HTTPException(400, "Please follow & verify first, then claim")
+    # One Telegram account can claim only ONCE across the whole platform
+    if platform == "telegram":
+        tgid = (doc.get("telegram") or {}).get("tg_user_id")
+        if tgid:
+            dup = await db.social_bonus.find_one({
+                "telegram.tg_user_id": tgid,
+                "user_id": {"$ne": user["id"]},
+                "claims.telegram.claimed": True})
+            if dup:
+                raise HTTPException(400, "This Telegram account has already claimed the reward on another account")
     # Atomic guard against double-claim
     res = await db.social_bonus.update_one(
         {"user_id": user["id"], f"claims.{platform}.claimed": {"$ne": True}},

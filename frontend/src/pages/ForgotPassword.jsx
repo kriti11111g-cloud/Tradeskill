@@ -44,11 +44,11 @@ export default function ForgotPassword() {
     e.preventDefault();
     if (code.trim().length !== 6) return toast.error("6-digit OTP daalo");
     if (pw.length < 6) return toast.error("Password kam se kam 6 characters ka ho");
-    if (pw !== pw2) return toast.error("Dono passwords match nahi kar rahe");
+    if (pw !== pw2) return toast.error("Both passwords do not match");
     setLoading(true);
     try {
       await api.post("/auth/forgot/reset", { email: email.trim(), code: code.trim(), new_password: pw });
-      toast.success("Password reset successful! Ab naye password se login karo");
+      toast.success("Password reset successful! Now log in with your new password");
       nav("/login");
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setLoading(false); }

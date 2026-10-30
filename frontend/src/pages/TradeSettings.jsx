@@ -214,7 +214,7 @@ export default function TradeSettings() {
             data-testid="ts-connect-banner">
             <Link2 size={18} style={{ color: "#B45309" }} className="shrink-0" />
             <div className="text-[11.5px] font-bold leading-snug" style={{ color: "#B45309" }}>
-              Bot start karne ke liye pehle ek exchange (Binance/KuCoin/LBank) connect karein.
+              Connect an exchange (Binance/KuCoin/LBank) first to start the bot.
             </div>
           </div>
         )}

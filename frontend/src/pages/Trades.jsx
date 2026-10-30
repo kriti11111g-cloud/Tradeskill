@@ -693,7 +693,7 @@ export default function Trades() {
             <div className="flex-1 min-w-0">
               <div className="text-[12.5px] font-black" style={{ color: "#B45309" }}>Connect an exchange to start trading</div>
               <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: "#B45309", opacity: 0.85 }}>
-                Binance, KuCoin ya LBank bind karein — tab tak koi bot trade nahi lagayega. Tap to connect.
+                Bind Binance, KuCoin or LBank — no bot will trade until then. Tap to connect.
               </div>
             </div>
             <ChevronRight size={18} style={{ color: "#B45309" }} className="shrink-0" />

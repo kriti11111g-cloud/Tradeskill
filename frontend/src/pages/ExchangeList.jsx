@@ -208,7 +208,7 @@ export default function ExchangeList() {
             <div className="mx-auto mb-2"><Logo ex={ipModal} s={48} ts="text-[16px]" /></div>
             <div className="font-display font-black text-[17px]" style={{ color: "var(--ink)" }}>{ipModal.name}</div>
             <div className="text-[11px] font-semibold mt-1" style={{ color: "var(--text-mute)" }}>
-              Integration Coming Soon 🚀 — abhi Binance supported hai.
+              Integration Coming Soon 🚀 — Binance is supported for now.
             </div>
             <div className="rounded-xl px-3 py-2.5 mt-3" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
               <div className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>API Whitelist IP</div>

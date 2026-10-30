@@ -113,8 +113,8 @@ export default function AdminWithdrawals() {
         </div>
         <div className="font-display font-black text-[22px]" style={{ color: "var(--ink)" }}>Admin Access</div>
         <div className="text-[13px] font-semibold mt-2 leading-relaxed" style={{ color: "var(--text-mute)" }}>
-          Admin panel sirf authorized wallet se khulta hai.<br />
-          Apna admin wallet connect karke message sign karo.
+          Admin panel opens only from an authorized wallet.<br />
+          Connect your admin wallet and sign the message.
         </div>
         <button onClick={connectWallet} disabled={connecting}
           className="mt-6 px-8 py-3.5 rounded-2xl text-white font-display font-black text-[16px] disabled:opacity-60"

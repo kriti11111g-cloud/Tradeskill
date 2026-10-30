@@ -289,7 +289,7 @@ export default function AdminPanel() {
         </div>
         <div className="font-display font-black text-[22px]" style={{ color: "var(--ink)" }}>Trade Skill Admin</div>
         <div className="text-[13px] font-semibold mt-2" style={{ color: "var(--text-mute)" }}>
-          Admin panel sirf authorized wallet se khulta hai.
+          Admin panel opens only from an authorized wallet.
         </div>
         <button onClick={connectWallet} disabled={connecting}
           className="mt-6 px-8 py-3.5 rounded-2xl text-white font-display font-black text-[16px] disabled:opacity-60"
@@ -519,7 +519,7 @@ export default function AdminPanel() {
         {section === "adjustment" && (
           <div className="px-4 py-5 space-y-3" style={CARD} data-testid="admin-adjustment">
             <div className="font-display font-black text-[16px]" style={{ color: "var(--ink)" }}>Balance Adjustment</div>
-            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>User ke bot wallet me paisa add (+) ya deduct (−) karo. Ye adjustment user ki history me <b>show nahi hoga</b>.</div>
+            <div className="text-[11px] font-semibold" style={{ color: "var(--text-mute)" }}>Add (+) or deduct (−) money from the user's bot wallet. This adjustment will <b>not show</b> in the user's history.</div>
             {[
               { k: "identifier", ph: "User Email ya UID (TSK100001)" },
               { k: "amount", ph: "Amount (e.g. 50)" },
@@ -586,7 +586,7 @@ export default function AdminPanel() {
             <div>
               <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Auto Withdrawal</div>
               <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>
-                {settings.auto_withdraw ? "ON — withdrawals seconds me auto-pay hote hain" : "OFF — har withdrawal admin approval me jayega"}
+                {settings.auto_withdraw ? "ON — withdrawals are auto-paid within seconds" : "OFF — every withdrawal goes for admin approval"}
               </div>
             </div>
             <button onClick={toggleAutoWd} className="w-14 h-8 rounded-full relative transition-colors"
@@ -603,7 +603,7 @@ export default function AdminPanel() {
               <div className="flex-1 min-w-0">
                 <div className="font-display font-black text-[15px]" style={{ color: "var(--ink)" }}>Database Backup</div>
                 <div className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-mute)" }}>
-                  Pura database (users, balance, trades) ek file me download karo
+                  Download the entire database (users, balance, trades) in one file
                 </div>
               </div>
             </div>
@@ -732,7 +732,7 @@ export default function AdminPanel() {
               <div className="font-display font-black text-[16px]" style={{ color: "var(--ink)" }}>Activate Bot (Free)</div>
             </div>
             <div className="text-[12px] font-semibold mb-4 leading-relaxed" style={{ color: "var(--text-mute)" }}>
-              <b>{detail.uid}</b> ka bot FREE activate karein? Koi reward distribute nahi hoga — na direct, na difference, na support, na pool. Admin ko koi loss nahi hoga.
+              <b>{detail.uid}</b>'s bot — activate for FREE? No reward will be distributed — not direct, difference, support, or pool. The admin bears no loss.
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setConfirmAct(false)} disabled={detailBusy}

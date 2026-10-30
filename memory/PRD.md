@@ -120,3 +120,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - get_current_user already prefers Authorization Bearer over cookie → impersonation works by swapping localStorage tgx_token (admin cookie untouched).
 - Frontend: AdminPanel.jsx user-detail → "Login as this User" button (data-testid admin-login-as-user) → confirm → saves tgx_prev_token, sets tgx_token=impersonation token + tgx_impersonating={uid,name}, hard-redirect to '/'. New component ImpersonationBanner.jsx in AppShell shows amber sticky banner "Admin view: {name} ({uid})" + "Exit to Admin" (data-testid impersonation-banner / impersonation-exit-btn) → restores admin token, redirects to /admin.
 - Verified via curl: admin→impersonate returns token; token /auth/me = target user (role user); impersonation token BLOCKED from admin endpoints (403); non-wallet_admin token rejected. Frontend compiles clean.
+
+## 2026-10 — Telegram one-account-one-claim + Hindi→English sweep + Join Channel button
+- BUG FIX: same Telegram account claiming social bonus from multiple app accounts. claim_social (platform==telegram) now checks db.social_bonus for any OTHER user_id with same telegram.tg_user_id AND claims.telegram.claimed==True → rejects "already claimed on another account". server.py ~5791.
+- Telegram verify: clearer error when bot can't read members (not admin) vs genuinely not joined. Bot MUST be channel admin for getChatMember.
+- Telegram bot /start reply: now includes inline "📢 Join Channel" button (url from TELEGRAM_CHANNEL). English.
+- Hindi→English across UI: SocialBonus (all text/toasts), WithdrawModal success popup, Trades/TradeSettings connect prompts, ExchangeList coming-soon, ForgotPassword toasts, AdminPanel (adjust/auto-withdraw/backup/free-activate), AdminWithdrawals, backend insufficient-balance + social coming-soon messages. No visible Hindi remains (only code comments).
+- VPS .env needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHANNEL=@tradeskill_in; webhook setWebhook to /api/telegram/webhook/hubx-tg-hook; bot must be channel admin.
