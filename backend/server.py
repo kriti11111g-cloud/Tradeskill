@@ -5639,7 +5639,7 @@ def _assert_safe_email(subject: str, html: str) -> None:
 
 
 def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bool:
-    if EMAIL_OTP_MODE in ("smtp", "resend"):
+    if EMAIL_OTP_MODE in ("smtp", "resend", "managed"):
         is_signup = purpose == "signup"
         label = {"signup": "sign up verification", "reset": "password reset",
                  "withdrawal": "withdrawal verification"}.get(purpose, "verification")
@@ -5682,18 +5682,56 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
 </body></html>"""
         _assert_safe_email(subject, html)
         import requests as _rq
-        payload = {"to": [to_email], "subject": subject, "html": html,
-                   "from_name": os.environ.get("EMAIL_FROM_NAME", "Trade Skill")}
-        reply_to = os.environ.get("EMAIL_REPLY_TO")
-        if reply_to:
-            payload["contact_email"] = reply_to
-        r = _rq.post(
-            f"{EMAIL_BASE_URL}/api/v1/email/send",
-            headers={"X-Email-Key": os.environ["EMERGENT_EMAIL_KEY"]},
-            json=payload, timeout=30)
-        if r.status_code >= 400:
-            logger.error(f"Email send failed {r.status_code}: {r.text[:300]}")
-        r.raise_for_status()
+
+        # Emergent managed email proxy (no Resend account/key needed)
+        if EMAIL_OTP_MODE == "managed":
+            payload = {"to": [to_email], "subject": subject, "html": html,
+                       "from_name": os.environ.get("EMAIL_FROM_NAME", "Trade Skill")}
+            reply_to = os.environ.get("EMAIL_REPLY_TO")
+            if reply_to:
+                payload["contact_email"] = reply_to
+            r = _rq.post(
+                f"{EMAIL_BASE_URL}/api/v1/email/send",
+                headers={"X-Email-Key": os.environ["EMERGENT_EMAIL_KEY"]},
+                json=payload, timeout=30)
+            if r.status_code >= 400:
+                logger.error(f"Email send failed {r.status_code}: {r.text[:300]}")
+            r.raise_for_status()
+            return True
+
+        # Resend (production) — uses your own RESEND_API_KEY + verified domain
+        resend_key = os.environ.get("RESEND_API_KEY")
+        if EMAIL_OTP_MODE == "resend" and resend_key:
+            r = _rq.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {resend_key}"},
+                json={"from": os.environ.get("RESEND_FROM", "Trade Skill <no-reply@tradeskill.in>"),
+                      "to": [to_email], "subject": subject, "html": html, "text": text,
+                      "reply_to": os.environ.get("RESEND_REPLY_TO", "support@tradeskill.in")},
+                timeout=15)
+            if r.status_code >= 400:
+                logger.error(f"Resend send failed {r.status_code}: {r.text[:300]}")
+            r.raise_for_status()
+            return True
+
+        # Gmail SMTP fallback
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.utils import formatdate, make_msgid
+        gm_user = os.environ["GMAIL_USER"]
+        gm_pass = os.environ["GMAIL_APP_PASSWORD"]
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Trade Skill <{gm_user}>"
+        msg["To"] = to_email
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg.attach(MIMEText(text, "plain"))
+        msg.attach(MIMEText(html, "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            s.login(gm_user, gm_pass)
+            s.send_message(msg)
         return True
     logger.info(f"[DEMO OTP] {purpose} OTP for {to_email}: {code}")
     return False
