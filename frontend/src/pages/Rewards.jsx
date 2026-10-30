@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Gift, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import api from "@/lib/api";
 import { fmtUSD } from "@/lib/format";
+import { useCachedState } from "@/lib/useCachedState";
 
 export default function Rewards() {
-  const [pool, setPool] = useState(null);
+  const [pool, setPool] = useCachedState("rewards_pool", null);
   const navigate = useNavigate();
   useEffect(() => {
     api.get("/pool/summary").then(({ data }) => setPool(data)).catch(() => {});

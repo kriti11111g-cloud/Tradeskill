@@ -6,12 +6,13 @@ import {
   HandCoins, Bot, Percent, BarChart3, Gift, Lock,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
+import { useCachedState } from "@/lib/useCachedState";
 
 const vName = (lvl) => `V${lvl}`;
 
 export default function Rank() {
-  const [ranks, setRanks] = useState([]);
-  const [me, setMe] = useState(null);
+  const [ranks, setRanks] = useCachedState("rank_config", []);
+  const [me, setMe] = useCachedState("rank_me", null);
   const [viewLevel, setViewLevel] = useState(null);
   const [incomeOpen, setIncomeOpen] = useState(false);
 

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ChevronLeft, Copy, User, Link2, Users, BarChart3, HandCoins, Infinity as InfinityIcon, ScanLine, Network, Gift } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import api from "@/lib/api";
 import { fmtUSD, rankName } from "@/lib/format";
+import { useCachedState } from "@/lib/useCachedState";
 
 const maskEmail = (email = "") => {
   const [u, d] = email.split("@");
@@ -24,7 +25,7 @@ const CARD = { background: "var(--surface)", border: "1px solid var(--border)", 
 
 export default function Referral() {
   const nav = useNavigate();
-  const [data, setData] = useState(null);
+  const [data, setData] = useCachedState("referral_data", null);
 
   useEffect(() => {
     api.get("/referral").then(({ data }) => setData(data));

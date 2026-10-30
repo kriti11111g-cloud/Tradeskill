@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
 import api from "@/lib/api";
+import { useCachedState } from "@/lib/useCachedState";
 import { UPCOMING_COINS, timeLeft, fetchUpcoming } from "@/lib/upcomingCoins";
 
 const TABS = [
@@ -60,7 +61,7 @@ export default function Market() {
   const [tab, setTab] = useState("hot");
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
   const [comingCoins, setComingCoins] = useState(UPCOMING_COINS);
-  const [movers, setMovers] = useState({ gainers: [], losers: [] });
+  const [movers, setMovers] = useCachedState("market_movers", { gainers: [], losers: [] });
   const wsRef = useRef(null);
 
   const load = () =>

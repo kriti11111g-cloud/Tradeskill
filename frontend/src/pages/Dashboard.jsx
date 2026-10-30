@@ -15,7 +15,6 @@ import {
   Bell,
   Sun,
   Moon,
-  Search,
   Bot,
   Flame,
   Award,
@@ -32,8 +31,6 @@ import {
   UserPlus,
   Globe,
   Sparkles,
-  Bitcoin,
-  LineChart,
 } from "lucide-react";
 import api from "@/lib/api";
 import { fmtUSD, fmtPct, fmtNum, rankName } from "@/lib/format";
@@ -42,13 +39,14 @@ import { useTheme } from "@/context/ThemeContext";
 import CoinIcon from "@/components/CoinIcon";
 import WalletHeroCard from "@/components/WalletHeroCard"; // eslint-disable-line no-unused-vars
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { useCachedState } from "@/lib/useCachedState";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { mode, toggle } = useTheme();
-  const [pairs, setPairs] = useState([]);
-  const [wallet, setWallet] = useState(null);
-  const [rank, setRank] = useState(null);
+  const [pairs, setPairs] = useCachedState("dash_pairs", []);
+  const [wallet, setWallet] = useCachedState("dash_wallet", null);
+  const [rank, setRank] = useCachedState("dash_rank", null);
   const [rankUp, setRankUp] = useState(null);
   const navigate = useNavigate();
   const avatar = localStorage.getItem(`ts_avatar_${user?.uid || user?.id || "me"}`);
