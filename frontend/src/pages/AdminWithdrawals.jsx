@@ -239,6 +239,7 @@ export default function AdminWithdrawals() {
                         (net {fmtUSD(r.net_amount)} · fee {fmtUSD(r.fee)})
                       </span>
                     </div>
+                    <div className="text-[11px] font-bold text-[color:var(--text)] truncate" data-testid="admin-wd-name">{r.name || "—"}</div>
                     <div className="text-[10px] text-[color:var(--text-mute)] truncate">{r.email}</div>
                   </div>
                   <span

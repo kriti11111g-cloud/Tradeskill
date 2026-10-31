@@ -5115,8 +5115,17 @@ async def admin_withdrawals(status: Optional[str] = None,
                             admin: dict = Depends(require_admin),
                             limit: int = 100):
     q = {"status": status} if status else {}
-    return await db.withdrawal_requests.find(
+    rows = await db.withdrawal_requests.find(
         q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    ids = list({r.get("user_id") for r in rows if r.get("user_id")})
+    users_map = {u["id"]: u for u in await db.users.find(
+        {"id": {"$in": ids}}, {"_id": 0, "id": 1, "email": 1, "name": 1}).to_list(len(ids) or 1)}
+    for r in rows:
+        u = users_map.get(r.get("user_id"), {})
+        if not r.get("email"):
+            r["email"] = u.get("email", "—")
+        r["name"] = u.get("name") or ((r.get("email") or "—").split("@")[0])
+    return rows
 
 
 @api.post("/admin/withdrawals/{req_id}/approve")
@@ -5305,10 +5314,12 @@ async def admin_deposits(admin: dict = Depends(require_admin)):
         {"kind": {"$in": ["deposit_onchain", "deposit"]}},
         {"_id": 0}).sort("created_at", -1).to_list(50)
     ids = list({r["user_id"] for r in rows})
-    emails = {u["id"]: u["email"] for u in await db.users.find(
-        {"id": {"$in": ids}}, {"_id": 0, "id": 1, "email": 1}).to_list(len(ids) or 1)}
+    users_map = {u["id"]: u for u in await db.users.find(
+        {"id": {"$in": ids}}, {"_id": 0, "id": 1, "email": 1, "name": 1}).to_list(len(ids) or 1)}
     for r in rows:
-        r["email"] = emails.get(r["user_id"], "—")
+        u = users_map.get(r["user_id"], {})
+        r["email"] = u.get("email", "—")
+        r["name"] = u.get("name") or (r["email"].split("@")[0] if r["email"] != "—" else "—")
     return rows
 
 

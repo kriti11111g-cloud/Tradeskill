@@ -56,16 +56,17 @@ export default function AdminPanel() {
 
   const impersonate = async () => {
     if (!detail) return;
-    if (!window.confirm(`Login as ${detail.name || detail.uid} (${detail.uid})?\nYou will open this user's account. A banner will let you return to Admin.`)) return;
     setDetailBusy(true);
+    const t = toast.loading(`Logging in as ${detail.name || detail.uid}…`);
     try {
       const { data } = await api.post(`/admin/users/${detail.uid}/impersonate`, {}, cfg);
       localStorage.setItem("tgx_prev_token", localStorage.getItem("tgx_token") || "");
       localStorage.setItem("tgx_token", data.token);
       localStorage.setItem("tgx_impersonating", JSON.stringify(data.user));
+      toast.success(`Opening ${data.user?.name || data.user?.uid}'s account`, { id: t });
       window.location.href = "/";
     } catch (e) {
-      toast.error(formatApiError(e));
+      toast.error(formatApiError(e), { id: t });
       setDetailBusy(false);
     }
   };
@@ -551,7 +552,8 @@ export default function AdminPanel() {
             {deposits.map((d, i) => (
               <div key={i} className="flex items-center justify-between px-3 py-2.5" style={CARD}>
                 <div className="min-w-0">
-                  <div className="font-display font-black text-[13px] truncate" style={{ color: "var(--ink)" }}>{d.email}</div>
+                  <div className="font-display font-black text-[13px] truncate" style={{ color: "var(--ink)" }} data-testid={`admin-deposit-name-${i}`}>{d.name || "—"}</div>
+                  <div className="text-[10px] font-semibold truncate" style={{ color: "var(--text-mute)" }}>{d.email}</div>
                   <div className="text-[10px] font-semibold truncate" style={{ color: "var(--text-mute)" }}>{d.note} · {fmtTime(d.created_at)}</div>
                 </div>
                 <div className="font-display font-black text-[14px] tabular-nums shrink-0 pl-2" style={{ color: "#16A34A" }}>+{fmtUSD(d.amount)}</div>

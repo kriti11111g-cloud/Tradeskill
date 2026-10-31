@@ -39,3 +39,9 @@
 - backend/.env (PREVIEW) added: EMERGENT_EMAIL_KEY, EMAIL_FROM_NAME="Trade Skill". RESEND_API_KEY no longer read (left in place, harmless).
 - Verified: send to delivered@resend.dev -> HTTP 200 ok:true. (demo.team1@tgxbot.com -> 422 undeliverable because tgxbot.com is a fake domain; real emails deliver.)
 - PRODUCTION TODO (VPS): add EMERGENT_EMAIL_KEY=ek_0a1558a448e6abbe7684590104fe54e0 and EMAIL_FROM_NAME="Trade Skill" to /opt/tradeskill backend .env, then redeploy + restart backend. Sends draw from the Emergent account credits/Universal Key.
+
+## 2026-06 — Admin panel: names in Deposits/Withdrawals + reliable "Login as user"
+- /admin/deposits now enriches each row with `name` (fallback: email prefix). AdminPanel deposit row shows Name (bold) + email below.
+- /admin/withdrawals now enriches each row with `name`. AdminWithdrawals row shows Name + email.
+- "Login as this User" (impersonate): removed window.confirm() which silently fails on some mobile webviews (user reported tap did nothing). Now taps directly -> toast -> mints user token -> opens user account; ImpersonationBanner (AppShell) lets admin return. Backend endpoint + Bearer-over-cookie priority verified correct.
+- Verified via minted admin JWT: deposits (30) and withdrawals (15) both return name+email.
