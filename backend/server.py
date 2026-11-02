@@ -4224,6 +4224,9 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
 
         # Differential up the sponsor line (UNLIMITED depth; stops early once the
         # full 12% budget is paid, and `seen` guards against referral cycles).
+        # RULE: only an ACTIVE upline earns AND advances the differential baseline.
+        # An INACTIVE upline is transparent — it neither earns nor blocks, so the
+        # rank-based difference keeps flowing up to the next QUALIFIED (active) level.
         seen = {user_id}
         cur = (trader or {}).get("referred_by")
         hops = 0
@@ -4240,18 +4243,13 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
                 ok = await _credit_commission(anc["id"], amt, "team_commission",
                                               f"Differential {diff}% from {trader_label} · {symbol} · L{hops + 1}",
                                               from_user_id=user_id, symbol=symbol)
-                if not ok and amt > 0:
-                    # Upline occupies this rank slot but can't earn (not activated).
-                    # The slot still BLOCKS higher same-rank uplines; its differential
-                    # goes to company reserve so a distant upline can't wrongly claim it.
-                    await _credit_admin_revenue(amt, "company_reserve", user_id,
-                                                note=f"Differential {diff}% (upline not activated) from {trader_label} · {symbol}",
-                                                symbol=symbol)
-                # Advance regardless of activation — the rank position itself compresses.
-                highest = pct
+                if ok:
+                    # Only advance (occupy the rank slot) when an ACTIVE upline earns.
+                    highest = pct
             cur = anc.get("referred_by")
             hops += 1
 
+        # Whatever of the 12% rank budget NO active upline qualified for → company reserve.
         reserve_pct = max(0.0, RANK_BUDGET_PCT - highest)
         reserve = round(profit * reserve_pct / 100.0 * scale, 4)
         await _credit_admin_revenue(reserve, "company_reserve", user_id,
@@ -4386,11 +4384,26 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
     # ---- Direct income pot ($26.36 fixed) + support income ($2.64 = 10%) ----
     # Build the chain of ACTIVATED uplines, nearest first (inactive can't earn).
     actor = user.get("name") or user.get("email", "user")
+    direct_sponsor_id = user.get("referred_by")
+    # The DIRECT sponsor defines the BASE (direct income) slot even if INACTIVE.
+    direct_sponsor = await db.users.find_one(
+        {"id": direct_sponsor_id},
+        {"_id": 0, "id": 1, "rank": 1, "referred_by": 1, "email": 1, "name": 1}
+    ) if direct_sponsor_id else None
+    direct_sponsor_active = False
+    if direct_sponsor:
+        wa0 = await db.bot_wallets.find_one({"user_id": direct_sponsor_id}, {"activated": 1})
+        direct_sponsor_active = bool(wa0 and wa0.get("activated"))
+
+    # Activated uplines STRICTLY ABOVE the direct sponsor (nearest first) for the
+    # rank-difference + support cascade. Inactive uplines are skipped (transparent).
     chain = []
-    cur_id = user.get("referred_by")
+    cur_id = direct_sponsor.get("referred_by") if direct_sponsor else None
     seen = {user["id"]}
-    hops = 0
-    while cur_id and cur_id not in seen:   # UNLIMITED depth (cycle-guarded by `seen`), like trading commission
+    if direct_sponsor_id:
+        seen.add(direct_sponsor_id)
+    hops = 1
+    while cur_id and cur_id not in seen:   # UNLIMITED depth (cycle-guarded by `seen`)
         seen.add(cur_id)
         anc = await db.users.find_one(
             {"id": cur_id},
@@ -4404,41 +4417,39 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
         cur_id = anc.get("referred_by")
         hops += 1
 
-    if chain:
-        base = chain[0]
-        base_level = _rank_level_of(base)
+    if direct_sponsor:
+        base_level = _rank_level_of(direct_sponsor)
         base_income = round(min(DIRECT_INCOME_BY_LEVEL.get(base_level, 0.0), DIRECT_INCOME_POT), 4)
         slots_total = 10 - base_level
         remaining = round(DIRECT_INCOME_POT - base_income, 4)
         share = (remaining / slots_total) if slots_total > 0 else 0.0
         # Support pool = 10% of the direct pot, SHIFTED UP one rank:
         #   base-support (10% of base direct) → first activated upline above base,
-        #   remaining (10% of `remaining`) split equally over (slots_total - 1) rank
-        #   slots, cascaded up by rank exactly like bot difference. Top unclaimed
-        #   slots (no higher-rank upline) → company reserve via final remainder.
+        #   remaining split equally over (slots_total - 1) rank slots, cascaded up.
         support_base = round(base_income * SUPPORT_INCOME_PCT / 100.0, 4)
         support_slots_total = max(slots_total - 1, 0)
         support_remaining = round(remaining * SUPPORT_INCOME_PCT / 100.0, 4)
         support_share = (support_remaining / support_slots_total) if support_slots_total > 0 else 0.0
 
-        direct_sponsor_id = user.get("referred_by")
-
-        # 1) Base = direct income ("Direct income" only if it is the real direct
-        #    sponsor, else "Bot difference"). Base gets NO support income.
-        base_kind = "direct_bonus" if base["id"] == direct_sponsor_id else "activation_difference"
-        base_note = (f"Direct income · {actor} activated · L{base['_glevel']}" if base_kind == "direct_bonus"
-                     else f"Bot difference income · {actor} activated · L{base['_glevel']}")
-        if await _credit_commission(base["id"], base_income, base_kind, base_note, from_user_id=user["id"]):
+        # 1) BASE direct income belongs to the DIRECT sponsor. If the sponsor is
+        #    INACTIVE, their OWN share goes to COMPANY RESERVE (never to a higher
+        #    upline). Only an ACTIVE direct sponsor earns Direct income.
+        if direct_sponsor_active and await _credit_commission(
+                direct_sponsor["id"], base_income, "direct_bonus",
+                f"Direct income · {actor} activated · L1", from_user_id=user["id"]):
+            distributed += base_income
+        elif base_income > 0:
+            await _credit_admin_revenue(
+                base_income, "company_reserve", user["id"],
+                note=f"Direct income (direct sponsor not activated) · {actor} activated")
             distributed += base_income
 
-        # 2) Walk activated uplines. Bot-difference cascades by RANK (only a higher rank
-        #    overrides). Support income is SEPARATE: the base's immediate activated upline
-        #    ALWAYS gets support_base (10% of base's direct), regardless of rank; any extra
-        #    support slots then cascade up by rank.
+        # 2) Rank-difference (bot difference) + support cascade to ACTIVATED uplines
+        #    above the sponsor. Rank difference keeps flowing to qualified levels.
         highest = base_level
         s_highest = base_level + 1          # base-support conceptually covers rank (base+1)
         first_upline = True
-        idx = 1
+        idx = 0
         while idx < len(chain) and (first_upline or highest < 10 or s_highest < 10):
             up = chain[idx]
             up_level = min(_rank_level_of(up), 10)

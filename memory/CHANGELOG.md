@@ -45,3 +45,9 @@
 - /admin/withdrawals now enriches each row with `name`. AdminWithdrawals row shows Name + email.
 - "Login as this User" (impersonate): removed window.confirm() which silently fails on some mobile webviews (user reported tap did nothing). Now taps directly -> toast -> mints user token -> opens user account; ImpersonationBanner (AppShell) lets admin return. Backend endpoint + Bearer-over-cookie priority verified correct.
 - Verified via minted admin JWT: deposits (30) and withdrawals (15) both return name+email.
+
+## 2026-06 — MLM payout rule: inactive uplines (confirmed by user)
+RULE: Direct referral, trading commission & support income only to ACTIVE uplines. Inactive DIRECT sponsor's own share -> company reserve. Rank-based differential keeps flowing to qualified ACTIVE uplines.
+- _distribute_trading_deduction (profit 25% fuel): inactive upline is now TRANSPARENT — it neither earns nor blocks; the rank differential flows up to the next ACTIVE qualified upline. Only truly unclaimed budget (12% - highest active) -> company_reserve. (Previously inactive upline's differential went to company AND blocked higher uplines.) Tested: inactive L10 skipped -> active L8 earned $9.50, reserve $2.50, total $25.
+- bot_wallet_activate distribution: BASE (direct) income slot now belongs to the DIRECT sponsor. If direct sponsor INACTIVE -> base direct income -> company_reserve (not absorbed by a higher upline). Rank difference + support still cascade to ACTIVE uplines above. Active-sponsor case unchanged (no regression). Tested both cases, each balances to $50.
+- Both changes backend-only (server.py). Needs deploy.
