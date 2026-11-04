@@ -2906,6 +2906,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
                     "peak_price": 0.0,
                     "dca_bottom_price": 0.0,
                     "last_sell_price": avg_price,
+                    "sub_positions": [],
                     "cycles_completed": bot.get("cycles_completed", 0) + 1,
                 })
                 # Only halt after cycle for explicit One-Shot bots. If trade_method
