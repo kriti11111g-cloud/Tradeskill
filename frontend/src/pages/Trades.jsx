@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database, HelpCircle, Link2 } from "lucide-react";
+import { Plus, BookOpen, ChevronRight, CalendarDays, MoreVertical, ArrowRight, ArrowLeft, RefreshCw, Send, TrendingUp, Database, HelpCircle, Link2, Layers, Target, CheckCircle2, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtNum } from "@/lib/format";
@@ -241,11 +241,166 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
   );
 }
 
+/* Sub-Beam Mode (SBM) — detailed view of active sub-positions + targets */
+function SBMModal({ open, symbol, sym, onClose }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!open) { setData(null); return; }
+    setLoading(true);
+    api.get(`/bots/${symbol}`)
+      .then(({ data }) => setData(data))
+      .catch((e) => { toast.error(e?.response?.data?.detail || "Could not load Sub-Beam data"); onClose(); })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, symbol]);
+  if (!open) return null;
+
+  const avg = data?.avg_price || 0;
+  const qty = data?.position_qty || 0;
+  const invested = data?.position_amount || 0;
+  const mcCount = data?.margin_call_count || 0;
+  const mcLimit = data?.margin_call_limit || 0;
+  const tps = data?.sub_position_tps || [];
+  const ladder = data?.dca_ladder || [];
+  const nextBuy = data?.margin_call_trigger_price || 0;
+  const firstBuy = data?.first_buy_amount || 0;
+  const wtp = data?.whole_take_profit_ratio || 0;
+  const hasPos = qty > 0 && avg > 0;
+  const ladderByLevel = {};
+  ladder.forEach((l) => { ladderByLevel[l.level] = l; });
+
+  // One row per configured safety order (sub-position) level
+  const levels = [];
+  for (let i = 1; i <= mcLimit; i++) {
+    levels.push({
+      level: i,
+      tp: tps[i - 1] != null ? tps[i - 1] : wtp,
+      filled: i <= mcCount,
+      ld: ladderByLevel[i] || null,
+    });
+  }
+
+  const Stat = ({ l, v, c }) => (
+    <div className="rounded-xl px-2.5 py-2" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
+      <div className="text-[9.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>{l}</div>
+      <div className="text-[13px] font-black tabular-nums leading-tight mt-0.5" style={{ color: c || "var(--ink)" }}>{v}</div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
+      <div className="w-full max-w-sm rounded-2xl p-5 max-h-[88vh] overflow-y-auto" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,0.12)" }}>
+            <Layers size={19} style={{ color: "#2563EB" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-display font-black text-lg leading-tight" style={{ color: "var(--ink)" }}>Sub-Beam Mode</div>
+            <div className="text-[11px] font-bold" style={{ color: "var(--text-mute)" }}>{sym}/USDT · averaging sub-positions</div>
+          </div>
+          <button onClick={onClose} data-testid="sbm-close" className="shrink-0 p-1"><X size={20} style={{ color: "var(--text-mute)" }} /></button>
+        </div>
+
+        {loading || !data ? (
+          <div className="py-10 text-center text-sm" style={{ color: "var(--text-mute)" }}>Loading…</div>
+        ) : (
+          <>
+            {/* Active sub-position count */}
+            <div className="mt-4 rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.10), rgba(16,185,129,0.10))", border: "1px solid var(--border)" }}>
+              <div>
+                <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Active Sub-Positions</div>
+                <div className="text-[22px] font-black tabular-nums leading-tight" style={{ color: "#2563EB" }} data-testid="sbm-active-count">
+                  {mcCount} <span className="text-[13px]" style={{ color: "var(--text-mute)" }}>/ {mcLimit}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Status</div>
+                <div className="text-[13px] font-black" style={{ color: hasPos && mcCount > 0 ? "var(--good)" : "var(--text-mute)" }}>
+                  {hasPos && mcCount > 0 ? "ACTIVE" : hasPos ? "BASE ONLY" : "IDLE"}
+                </div>
+              </div>
+            </div>
+
+            {/* Averaged position summary */}
+            <div className="grid grid-cols-2 gap-1.5 mt-3">
+              <Stat l="Averaged Entry" v={fmtPrice(avg)} />
+              <Stat l="Position Size" v={`${fmtNum(qty, qty >= 1 ? 4 : 6)} ${sym}`} />
+              <Stat l="Invested" v={`$${fmtNum(invested || firstBuy, 2)}`} />
+              <Stat l="Next Safety Buy" v={nextBuy ? fmtPrice(nextBuy) : "—"} c="#2563EB" />
+            </div>
+
+            {/* Sub-position ladder with per-level targets */}
+            <div className="mt-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target size={14} style={{ color: "#2563EB" }} />
+                <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Sub-Beam Targets</span>
+              </div>
+              <div className="space-y-1.5" data-testid="sbm-levels">
+                {levels.map((lv) => (
+                  <div
+                    key={lv.level}
+                    className="rounded-xl px-3 py-2 flex items-center gap-2.5"
+                    style={{
+                      background: lv.filled ? "rgba(16,185,129,0.07)" : "var(--surface-3)",
+                      border: `1px solid ${lv.filled ? "rgba(16,185,129,0.35)" : "var(--border)"}`,
+                    }}
+                    data-testid={`sbm-level-${lv.level}`}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
+                      style={{ background: lv.filled ? "var(--good)" : "var(--surface)", color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
+                      {lv.level}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[12px] font-black" style={{ color: "var(--ink)" }}>Sub-Position {lv.level}</span>
+                        {lv.filled ? (
+                          <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--good)" }}>
+                            <CheckCircle2 size={9} /> FILLED
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
+                            <Clock size={9} /> PENDING
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] font-semibold mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
+                        TP +{fmtNum(lv.tp, 2)}%
+                        {lv.ld && <> · drop -{fmtNum(lv.ld.drop_pct, 2)}% · ${fmtNum(lv.ld.amount_usdt, 2)}</>}
+                      </div>
+                    </div>
+                    {lv.ld && (
+                      <div className="text-right shrink-0">
+                        <div className="text-[9px] font-bold uppercase" style={{ color: "var(--text-mute)" }}>Trigger</div>
+                        <div className="text-[12px] font-black tabular-nums leading-tight" style={{ color: "#2563EB" }}>{fmtPrice(lv.ld.trigger_price)}</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-[10px] mt-3 leading-relaxed" style={{ color: "var(--text-mute)" }}>
+              Sub-Beam Mode averages your entry by firing each safety order when price drops to its trigger. Filled sub-positions blend into the averaged entry above; each has its own take-profit target.
+            </div>
+
+            <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: GRAD, touchAction: "manipulation" }} data-testid="sbm-done">
+              Done
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function BotRow({ bot, onDone }) {
   const navigate = useNavigate();
   const ticker = useBinanceStream(bot.symbol);
   const [modal, setModal] = useState(null); // 'sell' | 'oneshot' | 'cycle'
   const [avgOpen, setAvgOpen] = useState(false);
+  const [sbmOpen, setSbmOpen] = useState(false);
   const isRunning = String(bot.status || "").toLowerCase() === "running";
   const live = (ticker?.price || 0) > 0 ? ticker.price : bot.avg_price || 0;
   const qty = bot.position_qty || 0;
@@ -257,6 +412,12 @@ function BotRow({ bot, onDone }) {
   const round = bot.cycles_completed || 0; // eslint-disable-line no-unused-vars
   const mode = bot.trade_mode || "cycle";
   const sym = bot.symbol.replace(/USDT$/, "");
+
+  // Sub-Beam Mode (SBM): active once at least one safety order has filled,
+  // i.e. the position is being averaged across sub-positions.
+  const sbmCount = bot.margin_call_count || 0;
+  const sbmLimit = bot.margin_call_limit || 0;
+  const sbmActive = hasPos && sbmCount > 0;
 
   // Take Profit badge: % at which auto-sell fires.
   // Base = TP ratio; once armed (price crossed TP), trailing % follows the
@@ -325,6 +486,15 @@ function BotRow({ bot, onDone }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-[14px] font-black leading-tight" style={{ color: "var(--ink)" }}>
             {sym}/USDT
+            {sbmActive && (
+              <span
+                className="flex items-center gap-0.5 text-[8.5px] font-black px-1.5 py-0.5 rounded-md text-white"
+                style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
+                data-testid={`bot-sbm-badge-${bot.symbol}`}
+              >
+                <Layers size={9} /> SBM {sbmCount}
+              </span>
+            )}
           </div>
           <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
             {mode === "oneshot" ? "ONE SHOT" : "CYCLE"} ·{" "}
@@ -415,13 +585,15 @@ function BotRow({ bot, onDone }) {
           <span className="text-[10px] font-black tracking-wide">AVERAGE</span>
         </button>
         <button
-          onClick={() => toast.info("SBM — Coming soon")}
+          onClick={() => setSbmOpen(true)}
           className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
+          style={sbmActive
+            ? { background: GRAD, color: "#fff", touchAction: "manipulation" }
+            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", touchAction: "manipulation" }}
           data-testid={`bot-sbm-btn-${bot.symbol}`}
         >
-          <Plus size={12} className="shrink-0" />
-          <span className="text-[10px] font-black tracking-wide">SBM</span>
+          <Layers size={12} className="shrink-0" />
+          <span className="text-[10px] font-black tracking-wide">SBM{sbmActive ? ` ${sbmCount}` : ""}</span>
         </button>
         <div
           className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
@@ -457,6 +629,12 @@ function BotRow({ bot, onDone }) {
           sym={sym}
           onConfirm={() => { setAvgOpen(false); onDone && onDone(); }}
           onCancel={() => setAvgOpen(false)}
+        />
+        <SBMModal
+          open={sbmOpen}
+          symbol={bot.symbol}
+          sym={sym}
+          onClose={() => setSbmOpen(false)}
         />
       </div>
     </div>

@@ -141,3 +141,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Backend server.py: new GET /api/market/search?q=&limit= searches ALLOWED_SYMBOLS (base asset contains), enriches price/change from cached full 24hr ticker (_all_tickers_cached, 60s TTL), sorts prefix-match-first then volume.
 - BUG FIX (app-wide): startup exchangeInfo loader filtered by `"SPOT" in permissions` but Binance moved SPOT to permissionSets/isSpotTradingAllowed → ALLOWED_SYMBOLS was stuck at ~50 fallback. Now uses isSpotTradingAllowed OR permissions OR permissionSets → 518 tradable USDT pairs loaded. Whole app (market/search) now covers all coins.
 - Verified: curl search (btc/pep/sol/do) + screenshot (SOL/SOLV/BNSOL/RESOLV results, blue active pill).
+
+## 2026-06 — Sub-Beam Mode (SBM) badge + detailed card
+- Request: show 'SBM' badge on active (Live/running) trades when sub-beam mode is active; replace SBM "Coming soon" with a real card detailing active sub-positions, their count, and target parameters; label safety orders under "Sub-Beam Mode".
+- Frontend Trades.jsx (frontend-only, reuses GET /api/bots/{symbol}):
+  - BotRow: SBM active = hasPos && margin_call_count>0. Badge `⬟ SBM {count}` (gradient) next to {sym}/USDT (data-testid bot-sbm-badge-{symbol}). SBM action button now opens SBMModal (was toast "Coming soon"); highlighted gradient when active, shows count.
+  - New SBMModal component: fetches /bots/{symbol} (returns dca_ladder, sub_position_tps, margin_call_count/limit, avg_price, position_qty/amount, margin_call_trigger_price). Shows Active Sub-Positions count (X/Y), averaged-position summary (entry/size/invested/next-safety-buy), and per-level "Sub-Position N" list: FILLED (<=mc_count, green) vs PENDING, each with TP target %, drop %, amount, trigger price. testids: sbm-modal, sbm-active-count, sbm-levels, sbm-level-{n}, sbm-close, sbm-done.
+- Verified via seeded NEAR running bot (mc_count=3/5): badge "SBM 3", modal "3 / 5" ACTIVE, 5 level rows (3 FILLED, 2 PENDING with triggers). Test bot + demo key cleaned up after.
