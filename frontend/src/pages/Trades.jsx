@@ -26,6 +26,8 @@ const fmtPrice = (v) => {
 };
 
 const GRAD = "linear-gradient(90deg, #2563EB, #10B981)";
+// Sub-Beam Mode begins at the 5th safety order; calls 1-4 only build the average.
+const SBM_START = 5;
 
 /* Confirmation popup — Sell / One Shot / Cycle sab isi se */
 function ConfirmModal({ open, title, desc, confirmLabel, danger, onConfirm, onCancel }) {
@@ -268,6 +270,10 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const curPx = livePrice > 0 ? livePrice : (data?.current_price || 0);
   const initialLevels = levels.filter((l) => !l.is_subbeam);
   const beamLevels = levels.filter((l) => l.is_subbeam);
+  // Sub-Beam positions only start from `subStart` (5th order). Calls 1..4 only average.
+  const beamFilled = Math.max(0, mcCount - (subStart - 1));
+  const beamTotal = Math.max(0, mcLimit - (subStart - 1));
+  const beamActive = hasPos && beamFilled > 0;
   const VIOLET = "#7C3AED";
 
   // One sub-position card. `beam` = true -> violet Sub-Beam styling, else slate safety-order styling.
@@ -359,18 +365,18 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           <div className="py-10 text-center text-sm" style={{ color: "var(--text-mute)" }}>Loading…</div>
         ) : (
           <>
-            {/* Active sub-position count */}
-            <div className="mt-4 rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.10), rgba(16,185,129,0.10))", border: "1px solid var(--border)" }}>
+            {/* Active sub-position count — only counts real Sub-Beam positions (5th order+) */}
+            <div className="mt-4 rounded-xl px-3.5 py-3 flex items-center justify-between" style={{ background: "linear-gradient(90deg, rgba(124,58,237,0.10), rgba(16,185,129,0.10))", border: "1px solid var(--border)" }}>
               <div>
                 <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Active Sub-Positions</div>
-                <div className="text-[22px] font-black tabular-nums leading-tight" style={{ color: "#2563EB" }} data-testid="sbm-active-count">
-                  {mcCount} <span className="text-[13px]" style={{ color: "var(--text-mute)" }}>/ {mcLimit}</span>
+                <div className="text-[22px] font-black tabular-nums leading-tight" style={{ color: beamActive ? VIOLET : "var(--text-mute)" }} data-testid="sbm-active-count">
+                  {beamFilled} <span className="text-[13px]" style={{ color: "var(--text-mute)" }}>/ {beamTotal}</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Status</div>
-                <div className="text-[13px] font-black" style={{ color: hasPos && mcCount > 0 ? "var(--good)" : "var(--text-mute)" }}>
-                  {hasPos && mcCount > 0 ? "ACTIVE" : hasPos ? "BASE ONLY" : "IDLE"}
+                <div className="text-[13px] font-black" style={{ color: beamActive ? VIOLET : "var(--text-mute)" }}>
+                  {beamActive ? "ACTIVE" : mcCount > 0 ? "AVERAGING" : hasPos ? "BASE ONLY" : "IDLE"}
                 </div>
               </div>
             </div>
@@ -435,11 +441,12 @@ function BotRow({ bot, onDone }) {
   const mode = bot.trade_mode || "cycle";
   const sym = bot.symbol.replace(/USDT$/, "");
 
-  // Sub-Beam Mode (SBM): active once at least one safety order has filled,
-  // i.e. the position is being averaged across sub-positions.
+  // Sub-Beam Mode (SBM): only truly ACTIVE once the 5th safety order fills.
+  // Calls 1-4 just build the average, so SBM must NOT show active for them.
   const sbmCount = bot.margin_call_count || 0;
   const sbmLimit = bot.margin_call_limit || 0;
-  const sbmActive = hasPos && sbmCount > 0;
+  const sbmBeamCount = Math.max(0, sbmCount - (SBM_START - 1));
+  const sbmActive = hasPos && sbmBeamCount > 0;
 
   // Take Profit badge: % at which auto-sell fires.
   // Base = TP ratio; once armed (price crossed TP), trailing % follows the
@@ -514,7 +521,7 @@ function BotRow({ bot, onDone }) {
                 style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
                 data-testid={`bot-sbm-badge-${bot.symbol}`}
               >
-                <Layers size={9} /> SBM {sbmCount}
+                <Layers size={9} /> SBM {sbmBeamCount}
               </span>
             )}
           </div>
@@ -615,7 +622,7 @@ function BotRow({ bot, onDone }) {
           data-testid={`bot-sbm-btn-${bot.symbol}`}
         >
           <Layers size={12} className="shrink-0" />
-          <span className="text-[10px] font-black tracking-wide">SBM{sbmActive ? ` ${sbmCount}` : ""}</span>
+          <span className="text-[10px] font-black tracking-wide">SBM{sbmActive ? ` ${sbmBeamCount}` : ""}</span>
         </button>
         <div
           className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
