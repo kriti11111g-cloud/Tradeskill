@@ -1480,6 +1480,78 @@ def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
     return ladder
 
 
+def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
+    """Full per-sub-position breakdown for the SBM card: each safety-order level
+    1..margin_call_limit with its own Entry Price, Position Size (qty + USDT) and
+    Take-Profit target price. Uses real fills from bot['sub_positions'] when available
+    (calls >= SUB_POSITION_START), else reconstructs the geometric DCA ladder from the
+    base (first-buy) price so pending/early levels still show their independent target."""
+    cfg = bot.get("margin_config") or DEFAULT_MARGIN_CONFIG
+    if not cfg:
+        return []
+    mc_count = int(bot.get("margin_call_count", 0) or 0)
+    mc_limit = int(bot.get("margin_call_limit", 5) or 5)
+    first_buy = float(bot.get("first_buy_amount", 10.0) or 10.0)
+    avg_price = float(bot.get("avg_price", 0) or 0)
+    last_buy = float(bot.get("last_buy_price", 0) or 0)
+    tps = bot.get("sub_position_tps") or []
+    wtp = float(bot.get("whole_take_profit_ratio", 1.25) or 1.25)
+    real_subs = {int(sp.get("call", 0) or 0): sp for sp in (bot.get("sub_positions") or [])}
+
+    def drop_at(i):   # i = 1-indexed safety order -> margin_config[i-1]
+        r = cfg[min(i - 1, len(cfg) - 1)]
+        return float(r.get("drop", 0) or 0)
+
+    def mult_at(i):
+        r = cfg[min(i - 1, len(cfg) - 1)]
+        return float(r.get("multiplier", 1.0) or 1.0)
+
+    # Reconstruct base (first-buy) price: last_buy == entry of the most recent filled order.
+    base = 0.0
+    if last_buy > 0 and mc_count > 0:
+        factor, ok = 1.0, True
+        for k in range(1, mc_count + 1):
+            f = 1 - drop_at(k) / 100.0
+            if f <= 0:
+                ok = False
+                break
+            factor *= f
+        if ok and factor > 0:
+            base = last_buy / factor
+    if base <= 0:
+        base = avg_price if avg_price > 0 else (last_buy if last_buy > 0 else float(current_price or 0))
+
+    out = []
+    price = base
+    for i in range(1, mc_limit + 1):
+        f = 1 - drop_at(i) / 100.0
+        entry = price * f if (price > 0 and f > 0) else 0.0
+        amt = first_buy * (mult_at(i) if mult_at(i) > 0 else 1.0)
+        tp_pct = float(tps[i - 1]) if i - 1 < len(tps) else wtp
+        rec = real_subs.get(i)
+        if rec:
+            entry = float(rec.get("buy_price", entry) or entry)
+            qty = float(rec.get("qty", 0) or 0)
+            amt = float(rec.get("amount", amt) or amt)
+            tp_price = float(rec.get("tp_price", 0) or 0) or (entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0)
+        else:
+            qty = (amt / entry) if entry > 0 else 0.0
+            tp_price = entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0
+        out.append({
+            "level": i,
+            "filled": i <= mc_count,
+            "entry_price": round(entry, 8) if entry > 0 else 0,
+            "qty": round(qty, 6),
+            "amount_usdt": round(amt, 2),
+            "tp_pct": round(tp_pct, 2),
+            "tp_price": round(tp_price, 8) if tp_price > 0 else 0,
+            "drop_pct": round(drop_at(i), 2),
+        })
+        if entry > 0:
+            price = entry
+    return out
+
+
 @api.get("/bots")
 async def list_bots(user: dict = Depends(get_current_user)):
     rows = await db.bots.find({"user_id": user["id"]}, {"_id": 0}).to_list(200)
@@ -1640,6 +1712,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
         live_px = 0.0
     merged["current_price"] = round(live_px, 6) if live_px else 0
     merged["dca_ladder"] = _compute_dca_ladder(merged, current_price=live_px)
+    merged["sub_positions_detail"] = _sub_position_breakdown(merged, current_price=live_px)
     return merged
 
 

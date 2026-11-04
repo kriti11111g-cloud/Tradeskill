@@ -261,25 +261,12 @@ function SBMModal({ open, symbol, sym, onClose }) {
   const invested = data?.position_amount || 0;
   const mcCount = data?.margin_call_count || 0;
   const mcLimit = data?.margin_call_limit || 0;
-  const tps = data?.sub_position_tps || [];
-  const ladder = data?.dca_ladder || [];
   const nextBuy = data?.margin_call_trigger_price || 0;
   const firstBuy = data?.first_buy_amount || 0;
-  const wtp = data?.whole_take_profit_ratio || 0;
   const hasPos = qty > 0 && avg > 0;
-  const ladderByLevel = {};
-  ladder.forEach((l) => { ladderByLevel[l.level] = l; });
 
-  // One row per configured safety order (sub-position) level
-  const levels = [];
-  for (let i = 1; i <= mcLimit; i++) {
-    levels.push({
-      level: i,
-      tp: tps[i - 1] != null ? tps[i - 1] : wtp,
-      filled: i <= mcCount,
-      ld: ladderByLevel[i] || null,
-    });
-  }
+  // Full per-sub-position breakdown (entry price, size, TP target) from backend
+  const levels = data?.sub_positions_detail || [];
 
   const Stat = ({ l, v, c }) => (
     <div className="rounded-xl px-2.5 py-2" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
@@ -340,41 +327,53 @@ function SBMModal({ open, symbol, sym, onClose }) {
                 {levels.map((lv) => (
                   <div
                     key={lv.level}
-                    className="rounded-xl px-3 py-2 flex items-center gap-2.5"
+                    className="rounded-xl px-3 py-2.5"
                     style={{
                       background: lv.filled ? "rgba(16,185,129,0.07)" : "var(--surface-3)",
                       border: `1px solid ${lv.filled ? "rgba(16,185,129,0.35)" : "var(--border)"}`,
                     }}
                     data-testid={`sbm-level-${lv.level}`}
                   >
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
-                      style={{ background: lv.filled ? "var(--good)" : "var(--surface)", color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
-                      {lv.level}
+                    {/* header */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
+                        style={{ background: lv.filled ? "var(--good)" : "var(--surface)", color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
+                        {lv.level}
+                      </div>
+                      <span className="text-[12px] font-black flex-1" style={{ color: "var(--ink)" }}>Sub-Position {lv.level}</span>
+                      {lv.filled ? (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--good)" }}>
+                          <CheckCircle2 size={9} /> FILLED
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
+                          <Clock size={9} /> PENDING
+                        </span>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-black" style={{ color: "var(--ink)" }}>Sub-Position {lv.level}</span>
-                        {lv.filled ? (
-                          <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--good)" }}>
-                            <CheckCircle2 size={9} /> FILLED
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
-                            <Clock size={9} /> PENDING
-                          </span>
-                        )}
+                    {/* per sub-position: entry / size / TP target */}
+                    <div className="grid grid-cols-3 gap-1.5 mt-2">
+                      <div>
+                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Avg Entry Price</div>
+                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
+                          {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
+                        </div>
                       </div>
-                      <div className="text-[10px] font-semibold mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
-                        TP +{fmtNum(lv.tp, 2)}%
-                        {lv.ld && <> · drop -{fmtNum(lv.ld.drop_pct, 2)}% · ${fmtNum(lv.ld.amount_usdt, 2)}</>}
+                      <div>
+                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Position Size</div>
+                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-size-${lv.level}`}>
+                          {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"}
+                        </div>
+                        <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>${fmtNum(lv.amount_usdt, 2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "#16A34A" }}>TP Target</div>
+                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "#16A34A" }} data-testid={`sbm-tp-${lv.level}`}>
+                          {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
+                        </div>
+                        <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
                       </div>
                     </div>
-                    {lv.ld && (
-                      <div className="text-right shrink-0">
-                        <div className="text-[9px] font-bold uppercase" style={{ color: "var(--text-mute)" }}>Trigger</div>
-                        <div className="text-[12px] font-black tabular-nums leading-tight" style={{ color: "#2563EB" }}>{fmtPrice(lv.ld.trigger_price)}</div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
