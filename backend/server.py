@@ -1540,6 +1540,7 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
         out.append({
             "level": i,
             "filled": i <= mc_count,
+            "is_subbeam": i >= SUB_POSITION_START,
             "entry_price": round(entry, 8) if entry > 0 else 0,
             "qty": round(qty, 6),
             "amount_usdt": round(amt, 2),
@@ -1713,6 +1714,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     merged["current_price"] = round(live_px, 6) if live_px else 0
     merged["dca_ladder"] = _compute_dca_ladder(merged, current_price=live_px)
     merged["sub_positions_detail"] = _sub_position_breakdown(merged, current_price=live_px)
+    merged["sub_position_start"] = SUB_POSITION_START
     return merged
 
 

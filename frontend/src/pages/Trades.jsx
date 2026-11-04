@@ -267,6 +267,10 @@ function SBMModal({ open, symbol, sym, onClose }) {
 
   // Full per-sub-position breakdown (entry price, size, TP target) from backend
   const levels = data?.sub_positions_detail || [];
+  const subStart = data?.sub_position_start || 5;
+  const initialLevels = levels.filter((l) => !l.is_subbeam);
+  const beamLevels = levels.filter((l) => l.is_subbeam);
+  const VIOLET = "#7C3AED";
 
   const Stat = ({ l, v, c }) => (
     <div className="rounded-xl px-2.5 py-2" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
@@ -274,6 +278,65 @@ function SBMModal({ open, symbol, sym, onClose }) {
       <div className="text-[13px] font-black tabular-nums leading-tight mt-0.5" style={{ color: c || "var(--ink)" }}>{v}</div>
     </div>
   );
+
+  // One sub-position card. `beam` = true -> violet Sub-Beam styling, else slate safety-order styling.
+  const LevelCard = ({ lv, beam }) => {
+    const accent = beam ? VIOLET : "#2563EB";
+    const bg = beam
+      ? (lv.filled ? "rgba(124,58,237,0.10)" : "rgba(124,58,237,0.04)")
+      : (lv.filled ? "rgba(16,185,129,0.07)" : "var(--surface-3)");
+    const border = beam
+      ? (lv.filled ? "rgba(124,58,237,0.45)" : "rgba(124,58,237,0.25)")
+      : (lv.filled ? "rgba(16,185,129,0.35)" : "var(--border)");
+    const circleBg = lv.filled ? (beam ? VIOLET : "var(--good)") : "var(--surface)";
+    return (
+      <div className="rounded-xl px-3 py-2.5" style={{ background: bg, border: `1px solid ${border}` }} data-testid={`sbm-level-${lv.level}`}>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
+            style={{ background: circleBg, color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
+            {lv.level}
+          </div>
+          <span className="text-[12px] font-black flex-1 flex items-center gap-1" style={{ color: "var(--ink)" }}>
+            {beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}
+            {beam && (
+              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
+            )}
+          </span>
+          {lv.filled ? (
+            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: beam ? VIOLET : "var(--good)" }}>
+              <CheckCircle2 size={9} /> FILLED
+            </span>
+          ) : (
+            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
+              <Clock size={9} /> PENDING
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 mt-2">
+          <div>
+            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Avg Entry Price</div>
+            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
+              {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
+            </div>
+          </div>
+          <div>
+            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Position Size</div>
+            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-size-${lv.level}`}>
+              {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"}
+            </div>
+            <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>${fmtNum(lv.amount_usdt, 2)}</div>
+          </div>
+          <div>
+            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: accent }}>TP Target</div>
+            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
+              {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
+            </div>
+            <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
@@ -317,70 +380,35 @@ function SBMModal({ open, symbol, sym, onClose }) {
               <Stat l="Next Safety Buy" v={nextBuy ? fmtPrice(nextBuy) : "—"} c="#2563EB" />
             </div>
 
-            {/* Sub-position ladder with per-level targets */}
-            <div className="mt-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Target size={14} style={{ color: "#2563EB" }} />
-                <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Sub-Beam Targets</span>
+            {/* Initial safety orders (calls 1..start-1) — blend into averaged entry */}
+            {initialLevels.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Target size={14} style={{ color: "#2563EB" }} />
+                  <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Initial Safety Orders</span>
+                </div>
+                <div className="space-y-1.5" data-testid="sbm-initial-levels">
+                  {initialLevels.map((lv) => <LevelCard key={lv.level} lv={lv} beam={false} />)}
+                </div>
               </div>
-              <div className="space-y-1.5" data-testid="sbm-levels">
-                {levels.map((lv) => (
-                  <div
-                    key={lv.level}
-                    className="rounded-xl px-3 py-2.5"
-                    style={{
-                      background: lv.filled ? "rgba(16,185,129,0.07)" : "var(--surface-3)",
-                      border: `1px solid ${lv.filled ? "rgba(16,185,129,0.35)" : "var(--border)"}`,
-                    }}
-                    data-testid={`sbm-level-${lv.level}`}
-                  >
-                    {/* header */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
-                        style={{ background: lv.filled ? "var(--good)" : "var(--surface)", color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
-                        {lv.level}
-                      </div>
-                      <span className="text-[12px] font-black flex-1" style={{ color: "var(--ink)" }}>Sub-Position {lv.level}</span>
-                      {lv.filled ? (
-                        <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: "var(--good)" }}>
-                          <CheckCircle2 size={9} /> FILLED
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
-                          <Clock size={9} /> PENDING
-                        </span>
-                      )}
-                    </div>
-                    {/* per sub-position: entry / size / TP target */}
-                    <div className="grid grid-cols-3 gap-1.5 mt-2">
-                      <div>
-                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Avg Entry Price</div>
-                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
-                          {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Position Size</div>
-                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-size-${lv.level}`}>
-                          {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"}
-                        </div>
-                        <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>${fmtNum(lv.amount_usdt, 2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "#16A34A" }}>TP Target</div>
-                        <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "#16A34A" }} data-testid={`sbm-tp-${lv.level}`}>
-                          {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
-                        </div>
-                        <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            )}
+
+            {/* Sub-Beam Mode (calls start..limit) — each managed separately with own TP */}
+            {beamLevels.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Layers size={14} style={{ color: VIOLET }} />
+                  <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: VIOLET }}>Sub-Beam Mode</span>
+                  <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(124,58,237,0.12)", color: VIOLET }}>managed separately</span>
+                </div>
+                <div className="space-y-1.5" data-testid="sbm-levels">
+                  {beamLevels.map((lv) => <LevelCard key={lv.level} lv={lv} beam={true} />)}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="text-[10px] mt-3 leading-relaxed" style={{ color: "var(--text-mute)" }}>
-              Sub-Beam Mode averages your entry by firing each safety order when price drops to its trigger. Filled sub-positions blend into the averaged entry above; each has its own take-profit target.
+              Safety orders 1–{subStart - 1} blend into the averaged entry above (one shared take-profit). From order {subStart}, each Sub-Beam position is managed separately with its own entry, size and take-profit target.
             </div>
 
             <button onClick={onClose} className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-black text-white select-none" style={{ background: GRAD, touchAction: "manipulation" }} data-testid="sbm-done">
