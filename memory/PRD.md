@@ -134,3 +134,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - PERMANENCE FIX: manual-sell (~1789) and take-profit monitor (~3038) One-Shot completion previously reset trade_mode/method back to Cycle — now keep oneshot/One-Shot so it survives restart.
 - One-time startup migration "oneshot_default_v1" (db.migrations guard): update_many all bots → trade_method One-Shot, trade_mode oneshot, open_position_double False. Applied to 67 existing bots (cycle_method=0, double_on=0, oneshot_mode=67).
 - Verified: TradeSettings screen shows One-Shot active + double toggle OFF (screenshot + DB counts).
+
+## 2026-06 — Market Search pill + Binance full-coin search
+- Request: style Search bar same size/style as Crypto & Futures pills; blue interactive state on touch; connect search to Binance to find ALL available coins.
+- Frontend Market.jsx: added 3rd pill "Search" (data-testid pill-search) matching Crypto/Futures pill size (px-5 py-2 rounded-full). Inactive = surface+blue border+blue text+magnifier; active = solid blue (#2563EB) white text. active:scale-95 touch feedback. Toggles a search input (market-search-input, blue border, X clear) + results list (search-pair-{symbol}) that links to /trade-settings/{symbol}. Debounced 250ms.
+- Backend server.py: new GET /api/market/search?q=&limit= searches ALLOWED_SYMBOLS (base asset contains), enriches price/change from cached full 24hr ticker (_all_tickers_cached, 60s TTL), sorts prefix-match-first then volume.
+- BUG FIX (app-wide): startup exchangeInfo loader filtered by `"SPOT" in permissions` but Binance moved SPOT to permissionSets/isSpotTradingAllowed → ALLOWED_SYMBOLS was stuck at ~50 fallback. Now uses isSpotTradingAllowed OR permissions OR permissionSets → 518 tradable USDT pairs loaded. Whole app (market/search) now covers all coins.
+- Verified: curl search (btc/pep/sol/do) + screenshot (SOL/SOLV/BNSOL/RESOLV results, blue active pill).

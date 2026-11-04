@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Flame, ChevronsUpDown, Clock, ChevronRight } from "lucide-react";
+import { Flame, ChevronsUpDown, Clock, ChevronRight, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import CoinIcon from "@/components/CoinIcon";
@@ -62,6 +62,10 @@ export default function Market() {
   const [colSort, setColSort] = useState(null); // {col: 'price'|'chg', dir: 1|-1}
   const [comingCoins, setComingCoins] = useState(UPCOMING_COINS);
   const [movers, setMovers] = useCachedState("market_movers", { gainers: [], losers: [] });
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const wsRef = useRef(null);
 
   const load = () =>
@@ -101,6 +105,21 @@ export default function Market() {
     const id = setInterval(pull, 30000);
     return () => clearInterval(id);
   }, []);
+
+  // Debounced coin search across ALL Binance USDT pairs
+  useEffect(() => {
+    if (!searching) return;
+    const q = query.trim();
+    if (!q) { setResults([]); setSearchLoading(false); return; }
+    setSearchLoading(true);
+    const id = setTimeout(() => {
+      api.get(`/market/search?q=${encodeURIComponent(q)}&limit=40`)
+        .then(({ data }) => setResults(data.results || []))
+        .catch(() => setResults([]))
+        .finally(() => setSearchLoading(false));
+    }, 250);
+    return () => clearTimeout(id);
+  }, [query, searching]);
 
   // Live ticker stream
   useEffect(() => {
@@ -178,10 +197,11 @@ export default function Market() {
         ))}
       </div>
 
-      {/* Crypto / Futures pills */}
+      {/* Crypto / Futures / Search pills — same size & style */}
       <div className="px-4 mt-3 flex gap-2.5">
         <button
-          className="px-5 py-2 rounded-full text-[14px] font-bold text-white"
+          onClick={() => { setSearching(false); setQuery(""); }}
+          className="px-5 py-2 rounded-full text-[14px] font-bold text-white active:scale-95 transition-transform"
           style={{ background: "linear-gradient(90deg, #2563EB, #10B981)" }}
           data-testid="pill-crypto"
         >
@@ -189,15 +209,51 @@ export default function Market() {
         </button>
         <button
           onClick={() => toast("Futures — Coming Soon 🚀")}
-          className="px-5 py-2 rounded-full text-[14px] font-semibold"
+          className="px-5 py-2 rounded-full text-[14px] font-semibold active:scale-95 transition-transform"
           style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
           data-testid="pill-futures"
         >
           Futures
         </button>
+        <button
+          onClick={() => setSearching(true)}
+          className="px-5 py-2 rounded-full text-[14px] font-semibold flex items-center gap-1.5 active:scale-95 transition-all"
+          style={searching
+            ? { background: "#2563EB", border: "1px solid #2563EB", color: "#fff" }
+            : { background: "var(--surface)", border: "1px solid #2563EB", color: "#2563EB" }}
+          data-testid="pill-search"
+        >
+          <Search size={15} strokeWidth={2.5} />
+          Search
+        </button>
       </div>
 
+      {/* Search input (visible when Search pill active) */}
+      {searching && (
+        <div className="px-4 mt-3">
+          <div className="flex items-center gap-2 rounded-full px-4 h-11"
+            style={{ background: "var(--surface)", border: "1px solid #2563EB" }}>
+            <Search size={17} style={{ color: "#2563EB" }} className="shrink-0" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search all Binance coins (BTC, SOL, PEPE...)"
+              className="flex-1 min-w-0 bg-transparent outline-none text-[14px] font-semibold"
+              style={{ color: "var(--text)" }}
+              data-testid="market-search-input"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} data-testid="market-search-clear" className="shrink-0">
+                <X size={17} style={{ color: "var(--text-mute)" }} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Column headers */}
+      {!searching && (
       <div className="px-4 mt-3 flex items-center justify-between">
         <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>Name</span>
         {tab === "coming" ? (
@@ -223,10 +279,64 @@ export default function Market() {
         </div>
         )}
       </div>
+      )}
       </div>
 
       {/* Coin rows */}
-      {tab === "coming" ? (
+      {searching ? (
+        <div className="px-4 mt-3 space-y-1.5" data-testid="market-search-list">
+          {!query.trim() && (
+            <div className="text-center text-sm py-14" style={{ color: "var(--text-mute)" }} data-testid="search-hint">
+              Type a coin name to search all Binance pairs
+            </div>
+          )}
+          {query.trim() && searchLoading && (
+            <div className="text-center text-sm py-14" style={{ color: "var(--text-mute)" }} data-testid="search-loading">
+              Searching…
+            </div>
+          )}
+          {query.trim() && !searchLoading && results.length === 0 && (
+            <div className="text-center text-sm py-14" style={{ color: "var(--text-mute)" }} data-testid="search-empty">
+              No coins found for “{query.trim()}”
+            </div>
+          )}
+          {results.map((p, i) => {
+            const up = (p.change_pct ?? 0) >= 0;
+            return (
+              <motion.div
+                key={p.symbol}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.015, 0.25) }}
+              >
+                <Link
+                  to={`/trade-settings/${p.symbol}`}
+                  data-testid={`search-pair-${p.symbol}`}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}
+                >
+                  <CoinLogo asset={p.asset} size={30} />
+                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                    <span className="text-[13.5px] font-black truncate" style={{ color: "var(--text)" }}>{p.asset}</span>
+                    <span className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>/USDT</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[13px] font-black tabular-nums leading-tight" style={{ color: "var(--text)" }}>
+                      {fmtPrice(p.last_price)}
+                    </div>
+                  </div>
+                  <div
+                    className="w-[72px] py-1.5 rounded-lg text-center text-[11.5px] font-bold text-white tabular-nums shrink-0"
+                    style={{ background: up ? "var(--good)" : "#EF4444" }}
+                  >
+                    {up ? "+" : ""}{(p.change_pct ?? 0).toFixed(2)}%
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : tab === "coming" ? (
         <div className="px-4 mt-2 space-y-1.5" data-testid="coming-soon-list">
           <div className="rounded-xl px-3 py-2.5 mb-1 flex items-center gap-2" style={{ background: "var(--surface)", border: "1px dashed var(--border)" }}>
             <Clock size={16} style={{ color: "#2563EB" }} className="shrink-0" />

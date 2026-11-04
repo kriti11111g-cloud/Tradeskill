@@ -1029,6 +1029,57 @@ async def pairs_summary(limit: int = 50):
     return {"pairs": out[:limit]}
 
 
+# Cached full Binance 24hr ticker map (symbol -> row) — reused by coin search.
+_TICKER_ALL = {"ts": 0.0, "data": {}}
+
+
+async def _all_tickers_cached(ttl: float = 60.0):
+    import time as _t
+    now = _t.time()
+    if _TICKER_ALL["data"] and (now - _TICKER_ALL["ts"] < ttl):
+        return _TICKER_ALL["data"]
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
+            r.raise_for_status()
+            data = {d["symbol"]: d for d in r.json()}
+            _TICKER_ALL["ts"] = now
+            _TICKER_ALL["data"] = data
+            return data
+    except Exception as e:
+        logger.warning(f"_all_tickers_cached failed: {e}")
+        return _TICKER_ALL["data"] or {}
+
+
+@api.get("/market/search")
+async def market_search(q: str = "", limit: int = 30):
+    """Search ALL tradable Binance USDT pairs by coin ticker/base asset.
+    Matches ALLOWED_SYMBOLS (populated from Binance exchangeInfo at startup)."""
+    query = (q or "").strip().upper().replace("/", "").replace(" ", "")
+    if not query:
+        return {"results": []}
+    # Strip trailing USDT so "BTCUSDT" and "BTC" both match
+    qbase = query[:-4] if query.endswith("USDT") and len(query) > 4 else query
+
+    tickers = await _all_tickers_cached()
+    results = []
+    for sym in ALLOWED_SYMBOLS:
+        base = sym[:-4] if sym.endswith("USDT") else sym
+        if qbase not in base:
+            continue
+        row = tickers.get(sym) or {}
+        results.append({
+            "symbol": sym,
+            "asset": base,
+            "last_price": float(row.get("lastPrice", 0) or 0),
+            "change_pct": float(row.get("priceChangePercent", 0) or 0),
+            "volume": float(row.get("quoteVolume", 0) or 0),
+        })
+    # Prefix matches first, then by 24h volume (most liquid first)
+    results.sort(key=lambda x: (0 if x["asset"].startswith(qbase) else 1, -x["volume"]))
+    return {"results": results[:max(1, min(100, limit))]}
+
+
 # Simple in-memory cache for the top-50 list (refresh every 5 min)
 _TOP_CACHE = {"ts": 0.0, "data": None}
 _TOP_REFRESHING = {"v": False}
@@ -6262,7 +6313,11 @@ async def startup():
                 s["symbol"] for s in info.get("symbols", [])
                 if s.get("quoteAsset") == "USDT"
                 and s.get("status") == "TRADING"
-                and "SPOT" in s.get("permissions", [])
+                and (
+                    s.get("isSpotTradingAllowed")
+                    or "SPOT" in (s.get("permissions") or [])
+                    or any("SPOT" in ps for ps in (s.get("permissionSets") or []))
+                )
             }
             if usdt_pairs:
                 ALLOWED_SYMBOLS.clear()
