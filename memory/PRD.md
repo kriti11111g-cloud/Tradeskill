@@ -187,3 +187,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
   - LevelCard: for FILLED positions with qty>0, added bottom "LIVE P&L" row = (curPx-entry)*qty with % ((curPx/entry-1)*100), green (+)/red (-). PENDING shows none. testid sbm-pnl-{level}.
 - Live-updates via websocket price through BotRow re-render.
 - Verified: seeded NEAR mc_limit=7/mc=5, screenshots show Current Price $4.036, overview Live P&L +$40.9, per-card P&L (SO1 +$6.37/+63.72%, SP5 +$9.69/+96.88%), pending 6-7 no P&L. Test data cleaned.
+
+## 2026-06 — SBM cards restyled to match Trade-screen coin card
+- Request: make each sub-position card look like the Trade section coin card (same size/style) with all key info inside — classic/consistent look.
+- Frontend Trades.jsx SBMModal LevelCard redesigned to mirror BotRow: container rounded-xl px-3 py-2.5 + CARD, 1.5px colored border when filled (blue for safety, violet for sub-beam). Header = CoinIcon(32) + title (Safety Order N / Sub-Position N + SUB-BEAM chip) + status line "{sym}/USDT · FILLED/PENDING" + status dot + check/clock icon. Bottom 3-stat row (flex items-end justify-between): Avg Entry (price + "qty sym · $amount"), Live P&L (green/red + %, "—" for pending), TP Target (accent price + +pct%). Kept testids sbm-entry/size/pnl/tp-{level}.
+- Verified via seeded NEAR mc_limit=7/mc=5 screenshots: cards match trade-card look; filled show live P&L, pending show "—"; sub-beam violet accent. Test data cleaned.

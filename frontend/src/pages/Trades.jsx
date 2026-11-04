@@ -281,75 +281,72 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   );
 
   // One sub-position card. `beam` = true -> violet Sub-Beam styling, else slate safety-order styling.
+  // Each sub-position rendered like a Trade-screen coin card (same size/style).
   const LevelCard = ({ lv, beam }) => {
     const accent = beam ? VIOLET : "#2563EB";
-    const bg = beam
-      ? (lv.filled ? "rgba(124,58,237,0.10)" : "rgba(124,58,237,0.04)")
-      : (lv.filled ? "rgba(16,185,129,0.07)" : "var(--surface-3)");
-    const border = beam
-      ? (lv.filled ? "rgba(124,58,237,0.45)" : "rgba(124,58,237,0.25)")
-      : (lv.filled ? "rgba(16,185,129,0.35)" : "var(--border)");
-    const circleBg = lv.filled ? (beam ? VIOLET : "var(--good)") : "var(--surface)";
+    const borderCol = lv.filled ? (beam ? "rgba(124,58,237,0.6)" : "#2563EB") : "var(--border)";
+    const dot = lv.filled ? (beam ? VIOLET : "var(--good)") : "#9CA3AF";
+    const hasPnl = lv.filled && lv.qty > 0 && lv.entry_price > 0 && curPx > 0;
+    const pnl = hasPnl ? (curPx - lv.entry_price) * lv.qty : 0;
+    const pnlPct = hasPnl ? (curPx / lv.entry_price - 1) * 100 : 0;
+    const up = pnl >= 0;
     return (
-      <div className="rounded-xl px-3 py-2.5" style={{ background: bg, border: `1px solid ${border}` }} data-testid={`sbm-level-${lv.level}`}>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-black"
-            style={{ background: circleBg, color: lv.filled ? "#fff" : "var(--text-mute)", border: lv.filled ? "none" : "1px solid var(--border)" }}>
-            {lv.level}
-          </div>
-          <span className="text-[12px] font-black flex-1 flex items-center gap-1" style={{ color: "var(--ink)" }}>
-            {beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}
-            {beam && (
-              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
-            )}
-          </span>
-          {lv.filled ? (
-            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: beam ? VIOLET : "var(--good)" }}>
-              <CheckCircle2 size={9} /> FILLED
-            </span>
-          ) : (
-            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-mute)" }}>
-              <Clock size={9} /> PENDING
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-1.5 mt-2">
-          <div>
-            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Avg Entry Price</div>
-            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
-              {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
+      <div className="rounded-xl px-3 py-2.5" style={{ ...CARD, border: `1.5px solid ${borderCol}` }} data-testid={`sbm-level-${lv.level}`}>
+        {/* header — coin icon + title + status (mirrors trade card) */}
+        <div className="flex items-center gap-2.5">
+          <CoinIcon symbol={sym} size={32} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 text-[13.5px] font-black leading-tight" style={{ color: "var(--ink)" }}>
+              {beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}
+              {beam && (
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
+              )}
             </div>
-          </div>
-          <div>
-            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Position Size</div>
-            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "var(--ink)" }} data-testid={`sbm-size-${lv.level}`}>
-              {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"}
-            </div>
-            <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>${fmtNum(lv.amount_usdt, 2)}</div>
-          </div>
-          <div>
-            <div className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: accent }}>TP Target</div>
-            <div className="text-[11.5px] font-black tabular-nums leading-tight mt-0.5" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
-              {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
-            </div>
-            <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
-          </div>
-        </div>
-        {/* Live P&L — only for filled positions, based on current price */}
-        {lv.filled && lv.qty > 0 && lv.entry_price > 0 && curPx > 0 && (() => {
-          const pnl = (curPx - lv.entry_price) * lv.qty;
-          const pnlPct = (curPx / lv.entry_price - 1) * 100;
-          const up = pnl >= 0;
-          const col = up ? "var(--good)" : "#EF4444";
-          return (
-            <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: "1px dashed var(--border)" }} data-testid={`sbm-pnl-${lv.level}`}>
-              <span className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Live P&amp;L</span>
-              <span className="text-[11.5px] font-black tabular-nums" style={{ color: col }}>
-                {up ? "+" : "-"}${fmtNum(Math.abs(pnl), 2)} <span className="text-[9.5px]">({up ? "+" : ""}{fmtNum(pnlPct, 2)}%)</span>
+            <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
+              {sym}/USDT ·{" "}
+              <span style={{ color: lv.filled ? (beam ? VIOLET : "var(--good)") : "var(--text-mute)" }}>
+                {lv.filled ? "FILLED" : "PENDING"}
               </span>
             </div>
-          );
-        })()}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
+            {lv.filled
+              ? <CheckCircle2 size={15} style={{ color: beam ? VIOLET : "var(--good)" }} />
+              : <Clock size={15} style={{ color: "var(--text-mute)" }} />}
+          </div>
+        </div>
+
+        {/* stats row — Avg Entry | Live P&L | TP Target (mirrors trade card) */}
+        <div className="flex items-end justify-between mt-2.5">
+          <div>
+            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Avg Entry</div>
+            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
+              {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
+            </div>
+            <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }} data-testid={`sbm-size-${lv.level}`}>
+              {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"} · ${fmtNum(lv.amount_usdt, 2)}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live P&amp;L</div>
+            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: hasPnl ? (up ? "var(--good)" : "var(--bad)") : "var(--text-mute)" }} data-testid={`sbm-pnl-${lv.level}`}>
+              {hasPnl ? `${up ? "+" : "-"}$${fmtNum(Math.abs(pnl), 2)}` : "—"}
+            </div>
+            {hasPnl && (
+              <div className="text-[9px] font-bold" style={{ color: up ? "var(--good)" : "var(--bad)" }}>
+                ({up ? "+" : ""}{fmtNum(pnlPct, 2)}%)
+              </div>
+            )}
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-semibold" style={{ color: accent }}>TP Target</div>
+            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
+              {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
+            </div>
+            <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
+          </div>
+        </div>
       </div>
     );
   };
