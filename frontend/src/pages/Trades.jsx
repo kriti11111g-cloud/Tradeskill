@@ -609,8 +609,10 @@ export default function Trades() {
     return ((live - avg) / avg) * 100;
   };
   const runningSorted = [...running].sort((a, b) => floatPct(b) - floatPct(a));
+  // IDLE tab: sirf PROFIT wale tokens dikhein (loss/minus wale hata diye)
   const traded = list
-    .filter((b) => (b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0)
+    .filter((b) => ((b.lifetime_buy_count || 0) > 0 || (b.lifetime_sell_count || 0) > 0)
+                   && (b.cumulative_profit || 0) > 0)
     .sort((a, b) => (b.cumulative_profit || 0) - (a.cumulative_profit || 0));
   const totalProfit = list.reduce((a, b) => a + (b.cumulative_profit || 0), 0); // eslint-disable-line no-unused-vars
   const shown = filter === "idle" ? traded : runningSorted;
