@@ -5208,6 +5208,59 @@ async def admin_withdrawals(status: Optional[str] = None,
     return rows
 
 
+@api.get("/admin/p2p")
+async def admin_p2p(admin: dict = Depends(require_admin), limit: int = 300):
+    """All P2P transfers: sender name+UID, recipient name+UID, amount, time.
+    Reconstructed from p2p_sent txns (one per transfer); recipient resolved from
+    the UID / email embedded in the note."""
+    import re as _re
+    rows = await db.bot_transactions.find(
+        {"kind": "p2p_sent"}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+    sender_ids, to_uids, to_emails, parsed = set(), set(), set(), []
+    for r in rows:
+        note = r.get("note") or ""
+        um = _re.search(r"UID\s+(\S+)", note)
+        uid = um.group(1) if um else None
+        em = _re.search(r"P2P\s*→\s*([^\s·]+@[^\s·]+)", note)
+        email = em.group(1).lower() if em else None
+        parsed.append((r, uid, email))
+        if r.get("user_id"):
+            sender_ids.add(r["user_id"])
+        if uid:
+            to_uids.add(uid)
+        if email:
+            to_emails.add(email)
+
+    proj = {"_id": 0, "id": 1, "name": 1, "uid": 1, "email": 1}
+    by_id = {u["id"]: u for u in await db.users.find({"id": {"$in": list(sender_ids)}}, proj).to_list(len(sender_ids) or 1)}
+    by_uid = {u.get("uid"): u for u in await db.users.find({"uid": {"$in": list(to_uids)}}, proj).to_list(len(to_uids) or 1)}
+    by_email = {(u.get("email") or "").lower(): u for u in await db.users.find({"email": {"$in": list(to_emails)}}, proj).to_list(len(to_emails) or 1)}
+
+    def _name(u, fb):
+        if not u:
+            return fb
+        return u.get("name") or (u.get("email") or "").split("@")[0] or fb
+
+    out = []
+    for r, uid, email in parsed:
+        s = by_id.get(r.get("user_id"), {})
+        recip = (by_uid.get(uid) if uid else None) or (by_email.get(email) if email else None) or {}
+        out.append({
+            "id": r.get("id"),
+            "amount": round(abs(float(r.get("amount", 0) or 0)), 4),
+            "created_at": r.get("created_at"),
+            "from_name": _name(s, "—"),
+            "from_uid": s.get("uid") or "—",
+            "from_email": s.get("email") or "—",
+            "to_name": _name(recip, uid or email or "External / Unknown"),
+            "to_uid": (recip.get("uid") if recip else None) or uid or "—",
+            "to_email": (recip.get("email") if recip else None) or email or "—",
+            "note": r.get("note") or "",
+        })
+    return out
+
+
 @api.post("/admin/withdrawals/{req_id}/approve")
 async def admin_approve_withdrawal(req_id: str, body: AdminApproveIn,
                                    admin: dict = Depends(require_admin)):

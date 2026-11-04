@@ -5,7 +5,7 @@ import {
   Menu, X, LayoutDashboard, Users, SlidersHorizontal, Coins, ArrowDownToLine,
   CircleDollarSign, Settings, Lock, ShieldCheck, UserPlus, TrendingUp, Wallet,
   RefreshCw, Search, ChevronRight, Calendar, Mail, Phone, Crown, Pencil, Ban, CheckCircle2,
-  DatabaseBackup, KeyRound, Gift, Plus, Trash2, Zap, LogIn,
+  DatabaseBackup, KeyRound, Gift, Plus, Trash2, Zap, LogIn, ArrowLeftRight,
 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { fmtUSD, fmtTime } from "@/lib/format";
@@ -20,6 +20,7 @@ const MENU = [
   { id: "adjustment", label: "Adjustment", Icon: SlidersHorizontal },
   { id: "deposits", label: "Deposits", Icon: Coins },
   { id: "withdrawals", label: "Withdrawals", Icon: ArrowDownToLine },
+  { id: "p2p", label: "P2P", Icon: ArrowLeftRight },
   { id: "pools", label: "Pools", Icon: CircleDollarSign },
   { id: "settings", label: "Settings", Icon: Settings },
   { id: "bonanza", label: "Bonanza Offer", Icon: Gift },
@@ -36,6 +37,7 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [q, setQ] = useState("");
   const [deposits, setDeposits] = useState([]);
+  const [p2p, setP2p] = useState([]);
   const [finance, setFinance] = useState(null);
   const [settings, setSettings] = useState(null);
   const [adj, setAdj] = useState({ identifier: "", amount: "", note: "" });
@@ -201,6 +203,7 @@ export default function AdminPanel() {
       if (sec === "dashboard") setOverview((await api.get("/admin/overview", cfg)).data);
       if (sec === "users") setUsers((await api.get(`/admin/users?q=${encodeURIComponent(q)}`, cfg)).data);
       if (sec === "deposits") setDeposits((await api.get("/admin/deposits", cfg)).data);
+      if (sec === "p2p") setP2p((await api.get("/admin/p2p", cfg)).data);
       if (sec === "pools") setFinance((await api.get("/admin/finance-summary", cfg)).data);
       if (sec === "settings") setSettings((await api.get("/admin/settings", cfg)).data);
       if (sec === "bonanza") setBonanza((await api.get("/admin/bonanza", cfg)).data);
@@ -560,6 +563,36 @@ export default function AdminPanel() {
               </div>
             ))}
             {deposits.length === 0 && <div className="text-center text-[12px] py-6" style={{ color: "var(--text-mute)" }}>No deposits yet</div>}
+          </div>
+        )}
+
+        {section === "p2p" && (
+          <div className="space-y-2" data-testid="admin-p2p">
+            {p2p.map((t, i) => (
+              <div key={t.id || i} className="px-3 py-2.5" style={CARD} data-testid={`admin-p2p-row-${i}`}>
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>P2P Transfer</div>
+                  <div className="font-display font-black text-[14px] tabular-nums" style={{ color: BLUE }} data-testid={`admin-p2p-amount-${i}`}>{fmtUSD(t.amount)}</div>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  {/* From */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] font-bold uppercase" style={{ color: "var(--text-mute)" }}>From</div>
+                    <div className="font-display font-black text-[12.5px] truncate" style={{ color: "var(--ink)" }} data-testid={`admin-p2p-from-name-${i}`}>{t.from_name}</div>
+                    <div className="text-[10px] font-bold truncate" style={{ color: BLUE }} data-testid={`admin-p2p-from-uid-${i}`}>UID {t.from_uid}</div>
+                  </div>
+                  <ArrowLeftRight size={16} className="shrink-0" style={{ color: "var(--text-mute)" }} />
+                  {/* To */}
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="text-[9px] font-bold uppercase" style={{ color: "var(--text-mute)" }}>To</div>
+                    <div className="font-display font-black text-[12.5px] truncate" style={{ color: "var(--ink)" }} data-testid={`admin-p2p-to-name-${i}`}>{t.to_name}</div>
+                    <div className="text-[10px] font-bold truncate" style={{ color: "#16A34A" }} data-testid={`admin-p2p-to-uid-${i}`}>UID {t.to_uid}</div>
+                  </div>
+                </div>
+                <div className="text-[9.5px] font-semibold mt-1.5" style={{ color: "var(--text-mute)" }}>{fmtTime(t.created_at)}</div>
+              </div>
+            ))}
+            {p2p.length === 0 && <div className="text-center text-[12px] py-6" style={{ color: "var(--text-mute)" }}>No P2P transfers yet</div>}
           </div>
         )}
 

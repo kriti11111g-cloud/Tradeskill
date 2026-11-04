@@ -160,3 +160,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Follow-up: show the same full UID on the sender's side too (symmetric). Added sender's full UID to the recipient's p2p_received note (both address + email modes): "P2P ← {sender_email} · UID {sender_uid}". sender_uid = user.uid (get_current_user returns full doc incl uid). Sender note already had recipient UID.
 - Verified curl: SENT "P2P → 0xd71578…00cd1c · UID TSK100000", RECEIVED "P2P ← mlm.newbie@tgxbot.com · UID TSK100068".
 - Old pre-change txns still lack UID; only new transfers include it on both sides.
+
+## 2026-06 — Admin P2P history page + old-note UID backfill
+- Backfill migration p2p_uid_backfill_v1 (startup, guarded): adds counter-party UID to OLD p2p_sent/p2p_received notes that predate the UID change. Resolves address (truncated prefix…suffix regex on bot_wallets.chain_deposit_address), email, or short user-id. Preview: 27/28 updated (1 miss = fake test address). Runs once on production after deploy too.
+- Backend GET /api/admin/p2p (require_admin wallet token): lists all p2p_sent txns; batch-resolves sender (by user_id) and recipient (UID parsed from note, fallback email). Returns from_name/from_uid/from_email, to_name/to_uid/to_email, amount, created_at, note.
+- Frontend AdminPanel.jsx: new MENU item { id:"p2p", label:"P2P", Icon:ArrowLeftRight } after withdrawals. p2p state + loadSection fetch. New section render (testid admin-p2p): each card shows FROM (name + UID blue), ArrowLeftRight, TO (name + UID green), amount (blue) + time. testids admin-nav-p2p, admin-p2p-row/amount/from-name/from-uid/to-name/to-uid-{i}.
+- Verified: curl (minted wallet_admin JWT) returns correct from/to names+UIDs+amount for address & email modes; screenshot shows 17 rows rendering correctly.
