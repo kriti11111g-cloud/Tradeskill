@@ -6174,6 +6174,56 @@ async def startup():
         )
         await db.migrations.insert_one({"_id": "oneshot_default_v1", "applied_at": iso(now_utc())})
 
+    # One-time backfill: add counter-party UID to OLD P2P notes that predate the
+    # "UID in note" change (runs once, tracked via migrations flag).
+    if not await db.migrations.find_one({"_id": "p2p_uid_backfill_v1"}):
+        async def _resolve_uid_from_token(token: str, is_sent: bool):
+            token = (token or "").strip()
+            if not token:
+                return None
+            # strip trailing " · NETWORK" (e.g. BEP20) if present
+            core = token.split(" · ")[0].strip()
+            # Address (truncated) — only in sent notes
+            if "…" in core:
+                parts = core.split("…")
+                if len(parts) == 2:
+                    prefix, suffix = parts[0].strip(), parts[1].strip()
+                    rw = await db.bot_wallets.find_one(
+                        {"chain_deposit_address": {"$regex": f"^{re.escape(prefix)}.*{re.escape(suffix)}$", "$options": "i"}},
+                        {"_id": 0, "user_id": 1})
+                    if rw:
+                        u = await db.users.find_one({"id": rw["user_id"]}, {"_id": 0, "uid": 1})
+                        return (u or {}).get("uid")
+                return None
+            # Email
+            if "@" in core:
+                u = await db.users.find_one({"email": core.lower()}, {"_id": 0, "uid": 1})
+                return (u or {}).get("uid")
+            # Short user-id prefix (received notes fallback label)
+            u = await db.users.find_one({"id": {"$regex": f"^{re.escape(core)}"}}, {"_id": 0, "uid": 1})
+            return (u or {}).get("uid")
+
+        backfilled = 0
+        async for txn in db.bot_transactions.find(
+            {"kind": {"$in": ["p2p_sent", "p2p_received"]}}, {"_id": 1, "kind": 1, "note": 1}):
+            note = txn.get("note") or ""
+            if "UID" in note:
+                continue
+            token = None
+            if note.startswith("P2P → "):
+                token = note[len("P2P → "):]
+            elif note.startswith("P2P ← "):
+                token = note[len("P2P ← "):]
+            if token is None:
+                continue
+            uid = await _resolve_uid_from_token(token, note.startswith("P2P → "))
+            if uid:
+                await db.bot_transactions.update_one(
+                    {"_id": txn["_id"]}, {"$set": {"note": f"{note} · UID {uid}"}})
+                backfilled += 1
+        await db.migrations.insert_one({"_id": "p2p_uid_backfill_v1", "applied_at": iso(now_utc()), "count": backfilled})
+        logger.info(f"P2P UID backfill: updated {backfilled} old notes")
+
     # Seed home banners (idempotent)
     if await db.banners.count_documents({}) == 0:
         for i, url in enumerate(DEFAULT_BANNERS):
