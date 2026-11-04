@@ -51,3 +51,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - _distribute_trading_deduction (profit 25% fuel): inactive upline is now TRANSPARENT — it neither earns nor blocks; the rank differential flows up to the next ACTIVE qualified upline. Only truly unclaimed budget (12% - highest active) -> company_reserve. (Previously inactive upline's differential went to company AND blocked higher uplines.) Tested: inactive L10 skipped -> active L8 earned $9.50, reserve $2.50, total $25.
 - bot_wallet_activate distribution: BASE (direct) income slot now belongs to the DIRECT sponsor. If direct sponsor INACTIVE -> base direct income -> company_reserve (not absorbed by a higher upline). Rank difference + support still cascade to ACTIVE uplines above. Active-sponsor case unchanged (no regression). Tested both cases, each balances to $50.
 - Both changes backend-only (server.py). Needs deploy.
+
+## 2026-06 — Margin-call drop based on LAST BUY PRICE (dev instruction)
+- Verified the live/demo engine ALREADY triggers each DCA from the last FILL price: every _execute_trade BUY path (KuCoin/LBank/Binance/demo) stores last_buy_price = this order's fill and next_buy_price = fill × (1 - drop%); monitor loop uses the stored next_buy_price. So triggers compound from the previous buy, not the initial entry.
+- Fixed _compute_dca_ladder preview anchor: now chains from last_buy_price (was avg_price for open positions) so the Settings preview matches the engine. Numeric check: $100,10% → 90, 81, 72.9, 65.61.
+- Backend-only; needs deploy.

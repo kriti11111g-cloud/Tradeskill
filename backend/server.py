@@ -1392,9 +1392,10 @@ def _compute_dca_ladder(bot: dict, current_price: float = 0.0) -> list:
     mc_limit = int(bot.get("margin_call_limit", 5) or 5)
     open_pos_double = bool(bot.get("open_position_double", True))
 
-    # Anchor: if position open, ladder chains down from avg_price;
-    # if idle, chain from current market price so user can preview.
-    anchor = avg_price if avg_price > 0 else float(current_price or 0)
+    # Anchor: ladder ALWAYS chains down from the LAST BUY PRICE (not the blended
+    # average). If idle, chain from current market price so user can preview.
+    last_buy = float(bot.get("last_buy_price", 0) or 0)
+    anchor = last_buy if last_buy > 0 else (avg_price if avg_price > 0 else float(current_price or 0))
     if anchor <= 0 or mc_limit <= mc_count:
         return []
 
