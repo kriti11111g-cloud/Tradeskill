@@ -258,11 +258,8 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
 
   const avg = data?.avg_price || 0;
   const qty = data?.position_qty || 0;
-  const invested = data?.position_amount || 0;
   const mcCount = data?.margin_call_count || 0;
   const mcLimit = data?.margin_call_limit || 0;
-  const nextBuy = data?.margin_call_trigger_price || 0;
-  const firstBuy = data?.first_buy_amount || 0;
   const hasPos = qty > 0 && avg > 0;
 
   // Full per-sub-position breakdown (entry price, size, TP target) from backend
@@ -272,13 +269,6 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const initialLevels = levels.filter((l) => !l.is_subbeam);
   const beamLevels = levels.filter((l) => l.is_subbeam);
   const VIOLET = "#7C3AED";
-
-  const Stat = ({ l, v, c }) => (
-    <div className="rounded-xl px-2.5 py-2" style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
-      <div className="text-[9.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>{l}</div>
-      <div className="text-[13px] font-black tabular-nums leading-tight mt-0.5" style={{ color: c || "var(--ink)" }}>{v}</div>
-    </div>
-  );
 
   // One sub-position card. `beam` = true -> violet Sub-Beam styling, else slate safety-order styling.
   // Each sub-position rendered like a Trade-screen coin card (same size/style).
@@ -383,24 +373,6 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                   {hasPos && mcCount > 0 ? "ACTIVE" : hasPos ? "BASE ONLY" : "IDLE"}
                 </div>
               </div>
-            </div>
-
-            {/* Averaged position summary */}
-            <div className="grid grid-cols-2 gap-1.5 mt-3">
-              <Stat l="Averaged Entry" v={fmtPrice(avg)} />
-              <Stat l="Current Price" v={curPx > 0 ? fmtPrice(curPx) : "—"} c="#2563EB" />
-              <Stat l="Position Size" v={`${fmtNum(qty, qty >= 1 ? 4 : 6)} ${sym}`} />
-              <Stat l="Invested" v={`$${fmtNum(invested || firstBuy, 2)}`} />
-              <Stat l="Next Safety Buy" v={nextBuy ? fmtPrice(nextBuy) : "—"} c="#2563EB" />
-              {hasPos && curPx > 0 ? (
-                <Stat
-                  l="Live P&L"
-                  v={`${qty * (curPx - avg) >= 0 ? "+" : "-"}$${fmtNum(Math.abs(qty * (curPx - avg)), 2)}`}
-                  c={qty * (curPx - avg) >= 0 ? "var(--good)" : "#EF4444"}
-                />
-              ) : (
-                <Stat l="Live P&L" v="—" />
-              )}
             </div>
 
             {/* Initial safety orders (calls 1..start-1) — blend into averaged entry */}

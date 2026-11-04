@@ -1500,7 +1500,11 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
 
     def drop_at(i):   # i = 1-indexed safety order -> margin_config[i-1]
         r = cfg[min(i - 1, len(cfg) - 1)]
-        return float(r.get("drop", 0) or 0)
+        d = float(r.get("drop", 0) or 0)
+        # Clamp to a sane band so chained prices always stay positive & descending.
+        # (Some legacy configs store drop >= 100% which would make trigger price
+        # go to zero/negative and break the per-level display.)
+        return min(max(d, 0.0), 90.0)
 
     def mult_at(i):
         r = cfg[min(i - 1, len(cfg) - 1)]
