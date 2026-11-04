@@ -179,3 +179,11 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend Trades.jsx SBMModal: extracted reusable LevelCard({lv, beam}). Split levels into initialLevels (!is_subbeam) and beamLevels (is_subbeam). Two sections: "INITIAL SAFETY ORDERS" (green/blue, label "Safety Order N") and "SUB-BEAM MODE" (violet #7C3AED, "SUB-BEAM" chip + "managed separately" tag, label "Sub-Position N"). testids sbm-initial-levels, sbm-levels. Footer explains split.
 - All other points (badge, overview, per-card entry/size/TP, prev-buy margin, One-Shot default, double OFF) already implemented in prior turns.
 - Verified: seeded NEAR mc_limit=7/mc_count=5 → 4 initial + 3 sub-beam cards, screenshot shows correct colors/labels/data. Test data cleaned up.
+
+## 2026-06 — SBM: Live P&L per sub-position
+- Request: each sub-position card shows live profit/loss from current price.
+- Frontend Trades.jsx SBMModal: now accepts livePrice prop (passed from BotRow `live` = websocket ticker, falls back to data.current_price). curPx = livePrice||current_price.
+  - Overview grid: added "Current Price" + total "Live P&L" (qty*(curPx-avg), green/red).
+  - LevelCard: for FILLED positions with qty>0, added bottom "LIVE P&L" row = (curPx-entry)*qty with % ((curPx/entry-1)*100), green (+)/red (-). PENDING shows none. testid sbm-pnl-{level}.
+- Live-updates via websocket price through BotRow re-render.
+- Verified: seeded NEAR mc_limit=7/mc=5, screenshots show Current Price $4.036, overview Live P&L +$40.9, per-card P&L (SO1 +$6.37/+63.72%, SP5 +$9.69/+96.88%), pending 6-7 no P&L. Test data cleaned.

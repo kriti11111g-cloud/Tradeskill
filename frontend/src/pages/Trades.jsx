@@ -242,7 +242,7 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
 }
 
 /* Sub-Beam Mode (SBM) — detailed view of active sub-positions + targets */
-function SBMModal({ open, symbol, sym, onClose }) {
+function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
@@ -268,6 +268,7 @@ function SBMModal({ open, symbol, sym, onClose }) {
   // Full per-sub-position breakdown (entry price, size, TP target) from backend
   const levels = data?.sub_positions_detail || [];
   const subStart = data?.sub_position_start || 5;
+  const curPx = livePrice > 0 ? livePrice : (data?.current_price || 0);
   const initialLevels = levels.filter((l) => !l.is_subbeam);
   const beamLevels = levels.filter((l) => l.is_subbeam);
   const VIOLET = "#7C3AED";
@@ -334,6 +335,21 @@ function SBMModal({ open, symbol, sym, onClose }) {
             <div className="text-[8.5px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
           </div>
         </div>
+        {/* Live P&L — only for filled positions, based on current price */}
+        {lv.filled && lv.qty > 0 && lv.entry_price > 0 && curPx > 0 && (() => {
+          const pnl = (curPx - lv.entry_price) * lv.qty;
+          const pnlPct = (curPx / lv.entry_price - 1) * 100;
+          const up = pnl >= 0;
+          const col = up ? "var(--good)" : "#EF4444";
+          return (
+            <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: "1px dashed var(--border)" }} data-testid={`sbm-pnl-${lv.level}`}>
+              <span className="text-[8.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Live P&amp;L</span>
+              <span className="text-[11.5px] font-black tabular-nums" style={{ color: col }}>
+                {up ? "+" : "-"}${fmtNum(Math.abs(pnl), 2)} <span className="text-[9.5px]">({up ? "+" : ""}{fmtNum(pnlPct, 2)}%)</span>
+              </span>
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -375,9 +391,19 @@ function SBMModal({ open, symbol, sym, onClose }) {
             {/* Averaged position summary */}
             <div className="grid grid-cols-2 gap-1.5 mt-3">
               <Stat l="Averaged Entry" v={fmtPrice(avg)} />
+              <Stat l="Current Price" v={curPx > 0 ? fmtPrice(curPx) : "—"} c="#2563EB" />
               <Stat l="Position Size" v={`${fmtNum(qty, qty >= 1 ? 4 : 6)} ${sym}`} />
               <Stat l="Invested" v={`$${fmtNum(invested || firstBuy, 2)}`} />
               <Stat l="Next Safety Buy" v={nextBuy ? fmtPrice(nextBuy) : "—"} c="#2563EB" />
+              {hasPos && curPx > 0 ? (
+                <Stat
+                  l="Live P&L"
+                  v={`${qty * (curPx - avg) >= 0 ? "+" : "-"}$${fmtNum(Math.abs(qty * (curPx - avg)), 2)}`}
+                  c={qty * (curPx - avg) >= 0 ? "var(--good)" : "#EF4444"}
+                />
+              ) : (
+                <Stat l="Live P&L" v="—" />
+              )}
             </div>
 
             {/* Initial safety orders (calls 1..start-1) — blend into averaged entry */}
@@ -661,6 +687,7 @@ function BotRow({ bot, onDone }) {
           open={sbmOpen}
           symbol={bot.symbol}
           sym={sym}
+          livePrice={live}
           onClose={() => setSbmOpen(false)}
         />
       </div>
