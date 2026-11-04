@@ -239,11 +239,12 @@ export default function BotHub() {
     } else if (!recipient.trim()) {
       return toast.error("Enter recipient email");
     }
+    if (!password.trim()) return toast.error("Enter your transaction password");
     setLoading(true);
     try {
       const payload = isAddressMode
-        ? { recipient_address: address.trim(), amount: amt }
-        : { recipient_email: recipient.trim(), amount: amt };
+        ? { recipient_address: address.trim(), amount: amt, transaction_password: password }
+        : { recipient_email: recipient.trim(), amount: amt, transaction_password: password };
       const { data } = await api.post("/bot-wallet/p2p", payload);
       toast.success(
         isAddressMode
@@ -772,6 +773,20 @@ export default function BotHub() {
               />
               <div className="text-[10px] text-[color:var(--text-mute)] mt-1">
                 Available: <span className="text-[color:var(--text)]">{fmtUSD(balance)}</span>
+              </div>
+              <label className="block text-[10px] tracking-[0.22em] uppercase font-bold text-[color:var(--gold-deep,#D97706)] mt-3 mb-1.5">
+                Transaction Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your transaction password"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[color:var(--surface-3)] border border-[color:var(--gold)]/25 text-[color:var(--text)] text-base font-bold focus:border-[color:var(--gold)] focus:shadow-[0_0_12px_rgba(245,158,11,0.2)] outline-none transition"
+                data-testid="input-p2p-txn-password"
+              />
+              <div className="text-[10px] text-[color:var(--text-mute)] mt-1">
+                Required to confirm every P2P transfer.
               </div>
               <button
                 onClick={doP2P}

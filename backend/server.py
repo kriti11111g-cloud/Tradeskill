@@ -4373,6 +4373,7 @@ class BotWalletP2PIn(BaseModel):
     recipient_address: Optional[str] = None
     network: Optional[str] = None
     amount: float = Field(gt=0)
+    transaction_password: Optional[str] = None
 
 
 ALLOWED_EXTERNAL_NETWORKS = {"BEP20", "POLYGON"}  # others show "coming soon" in UI
@@ -4676,6 +4677,15 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     if amount > sender_bal:
         raise HTTPException(400, "Insufficient bot wallet balance")
 
+    # ---- Transaction password required for P2P (same rule as withdrawals) ----
+    udoc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 1, "txn_password_hash": 1})
+    txn_hash = (udoc or {}).get("txn_password_hash")
+    if txn_hash:
+        if not body.transaction_password or not verify_password(body.transaction_password, txn_hash):
+            raise HTTPException(401, "Incorrect transaction password")
+    elif not body.transaction_password or not verify_password(body.transaction_password, (udoc or {}).get("password_hash", "")):
+        raise HTTPException(401, "Incorrect password")
+
     # ---- Address (internal Trade Skill deposit-address lookup) mode ----
     if recipient_address:
         rw = await db.bot_wallets.find_one(
@@ -4694,13 +4704,15 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
             return_document=True)
         r_bal = round(float(r_after.get("balance", 0.0) or 0.0), 4)
         short = f"{recipient_address[:8]}…{recipient_address[-6:]}"
+        r_user = await db.users.find_one({"id": rw["user_id"]}, {"_id": 0, "uid": 1})
+        r_uid = (r_user or {}).get("uid") or rw["user_id"][:8]
         await _log_bot_txn(user["id"], "p2p_sent", -amount,
-                           note=f"P2P → {short}", balance_after=new_sender_bal)
+                           note=f"P2P → {short} · UID {r_uid}", balance_after=new_sender_bal)
         await _log_bot_txn(rw["user_id"], "p2p_received", amount,
                            note=f"P2P ← {user.get('email') or user['id'][:8]}",
                            balance_after=r_bal)
         return {"ok": True, "balance": new_sender_bal,
-                "recipient": short, "mode": "address"}
+                "recipient": short, "recipient_uid": r_uid, "mode": "address"}
 
     # ---- Email (user-to-user) mode ----
     recipient = await db.users.find_one({"email": recipient_email}, {"_id": 0})
@@ -4721,14 +4733,15 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     )
     r_bal = round(float(r_after.get("balance", 0.0) or 0.0), 4)
     sender_label = user.get("email") or user["id"][:8]
+    r_uid = recipient.get("uid") or recipient["id"][:8]
     await _log_bot_txn(user["id"], "p2p_sent", -amount,
-                       note=f"P2P → {recipient_email}",
+                       note=f"P2P → {recipient_email} · UID {r_uid}",
                        balance_after=new_sender_bal)
     await _log_bot_txn(recipient["id"], "p2p_received", amount,
                        note=f"P2P ← {sender_label}",
                        balance_after=r_bal)
     return {"ok": True, "balance": new_sender_bal,
-            "recipient": recipient_email, "mode": "email"}
+            "recipient": recipient_email, "recipient_uid": r_uid, "mode": "email"}
 
 
 @api.get("/bot-wallet/transactions")
