@@ -422,12 +422,12 @@ class MarginRule(BaseModel):
 class BotConfigIn(BaseModel):
     symbol: Optional[str] = None  # path param se aata hai
     first_buy_amount: float = 10.0
-    open_position_double: bool = True
+    open_position_double: bool = False
     margin_call_limit: int = 5
     whole_take_profit_ratio: float = 1.25
     whole_take_profit_callback: float = 0.25
     buy_in_callback: float = 0.25
-    trade_method: Literal["Cycle", "One-Shot"] = "Cycle"
+    trade_method: Literal["Cycle", "One-Shot"] = "One-Shot"
     sub_take_profit_callback: float = 0.25
     margin_config: Optional[List[MarginRule]] = None
     sub_position_tps: Optional[List[float]] = None
@@ -1330,13 +1330,13 @@ DEFAULT_MARGIN_CONFIG = [
 
 DEFAULT_BOT_CFG = {
     "first_buy_amount": 10.0,
-    "open_position_double": True,
+    "open_position_double": False,
     "margin_call_limit": 5,
     "whole_take_profit_ratio": 1.25,
     "whole_take_profit_callback": 0.25,
     "buy_in_callback": 0.25,
-    "trade_method": "Cycle",
-    "trade_mode": "cycle",
+    "trade_method": "One-Shot",
+    "trade_mode": "oneshot",
     "sub_take_profit_callback": 0.25,
     "margin_config": DEFAULT_MARGIN_CONFIG,
     "status": "stopped",
@@ -1785,11 +1785,12 @@ async def sell_now(symbol: str, user: dict = Depends(get_current_user)):
         "amount": txn.get("amount"), "profit": txn.get("profit"),
         "created_at": iso(now_utc()),
     })
-    # ONE SHOT me manual sell ke baad bhi re-buy nahi hona chahiye — stop
+    # ONE SHOT me manual sell ke baad bhi re-buy nahi hona chahiye — stop.
+    # Mode One-Shot hi rehta hai (permanent) taaki restart par dobara set na karna pade.
     if _is_oneshot(bot):
         await db.bots.update_one(
             {"user_id": user["id"], "symbol": symbol},
-            {"$set": {"status": "stopped", "trade_mode": "cycle", "trade_method": "Cycle",
+            {"$set": {"status": "stopped", "trade_mode": "oneshot", "trade_method": "One-Shot",
                       "stopped_at": iso(now_utc())}})
     return {"ok": True, "symbol": symbol, "sold_qty": txn.get("quantity"),
             "price": txn.get("price"), "profit": txn.get("profit")}
@@ -3034,11 +3035,12 @@ async def _bot_tick(bot: dict):
                     "peak": peak, "created_at": iso(now_utc()),
                 })
                 logger.info(f"bot {symbol}: TAKE PROFIT sold at {price} (peak {peak})")
-                # ONE SHOT mode: profit book hote hi bot ruk jata hai — re-buy nahi
+                # ONE SHOT mode: profit book hote hi bot ruk jata hai — re-buy nahi.
+                # Mode One-Shot hi rehta hai (permanent) taaki restart par dobara set na karna pade.
                 if _is_oneshot(bot):
                     await db.bots.update_one(
                         {"user_id": user_id, "symbol": symbol},
-                        {"$set": {"status": "stopped", "trade_mode": "cycle", "trade_method": "Cycle",
+                        {"$set": {"status": "stopped", "trade_mode": "oneshot", "trade_method": "One-Shot",
                                   "stopped_at": iso(now_utc())}})
                     await db.bot_events.insert_one({
                         "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
@@ -6095,6 +6097,16 @@ async def startup():
     await db.bot_wallets.create_index("user_id", unique=True)
     await db.bot_transactions.create_index([("user_id", 1), ("created_at", -1)])
     await db.bonanza_claims.create_index([("user_id", 1), ("offer_id", 1)], unique=True)
+
+    # One-time migration: make One-Shot the permanent default and turn Open-position-double OFF
+    # for all existing bots (runs once, tracked via migrations flag).
+    if not await db.migrations.find_one({"_id": "oneshot_default_v1"}):
+        await db.bots.update_many(
+            {},
+            {"$set": {"trade_method": "One-Shot", "trade_mode": "oneshot",
+                      "open_position_double": False}},
+        )
+        await db.migrations.insert_one({"_id": "oneshot_default_v1", "applied_at": iso(now_utc())})
 
     # Seed home banners (idempotent)
     if await db.banners.count_documents({}) == 0:

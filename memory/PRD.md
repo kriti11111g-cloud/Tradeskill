@@ -127,3 +127,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Telegram bot /start reply: now includes inline "📢 Join Channel" button (url from TELEGRAM_CHANNEL). English.
 - Hindi→English across UI: SocialBonus (all text/toasts), WithdrawModal success popup, Trades/TradeSettings connect prompts, ExchangeList coming-soon, ForgotPassword toasts, AdminPanel (adjust/auto-withdraw/backup/free-activate), AdminWithdrawals, backend insufficient-balance + social coming-soon messages. No visible Hindi remains (only code comments).
 - VPS .env needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHANNEL=@tradeskill_in; webhook setWebhook to /api/telegram/webhook/hubx-tg-hook; bot must be channel admin.
+
+## 2026-06 — One-Shot default + permanent, Open-position-double OFF by default
+- Request: One-Shot mode default & permanent (bot works in it right after settings save; no need to re-toggle on Trade screen). Open-position-double always OFF by default.
+- Backend server.py: BotConfigIn defaults trade_method="One-Shot", open_position_double=False. DEFAULT_BOT_CFG trade_method="One-Shot", trade_mode="oneshot", open_position_double=False.
+- PERMANENCE FIX: manual-sell (~1789) and take-profit monitor (~3038) One-Shot completion previously reset trade_mode/method back to Cycle — now keep oneshot/One-Shot so it survives restart.
+- One-time startup migration "oneshot_default_v1" (db.migrations guard): update_many all bots → trade_method One-Shot, trade_mode oneshot, open_position_double False. Applied to 67 existing bots (cycle_method=0, double_on=0, oneshot_mode=67).
+- Verified: TradeSettings screen shows One-Shot active + double toggle OFF (screenshot + DB counts).
