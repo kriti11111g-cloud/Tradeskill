@@ -4706,10 +4706,11 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
         short = f"{recipient_address[:8]}…{recipient_address[-6:]}"
         r_user = await db.users.find_one({"id": rw["user_id"]}, {"_id": 0, "uid": 1})
         r_uid = (r_user or {}).get("uid") or rw["user_id"][:8]
+        sender_uid = user.get("uid") or user["id"][:8]
         await _log_bot_txn(user["id"], "p2p_sent", -amount,
                            note=f"P2P → {short} · UID {r_uid}", balance_after=new_sender_bal)
         await _log_bot_txn(rw["user_id"], "p2p_received", amount,
-                           note=f"P2P ← {user.get('email') or user['id'][:8]}",
+                           note=f"P2P ← {user.get('email') or user['id'][:8]} · UID {sender_uid}",
                            balance_after=r_bal)
         return {"ok": True, "balance": new_sender_bal,
                 "recipient": short, "recipient_uid": r_uid, "mode": "address"}
@@ -4733,12 +4734,13 @@ async def bot_wallet_p2p(body: BotWalletP2PIn,
     )
     r_bal = round(float(r_after.get("balance", 0.0) or 0.0), 4)
     sender_label = user.get("email") or user["id"][:8]
+    sender_uid = user.get("uid") or user["id"][:8]
     r_uid = recipient.get("uid") or recipient["id"][:8]
     await _log_bot_txn(user["id"], "p2p_sent", -amount,
                        note=f"P2P → {recipient_email} · UID {r_uid}",
                        balance_after=new_sender_bal)
     await _log_bot_txn(recipient["id"], "p2p_received", amount,
-                       note=f"P2P ← {sender_label}",
+                       note=f"P2P ← {sender_label} · UID {sender_uid}",
                        balance_after=r_bal)
     return {"ok": True, "balance": new_sender_bal,
             "recipient": recipient_email, "recipient_uid": r_uid, "mode": "email"}

@@ -155,3 +155,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend BotHub.jsx P2P dialog: new Transaction Password input (data-testid input-p2p-txn-password) bound to existing `password` state (cleared on closeModal); doP2P validates it's entered and sends transaction_password in both email/address payloads.
 - Wallet.jsx renders txn note as-is, so UID shows automatically. Verified via curl: no pw→401, wrong pw→401, correct pw→ok+recipient_uid TSK100000, note "P2P → 0xd71578…00cd1c · UID TSK100000"; screenshot shows the password field.
 - NOTE: old P2P txns (pre-change) have no UID in note; only new transfers include it.
+
+## 2026-06 — P2P: counter-party full UID on BOTH sides
+- Follow-up: show the same full UID on the sender's side too (symmetric). Added sender's full UID to the recipient's p2p_received note (both address + email modes): "P2P ← {sender_email} · UID {sender_uid}". sender_uid = user.uid (get_current_user returns full doc incl uid). Sender note already had recipient UID.
+- Verified curl: SENT "P2P → 0xd71578…00cd1c · UID TSK100000", RECEIVED "P2P ← mlm.newbie@tgxbot.com · UID TSK100068".
+- Old pre-change txns still lack UID; only new transfers include it on both sides.
