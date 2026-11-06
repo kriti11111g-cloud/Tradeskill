@@ -89,41 +89,50 @@ export default function Bonanza() {
               )}
             </div>
 
-            {/* Cashback offer card (replaces old tier cards) */}
-            <div className="rounded-xl px-4 py-4" style={{ background: "linear-gradient(135deg,#FFF7E6,#FFE9C7)", border: "1px solid rgba(232,168,4,.6)", boxShadow: "var(--shadow-sm)" }}
+            {/* Cashback offer card (blue theme) */}
+            <div className="rounded-xl px-4 py-4 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#EAF1FE,#D9E6FD)", border: "1px solid rgba(37,99,235,.6)", boxShadow: "var(--shadow-sm)" }}
                  data-testid="bonanza-cashback-card">
+              {/* Qualified corner badge */}
+              {data.eligible && (
+                <div className="absolute top-0 right-0 px-2.5 py-1 flex items-center gap-1 rounded-bl-xl"
+                     style={{ background: "linear-gradient(135deg,#2563EB,#1D4ED8)", boxShadow: "0 2px 6px rgba(37,99,235,.35)" }}
+                     data-testid="bonanza-qualified-badge">
+                  <CheckCircle2 size={11} color="#fff" />
+                  <span className="text-[9px] font-black uppercase tracking-wider text-white">Qualified</span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.8)" }}>
-                  <Gift size={18} color="#E8A804" />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.85)" }}>
+                  <Gift size={18} color="#2563EB" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-black" style={{ color: "#0F172A" }}>{data.cashback_pct}% ID-Activation Cashback</div>
-                  <div className="text-[10px] font-semibold" style={{ color: "#8A6D1A" }}>Activate your own ID in the offer window</div>
+                  <div className="text-[10px] font-semibold" style={{ color: "#3B5BA5" }}>Activate your own ID in the offer window</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[20px] font-black leading-none" style={{ color: "#E8A804" }}>${data.cashback_amount}</div>
-                  <div className="text-[8px] font-bold" style={{ color: "#8A6D1A" }}>cashback</div>
+                  <div className="text-[20px] font-black leading-none" style={{ color: "#2563EB" }}>${data.cashback_amount}</div>
+                  <div className="text-[8px] font-bold" style={{ color: "#3B5BA5" }}>cashback</div>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-1.5 mt-3">
-                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
-                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Activation</div>
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.75)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#3B5BA5" }}>Activation</div>
                   <div className="text-[14px] font-black tabular-nums" style={{ color: "#0F172A" }}>${data.activation_price}</div>
                 </div>
-                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
-                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Cashback</div>
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.75)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#3B5BA5" }}>Cashback</div>
                   <div className="text-[14px] font-black tabular-nums" style={{ color: "#16A34A" }}>+${data.cashback_amount}</div>
                 </div>
-                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
-                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Effective</div>
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.75)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#3B5BA5" }}>Effective</div>
                   <div className="text-[14px] font-black tabular-nums" style={{ color: "#0F172A" }}>${(data.activation_price - data.cashback_amount).toFixed(0)}</div>
                 </div>
               </div>
               {/* Eligibility badge */}
-              <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: data.eligible ? "rgba(22,163,74,.12)" : "rgba(0,0,0,.05)" }} data-testid="bonanza-eligibility">
+              <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: data.eligible ? "rgba(37,99,235,.12)" : "rgba(0,0,0,.05)" }} data-testid="bonanza-eligibility">
                 {data.eligible
-                  ? <><CheckCircle2 size={14} style={{ color: "#16A34A" }} /><span className="text-[11px] font-black" style={{ color: "#16A34A" }}>You're eligible — ${data.cashback_amount} cashback on offer end</span></>
-                  : <><Clock size={14} style={{ color: "#8A6D1A" }} /><span className="text-[11px] font-bold" style={{ color: "#64748B" }}>Activate your ID in the offer window to qualify</span></>}
+                  ? <><CheckCircle2 size={14} style={{ color: "#2563EB" }} /><span className="text-[11px] font-black" style={{ color: "#2563EB" }}>You're qualified — ${data.cashback_amount} cashback on offer end</span></>
+                  : <><Clock size={14} style={{ color: "#3B5BA5" }} /><span className="text-[11px] font-bold" style={{ color: "#64748B" }}>Activate your ID in the offer window to qualify</span></>}
               </div>
             </div>
 
