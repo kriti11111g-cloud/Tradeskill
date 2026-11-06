@@ -220,19 +220,20 @@ MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
 DIRECT_INCOME_BY_LEVEL = {int(r["level"]): float(r["direct_income"]) for r in RANKS}
 DIRECT_INCOME_POT = DIRECT_INCOME_BY_LEVEL[max(DIRECT_INCOME_BY_LEVEL)]  # $26.36
 
-# ---- Bonanza (Durga Puja Special Offer) ----
-# Tier-based festive reward on ACTIVATED direct referrals. Mutually exclusive:
-# only the HIGHEST achieved tier is paid. Claim unlocks once the countdown ends.
+# ---- Bonanza (Diwali Special — 6% ID-activation cashback) ----
+# Self-activation offer: any user who pays the FULL $50 to activate their OWN ID
+# within the offer window earns 6% ($3) cashback, auto-credited to the Asset
+# (Bot) wallet once the countdown ends. No manual claim. One cashback per ID.
 BONANZA_OFFER = {
-    "id": "durga_puja_2026",
-    "title": "Durga Puja Special Offer",
-    "subtitle": "Add direct IDs & win festive cash rewards",
-    # 20 Oct 2026, 12:00 AM IST  ==  2026-10-19 18:30 UTC
-    "deadline": "2026-10-19T18:30:00+00:00",
-    "tiers": [
-        {"directs": 5, "reward": 10.0},
-        {"directs": 10, "reward": 25.0},
-    ],
+    "id": "diwali_cashback_2026",
+    "title": "Diwali Special Offer",
+    "subtitle": "Activate your ID in the offer window & get 6% cashback",
+    # 06 Nov 2026 12:00 AM IST == 2026-11-05 18:30 UTC
+    "start": "2026-11-05T18:30:00+00:00",
+    # 09 Nov 2026 12:00 AM IST == 2026-11-08 18:30 UTC
+    "deadline": "2026-11-08T18:30:00+00:00",
+    "activation_price": 50.0,
+    "cashback_pct": 6.0,   # => $3 per eligible ID
 }
 
 BOT_WALLET_DEPOSIT_ADDRESS = os.environ.get("BOT_WALLET_DEPOSIT_ADDRESS",
@@ -4174,86 +4175,103 @@ async def _credit_commission(user_id: str, amount: float, kind: str, note: str,
 
 
 async def _get_bonanza_offer() -> dict:
-    """Admin-editable offer config (DB) with the module default as fallback/seed."""
+    """Admin-editable offer config (DB) with the module default as fallback/seed.
+    Auto-migrates any stale pre-Diwali (tier-based) config to the new cashback model."""
     doc = await db.bonanza_config.find_one({"key": "active"}, {"_id": 0, "key": 0})
-    if not doc:
+    if not doc or "cashback_pct" not in doc or doc.get("id") != BONANZA_OFFER["id"]:
         doc = dict(BONANZA_OFFER)
         await db.bonanza_config.update_one(
             {"key": "active"}, {"$set": {**doc, "key": "active"}}, upsert=True)
     return doc
 
 
-def _bonanza_reward_for(directs: int, offer: dict) -> tuple:
-    """Highest achieved tier only → (reward, tier_directs)."""
-    reward, tier_dirs = 0.0, 0
-    for t in sorted(offer["tiers"], key=lambda x: x["directs"]):
-        if directs >= t["directs"]:
-            reward, tier_dirs = float(t["reward"]), int(t["directs"])
-    return reward, tier_dirs
+def _bonanza_cashback_amount(offer: dict) -> float:
+    """Fixed cashback = activation_price * cashback_pct% (e.g. $50 * 6% = $3)."""
+    price = float(offer.get("activation_price", 50.0) or 0.0)
+    pct = float(offer.get("cashback_pct", 6.0) or 0.0)
+    return round(price * pct / 100.0, 2)
 
 
-async def _bonanza_credit_user(user_id: str, directs: int, offer: dict) -> dict:
-    """Idempotent one-time Bonanza credit → user's MAIN wallet + history.
+async def _bonanza_eligible(user_id: str, offer: dict) -> bool:
+    """Eligible = user paid the FULL activation ($50) for their OWN ID within the
+    offer window [start, deadline]."""
+    try:
+        start = datetime.fromisoformat(offer["start"])
+        end = datetime.fromisoformat(offer["deadline"])
+    except Exception:
+        return False
+    w = await db.bot_wallets.find_one(
+        {"user_id": user_id, "activated": True}, {"_id": 0, "activated_at": 1, "activation_fee_paid": 1})
+    if not w or not w.get("activated_at"):
+        return False
+    paid = float(w.get("activation_fee_paid", 0.0) or 0.0)
+    if paid < float(offer.get("activation_price", 50.0)) - 0.001:
+        return False
+    try:
+        act = datetime.fromisoformat(w["activated_at"])
+    except Exception:
+        return False
+    if act.tzinfo is None:
+        act = act.replace(tzinfo=timezone.utc)
+    return start <= act <= end
+
+
+async def _bonanza_credit_user(user_id: str, offer: dict) -> dict:
+    """Idempotent one-time 6% cashback → user's Asset (Bot) wallet + history.
     Returns {credited: bool, amount, reason}."""
     from pymongo import ReturnDocument
     from pymongo.errors import DuplicateKeyError
-    reward, tier_dirs = _bonanza_reward_for(directs, offer)
+    reward = _bonanza_cashback_amount(offer)
     if reward <= 0:
-        return {"credited": False, "amount": 0.0, "reason": "not_qualified"}
+        return {"credited": False, "amount": 0.0, "reason": "no_reward"}
+    if not await _bonanza_eligible(user_id, offer):
+        return {"credited": False, "amount": 0.0, "reason": "not_eligible"}
     try:
         await db.bonanza_claims.insert_one({
             "id": str(uuid.uuid4()),
             "user_id": user_id,
             "offer_id": offer["id"],
-            "amount": round(reward, 4),
-            "directs": directs,
-            "tier_directs": tier_dirs,
+            "amount": reward,
             "created_at": iso(now_utc()),
         })
     except DuplicateKeyError:
-        return {"credited": False, "amount": round(reward, 4), "reason": "already_claimed"}
+        return {"credited": False, "amount": reward, "reason": "already_claimed"}
     await _get_or_create_bot_wallet(user_id)
     res = await db.bot_wallets.find_one_and_update(
         {"user_id": user_id},
-        {"$inc": {"balance": round(reward, 4)}},
+        {"$inc": {"balance": reward}},
         return_document=ReturnDocument.AFTER)
     new_bal = round(float(res.get("balance", 0.0) or 0.0), 4)
-    note = f"Bonanza · {offer['title']} ({tier_dirs} direct IDs)"
-    await _log_bot_txn(user_id, "bonanza", round(reward, 4), note=note, balance_after=new_bal)
+    pct = float(offer.get("cashback_pct", 6.0) or 0.0)
+    note = f"Bonanza · {offer['title']} ({pct:.0f}% ID-activation cashback)"
+    await _log_bot_txn(user_id, "bonanza", reward, note=note, balance_after=new_bal)
     await db.rewards.insert_one({
         "id": str(uuid.uuid4()), "user_id": user_id, "type": "bonanza",
-        "amount": round(reward, 4), "status": "claimed", "note": note,
+        "amount": reward, "status": "claimed", "note": note,
         "created_at": iso(now_utc()),
     })
-    return {"credited": True, "amount": round(reward, 4), "balance": new_bal}
-
-
-async def _activated_direct_count(user_id: str) -> int:
-    """Count direct referrals who have ACTIVATED A BOT (paid activation fee → bot_wallets.activated)."""
-    direct_ids = [u["id"] async for u in db.users.find({"referred_by": user_id}, {"id": 1, "_id": 0})]
-    if not direct_ids:
-        return 0
-    return await db.bot_wallets.count_documents({"user_id": {"$in": direct_ids}, "activated": True})
+    return {"credited": True, "amount": reward, "balance": new_bal}
 
 
 async def _bonanza_payout_sweep() -> dict:
-    """Auto-credit every qualifying sponsor once the deadline passes (idempotent)."""
+    """Auto-credit every eligible ID once the deadline passes (idempotent).
+    Verifies activation + full payment inside the window before crediting."""
     offer = await _get_bonanza_offer()
-    if now_utc() < datetime.fromisoformat(offer["deadline"]):
+    try:
+        start = datetime.fromisoformat(offer["start"])
+        end = datetime.fromisoformat(offer["deadline"])
+    except Exception:
+        return {"ran": False, "reason": "bad_config", "credited": 0}
+    if now_utc() < end:
         return {"ran": False, "reason": "before_deadline", "credited": 0}
-    min_dirs = min(t["directs"] for t in offer["tiers"])
-    # Count sponsors by their BOT-ACTIVATED directs (bot_wallets.activated), not mere referrals.
-    pipe = [
-        {"$match": {"activated": True}},
-        {"$lookup": {"from": "users", "localField": "user_id", "foreignField": "id", "as": "u"}},
-        {"$unwind": "$u"},
-        {"$match": {"u.referred_by": {"$ne": None}}},
-        {"$group": {"_id": "$u.referred_by", "n": {"$sum": 1}}},
-        {"$match": {"n": {"$gte": min_dirs}}},
-    ]
+    price = float(offer.get("activation_price", 50.0))
+    # Candidate IDs: activated with full fee paid inside the window.
     credited = 0
-    async for row in db.bot_wallets.aggregate(pipe):
-        res = await _bonanza_credit_user(row["_id"], int(row["n"]), offer)
+    async for w in db.bot_wallets.find(
+        {"activated": True, "activation_fee_paid": {"$gte": price - 0.001},
+         "activated_at": {"$gte": offer["start"], "$lte": offer["deadline"]}},
+        {"_id": 0, "user_id": 1}):
+        res = await _bonanza_credit_user(w["user_id"], offer)
         if res.get("credited"):
             credited += 1
     return {"ran": True, "credited": credited}
@@ -4262,47 +4280,48 @@ async def _bonanza_payout_sweep() -> dict:
 @api.get("/bonanza")
 async def get_bonanza(user: dict = Depends(get_current_user)):
     offer = await _get_bonanza_offer()
-    directs = await _activated_direct_count(user["id"])
     now = now_utc()
     ended = now >= datetime.fromisoformat(offer["deadline"])
-    reward, tier_dirs = _bonanza_reward_for(directs, offer)
-    # Lazy auto-credit: once the timer ends, credit instantly when the user opens the page.
-    if ended and reward > 0:
-        await _bonanza_credit_user(user["id"], directs, offer)
+    eligible = await _bonanza_eligible(user["id"], offer)
+    reward = _bonanza_cashback_amount(offer)
+    # Lazy auto-credit: once the timer ends, credit instantly when an eligible user opens the page.
+    if ended and eligible:
+        await _bonanza_credit_user(user["id"], offer)
     claim = await db.bonanza_claims.find_one(
         {"user_id": user["id"], "offer_id": offer["id"]}, {"_id": 0})
     return {
         "id": offer["id"],
         "title": offer["title"],
         "subtitle": offer["subtitle"],
+        "start": offer.get("start"),
         "deadline": offer["deadline"],
         "server_time": iso(now),
         "ended": ended,
-        "directs": directs,
-        "tiers": offer["tiers"],
-        "qualified_reward": round(reward, 4),
-        "qualified_tier_directs": tier_dirs,
+        "activation_price": float(offer.get("activation_price", 50.0)),
+        "cashback_pct": float(offer.get("cashback_pct", 6.0)),
+        "cashback_amount": reward,
+        "eligible": eligible,
+        "qualified_reward": reward if eligible else 0.0,
         "claimed": bool(claim),
         "claimed_amount": round(float(claim["amount"]), 4) if claim else None,
-        "claimable": ended and reward > 0 and not claim,
+        "claimable": ended and eligible and not claim,
     }
 
 
 @api.post("/bonanza/claim")
 async def claim_bonanza(user: dict = Depends(get_current_user)):
+    """Cashback is auto-credited when the timer ends; this endpoint just finalizes
+    an eligible credit if the user taps before the sweep runs."""
     offer = await _get_bonanza_offer()
     if now_utc() < datetime.fromisoformat(offer["deadline"]):
-        raise HTTPException(400, "Offer is still running. Claim opens when the timer ends.")
-    directs = await _activated_direct_count(user["id"])
-    reward, _ = _bonanza_reward_for(directs, offer)
-    if reward <= 0:
-        need = min(t["directs"] for t in offer["tiers"])
-        raise HTTPException(400, f"You need at least {need} direct IDs to claim this reward.")
-    res = await _bonanza_credit_user(user["id"], directs, offer)
+        raise HTTPException(400, "Offer is still running. Cashback auto-credits when the timer ends.")
+    if not await _bonanza_eligible(user["id"], offer):
+        raise HTTPException(400, "You did not activate your ID within the offer period.")
+    res = await _bonanza_credit_user(user["id"], offer)
     if not res["credited"]:
         if res["reason"] == "already_claimed":
-            raise HTTPException(400, "Bonanza reward already claimed.")
-        raise HTTPException(400, "You are not eligible for this reward.")
+            raise HTTPException(400, "Cashback already credited.")
+        raise HTTPException(400, "You are not eligible for this cashback.")
     return {"ok": True, "amount": res["amount"], "balance": res["balance"]}
 
 
@@ -5558,8 +5577,11 @@ class BonanzaTierIn(BaseModel):
 class BonanzaConfigIn(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
-    deadline: Optional[str] = None       # RFC3339, e.g. 2026-10-19T18:30:00+00:00
-    tiers: Optional[List[BonanzaTierIn]] = None
+    start: Optional[str] = None           # RFC3339
+    deadline: Optional[str] = None        # RFC3339
+    activation_price: Optional[float] = None
+    cashback_pct: Optional[float] = None
+    tiers: Optional[List[BonanzaTierIn]] = None  # legacy, ignored
 
 
 @api.get("/admin/bonanza")
@@ -5579,14 +5601,18 @@ async def admin_set_bonanza(body: BonanzaConfigIn, admin: dict = Depends(require
         try:
             datetime.fromisoformat(body.deadline)
         except Exception:
-            raise HTTPException(400, "Invalid deadline. Use RFC3339 e.g. 2026-10-19T18:30:00+00:00")
+            raise HTTPException(400, "Invalid deadline. Use RFC3339 e.g. 2026-11-08T18:30:00+00:00")
         update["deadline"] = body.deadline
-    if body.tiers is not None:
-        tiers = [{"directs": int(t.directs), "reward": round(float(t.reward), 4)}
-                 for t in body.tiers if t.directs > 0 and t.reward > 0]
-        if not tiers:
-            raise HTTPException(400, "At least one valid tier (directs>0, reward>0) is required.")
-        update["tiers"] = sorted(tiers, key=lambda x: x["directs"])
+    if body.start is not None:
+        try:
+            datetime.fromisoformat(body.start)
+        except Exception:
+            raise HTTPException(400, "Invalid start. Use RFC3339 e.g. 2026-11-05T18:30:00+00:00")
+        update["start"] = body.start
+    if body.activation_price is not None and body.activation_price > 0:
+        update["activation_price"] = round(float(body.activation_price), 2)
+    if body.cashback_pct is not None and body.cashback_pct > 0:
+        update["cashback_pct"] = round(float(body.cashback_pct), 2)
     if not update:
         raise HTTPException(400, "Nothing to update.")
     await db.bonanza_config.update_one(

@@ -488,15 +488,17 @@ export default function Dashboard() {
           />
         </Link>
 
-        {/* ============ TRADE SKILL SHOWCASE IMAGE (market ki jagah) ============ */}
-        <img
-          src="https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/yohyuz3i_file_000000009b4081f5a8ad892ef6e3f993.png"
-          alt="Trade Skill"
-          className="w-full rounded-2xl"
-          style={{ aspectRatio: "1 / 1", objectFit: "cover", boxShadow: "var(--shadow-sm)" }}
-          loading="lazy"
-          data-testid="home-showcase-image"
-        />
+        {/* ============ DIWALI SPECIAL OFFER BANNER ============ */}
+        <Link to="/bonanza" data-testid="home-diwali-banner" className="block">
+          <img
+            src="https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/f1327da6055d512b_file_00000000309881f4b7d792e82edc77ae.png"
+            alt="Diwali Special Offer — 6% Cashback"
+            className="w-full rounded-2xl"
+            style={{ aspectRatio: "1952 / 806", objectFit: "cover", boxShadow: "var(--shadow-sm)", border: "1px solid rgba(232,168,4,0.5)" }}
+            loading="lazy"
+            data-testid="home-showcase-image"
+          />
+        </Link>
 
         {/* ============ START BOT CTA ============ */}
         <div className="mt-5 relative">

@@ -212,3 +212,12 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
   * Make offer live with running countdown (set deadline). Do NOT just flip current deadline — that activates the OLD tier payout (5 dirs→$10 etc). Must replace logic first.
   * Auto-credit $3 to Asset Wallet when countdown hits 0 (cron/scheduled). No manual claim. Only activated-in-window IDs. Once per ID, dedup (bonanza_claims style unique index). Maintain cashback history in Asset Section. No cashback if activation/payment failed. Effective cost $47.
   * Verify activation+payment records before crediting. Need to confirm where activation ($50) + timestamp are stored and what "Asset Wallet" maps to (bot_wallet vs main wallet).
+
+## 2026-11 — Diwali 6% ID-activation cashback (REPLACED tier offer) — DONE
+- Offer model changed from referral-tier to SELF-ACTIVATION cashback: user pays full $50 to activate own ID within window → 6% ($3) auto-credited to Asset (bot) wallet after countdown. No manual claim. Once per ID, dedup via bonanza_claims unique (user_id,offer_id).
+- Window: start 2026-11-05T18:30Z (06 Nov 00:00 IST), deadline 2026-11-08T18:30Z (09 Nov 00:00 IST). Server time currently in-window → offer LIVE, countdown running.
+- Backend server.py: BONANZA_OFFER now {id diwali_cashback_2026, start, deadline, activation_price 50, cashback_pct 6}. _get_bonanza_offer auto-migrates stale tier config. New _bonanza_cashback_amount, _bonanza_eligible (activated_at in window + activation_fee_paid>=price), _bonanza_credit_user (fixed $3, dedup, bot_wallet + bot_txn "bonanza" + rewards), _bonanza_payout_sweep (post-deadline, iterates bot_wallets activated-in-window). get_bonanza/claim_bonanza rewritten. admin_set_bonanza + BonanzaConfigIn now take start/activation_price/cashback_pct. Cron /api/cron/bonanza-payout (every 15m) unchanged — will auto-credit after deadline.
+- Removed _bonanza_reward_for/_activated_direct_count (tier helpers).
+- Frontend: Bonanza.jsx tier cards replaced with cashback card ($50/+$3/$47 + eligibility badge + auto-credit note); title "Diwali Special"; hero=Diwali image. BannerCarousel slide=Diwali image. Dashboard showcase image→Diwali banner (links to /bonanza).
+- Verified: curl /bonanza (live, countdown), direct logic test (in-window $50→$3 once, dedup, before-window/partial-pay rejected), history note correct. Screenshot shows live countdown + cashback card.
+- test_credentials: demo.team1@tgxbot.com / Test@12345 (unchanged).

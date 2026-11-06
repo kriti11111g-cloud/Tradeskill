@@ -89,64 +89,52 @@ export default function Bonanza() {
               )}
             </div>
 
-            {/* Offer tiers */}
-            {data.tiers.map((t) => {
-              const meta = TIER_META[t.directs] || { color: "#2563EB", glow: "rgba(37,99,235,.3)", icon: Gift };
-              const Icon = meta.icon;
-              const prog = Math.min(100, Math.round((data.directs / t.directs) * 100));
-              const reached = data.directs >= t.directs;
-              const isHighest = data.qualified_tier_directs === t.directs;
-              return (
-                <div key={t.directs}
-                     className="rounded-xl px-3 py-1.5 relative overflow-hidden"
-                     style={{ background: meta.bg, border: `1px solid ${meta.color}`, boxShadow: "var(--shadow-sm)" }}
-                     data-testid={`bonanza-tier-${t.directs}`}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.7)" }}>
-                      <Icon size={14} color={meta.color} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-black" style={{ color: "#0F172A" }}>{t.directs} Direct IDs</span>
-                        {reached && (
-                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: meta.color }}>
-                            <CheckCircle2 size={8} /> Achieved
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[9px] font-semibold" style={{ color: "#64748B" }}>Refer {t.directs} active IDs to unlock</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[15px] font-black leading-none" style={{ color: meta.color }}>${t.reward}</div>
-                      <div className="text-[8px] font-bold" style={{ color: "#64748B" }}>reward</div>
-                    </div>
-                  </div>
-                  {/* Processing bar */}
-                  <div className="mt-1">
-                    <div className="flex items-center justify-between text-[8px] font-bold mb-0.5" style={{ color: "#64748B" }}>
-                      <span>Progress</span>
-                      <span>{Math.min(data.directs, t.directs)}/{t.directs}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,.65)" }}>
-                      <div className="h-full rounded-full transition-all duration-700"
-                           style={{ width: `${prog}%`, background: meta.color }} />
-                    </div>
-                  </div>
-                  {isHighest && (
-                    <div className="mt-1 text-[9px] font-black" style={{ color: meta.color }}>★ Your highest achieved tier</div>
-                  )}
+            {/* Cashback offer card (replaces old tier cards) */}
+            <div className="rounded-xl px-4 py-4" style={{ background: "linear-gradient(135deg,#FFF7E6,#FFE9C7)", border: "1px solid rgba(232,168,4,.6)", boxShadow: "var(--shadow-sm)" }}
+                 data-testid="bonanza-cashback-card">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.8)" }}>
+                  <Gift size={18} color="#E8A804" />
                 </div>
-              );
-            })}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-black" style={{ color: "#0F172A" }}>{data.cashback_pct}% ID-Activation Cashback</div>
+                  <div className="text-[10px] font-semibold" style={{ color: "#8A6D1A" }}>Activate your own ID in the offer window</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[20px] font-black leading-none" style={{ color: "#E8A804" }}>${data.cashback_amount}</div>
+                  <div className="text-[8px] font-bold" style={{ color: "#8A6D1A" }}>cashback</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 mt-3">
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Activation</div>
+                  <div className="text-[14px] font-black tabular-nums" style={{ color: "#0F172A" }}>${data.activation_price}</div>
+                </div>
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Cashback</div>
+                  <div className="text-[14px] font-black tabular-nums" style={{ color: "#16A34A" }}>+${data.cashback_amount}</div>
+                </div>
+                <div className="rounded-lg py-2 text-center" style={{ background: "rgba(255,255,255,.7)" }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: "#8A6D1A" }}>Effective</div>
+                  <div className="text-[14px] font-black tabular-nums" style={{ color: "#0F172A" }}>${(data.activation_price - data.cashback_amount).toFixed(0)}</div>
+                </div>
+              </div>
+              {/* Eligibility badge */}
+              <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2" style={{ background: data.eligible ? "rgba(22,163,74,.12)" : "rgba(0,0,0,.05)" }} data-testid="bonanza-eligibility">
+                {data.eligible
+                  ? <><CheckCircle2 size={14} style={{ color: "#16A34A" }} /><span className="text-[11px] font-black" style={{ color: "#16A34A" }}>You're eligible — ${data.cashback_amount} cashback on offer end</span></>
+                  : <><Clock size={14} style={{ color: "#8A6D1A" }} /><span className="text-[11px] font-bold" style={{ color: "#64748B" }}>Activate your ID in the offer window to qualify</span></>}
+              </div>
+            </div>
 
             {/* Status (auto-credit — no claim button) */}
             {data.claimed ? (
               <div className="rounded-2xl px-4 py-3 text-center" style={{ background: "rgba(22,163,74,.1)", border: "1px solid var(--good)" }}
                    data-testid="bonanza-claimed">
                 <CheckCircle2 size={22} className="mx-auto mb-1" style={{ color: "var(--good)" }} />
-                <div className="text-[13px] font-black text-[color:var(--text)]">Reward Credited</div>
+                <div className="text-[13px] font-black text-[color:var(--text)]">Cashback Credited</div>
                 <div className="text-[11px] font-semibold text-[color:var(--text-mute)] mt-0.5">
-                  ${data.claimed_amount} added to your wallet
+                  ${data.claimed_amount} added to your Asset wallet
                 </div>
               </div>
             ) : (
@@ -154,13 +142,13 @@ export default function Bonanza() {
                    data-testid="bonanza-auto-note">
                 <Gift size={18} color="#E8A804" className="shrink-0" />
                 <div className="text-[11px] font-bold text-[color:var(--text)] leading-snug">
-                  Reward <span style={{ color: "#E8A804" }}>auto-credits</span> to your wallet when the timer ends — no claim needed.
+                  Cashback <span style={{ color: "#E8A804" }}>auto-credits</span> to your Asset wallet when the timer ends — no claim needed.
                 </div>
               </div>
             )}
 
             <p className="text-center text-[9px] text-[color:var(--text-mute)] px-4 leading-relaxed">
-              Rewards are based on your <b>highest achieved tier only</b>. 10 direct IDs pays <b>$25</b> (not $10 + $25).
+              Pay the full <b>${data.activation_price}</b> activation during the offer period and get <b>{data.cashback_pct}% (${data.cashback_amount})</b> back automatically after the countdown. One cashback per ID.
             </p>
           </>
         )}
