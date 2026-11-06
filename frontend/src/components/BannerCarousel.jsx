@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 
 /* Home top banner slider — admin-managed images, 5s auto-slide.
-   Durga Puja Bonanza slide auto-appears while the offer is live and
+   Diwali Special offer slide auto-appears while the offer is live and
    auto-removes once the countdown deadline passes. Tapping it opens /bonanza. */
 export const BannerCarousel = () => {
   const nav = useNavigate();
@@ -29,7 +29,7 @@ export const BannerCarousel = () => {
 
   const slides = [
     ...(bonanzaActive
-      ? [{ id: "bonanza-slide", image_url: "/durga-puja-slide.png", to: "/bonanza" }]
+      ? [{ id: "diwali-slide", image_url: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/f1327da6055d512b_file_00000000309881f4b7d792e82edc77ae.png", to: "/bonanza" }]
       : []),
     {
       id: "telegram-slide",

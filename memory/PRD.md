@@ -203,3 +203,12 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Request: SBM must not show "active" until 4 safety orders done; calls 1-4 only build average. Active count should be 0 until a real sub-beam (5th+) position exists.
 - Frontend Trades.jsx: added const SBM_START=5. BotRow sbmBeamCount=max(0, mcCount-(SBM_START-1)); sbmActive = hasPos && sbmBeamCount>0. Badge + SBM button now use sbmBeamCount (badge hidden when <1). SBMModal: beamFilled=max(0,mcCount-(subStart-1)), beamTotal=mcLimit-(subStart-1), beamActive=hasPos&&beamFilled>0. Active-count box shows beamFilled/beamTotal; STATUS = ACTIVE (violet) if beamActive else AVERAGING (mcCount>0) / BASE ONLY / IDLE.
 - Verified: NEAR mc=2 → no trade-card badge, modal "0/6 · AVERAGING"; ADA mc=6 → badge "SBM 2". Test data cleaned.
+
+## 2026-11 — Diwali banner swap (DONE) + $3 activation cashback (PENDING)
+- DONE: BannerCarousel.jsx bonanza slide + Bonanza.jsx hero image → Diwali image (artifacts/f1327da6055d512b_file_00000000309881f4...png). Title "Durga Puja Special" → "Diwali Special". Durga refs removed. Verified image 200 + screenshot renders.
+- Countdown already exists in Bonanza.jsx (reads backend deadline). Currently shows "Offer Ended" since BONANZA_OFFER deadline=2026-10-19 (past).
+- PENDING (next focused step — changes real money logic, needs cron skill + testing):
+  * New offer model: $3 cashback per ID that pays FULL $50 activation within campaign window (START 2026-11-06 00:00 IST, END 2026-11-09 00:00 IST = 2026-11-08T18:30:00Z). NOT referral-tier based.
+  * Make offer live with running countdown (set deadline). Do NOT just flip current deadline — that activates the OLD tier payout (5 dirs→$10 etc). Must replace logic first.
+  * Auto-credit $3 to Asset Wallet when countdown hits 0 (cron/scheduled). No manual claim. Only activated-in-window IDs. Once per ID, dedup (bonanza_claims style unique index). Maintain cashback history in Asset Section. No cashback if activation/payment failed. Effective cost $47.
+  * Verify activation+payment records before crediting. Need to confirm where activation ($50) + timestamp are stored and what "Asset Wallet" maps to (bot_wallet vs main wallet).

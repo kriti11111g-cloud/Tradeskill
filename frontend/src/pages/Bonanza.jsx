@@ -55,7 +55,7 @@ export default function Bonanza() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="Durga Puja Special" subtitle="Bonanza · Festive Rewards" showBack />
+      <PageHeader title="Diwali Special" subtitle="Bonanza · Festive Rewards" showBack />
 
       <div className="px-4 pt-3 space-y-2.5">
         {loading ? (
@@ -64,7 +64,7 @@ export default function Bonanza() {
           <>
             {/* HERO IMAGE (top) */}
             <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-lg)", border: "1px solid rgba(232,168,4,0.5)" }} data-testid="bonanza-hero">
-              <img src="/durga-puja-slide.png" alt={data.title}
+              <img src="https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/f1327da6055d512b_file_00000000309881f4b7d792e82edc77ae.png" alt={data.title}
                    className="w-full object-cover" style={{ aspectRatio: "1952 / 806" }} />
             </div>
 
