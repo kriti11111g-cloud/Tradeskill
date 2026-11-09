@@ -149,14 +149,14 @@ export default function SecurityCentre() {
       {/* Flow modal */}
       {flow && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)" }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={close}
           data-testid="security-modal"
         >
           <div
-            className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
-            style={{ background: "var(--card)", border: "1px solid var(--border)", maxWidth: 460 }}
+            className="w-full rounded-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3">
