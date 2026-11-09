@@ -247,3 +247,15 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 ## 2026-11-09 (cont): Exchange list status pills reworked
 - ExchangeList.jsx pills now 3-state: connected/added exchange (ex.id===activeId) → green "Active"; SUPPORTED exchanges (binance/kucoin/lbank/hyperliquid) → blue "Live"; all others (API work not done) → grey "Soon". Removed old "Bind"/"Not Bound"/"Demo" pill text. Top connected-card status label → "Active".
 - Screenshot-verified: Binance/Hyperliquid/KuCoin/LBank show "Live", rest show "Soon", demo-bound HL shows "Active".
+
+## 2026-11-09 (cont): Security Centre — Password & Transaction Password update (OTP-gated)
+- Profile → "Security Centre" was wrongly routing to /guide (User Guide). Now routes to new /security page with ONLY two options (per user): Login Password update + Transaction Password update. Both require email OTP — nothing updates without it.
+- Backend server.py (after withdraw_otp_verify): new `security_otps` collection.
+  - POST /auth/security-otp/send (auth) — 6-digit OTP to logged-in user's own email via existing _send_otp_email(…,"security"); OTP_RESEND_COOLDOWN(60s)+OTP_TTL(300s); replace_one upsert.
+  - `_consume_security_otp(uid, code)` — validates (exists/not-used/not-expired/attempts<5/code sha256 match) then atomic single-use consume via find_one_and_update(used!=True).
+  - POST /auth/password/update (auth) {code,new_password(min6)} → consume OTP → set password_hash=hash_password().
+  - POST /auth/txn-password/update (auth) {code,new_password(min4)} → consume OTP → set txn_password_hash.
+  - Added "security" purpose to _send_otp_email label/short dicts + HTML heading ("Confirm your security update").
+- Frontend: new pages/SecurityCentre.jsx (expandable cards, new+confirm pw, Send OTP→enter OTP→Update, resend countdown). Route /security in App.js; Profile.jsx item to:"/security".
+- VERIFIED (script, demo.team1): valid OTP updates login pw (old rejected/new works), wrong OTP→400, short pw→422, cooldown→429, txn-pw update changes+verifies hash, OTP single-use consume. Credentials RESTORED to Test@12345 + txn restored. Frontend screenshot confirms page shows only the two options with OTP flow.
+- Note: preview EMAIL_OTP_MODE="managed" (real email, no demo_otp). Password min length: login 6, txn 4.

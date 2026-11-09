@@ -6217,8 +6217,10 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
     if EMAIL_OTP_MODE in ("smtp", "resend", "managed"):
         is_signup = purpose == "signup"
         label = {"signup": "sign up verification", "reset": "password reset",
-                 "withdrawal": "withdrawal verification"}.get(purpose, "verification")
-        short = {"signup": "sign up", "reset": "password reset"}.get(purpose, "withdrawal")
+                 "withdrawal": "withdrawal verification",
+                 "security": "security update verification"}.get(purpose, "verification")
+        short = {"signup": "sign up", "reset": "password reset",
+                 "security": "security"}.get(purpose, "withdrawal")
         subject = f"{code} is your Trade Skill {short} code"
         text = (f"Hello,\n\nYour Trade Skill {label} code is: {code}\n\n"
                 "This code is valid for 5 minutes. If you did not request this, "
@@ -6234,7 +6236,7 @@ def _send_otp_email(to_email: str, code: str, purpose: str = "withdrawal") -> bo
           <span style="color:#FFFFFF;font-size:19px;font-weight:800;letter-spacing:0.5px;">Trade Skill</span>
         </td></tr>
         <tr><td style="padding:26px 24px 8px;">
-          <p style="margin:0;color:#083344;font-size:15px;font-weight:700;">{'Verify your email' if is_signup else ('Reset your password' if purpose == 'reset' else 'Confirm your withdrawal')}</p>
+          <p style="margin:0;color:#083344;font-size:15px;font-weight:700;">{'Verify your email' if is_signup else ('Reset your password' if purpose == 'reset' else ('Confirm your security update' if purpose == 'security' else 'Confirm your withdrawal'))}</p>
           <p style="margin:10px 0 0;color:#4B6A74;font-size:13px;line-height:1.5;">
             Use the code below to complete your {label}. It expires in 5 minutes.
           </p>
@@ -6367,6 +6369,87 @@ async def withdraw_otp_verify(body: OtpVerifyIn,
     await db.withdraw_otps.update_one({"user_id": user["id"]},
                                       {"$set": {"verified": True}})
     return {"ok": True, "verified": True}
+
+
+# ==================== Security Centre: password & txn-password update (OTP-gated) ====================
+class SecurityPwUpdateIn(BaseModel):
+    code: str
+    new_password: str = Field(min_length=6)
+
+
+class SecurityTxnPwUpdateIn(BaseModel):
+    code: str
+    new_password: str = Field(min_length=4)
+
+
+@api.post("/auth/security-otp/send")
+async def security_otp_send(user: dict = Depends(get_current_user)):
+    """Send a 6-digit OTP to the logged-in user's own email, gating password/txn-password changes."""
+    now = now_utc()
+    existing = await db.security_otps.find_one({"user_id": user["id"]}, {"_id": 0})
+    if existing and existing.get("created_at"):
+        elapsed = (now - datetime.fromisoformat(existing["created_at"])).total_seconds()
+        if elapsed < OTP_RESEND_COOLDOWN:
+            raise HTTPException(429, f"Please wait {int(OTP_RESEND_COOLDOWN - elapsed)}s before requesting another OTP")
+    code = f"{random.randint(0, 999999):06d}"
+    await db.security_otps.replace_one(
+        {"user_id": user["id"]},
+        {"user_id": user["id"],
+         "code_hash": hashlib.sha256(code.encode()).hexdigest(),
+         "created_at": iso(now),
+         "expires_at": iso(now + timedelta(seconds=OTP_TTL_SECONDS)),
+         "attempts": 0, "used": False},
+        upsert=True)
+    try:
+        await asyncio.to_thread(_send_otp_email, user.get("email", ""), code, "security")
+    except Exception as e:
+        logger.error(f"Security OTP email send failed: {e}")
+        raise HTTPException(500, "Could not send OTP email. Try again later.")
+    resp = {"ok": True, "email_masked": _mask_email(user.get("email", "")),
+            "expires_in": OTP_TTL_SECONDS, "resend_in": OTP_RESEND_COOLDOWN,
+            "mode": EMAIL_OTP_MODE}
+    if EMAIL_OTP_MODE == "demo":
+        resp["demo_otp"] = code
+    return resp
+
+
+async def _consume_security_otp(user_id: str, code: str):
+    """Validate + atomically single-use-consume the security OTP. Raises HTTPException on failure."""
+    doc = await db.security_otps.find_one({"user_id": user_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(400, "Request an OTP first")
+    if doc.get("used"):
+        raise HTTPException(400, "OTP already used — request a new one")
+    if datetime.fromisoformat(doc["expires_at"]) < now_utc():
+        raise HTTPException(400, "OTP expired — request a new one")
+    if doc.get("attempts", 0) >= 5:
+        raise HTTPException(429, "Too many wrong attempts — request a new OTP")
+    code_hash = hashlib.sha256(code.strip().encode()).hexdigest()
+    if code_hash != doc["code_hash"]:
+        await db.security_otps.update_one({"user_id": user_id}, {"$inc": {"attempts": 1}})
+        raise HTTPException(400, "Incorrect OTP")
+    # Atomic one-time consume — prevents reuse under concurrency.
+    consumed = await db.security_otps.find_one_and_update(
+        {"user_id": user_id, "code_hash": code_hash, "used": {"$ne": True}},
+        {"$set": {"used": True}})
+    if not consumed:
+        raise HTTPException(400, "OTP already used — request a new one")
+
+
+@api.post("/auth/password/update")
+async def security_password_update(body: SecurityPwUpdateIn, user: dict = Depends(get_current_user)):
+    await _consume_security_otp(user["id"], body.code)
+    await db.users.update_one({"id": user["id"]},
+                              {"$set": {"password_hash": hash_password(body.new_password)}})
+    return {"ok": True, "message": "Login password updated successfully"}
+
+
+@api.post("/auth/txn-password/update")
+async def security_txn_password_update(body: SecurityTxnPwUpdateIn, user: dict = Depends(get_current_user)):
+    await _consume_security_otp(user["id"], body.code)
+    await db.users.update_one({"id": user["id"]},
+                              {"$set": {"txn_password_hash": hash_password(body.new_password)}})
+    return {"ok": True, "message": "Transaction password updated successfully"}
 
 
 SOCIAL_BONUS_AMOUNT = float(os.environ.get("SOCIAL_BONUS_AMOUNT", "0.10"))

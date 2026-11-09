@@ -93,7 +93,7 @@ export default function Profile() {
   const items = [
     { icon: <Trophy size={26} color="#2563EB" strokeWidth={2.2} />, label: "Current Rank", to: "/rank", testid: "profile-rank" },
     { icon: <Gift size={26} color="#2563EB" fill="#DBEAFE" strokeWidth={2} />, label: "Referral", to: "/referral", testid: "profile-referral" },
-    { icon: <ShieldCheck size={26} color="#16A34A" fill="#16A34A" strokeWidth={1.6} className="[&>path:last-child]:stroke-white" />, label: "Security Centre", to: "/guide", testid: "profile-security" },
+    { icon: <ShieldCheck size={26} color="#16A34A" fill="#16A34A" strokeWidth={1.6} className="[&>path:last-child]:stroke-white" />, label: "Security Centre", to: "/security", testid: "profile-security" },
     { icon: <Cog size={26} color="#16A34A" strokeWidth={2.2} />, label: "API Management", to: "/bind-api", testid: "profile-api" },
     { icon: <HelpCircle size={26} color="#2563EB" strokeWidth={2.2} />, label: "Help Center", to: "/guide", testid: "profile-help" },
     { icon: <SocialCluster />, label: "Social Media", to: "/social-bonus", testid: "profile-social" },

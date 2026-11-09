@@ -23,6 +23,7 @@ import Referral from "@/pages/Referral";
 import Rewards from "@/pages/Rewards";
 import News from "@/pages/News";
 import Guide from "@/pages/Guide";
+import SecurityCentre from "@/pages/SecurityCentre";
 import Profile from "@/pages/Profile";
 import Market from "@/pages/Market";
 import BotHub from "@/pages/BotHub";
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/news" element={<News />} />
             <Route path="/guide" element={<Guide />} />
+            <Route path="/security" element={<SecurityCentre />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
