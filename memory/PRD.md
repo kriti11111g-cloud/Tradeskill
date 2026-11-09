@@ -243,3 +243,7 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Self-tested (all pass): mainnet pair resolution + live prices for all 6 symbols; size/price rounding; fill parser (filled + error); testnet signing/connectivity (generated agent key → signed order reached HL, parser surfaced response); DEMO BUY→SELL cycle on SOLUSDT with HL connected (txns recorded).
 - testing_agent iteration_33: 6/9 backend pass + all frontend pass. Found gap: binance/kucoin/lbank bind endpoints did not block when hyperliquid already connected. FIXED — added hyperliquid_keys check to all three bind endpoints; verified 400 returned. One-exchange-per-account now fully bidirectional.
 - STILL PENDING (needs user's funded HL account + agent key): real mainnet/testnet filled order E2E.
+
+## 2026-11-09 (cont): Exchange list status pills reworked
+- ExchangeList.jsx pills now 3-state: connected/added exchange (ex.id===activeId) → green "Active"; SUPPORTED exchanges (binance/kucoin/lbank/hyperliquid) → blue "Live"; all others (API work not done) → grey "Soon". Removed old "Bind"/"Not Bound"/"Demo" pill text. Top connected-card status label → "Active".
+- Screenshot-verified: Binance/Hyperliquid/KuCoin/LBank show "Live", rest show "Soon", demo-bound HL shows "Active".

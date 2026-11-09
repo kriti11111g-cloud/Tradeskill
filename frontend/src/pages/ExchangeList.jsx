@@ -193,8 +193,10 @@ export default function ExchangeList() {
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold"
                 style={ex.id === activeId
                   ? { background: "rgba(22,163,74,0.12)", color: "#16A34A" }
-                  : { background: "rgba(37,99,235,0.1)", color: "#2563EB" }}>
-                {ex.id === activeId ? "Active" : "Live"}
+                  : supported
+                    ? { background: "rgba(37,99,235,0.1)", color: "#2563EB" }
+                    : { background: "var(--surface-3)", color: "var(--text-mute)" }}>
+                {ex.id === activeId ? "Active" : supported ? "Live" : "Soon"}
               </span>
               <ChevronRight size={16} style={{ color: "var(--ink)" }} />
             </div>
