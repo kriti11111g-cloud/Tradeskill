@@ -4962,17 +4962,21 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
                         note=f"Bot difference skipped rank-steps → reserve · {actor} activated · L{up['_glevel']}")
                     distributed += skipped_amt
                 highest = up_level
-            # --- support income (NOT gated by the bot-difference rank check) ---
+            # --- support income (upline earns ONE support-step; skipped → company) ---
+            sup_amt = 0.0
             if first_upline:
-                sup_amt = support_base
-                if up_level > s_highest:
-                    sup_amt = round(sup_amt + (up_level - s_highest) * support_share, 4)
+                sup_amt = support_base          # base 10% support → first upline
                 first_upline = False
-            elif up_level > s_highest:
-                sup_amt = round((up_level - s_highest) * support_share, 4)
-            else:
-                sup_amt = 0.0
-            s_highest = max(s_highest, up_level)
+            if up_level > s_highest:
+                sup_steps = up_level - s_highest
+                sup_amt = round(sup_amt + support_share, 4)      # upline's OWN one step
+                sup_skipped = round((sup_steps - 1) * support_share, 4)
+                if sup_skipped > 0:
+                    await _credit_admin_revenue(
+                        sup_skipped, "company_reserve", user["id"],
+                        note=f"Support income skipped rank-steps → reserve · {actor} activated · L{up['_glevel']}")
+                    distributed += sup_skipped
+                s_highest = up_level
             if sup_amt > 0 and await _credit_commission(
                     up["id"], sup_amt, "support_income",
                     f"Support income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
