@@ -127,7 +127,7 @@ export default function ExchangeList() {
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="w-2 h-2 rounded-full" style={{ background: "#16A34A" }} />
                 <span className="text-[15px] font-black" style={{ color: "#16A34A" }} data-testid="connected-status">
-                  {isLive ? "Live" : "Demo"}
+                  Active
                 </span>
                 <ChevronRight size={18} style={{ color: "var(--ink)" }} />
               </div>
@@ -164,7 +164,6 @@ export default function ExchangeList() {
       {/* Scrollable list — sirf ye scroll hota hai */}
       <div className="px-4 mt-1 space-y-1.5">
         {others.map((ex, i) => {
-          const b = bindOf(ex.id);
           const supported = SUPPORTED.has(ex.id);
           return (
           <button
@@ -192,10 +191,10 @@ export default function ExchangeList() {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold"
-                style={supported
-                  ? { background: "rgba(37,99,235,0.1)", color: "#2563EB" }
-                  : { background: "var(--surface-3)", color: "var(--text-mute)" }}>
-                {b?.api_key_mask ? (b.mode === "real" ? "Live" : "Demo") : supported ? "Bind" : "Not Bound"}
+                style={ex.id === activeId
+                  ? { background: "rgba(22,163,74,0.12)", color: "#16A34A" }
+                  : { background: "rgba(37,99,235,0.1)", color: "#2563EB" }}>
+                {ex.id === activeId ? "Active" : "Live"}
               </span>
               <ChevronRight size={16} style={{ color: "var(--ink)" }} />
             </div>
