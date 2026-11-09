@@ -236,3 +236,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - VERIFIED (preview): /hyperliquid/pairs live prices (UBTC $73865 etc.); demo bind→GET→delete; bad-address 400. Screenshots: exchange list shows Hyperliquid+Bind; bind page wallet-style form renders, testnet mode toggle works.
 - NOT YET VERIFIED (needs user's real HL agent key + funded account): live spot BUY/SELL order execution E2E. Code path complete, mirrors proven LBank path.
 - LIMITATION / Phase-2 backlog: Trade/coin UI still lists 518 Binance symbols; only the 6 mapped coins trade on HL (others error at trade time via _hl_resolve_pair). Should restrict coin picker when HL connected. Charts/klines still from Binance public (UBTC price ≈ BTC). Fees approximate (HL spot ~0.07% taker).
+
+## 2026-11-09 (cont): Hyperliquid QA fixes & verification
+- Moved Hyperliquid to list position #9 (ExchangeList EXCHANGES array, after Gate, before KuCoin which is now #10).
+- Relabelled credential field "Agent Private Key" → "Agent API Key" (BindAPI.jsx label + placeholder "Agent / API key (trade-only)" + keyHint), per user request.
+- Self-tested (all pass): mainnet pair resolution + live prices for all 6 symbols; size/price rounding; fill parser (filled + error); testnet signing/connectivity (generated agent key → signed order reached HL, parser surfaced response); DEMO BUY→SELL cycle on SOLUSDT with HL connected (txns recorded).
+- testing_agent iteration_33: 6/9 backend pass + all frontend pass. Found gap: binance/kucoin/lbank bind endpoints did not block when hyperliquid already connected. FIXED — added hyperliquid_keys check to all three bind endpoints; verified 400 returned. One-exchange-per-account now fully bidirectional.
+- STILL PENDING (needs user's funded HL account + agent key): real mainnet/testnet filled order E2E.

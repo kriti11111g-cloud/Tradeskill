@@ -1,0 +1,49 @@
+{
+  "summary": "Tested the Hyperliquid SPOT integration end to end, backend and frontend, using demo.team1. Backend (pytest, 9 tests): 6 passed, 3 failed. Pairs, validation, demo bind/get/unbind, the demo BUY->SELL cycle on SOLUSDT and blocking Hyperliquid while Binance is bound all work. The 3 failures are one gap in the one-exchange-per-account rule: the Binance, KuCoin and LBank bind endpoints do not check for an existing Hyperliquid binding, so any of them can be added while Hyperliquid is connected. Frontend (430px viewport): every requested UI check passed, including demo bind and unbind through the UI. The account was left with no exchange bound.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/binance/bind, POST /api/kucoin/bind, POST /api/lbank/bind", "issue": "These endpoints do not check db.hyperliquid_keys. With Hyperliquid bound in demo, each of them returned 200 and bound a second exchange. This breaks the one-exchange-per-account rule. _execute_trade then silently routes by priority lbank > kucoin > hyperliquid > binance. Fix: add `if await db.hyperliquid_keys.find_one({'user_id': user['id']}): raise HTTPException(400, 'Hyperliquid is already connected... Disconnect Hyperliquid first...')` to all three bind handlers (around lines 699, 775 and 920).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/trade/order (Hyperliquid demo)", "issue": "Demo transactions have no 'exchange' field, while the real Hyperliquid path sets exchange='hyperliquid'. The demo price also comes from Binance (85.66), not the Hyperliquid mid (85.60). The design allows this, but the history cannot show which exchange a demo trade belongs to."},
+      {"endpoint": "Hyperliquid helpers", "issue": "Synchronous SDK network calls run inside async code and block the event loop: _hl_resolve_pair -> info.spot_meta() (cold cache), _hl_price -> info.all_mids(), the _HLInfo(...) constructor (which fetches meta) in get_user_hyperliquid and in hyperliquid_bind, and _HLExchange(...). Wrap them in run_in_threadpool, or cache the Info and Exchange objects per network."},
+      {"endpoint": "POST /api/hyperliquid/bind (real/testnet)", "issue": "Binding only checks that the address can be reached through spot_user_state. It does not check that the agent key is actually approved for the account, so a wrong agent key binds fine and fails later at order time. Consider checking info.query_user_to_multi_sig_signers or the extraAgents list, or placing a tiny dry-run order."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ExchangeList badge", "issue": "The badge shows 'Live' only when mode==='real'. A testnet binding shows 'Demo', while the connected card's isLive treats testnet as live. Minor inconsistency that also exists for the other exchanges.", "selector": "[data-testid=exchange-row-hyperliquid]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_working": [
+    "/bind-api: Hyperliquid is row #9 with tag 'No-KYC · Non-custodial Spot' and a blue Bind button; KuCoin is #10",
+    "/bind-api/hyperliquid: green safety card, no Server IP/whitelist card, Demo/Testnet/Real modes, 'Main Wallet Address' input, 'Agent API Key' label with placeholder 'Agent / API key (trade-only)', no 'Private Key' text",
+    "Switching to Testnet and Real shows the Hyperliquid-specific warnings",
+    "UI demo bind shows the toast 'Hyperliquid connected successfully' and the API Bound card '0xa1a1…a1a1 · DEMO'; the list row then shows 'Demo'; clicking Binance shows 'Please disconnect Hyperliquid first'; UI unbind shows 'API unbound'",
+    "GET /api/hyperliquid/pairs returns the 6 pairs (@142, @151, @156, @107, @162, @188) with non-zero prices",
+    "Invalid address in real mode returns 400 mentioning 0x; invalid agent key in real mode returns 400",
+    "Demo bind sets active_exchange=hyperliquid; unbind resets it to binance; agent_key_enc is not exposed",
+    "Demo BUY 20 USDT then SELL on SOLUSDT both return transactions that are persisted in /transactions; bot.exchange is self-healed to hyperliquid",
+    "Hyperliquid bind is blocked (400) when Binance is bound"
+  ],
+  "test_report_links": ["/app/backend/tests/test_hyperliquid_integration.py", "/app/test_reports/pytest/pytest_hyperliquid.xml"],
+  "action_items": [
+    "Add a Hyperliquid-already-connected check to the POST /binance/bind, /kucoin/bind and /lbank/bind handlers",
+    "Optional: add exchange='hyperliquid' to demo transactions when the routed exchange is Hyperliquid",
+    "Optional: move the synchronous Hyperliquid SDK calls off the event loop with run_in_threadpool"
+  ],
+  "critical_code_review_comments": [
+    "The one-exchange rule is only enforced in one direction for Hyperliquid (see the critical issue above)",
+    "Blocking SDK I/O in async paths (_hl_price, _hl_resolve_pair, Info/Exchange constructors)",
+    "server.py is about 6900 lines; the Hyperliquid code should move into its own module"
+  ],
+  "updated_files": ["/app/backend/tests/test_hyperliquid_integration.py"],
+  "success_rate": {"backend": "67% (6/9; the 3 failures are one issue across 3 endpoints)", "frontend": "100%"},
+  "test_credentials": "demo.team1@tgxbot.com / Test@12345",
+  "seed_data_creation": "None kept. The test creates temporary Binance/KuCoin/LBank demo bindings and Hyperliquid demo bindings on demo.team1, and removes them in the same test. It also adds 2 demo SOLUSDT transactions (BUY+SELL, about +$0.007 profit).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run with: REACT_APP_BACKEND_URL=... pytest tests/test_hyperliquid_integration.py -n 0 (it must run serially because all tests share one account). The test_other_blocked_when_hl_bound cases should pass once the reverse checks are added. Real or testnet Hyperliquid fills cannot be tested without a funded wallet."
+}

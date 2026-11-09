@@ -701,6 +701,8 @@ async def bind_api(body: BindAPIIn, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add Binance.")
     if await db.lbank_keys.find_one({"user_id": user["id"]}):
         raise HTTPException(400, "LBank is already connected to this account. Disconnect LBank first to add Binance.")
+    if await db.hyperliquid_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Hyperliquid is already connected to this account. Disconnect Hyperliquid first to add Binance.")
     doc = {
         "user_id": user["id"],
         "api_key_enc": encrypt_text(body.api_key),
@@ -777,6 +779,8 @@ async def kucoin_bind(body: KuCoinBindIn, user: dict = Depends(get_current_user)
         raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add KuCoin.")
     if await db.lbank_keys.find_one({"user_id": user["id"]}):
         raise HTTPException(400, "LBank is already connected to this account. Disconnect LBank first to add KuCoin.")
+    if await db.hyperliquid_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Hyperliquid is already connected to this account. Disconnect Hyperliquid first to add KuCoin.")
     # For live mode, verify the keys actually work before saving.
     if body.mode == "real":
         client = KuCoinClient(body.api_key, body.api_secret, body.passphrase, body.key_version)
@@ -922,6 +926,8 @@ async def lbank_bind(body: LBankBindIn, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add LBank.")
     if await db.kucoin_keys.find_one({"user_id": user["id"]}):
         raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add LBank.")
+    if await db.hyperliquid_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Hyperliquid is already connected to this account. Disconnect Hyperliquid first to add LBank.")
     # For live mode, verify the keys actually work before saving.
     if body.mode == "real":
         client = LBankClient(body.api_key, body.api_secret)
