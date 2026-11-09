@@ -4932,13 +4932,23 @@ async def bot_wallet_activate(user: dict = Depends(get_current_user)):
         while idx < len(chain) and (first_upline or highest < 10 or s_highest < 10):
             up = chain[idx]
             up_level = min(_rank_level_of(up), 10)
-            # --- bot difference (rank cascade; only higher ranks override) ---
+            # --- bot difference (rank cascade; upline earns ONE step only) ---
+            # An upline earns exactly ONE rank-step (= share). Any intermediate
+            # rank-steps that were skipped because no member held that rank go to
+            # the COMPANY RESERVE instead of being absorbed/doubled by this upline.
             if up_level > highest:
-                diff_amt = round((up_level - highest) * share, 4)
-                if diff_amt > 0 and await _credit_commission(
-                        up["id"], diff_amt, "activation_difference",
+                steps = up_level - highest
+                step_amt = round(share, 4)
+                if step_amt > 0 and await _credit_commission(
+                        up["id"], step_amt, "activation_difference",
                         f"Bot difference income · {actor} activated · L{up['_glevel']}", from_user_id=user["id"]):
-                    distributed += diff_amt
+                    distributed += step_amt
+                skipped_amt = round((steps - 1) * share, 4)
+                if skipped_amt > 0:
+                    await _credit_admin_revenue(
+                        skipped_amt, "company_reserve", user["id"],
+                        note=f"Bot difference skipped rank-steps → reserve · {actor} activated · L{up['_glevel']}")
+                    distributed += skipped_amt
                 highest = up_level
             # --- support income (NOT gated by the bot-difference rank check) ---
             if first_upline:

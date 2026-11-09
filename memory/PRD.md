@@ -265,3 +265,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Backend: added POST /auth/security-otp/verify {code} (marks verified, not consumed). security_otps now stores verified flag. /auth/password/update and /auth/txn-password/update NO LONGER take code — they require a verified+unused+unexpired OTP and consume it via `_consume_verified_security_otp` (atomic find_one_and_update verified&used!=True).
 - Frontend SecurityCentre.jsx rewritten: equal cards + modal with 3 steps.
 - VERIFIED (script): update-without-verify→400, wrong OTP→400, verify→update works (old pw rejected/new works), reuse consumed→400, txn update works. Screenshots: equal cards + "Are you sure" popup. Credentials restored to Test@12345.
+
+## 2026-11-09 (cont): Bot-difference — skipped rank-steps → company reserve
+- User rule: in the activation "Bot Difference" (rank-differential) cascade, an upline must earn ONLY ONE rank-step (= share, e.g. 2.04). Any intermediate skipped rank-steps (where no member held that rank) must go to COMPANY RESERVE instead of being absorbed/doubled by the upline. Applies to every skipped step (mid-chain and top). Maximize leftover to company/admin.
+- Changed in bot_wallet_activate (server.py ~line 4935): was `diff_amt=(up_level-highest)*share` all to upline. Now: upline gets `share` (1 step); `(steps-1)*share` credited to company_reserve via _credit_admin_revenue with note "Bot difference skipped rank-steps → reserve". `distributed` includes both so final remainder accounting stays correct.
+- NOT changed: trading-commission differential (_distribute_trading_deduction) is a %-based model whose unreached budget already goes to company_reserve (line ~4731) — no doubling issue; left as-is.
+- VERIFIED e2e (script): chain U→A(LEVEL1 sponsor)→B(LEVEL3, jumps 2 steps). B received exactly 2.04 (not 4.08); company_reserve got 2.04 skipped-step. PASS. Test users cleaned up.
