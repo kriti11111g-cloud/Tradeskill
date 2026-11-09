@@ -214,6 +214,7 @@ ACTIVATION_MEETING_PCT = 1.0         # 1% of activation → physical meeting fun
 SUPPORT_INCOME_PCT = 10.0    # % of direct bonus to sponsor's immediate upline
 
 RANK_PCT_BY_TITLE = {r["title"].upper(): float(r["commission_pct"]) for r in RANKS}
+RANK_PCT_BY_LEVEL = {int(r["level"]): float(r["commission_pct"]) for r in RANKS}  # cumulative % per level
 RANK_BONUS_BY_TITLE = {r["title"].upper(): float(r["direct_income"]) for r in RANKS}
 MAX_RANK_PCT = max(RANK_PCT_BY_TITLE.values())
 # Direct income per rank level + the fixed activation direct-income pot (= Level 10 max).
@@ -4716,12 +4717,23 @@ async def _distribute_trading_deduction(user_id: str, profit: float, deducted: f
                 break
             pct = _rank_pct_of(anc)
             if pct > highest:
-                diff = round(pct - highest, 4)
-                amt = round(profit * diff / 100.0 * scale, 4)
+                # Upline earns ONLY their OWN rank-level increment. Any lower
+                # rank-levels that NO active upline occupied go to COMPANY RESERVE
+                # (not absorbed/doubled by this upline) — maximises company reserve.
+                own_lvl = min(_rank_level_of(anc), 10)
+                prev_pct = RANK_PCT_BY_LEVEL.get(own_lvl - 1, 0.0)
+                step_lower = max(highest, prev_pct)
+                amt = round(profit * (pct - step_lower) / 100.0 * scale, 4)
                 ok = await _credit_commission(anc["id"], amt, "team_commission",
-                                              f"Differential {diff}% from {trader_label} · {symbol} · L{hops + 1}",
+                                              f"Differential {round(pct - step_lower, 4)}% from {trader_label} · {symbol} · L{hops + 1}",
                                               from_user_id=user_id, symbol=symbol)
                 if ok:
+                    skipped = round(profit * (step_lower - highest) / 100.0 * scale, 4)
+                    if skipped > 0:
+                        await _credit_admin_revenue(
+                            skipped, "company_reserve", user_id,
+                            note=f"Trading differential skipped rank-steps → reserve · from {trader_label} · {symbol}",
+                            symbol=symbol)
                     # Only advance (occupy the rank slot) when an ACTIVE upline earns.
                     highest = pct
             cur = anc.get("referred_by")

@@ -271,3 +271,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Changed in bot_wallet_activate (server.py ~line 4935): was `diff_amt=(up_level-highest)*share` all to upline. Now: upline gets `share` (1 step); `(steps-1)*share` credited to company_reserve via _credit_admin_revenue with note "Bot difference skipped rank-steps → reserve". `distributed` includes both so final remainder accounting stays correct.
 - NOT changed: trading-commission differential (_distribute_trading_deduction) is a %-based model whose unreached budget already goes to company_reserve (line ~4731) — no doubling issue; left as-is.
 - VERIFIED e2e (script): chain U→A(LEVEL1 sponsor)→B(LEVEL3, jumps 2 steps). B received exactly 2.04 (not 4.08); company_reserve got 2.04 skipped-step. PASS. Test users cleaned up.
+
+## 2026-11-09 (cont): Trading-commission differential — same skipped-steps → company rule
+- Applied the same rule to trading-commission differential (_distribute_trading_deduction): each active upline now earns ONLY their OWN rank-level increment (pct(level) − pct(level-1), clamped to current highest). Any lower rank-levels not occupied by an active upline → company_reserve (note "Trading differential skipped rank-steps → reserve"). Top unreached budget still → company_reserve (existing). Added RANK_PCT_BY_LEVEL constant.
+- IMPACT: uplines now earn much less (only own single rank increment, e.g. 0.75%) vs previously whole cumulative span; the difference goes to company/admin — per user request to maximise admin reserve.
+- VERIFIED e2e (script, _distribute_trading_deduction, profit 100/deducted 25): chain trader→A(L2)→B(L5): A=0.75%, B=0.75%, skipped-steps reserve=5.0, top budget reserve=5.5, TOTAL=12.0% conserved. PASS.
