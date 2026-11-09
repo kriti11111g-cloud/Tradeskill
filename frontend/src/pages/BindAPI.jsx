@@ -55,7 +55,7 @@ const EX = {
       { id: "testnet", label: "Testnet", desc: "HL Testnet" },
       { id: "real", label: "Real", desc: "Live Spot" },
     ],
-    keyHint: "No KYC needed. Open app.hyperliquid.xyz/API with your wallet, generate an Agent/API wallet, and paste its private key here. The agent key can only trade — it can NEVER withdraw your funds.",
+    keyHint: "No KYC needed. Open app.hyperliquid.xyz/API with your wallet, generate an Agent/API wallet, and paste its Agent API key here. The agent key can only trade — it can NEVER withdraw your funds.",
   },
 };
 
@@ -379,11 +379,11 @@ export default function BindAPI() {
 
           {/* API SECRET / Agent key */}
           <div>
-            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>{cfg.walletStyle ? "Agent Private Key" : "API Secret"}</label>
+            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>{cfg.walletStyle ? "Agent API Key" : "API Secret"}</label>
             <div className="relative mt-2">
               <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
               <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required={mode !== "demo"} type={showSecret ? "text" : "password"}
-                placeholder={cfg.walletStyle ? "Agent/API-wallet private key (trade-only)" : `Paste your ${cfg.name} secret`}
+                placeholder={cfg.walletStyle ? "Agent / API key (trade-only)" : `Paste your ${cfg.name} secret`}
                 className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13px] outline-none transition-all"
                 style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.18)", color: C.white }}
                 data-testid="input-secret" />
