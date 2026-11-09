@@ -6373,13 +6373,15 @@ async def withdraw_otp_verify(body: OtpVerifyIn,
 
 # ==================== Security Centre: password & txn-password update (OTP-gated) ====================
 class SecurityPwUpdateIn(BaseModel):
-    code: str
     new_password: str = Field(min_length=6)
 
 
 class SecurityTxnPwUpdateIn(BaseModel):
-    code: str
     new_password: str = Field(min_length=4)
+
+
+class SecurityOtpVerifyIn(BaseModel):
+    code: str
 
 
 @api.post("/auth/security-otp/send")
@@ -6398,7 +6400,7 @@ async def security_otp_send(user: dict = Depends(get_current_user)):
          "code_hash": hashlib.sha256(code.encode()).hexdigest(),
          "created_at": iso(now),
          "expires_at": iso(now + timedelta(seconds=OTP_TTL_SECONDS)),
-         "attempts": 0, "used": False},
+         "attempts": 0, "verified": False, "used": False},
         upsert=True)
     try:
         await asyncio.to_thread(_send_otp_email, user.get("email", ""), code, "security")
@@ -6413,9 +6415,10 @@ async def security_otp_send(user: dict = Depends(get_current_user)):
     return resp
 
 
-async def _consume_security_otp(user_id: str, code: str):
-    """Validate + atomically single-use-consume the security OTP. Raises HTTPException on failure."""
-    doc = await db.security_otps.find_one({"user_id": user_id}, {"_id": 0})
+@api.post("/auth/security-otp/verify")
+async def security_otp_verify(body: SecurityOtpVerifyIn, user: dict = Depends(get_current_user)):
+    """Verify the security OTP (marks it verified, not yet consumed). Called before showing the password form."""
+    doc = await db.security_otps.find_one({"user_id": user["id"]}, {"_id": 0})
     if not doc:
         raise HTTPException(400, "Request an OTP first")
     if doc.get("used"):
@@ -6424,21 +6427,32 @@ async def _consume_security_otp(user_id: str, code: str):
         raise HTTPException(400, "OTP expired — request a new one")
     if doc.get("attempts", 0) >= 5:
         raise HTTPException(429, "Too many wrong attempts — request a new OTP")
-    code_hash = hashlib.sha256(code.strip().encode()).hexdigest()
-    if code_hash != doc["code_hash"]:
-        await db.security_otps.update_one({"user_id": user_id}, {"$inc": {"attempts": 1}})
+    if hashlib.sha256(body.code.strip().encode()).hexdigest() != doc["code_hash"]:
+        await db.security_otps.update_one({"user_id": user["id"]}, {"$inc": {"attempts": 1}})
         raise HTTPException(400, "Incorrect OTP")
-    # Atomic one-time consume — prevents reuse under concurrency.
+    await db.security_otps.update_one({"user_id": user["id"]}, {"$set": {"verified": True}})
+    return {"ok": True, "verified": True}
+
+
+async def _consume_verified_security_otp(user_id: str):
+    """Require a verified, unused, unexpired security OTP and atomically consume it. Raises on failure."""
+    doc = await db.security_otps.find_one({"user_id": user_id}, {"_id": 0})
+    if not doc or not doc.get("verified"):
+        raise HTTPException(400, "Email OTP verification required")
+    if doc.get("used"):
+        raise HTTPException(400, "OTP already used — request a new one")
+    if datetime.fromisoformat(doc["expires_at"]) < now_utc():
+        raise HTTPException(400, "OTP expired — request a new one")
     consumed = await db.security_otps.find_one_and_update(
-        {"user_id": user_id, "code_hash": code_hash, "used": {"$ne": True}},
+        {"user_id": user_id, "verified": True, "used": {"$ne": True}},
         {"$set": {"used": True}})
     if not consumed:
-        raise HTTPException(400, "OTP already used — request a new one")
+        raise HTTPException(400, "Email OTP verification required")
 
 
 @api.post("/auth/password/update")
 async def security_password_update(body: SecurityPwUpdateIn, user: dict = Depends(get_current_user)):
-    await _consume_security_otp(user["id"], body.code)
+    await _consume_verified_security_otp(user["id"])
     await db.users.update_one({"id": user["id"]},
                               {"$set": {"password_hash": hash_password(body.new_password)}})
     return {"ok": True, "message": "Login password updated successfully"}
@@ -6446,7 +6460,7 @@ async def security_password_update(body: SecurityPwUpdateIn, user: dict = Depend
 
 @api.post("/auth/txn-password/update")
 async def security_txn_password_update(body: SecurityTxnPwUpdateIn, user: dict = Depends(get_current_user)):
-    await _consume_security_otp(user["id"], body.code)
+    await _consume_verified_security_otp(user["id"])
     await db.users.update_one({"id": user["id"]},
                               {"$set": {"txn_password_hash": hash_password(body.new_password)}})
     return {"ok": True, "message": "Transaction password updated successfully"}

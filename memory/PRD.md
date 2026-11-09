@@ -259,3 +259,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend: new pages/SecurityCentre.jsx (expandable cards, new+confirm pw, Send OTP→enter OTP→Update, resend countdown). Route /security in App.js; Profile.jsx item to:"/security".
 - VERIFIED (script, demo.team1): valid OTP updates login pw (old rejected/new works), wrong OTP→400, short pw→422, cooldown→429, txn-pw update changes+verifies hash, OTP single-use consume. Credentials RESTORED to Test@12345 + txn restored. Frontend screenshot confirms page shows only the two options with OTP flow.
 - Note: preview EMAIL_OTP_MODE="managed" (real email, no demo_otp). Password min length: login 6, txn 4.
+
+## 2026-11-09 (cont): Security Centre flow reworked (verify-first) + equal cards
+- Per user: both option cards now identical compact size (no inline expand). Tapping a card opens a MODAL flow: Step1 "Are you sure?" confirm (English, Cancel / Yes, Continue) → Step2 send+enter OTP → Verify → Step3 New + Confirm password → Update.
+- Backend: added POST /auth/security-otp/verify {code} (marks verified, not consumed). security_otps now stores verified flag. /auth/password/update and /auth/txn-password/update NO LONGER take code — they require a verified+unused+unexpired OTP and consume it via `_consume_verified_security_otp` (atomic find_one_and_update verified&used!=True).
+- Frontend SecurityCentre.jsx rewritten: equal cards + modal with 3 steps.
+- VERIFIED (script): update-without-verify→400, wrong OTP→400, verify→update works (old pw rejected/new works), reuse consumed→400, txn update works. Screenshots: equal cards + "Are you sure" popup. Credentials restored to Test@12345.
