@@ -12,7 +12,7 @@ const EX = {
   binance: {
     name: "Binance",
     path: "/binance/bind",
-    others: [{ id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }],
+    others: [{ id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }, { id: "hyperliquid", path: "/hyperliquid/bind", name: "Hyperliquid" }],
     needsPassphrase: false,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
@@ -24,7 +24,7 @@ const EX = {
   kucoin: {
     name: "KuCoin",
     path: "/kucoin/bind",
-    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }],
+    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }, { id: "hyperliquid", path: "/hyperliquid/bind", name: "Hyperliquid" }],
     needsPassphrase: true,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
@@ -35,13 +35,27 @@ const EX = {
   lbank: {
     name: "LBank",
     path: "/lbank/bind",
-    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }],
+    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }, { id: "hyperliquid", path: "/hyperliquid/bind", name: "Hyperliquid" }],
     needsPassphrase: false,
     modes: [
       { id: "demo", label: "Demo", desc: "Simulated" },
       { id: "real", label: "Real", desc: "Live Trading" },
     ],
     keyHint: "Generate keys in LBank → API Management. Choose HmacSHA256, enable Read + Spot Trading only (never withdrawals), and bind this server's IP.",
+  },
+  hyperliquid: {
+    name: "Hyperliquid",
+    path: "/hyperliquid/bind",
+    others: [{ id: "binance", path: "/binance/bind", name: "Binance" }, { id: "kucoin", path: "/kucoin/bind", name: "KuCoin" }, { id: "lbank", path: "/lbank/bind", name: "LBank" }],
+    needsPassphrase: false,
+    walletStyle: true,   // address + agent key, no IP whitelist
+    noKyc: true,
+    modes: [
+      { id: "demo", label: "Demo", desc: "Simulated" },
+      { id: "testnet", label: "Testnet", desc: "HL Testnet" },
+      { id: "real", label: "Real", desc: "Live Spot" },
+    ],
+    keyHint: "No KYC needed. Open app.hyperliquid.xyz/API with your wallet, generate an Agent/API wallet, and paste its private key here. The agent key can only trade — it can NEVER withdraw your funds.",
   },
 };
 
@@ -117,10 +131,15 @@ export default function BindAPI() {
   const doBind = async () => {
     setLoading(true);
     try {
-      const payload = { api_key: apiKey, api_secret: apiSecret, mode };
-      if (cfg.needsPassphrase) payload.passphrase = passphrase;
+      let payload;
+      if (cfg.walletStyle) {
+        payload = { account_address: apiKey.trim(), agent_private_key: apiSecret.trim(), mode };
+      } else {
+        payload = { api_key: apiKey, api_secret: apiSecret, mode };
+        if (cfg.needsPassphrase) payload.passphrase = passphrase;
+      }
       await api.post(cfg.path, payload);
-      toast.success(`${cfg.name} API bound successfully`);
+      toast.success(`${cfg.name} connected successfully`);
       setApiKey(""); setApiSecret(""); setPassphrase("");
       setConfirmOpen(false); setAck(false);
       load();
@@ -224,7 +243,8 @@ export default function BindAPI() {
           </div>
         )}
 
-        {/* ===== Server IP card ===== */}
+        {/* ===== Server IP card (not needed for non-custodial Hyperliquid) ===== */}
+        {!cfg.walletStyle && (
         <div className="rounded-3xl p-5" style={{ ...cardStyle, boxShadow: dark ? "0 0 18px rgba(37,99,235,0.1), 0 8px 24px rgba(0,0,0,0.28)" : "0 4px 18px rgba(37,99,235,0.07)" }} data-testid="whitelist-ip-card">
           <div className="flex items-start gap-3.5">
             <div className="rounded-2xl flex items-center justify-center text-white shrink-0" style={{ width: 46, height: 46, background: BLUE_GRAD, boxShadow: "0 0 12px rgba(59,130,246,0.3)" }}>
@@ -247,6 +267,17 @@ export default function BindAPI() {
             <button onClick={copyIp}><Copy size={16} color={C.blue} /></button>
           </div>
         </div>
+        )}
+
+        {/* ===== Hyperliquid safety note ===== */}
+        {cfg.walletStyle && (
+        <div className="rounded-3xl p-5 flex items-start gap-3" style={{ ...cardStyle, border: "1px solid rgba(34,197,94,0.4)" }} data-testid="hl-safety-card">
+          <ShieldCheck size={20} color="#22C55E" className="shrink-0 mt-0.5" />
+          <div className="text-[11.5px] leading-relaxed" style={{ color: C.mute }}>
+            <b style={{ color: C.white }}>No KYC · Non-custodial.</b> You connect with a trade-only <b style={{ color: C.blue }}>Agent key</b> (generated at <span style={{ color: C.blue }}>app.hyperliquid.xyz/API</span>). It can place/cancel spot orders but <b style={{ color: "#22C55E" }}>can never withdraw</b> your funds. Spot only — no leverage, so your position can never be liquidated to zero.
+          </div>
+        </div>
+        )}
 
         {/* ===== Trading Mode ===== */}
         <div className="rounded-3xl p-5" style={cardStyle}>
@@ -295,12 +326,16 @@ export default function BindAPI() {
             <div className="rounded-2xl p-4 mt-4 flex items-start gap-3" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.4)" }}>
               <AlertTriangle size={20} color="#F87171" className="shrink-0 mt-0.5" />
               <div className="text-[11.5px] leading-relaxed" style={{ color: dark ? "#FCA5A5" : "#B91C1C" }}>
-                <b className="font-semibold text-[#EF4444]">Real mode places live orders on {cfg.name} using your funds.</b> Enable only Read Info + Spot Trading, and whitelist this IP. This setting cannot be reversed.
+                {cfg.walletStyle
+                  ? <><b className="font-semibold text-[#EF4444]">Real mode places live SPOT orders on Hyperliquid mainnet using your funds.</b> Spot only — no leverage, so no liquidation. The agent key can trade but never withdraw.</>
+                  : <><b className="font-semibold text-[#EF4444]">Real mode places live orders on {cfg.name} using your funds.</b> Enable only Read Info + Spot Trading, and whitelist this IP. This setting cannot be reversed.</>}
               </div>
             </div>
           ) : mode === "testnet" ? (
             <div className="rounded-2xl p-4 mt-4 text-[11.5px] leading-relaxed" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", color: dark ? "#FCD34D" : "#B45309" }}>
-              Testnet mode places REAL orders on Binance's Spot Testnet (fake funds). Get keys at testnet.binance.vision.
+              {cfg.walletStyle
+                ? "Testnet mode places REAL spot orders on Hyperliquid Testnet (test funds). Generate a testnet agent key at app.hyperliquid-testnet.xyz/API."
+                : "Testnet mode places REAL orders on Binance's Spot Testnet (fake funds). Get keys at testnet.binance.vision."}
             </div>
           ) : (
             <div className="rounded-2xl p-4 mt-4 text-[11.5px] leading-relaxed" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", color: C.mute }}>
@@ -316,36 +351,39 @@ export default function BindAPI() {
               <KeyRound size={21} />
             </div>
             <div className="min-w-0">
-              <div className="font-display font-semibold text-[15.5px]" style={{ color: C.white }}>API Credentials</div>
+              <div className="font-display font-semibold text-[15.5px]" style={{ color: C.white }}>{cfg.walletStyle ? "Wallet Connection" : "API Credentials"}</div>
               <div className="text-[11.5px] mt-1 leading-relaxed" style={{ color: C.mute }}>
-                Enter your {cfg.name} API key and secret to connect with TradeSkill.
+                {cfg.walletStyle
+                  ? "Enter your Hyperliquid main wallet address and a trade-only Agent key."
+                  : `Enter your ${cfg.name} API key and secret to connect with TradeSkill.`}
               </div>
             </div>
           </div>
 
-          {/* API KEY */}
+          {/* API KEY / Wallet address */}
           <div>
-            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>API Key</label>
+            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>{cfg.walletStyle ? "Main Wallet Address" : "API Key"}</label>
             <div className="relative mt-2">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
-              <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} required type={showKey ? "text" : "password"}
-                placeholder={`Paste your ${cfg.name} API key`}
+              <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} required type={cfg.walletStyle ? "text" : (showKey ? "text" : "password")}
+                placeholder={cfg.walletStyle ? "0x… your Hyperliquid wallet address" : `Paste your ${cfg.name} API key`}
                 className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13px] outline-none transition-all"
                 style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.18)", color: C.white }}
                 data-testid="input-apikey" />
+              {!cfg.walletStyle && (
               <button type="button" onClick={() => setShowKey((v) => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2">
                 {showKey ? <EyeOff size={17} color={C.mute} /> : <Eye size={17} color={C.mute} />}
-              </button>
+              </button>)}
             </div>
           </div>
 
-          {/* API SECRET */}
+          {/* API SECRET / Agent key */}
           <div>
-            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>API Secret</label>
+            <label className="text-[10.5px] uppercase tracking-[0.16em] font-semibold" style={{ color: C.mute }}>{cfg.walletStyle ? "Agent Private Key" : "API Secret"}</label>
             <div className="relative mt-2">
               <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" color={C.mute} />
-              <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required type={showSecret ? "text" : "password"}
-                placeholder={`Paste your ${cfg.name} secret`}
+              <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} required={mode !== "demo"} type={showSecret ? "text" : "password"}
+                placeholder={cfg.walletStyle ? "Agent/API-wallet private key (trade-only)" : `Paste your ${cfg.name} secret`}
                 className="w-full rounded-2xl pl-10 pr-10 py-3 font-mono text-[13px] outline-none transition-all"
                 style={{ background: C.inner, border: "1px solid rgba(59,130,246,0.18)", color: C.white }}
                 data-testid="input-secret" />
@@ -382,7 +420,7 @@ export default function BindAPI() {
           </button>
 
           <div className="text-[10.5px] leading-relaxed px-0.5" style={{ color: C.mute }}>
-            <span className="font-semibold" style={{ color: C.white }}>Tip:</span> {cfg.keyHint} Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span>. Never share your secret.
+            <span className="font-semibold" style={{ color: C.white }}>Tip:</span> {cfg.keyHint}{!cfg.walletStyle && <> Enable only <span style={{ color: C.blue }}>Read Info + Spot Trading</span>. Never share your secret.</>}
           </div>
         </form>
       </div>

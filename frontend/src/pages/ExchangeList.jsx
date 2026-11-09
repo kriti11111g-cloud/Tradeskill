@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 
 const IMG = "https://coin-images.coingecko.com/markets/images";
-/* Top 25 spot exchanges (CMC rank order) — sabhi me trading API facility available hai */
+/* Top spot exchanges — sabhi me trading API facility available hai */
 const EXCHANGES = [
+  { id: "hyperliquid", name: "Hyperliquid", tag: "No-KYC · Non-custodial Spot", color: "#072723", mono: "HL", logo: `${IMG}/1248/small/hyperliquid.jpg` },
   { id: "binance", name: "Binance", tag: "Trade Smarter", color: "#F3BA2F", mono: "B", logo: `${IMG}/52/small/binance.jpg` },
   { id: "bybit", name: "Bybit", tag: "Next Level Trading", color: "#17181E", mono: "BB", logo: `${IMG}/698/small/bybit_spot.png` },
   { id: "coinbase", name: "Coinbase", tag: "The Future of Money", color: "#0052FF", mono: "C", logo: `${IMG}/23/small/Coinbase_Coin_Primary.png` },
@@ -47,12 +48,13 @@ const Logo = ({ ex, s = 30, ts = "text-[11px]" }) => (
   </div>
 );
 
-const SUPPORTED = new Set(["binance", "kucoin", "lbank"]);
+const SUPPORTED = new Set(["hyperliquid", "binance", "kucoin", "lbank"]);
 
 export default function ExchangeList() {
   const [binanceBind, setBinanceBind] = useState(null);
   const [kucoinBind, setKucoinBind] = useState(null);
   const [lbankBind, setLbankBind] = useState(null);
+  const [hyperliquidBind, setHyperliquidBind] = useState(null);
   const [ipModal, setIpModal] = useState(null); // exchange whose IP popup is open
   const navigate = useNavigate();
 
@@ -60,12 +62,13 @@ export default function ExchangeList() {
     api.get("/binance/bind").then(({ data }) => setBinanceBind(data)).catch(() => {});
     api.get("/kucoin/bind").then(({ data }) => setKucoinBind(data)).catch(() => {});
     api.get("/lbank/bind").then(({ data }) => setLbankBind(data)).catch(() => {});
+    api.get("/hyperliquid/bind").then(({ data }) => setHyperliquidBind(data)).catch(() => {});
   }, []);
 
-  const bindOf = (id) => (id === "kucoin" ? kucoinBind : id === "lbank" ? lbankBind : binanceBind);
+  const bindOf = (id) => (id === "kucoin" ? kucoinBind : id === "lbank" ? lbankBind : id === "hyperliquid" ? hyperliquidBind : binanceBind);
   // Account me jo exchange add hai (demo ya real) — one exchange per account
-  const activeId = kucoinBind?.api_key_mask ? "kucoin" : lbankBind?.api_key_mask ? "lbank" : binanceBind?.api_key_mask ? "binance" : null;
-  const connectedId = kucoinBind?.bound ? "kucoin" : lbankBind?.bound ? "lbank" : binanceBind?.bound ? "binance" : null;
+  const activeId = kucoinBind?.api_key_mask ? "kucoin" : lbankBind?.api_key_mask ? "lbank" : hyperliquidBind?.api_key_mask ? "hyperliquid" : binanceBind?.api_key_mask ? "binance" : null;
+  const connectedId = kucoinBind?.bound ? "kucoin" : lbankBind?.bound ? "lbank" : hyperliquidBind?.bound ? "hyperliquid" : binanceBind?.bound ? "binance" : null;
   const isConnected = !!connectedId;
   const connected = EXCHANGES.find((e) => e.id === connectedId) || EXCHANGES[0];
   const others = isConnected ? EXCHANGES.filter((e) => e.id !== connectedId) : EXCHANGES;

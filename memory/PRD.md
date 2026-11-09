@@ -221,3 +221,18 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend: Bonanza.jsx tier cards replaced with cashback card ($50/+$3/$47 + eligibility badge + auto-credit note); title "Diwali Special"; hero=Diwali image. BannerCarousel slide=Diwali image. Dashboard showcase image→Diwali banner (links to /bonanza).
 - Verified: curl /bonanza (live, countdown), direct logic test (in-window $50→$3 once, dedup, before-window/partial-pay rejected), history note correct. Screenshot shows live countdown + cashback card.
 - test_credentials: demo.team1@tgxbot.com / Test@12345 (unchanged).
+
+## 2026-11-09: Hyperliquid SPOT exchange integration (no-KYC, non-custodial)
+- User requirement path: no private-key sharing → no-KYC CEX API → settled on **Hyperliquid SPOT only** (no perps/leverage, so funds can't be liquidated to zero). Uses the Agent/API-wallet pattern (trade-only key, can NEVER withdraw).
+- Backend server.py (added before _execute_trade):
+  - SDK: `hyperliquid-python-sdk` + eth-account (installed; eth-utils auto-downgraded to 5.3.1, backend imports OK).
+  - `_HL_SPOT_BASE` map: BTCUSDT→UBTC, ETHUSDT→UETH, SOLUSDT→USOL, HYPEUSDT→HYPE, FARTUSDT→UFART, PUMPUSDT→UPUMP (all vs USDC). Pair/price resolved at runtime via spot_meta + all_mids() keyed by `@index`.
+  - Helpers: `_hl_public_info`, `_hl_resolve_pair`, `_hl_round_size`, `_hl_price`, `_hl_parse_fill`, `get_user_hyperliquid`, `_execute_hyperliquid_real` (mirrors `_execute_lbank_real`: market_open buy by size=amount/px, sell by base qty clamped to spot_user_state balance; updates bot/wallet/txn; exchange="hyperliquid").
+  - `_execute_trade`: conn_ex detection adds hyperliquid (priority lbank>kucoin>hyperliquid>binance); routes to `_execute_hyperliquid_real` when mode real/testnet, else demo→shared sim.
+  - Endpoints: POST/GET/DELETE `/hyperliquid/bind` (collection `hyperliquid_keys`: account_address, agent_key_enc, mode demo/testnet/real; one-exchange-per-account enforced; real/testnet validates addr regex + agent key parse + spot_user_state reachability). GET `/hyperliquid/pairs` (public, 6 symbols + live price). GET `/hyperliquid/account` (balances + open orders via main address).
+- Frontend:
+  - ExchangeList.jsx: Hyperliquid added at top of EXCHANGES ("No-KYC · Non-custodial Spot"), SUPPORTED set + hyperliquidBind state/bindOf/activeId/connectedId.
+  - BindAPI.jsx: EX.hyperliquid entry `walletStyle:true` (modes demo/testnet/real). Wallet-style form: hides IP-whitelist card, shows green "No KYC · Non-custodial · agent key can never withdraw" note, inputs become "Main Wallet Address" + "Agent Private Key", HL-specific testnet/real warnings + tip. doBind sends {account_address, agent_private_key, mode}.
+- VERIFIED (preview): /hyperliquid/pairs live prices (UBTC $73865 etc.); demo bind→GET→delete; bad-address 400. Screenshots: exchange list shows Hyperliquid+Bind; bind page wallet-style form renders, testnet mode toggle works.
+- NOT YET VERIFIED (needs user's real HL agent key + funded account): live spot BUY/SELL order execution E2E. Code path complete, mirrors proven LBank path.
+- LIMITATION / Phase-2 backlog: Trade/coin UI still lists 518 Binance symbols; only the 6 mapped coins trade on HL (others error at trade time via _hl_resolve_pair). Should restrict coin picker when HL connected. Charts/klines still from Binance public (UBTC price ≈ BTC). Fees approximate (HL spot ~0.07% taker).

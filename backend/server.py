@@ -31,7 +31,7 @@ import hashlib
 import base64
 import hmac
 import json as _json
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import chain_wallet
 
 
@@ -963,6 +963,112 @@ async def lbank_unbind(user: dict = Depends(get_current_user)):
     await db.lbank_keys.delete_one({"user_id": user["id"]})
     await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "binance"}})
     return {"ok": True}
+
+
+# ==== Hyperliquid SPOT (no-KYC, non-custodial agent wallet) ====
+class HyperliquidBindIn(BaseModel):
+    account_address: str
+    agent_private_key: str
+    mode: Literal["real", "testnet", "demo"] = "demo"
+
+
+import re as _re_hl
+
+
+@api.post("/hyperliquid/bind")
+async def hyperliquid_bind(body: HyperliquidBindIn, user: dict = Depends(get_current_user)):
+    # One exchange per account.
+    if await db.binance_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "Binance is already connected to this account. Disconnect Binance first to add Hyperliquid.")
+    if await db.kucoin_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "KuCoin is already connected to this account. Disconnect KuCoin first to add Hyperliquid.")
+    if await db.lbank_keys.find_one({"user_id": user["id"]}):
+        raise HTTPException(400, "LBank is already connected to this account. Disconnect LBank first to add Hyperliquid.")
+    addr = body.account_address.strip()
+    if not _re_hl.fullmatch(r"0x[a-fA-F0-9]{40}", addr):
+        raise HTTPException(400, "Enter a valid Hyperliquid wallet address (0x…40 hex chars).")
+    # For live/testnet, validate the agent key format and that the account is reachable.
+    if body.mode in ("real", "testnet"):
+        key = body.agent_private_key.strip()
+        try:
+            agent = _EthAccount.from_key(key)
+        except Exception:
+            raise HTTPException(400, "Invalid agent private key. Generate it at app.hyperliquid.xyz/API.")
+        net = "testnet" if body.mode == "testnet" else "real"
+        try:
+            info = _HLInfo(_HL_URLS[net], skip_ws=True)
+            await run_in_threadpool(info.spot_user_state, addr.lower())
+        except Exception as e:
+            raise HTTPException(400, f"Hyperliquid unreachable or address invalid: {e}")
+        agent_key_enc = encrypt_text(key)
+    else:
+        agent_key_enc = ""
+    doc = {
+        "user_id": user["id"],
+        "account_address": addr.lower(),
+        "agent_key_enc": agent_key_enc,
+        "address_mask": addr[:6] + "…" + addr[-4:],
+        "mode": body.mode,
+        "updated_at": iso(now_utc()),
+    }
+    await db.hyperliquid_keys.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "hyperliquid"}})
+    return {"ok": True, "mask": doc["address_mask"], "mode": body.mode}
+
+
+@api.get("/hyperliquid/bind")
+async def hyperliquid_get_bind(user: dict = Depends(get_current_user)):
+    row = await db.hyperliquid_keys.find_one(
+        {"user_id": user["id"]}, {"_id": 0, "agent_key_enc": 0})
+    if not row:
+        return {"mode": None, "api_key_mask": None, "bound": False}
+    # Normalize to the shape the frontend expects (reuses api_key_mask field).
+    row["api_key_mask"] = row.get("address_mask")
+    row["bound"] = row.get("mode") in ("real", "testnet")
+    return row
+
+
+@api.delete("/hyperliquid/bind")
+async def hyperliquid_unbind(user: dict = Depends(get_current_user)):
+    await db.hyperliquid_keys.delete_one({"user_id": user["id"]})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"active_exchange": "binance"}})
+    return {"ok": True}
+
+
+@api.get("/hyperliquid/pairs")
+async def hyperliquid_pairs(user: dict = Depends(get_current_user)):
+    """Supported Hyperliquid spot pairs (app symbols) with live prices. No keys needed."""
+    row = await db.hyperliquid_keys.find_one({"user_id": user["id"]}, {"_id": 0, "mode": 1})
+    net = "testnet" if (row or {}).get("mode") == "testnet" else "real"
+    try:
+        info = _hl_public_info(net)
+        mids = await run_in_threadpool(info.all_mids)
+        out = []
+        for sym, base in _HL_SPOT_BASE.items():
+            try:
+                pair = _hl_resolve_pair(info, sym, net)
+                out.append({"symbol": sym, "base": base,
+                            "coin": pair["coin"], "price": float(mids.get(pair["coin"]) or 0)})
+            except Exception:
+                continue
+        return {"network": net, "pairs": out}
+    except Exception as e:
+        raise HTTPException(400, f"Hyperliquid market data unreachable: {e}")
+
+
+@api.get("/hyperliquid/account")
+async def hyperliquid_account(user: dict = Depends(get_current_user)):
+    """Live Hyperliquid spot balances + open orders (uses the main account address)."""
+    info, _ex, mode, address = await get_user_hyperliquid(user["id"])
+    if not info:
+        raise HTTPException(400, "No live Hyperliquid wallet bound. Bind in real/testnet mode first.")
+    try:
+        state = await run_in_threadpool(info.spot_user_state, address)
+        orders = await run_in_threadpool(info.open_orders, address)
+        return {"mode": mode, "address": address,
+                "balances": (state or {}).get("balances", []), "open_orders": orders}
+    except Exception as e:
+        raise HTTPException(400, f"Hyperliquid error: {e}")
 
 
 # ==== Public Market Data ====
@@ -2772,6 +2878,210 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
     return txn
 
 
+# ==================== Hyperliquid SPOT (no-KYC, non-custodial agent wallet) ====================
+# Spot only — no perps/leverage/withdrawals. Each user binds their own main wallet
+# address + a trade-only AGENT key (generated at app.hyperliquid.xyz/API). The agent
+# key can place/cancel orders but CANNOT withdraw, so user funds can never be stolen.
+from hyperliquid.info import Info as _HLInfo
+from hyperliquid.exchange import Exchange as _HLExchange
+from hyperliquid.utils import constants as _hl_const
+from eth_account import Account as _EthAccount
+
+_HL_URLS = {"real": _hl_const.MAINNET_API_URL, "testnet": _hl_const.TESTNET_API_URL}
+# App symbol (BTCUSDT) -> Hyperliquid spot BASE token name (bridged/native). Quote is USDC.
+_HL_SPOT_BASE = {
+    "BTCUSDT": "UBTC", "ETHUSDT": "UETH", "SOLUSDT": "USOL",
+    "HYPEUSDT": "HYPE", "FARTUSDT": "UFART", "PUMPUSDT": "UPUMP",
+}
+# Reverse map for building the HL coin list into app symbols.
+_HL_BASE_TO_SYMBOL = {v: k for k, v in _HL_SPOT_BASE.items()}
+_hl_info_cache: dict = {}        # network -> Info (keyless, public market data)
+_hl_pair_cache: dict = {}        # (network, symbol) -> {coin,index,sz_decimals,base}
+
+
+def _hl_public_info(network: str) -> "_HLInfo":
+    net = "testnet" if network == "testnet" else "real"
+    if net not in _hl_info_cache:
+        _hl_info_cache[net] = _HLInfo(_HL_URLS[net], skip_ws=True)
+    return _hl_info_cache[net]
+
+
+def _hl_resolve_pair(info: "_HLInfo", symbol: str, network: str) -> dict:
+    """Resolve an app symbol (BTCUSDT) to the HL spot pair {coin:'@idx', index, sz_decimals}."""
+    net = "testnet" if network == "testnet" else "real"
+    ck = (net, symbol)
+    if ck in _hl_pair_cache:
+        return _hl_pair_cache[ck]
+    base = _HL_SPOT_BASE.get(symbol.upper())
+    if not base:
+        raise _TradeError(400, f"{symbol} is not available on Hyperliquid spot")
+    meta = info.spot_meta()
+    tokens = {t["index"]: t for t in meta["tokens"]}
+    for p in meta["universe"]:
+        b, q = p["tokens"]
+        if tokens[b]["name"] == base and tokens[q]["name"] == "USDC":
+            out = {"coin": f'@{p["index"]}', "index": p["index"],
+                   "sz_decimals": tokens[b]["szDecimals"], "base": base}
+            _hl_pair_cache[ck] = out
+            return out
+    raise _TradeError(400, f"{base}/USDC spot pair not found on Hyperliquid")
+
+
+def _hl_round_size(value: float, decimals: int) -> float:
+    q = Decimal(1).scaleb(-decimals)
+    return float(Decimal(str(value)).quantize(q, rounding=ROUND_DOWN))
+
+
+def _hl_price(network: str, symbol: str) -> float:
+    """Live spot mid price for an app symbol from Hyperliquid."""
+    info = _hl_public_info(network)
+    pair = _hl_resolve_pair(info, symbol, network)
+    mids = info.all_mids()
+    px = mids.get(pair["coin"])
+    return float(px) if px else 0.0
+
+
+def _hl_parse_fill(result: dict) -> tuple[float, float, int]:
+    """Return (filled_qty, avg_px, oid) from an SDK order response. Raises on error."""
+    if not isinstance(result, dict) or result.get("status") != "ok":
+        raise _TradeError(400, f"Hyperliquid rejected order: {result}")
+    try:
+        statuses = result["response"]["data"]["statuses"]
+    except Exception:
+        raise _TradeError(400, f"Unexpected Hyperliquid response: {result}")
+    for st in statuses:
+        if "error" in st:
+            raise _TradeError(400, f"Hyperliquid order error: {st['error']}")
+        if "filled" in st:
+            f = st["filled"]
+            return float(f["totalSz"]), float(f["avgPx"]), int(f.get("oid", 0))
+        if "resting" in st:
+            # No immediate fill (shouldn't happen for IOC market) — treat as unfilled.
+            return 0.0, 0.0, int(st["resting"].get("oid", 0))
+    raise _TradeError(400, f"Hyperliquid order not filled: {result}")
+
+
+async def get_user_hyperliquid(user_id: str):
+    """Return (info, exchange, mode, address). info/exchange None for demo/no-keys."""
+    row = await db.hyperliquid_keys.find_one({"user_id": user_id})
+    if not row:
+        return None, None, "demo", None
+    mode = row.get("mode", "demo")
+    if mode == "demo":
+        return None, None, "demo", None
+    net = "testnet" if mode == "testnet" else "real"
+    try:
+        agent_key = decrypt_text(row["agent_key_enc"])
+    except Exception as e:
+        logger.error(f"decrypt hyperliquid key failed: {e}")
+        raise HTTPException(500, "Failed to load Hyperliquid credentials")
+    address = row["account_address"]
+    wallet = _EthAccount.from_key(agent_key)
+    info = _HLInfo(_HL_URLS[net], skip_ws=True)
+    exchange = _HLExchange(wallet, base_url=_HL_URLS[net], account_address=address)
+    return info, exchange, mode, address
+
+
+async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, info, exchange, mode, address):
+    """Hyperliquid live SPOT execution via agent wallet. Mirrors the LBank real path."""
+    net = "testnet" if mode == "testnet" else "real"
+    pair = _hl_resolve_pair(info, symbol, net)
+    coin, szd = pair["coin"], pair["sz_decimals"]
+    base = pair["base"]
+    try:
+        px = _hl_price(net, symbol)
+        if px <= 0:
+            raise _TradeError(400, "Hyperliquid price unavailable for this pair")
+        if side == "BUY":
+            amount = usdt_amount or 0
+            if amount <= 0:
+                raise _TradeError(400, "usdt_amount required for BUY")
+            sz = _hl_round_size(amount / px, szd)
+            if sz <= 0:
+                raise _TradeError(400, "Buy amount is below the Hyperliquid lot size")
+            result = await run_in_threadpool(
+                exchange.market_open, coin, True, sz, None, 0.02)
+        else:
+            qty = quantity or bot.get("position_qty", 0.0)
+            if qty <= 0:
+                raise _TradeError(400, "No position to sell")
+            # Clamp to actual available spot balance of the base token.
+            try:
+                state = await run_in_threadpool(info.spot_user_state, address)
+                for bal in (state or {}).get("balances", []):
+                    if bal.get("coin") == base:
+                        free = float(bal.get("total", 0)) - float(bal.get("hold", 0))
+                        if free > 0:
+                            qty = min(qty, free)
+                        break
+            except Exception:
+                pass
+            sz = _hl_round_size(qty, szd)
+            if sz <= 0:
+                raise _TradeError(400, "No sellable balance on Hyperliquid")
+            result = await run_in_threadpool(
+                exchange.market_open, coin, False, sz, None, 0.02)
+    except _TradeError:
+        raise
+    except Exception as e:
+        msg = f"Hyperliquid order failed: {e}"
+        logger.error(f"[hyperliquid trade] {symbol} {side}: {msg}")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
+
+    filled_qty, avg_price, oid = _hl_parse_fill(result)
+    if filled_qty <= 0 or avg_price <= 0:
+        msg = f"Hyperliquid order placed but not filled (oid={oid})"
+        logger.error(f"[hyperliquid trade] {symbol} {side}: {msg} (res={result})")
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"last_trade_error": msg, "last_error_at": iso(now_utc())}})
+        raise _TradeError(400, msg)
+    quote_spent = filled_qty * avg_price
+
+    if side == "BUY":
+        new_qty = bot.get("position_qty", 0.0) + filled_qty
+        new_amt = bot.get("position_amount", 0.0) + quote_spent
+        new_avg = new_amt / new_qty if new_qty > 0 else 0.0
+        new_wallet = max(0.0, wallet - quote_spent)
+        new_mc = bot.get("margin_call_count", 0) + (1 if bot.get("position_amount", 0) > 0 else 0)
+        rule = _get_margin_rule(bot, new_mc)
+        next_buy = avg_price * (1 - rule["drop"] / 100.0)
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {
+            "position_amount": new_amt, "position_qty": new_qty, "avg_price": new_avg,
+            "last_buy_price": avg_price, "next_buy_price": next_buy, "peak_price": 0.0,
+            "dca_bottom_price": 0.0, "margin_call_count": new_mc}}, upsert=True)
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+        profit = 0.0
+    else:
+        cost = filled_qty * bot.get("avg_price", 0.0)
+        profit = quote_spent - cost
+        remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
+        if remaining_qty < 1e-9:
+            remaining_qty = 0.0
+        remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
+        new_wallet = wallet + quote_spent
+        update_set = {"position_qty": remaining_qty, "position_amount": remaining_amt,
+                      "avg_price": bot.get("avg_price", 0.0) if remaining_qty > 0 else 0.0}
+        if remaining_qty == 0:
+            update_set.update({"margin_call_count": 0, "last_buy_price": 0.0, "next_buy_price": 0.0,
+                               "peak_price": 0.0, "dca_bottom_price": 0.0, "last_sell_price": avg_price,
+                               "cycles_completed": bot.get("cycles_completed", 0) + 1})
+            if bot.get("trade_method") == "One-Shot":
+                update_set["status"] = "stopped"
+        await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": update_set})
+        await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
+
+    txn = {"id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol, "side": side,
+           "price": avg_price, "quantity": filled_qty, "amount": quote_spent, "profit": profit,
+           "mode": mode, "source": source, "exchange": "hyperliquid",
+           "binance_order_id": str(oid), "binance_status": "filled",
+           "created_at": iso(now_utc())}
+    await db.transactions.insert_one(txn)
+    if side == "SELL" and profit > 0 and source not in ("bot_stop", "fresh_start"):
+        await _charge_trading_fee(user_id, profit, symbol)
+    txn.pop("_id", None)
+    return txn
+
+
 async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual"):
     """Shared trade executor used by both the /trade/order endpoint and the bot engine.
     Returns the transaction dict. Raises _TradeError on failure."""
@@ -2793,6 +3103,8 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         conn_ex = "lbank"
     elif await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
         conn_ex = "kucoin"
+    elif await db.hyperliquid_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        conn_ex = "hyperliquid"
     elif await db.binance_keys.find_one({"user_id": user_id}, {"_id": 1}):
         conn_ex = "binance"
     else:
@@ -2807,6 +3119,13 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         if kc and kmode == "real":
             return await _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, kc, kmode)
         client, mode = None, "demo"  # KuCoin demo -> shared simulation below
+
+    # Route to Hyperliquid live SPOT engine when this bot is a Hyperliquid bot with real keys.
+    if bot.get("exchange") == "hyperliquid":
+        hinfo, hex_, hmode, haddr = await get_user_hyperliquid(user_id)
+        if hinfo and hmode in ("real", "testnet"):
+            return await _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, hinfo, hex_, hmode, haddr)
+        client, mode = None, "demo"  # Hyperliquid demo -> shared simulation below
 
     # Route to LBank live engine when this bot is an LBank bot with real keys.
     if bot.get("exchange") == "lbank":
