@@ -291,3 +291,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Logo: coingecko URL (markets/images/1248) returned 403 → only "HL" mono showed. Generated a hosted HL logo (emergent static URL) and used it in ExchangeList.jsx EXCHANGES + Trades.jsx EX_META. Verified logo 200 + screenshot shows it at #9.
 - Balance: user had ~$19.27 but Trade showed 0.00 USDC. Cause: funds are in Hyperliquid PERP/unified account; we only read SPOT (spot_user_state → 0). Fixed /hyperliquid/account to also read perp info.user_state marginSummary.accountValue and return usdc_spot / usdc_perp / usdc_total. Trades.jsx now shows usdc_total for HL.
 - IMPORTANT caveat for user: spot trading needs USDC in the SPOT wallet; the $19.27 is in the perp wallet. Card now shows total so funds are visible, but to actually spot-trade they must transfer USDC Perp→Spot inside Hyperliquid.
+
+## 2026-11-11 (cont-2): HL Spot/Perp balance breakdown + real logo
+- Used user's official uploaded logo.png (artifact c48ff1bb886e9d5b_logo.png) in ExchangeList.jsx #9 + Trades.jsx EX_META. HTTP 200 verified.
+- Added Spot/Perp USDC breakdown under HL balance in Trade card (data-testid=hl-balance-breakdown): "Spot X · Perp Y" from /hyperliquid/account usdc_spot/usdc_perp. Resolves user confusion about where the ~19.27 USDC sits.
+- User's HL app screenshot shows "Avail to Trade 19.27 USDC" on PERP panel (Cross/10x) → funds likely in Perp, not Spot. App trades spot-only, so a Perp→Spot USDC transfer inside HL is needed before spot orders fill.

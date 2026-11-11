@@ -738,6 +738,7 @@ export default function Trades() {
   const [bind, setBind] = useState(null);
   const [connected, setConnected] = useState(null); // any exchange bound? null=loading
   const [exUsdt, setExUsdt] = useState(null);
+  const [hlBreak, setHlBreak] = useState(null);
   const [exMeta, setExMeta] = useState({ id: "binance", name: "Binance" });
   const reloadBots = () => {
     api.get("/bots").then(({ data }) => setBots(data)).catch(() => {});
@@ -778,14 +779,17 @@ export default function Trades() {
             bal = typeof data.usdc_total === "number"
               ? data.usdc_total
               : parseFloat((data.balances || []).find((x) => x.coin === "USDC")?.total || 0);
+            setHlBreak({ spot: Number(data.usdc_spot || 0), perp: Number(data.usdc_perp || 0) });
           } else {
             const u = (data.balances || []).find((x) => x.asset === "USDT");
             bal = u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0;
+            setHlBreak(null);
           }
           setExUsdt(bal);
-        }).catch(() => setExUsdt(null));
+        }).catch(() => { setExUsdt(null); setHlBreak(null); });
       } else {
         setExUsdt(null);
+        setHlBreak(null);
       }
     };
     load();
@@ -895,6 +899,11 @@ export default function Trades() {
             {bind?.bound && exUsdt !== null && (
               <div className="text-[12px] font-black tabular-nums mt-0.5" style={{ color: "var(--ink)" }} data-testid="exchange-usdt-balance">
                 {exUsdt.toFixed(2)} <span className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>{exMeta.quote || "USDT"}</span>
+              </div>
+            )}
+            {bind?.bound && hlBreak && (
+              <div className="text-[9px] font-bold tabular-nums mt-0.5 text-right leading-tight" style={{ color: "var(--text-mute)" }} data-testid="hl-balance-breakdown">
+                Spot {hlBreak.spot.toFixed(2)} · Perp {hlBreak.perp.toFixed(2)}
               </div>
             )}
           </div>
