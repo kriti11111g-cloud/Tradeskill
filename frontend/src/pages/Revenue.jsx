@@ -57,7 +57,7 @@ function IncomeRow({ r, meta, showCoin }) {
           <>
             <div className="shrink-0"><CoinIcon symbol={coin} size={30} /></div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{coin} / USDT</div>
+              <div className="text-[13px] font-black truncate leading-tight" style={{ color: "var(--ink)" }}>{coin} / {String(r.trade?.exchange || "").toLowerCase() === "hyperliquid" ? "USDC" : "USDT"}</div>
               <div className="text-[10px] mt-0.5 tabular-nums" style={{ color: "var(--text-mute)" }}>
                 {new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
               </div>
@@ -91,26 +91,29 @@ function IncomeRow({ r, meta, showCoin }) {
               <div className="flex items-center gap-2">
                 <CoinIcon symbol={r.trade.symbol.replace(/USDT$/, "")} size={26} />
                 <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>
-                  {r.trade.symbol.replace(/USDT$/, "")} / USDT
+                  {r.trade.symbol.replace(/USDT$/, "")} / {String(r.trade.exchange || "").toLowerCase() === "hyperliquid" ? "USDC" : "USDT"}
                 </span>
                 <span className="text-[9.5px] font-black text-white px-2 py-0.5 rounded-md" style={{ background: "#DC2626" }}>SELL</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {(() => {
-                  const isKucoin = String(r.trade.exchange || "binance").toLowerCase() === "kucoin";
-                  const logo = isKucoin
-                    ? "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png"
-                    : "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg";
-                  const label = isKucoin ? "KUCOIN" : "BINANCE";
+                  const ex = String(r.trade.exchange || "binance").toLowerCase();
+                  const META = {
+                    binance: { label: "BINANCE", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
+                    kucoin: { label: "KUCOIN", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
+                    lbank: { label: "LBANK", logo: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528" },
+                    hyperliquid: { label: "HYPERLIQUID", logo: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/c48ff1bb886e9d5b_logo.png" },
+                  };
+                  const m = META[ex] || META.binance;
                   return (
                     <>
                       <img
-                        src={logo}
-                        alt={label}
+                        src={m.logo}
+                        alt={m.label}
                         className="w-[18px] h-[18px] rounded-full object-cover"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
-                      <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }} data-testid={`revenue-exchange-${r.trade.symbol}`}>{label}</span>
+                      <span className="text-[10.5px] font-black tracking-wide" style={{ color: "var(--ink)" }} data-testid={`revenue-exchange-${r.trade.symbol}`}>{m.label}</span>
                     </>
                   );
                 })()}
@@ -120,7 +123,7 @@ function IncomeRow({ r, meta, showCoin }) {
               ["Date", new Date(r.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })],
               ["Order Number", String(r.trade.order_id || "—")],
               ["Filled Quantity", r.trade.quantity != null ? `${fmtNum(r.trade.quantity, 4)} ${r.trade.symbol.replace(/USDT$/, "")}` : "—"],
-              ["Deal Amount", r.trade.deal_amount != null ? `${fmtNum(r.trade.deal_amount, 2)} USDT` : "—"],
+              ["Deal Amount", r.trade.deal_amount != null ? `${fmtNum(r.trade.deal_amount, 2)} ${String(r.trade.exchange || "").toLowerCase() === "hyperliquid" ? "USDC" : "USDT"}` : "—"],
             ].map(([k, v]) => (
               <div key={k} className="flex items-center justify-between text-[11px]">
                 <span className="font-semibold" style={{ color: "var(--text-mute)" }}>{k}</span>
