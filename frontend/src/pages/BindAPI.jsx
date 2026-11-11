@@ -375,6 +375,11 @@ export default function BindAPI() {
                 {showKey ? <EyeOff size={17} color={C.mute} /> : <Eye size={17} color={C.mute} />}
               </button>)}
             </div>
+            {cfg.walletStyle && (
+              <p className="text-[10.5px] leading-snug mt-1.5" style={{ color: C.mute }} data-testid="hl-address-hint">
+                ⚠️ Yahan apna <b style={{ color: C.white }}>Main account address</b> daalein (Hyperliquid app me sabse upar dikhta hai, jaha aapka fund hai) — <b style={{ color: "#EF4444" }}>API/Agent wallet ka address NAHI</b> jo API page par dikhta hai.
+              </p>
+            )}
           </div>
 
           {/* API SECRET / Agent key */}

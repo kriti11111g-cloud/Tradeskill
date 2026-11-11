@@ -775,9 +775,9 @@ export default function Trades() {
         api.get(`/${connId}/account`).then(({ data }) => {
           let bal;
           if (connId === "hyperliquid") {
-            // spot + perp USDC (deposits usually land in the perp/unified account)
-            bal = typeof data.usdc_total === "number"
-              ? data.usdc_total
+            // Spot-only: the app trades spot, so show the SPOT USDC balance.
+            bal = typeof data.usdc_spot === "number"
+              ? data.usdc_spot
               : parseFloat((data.balances || []).find((x) => x.coin === "USDC")?.total || 0);
             setHlBreak({ spot: Number(data.usdc_spot || 0), perp: Number(data.usdc_perp || 0) });
           } else {
@@ -901,9 +901,9 @@ export default function Trades() {
                 {exUsdt.toFixed(2)} <span className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>{exMeta.quote || "USDT"}</span>
               </div>
             )}
-            {bind?.bound && hlBreak && (
-              <div className="text-[9px] font-bold tabular-nums mt-0.5 text-right leading-tight" style={{ color: "var(--text-mute)" }} data-testid="hl-balance-breakdown">
-                Spot {hlBreak.spot.toFixed(2)} · Perp {hlBreak.perp.toFixed(2)}
+            {bind?.bound && hlBreak && hlBreak.spot <= 0 && hlBreak.perp > 0 && (
+              <div className="text-[9px] font-bold tabular-nums mt-0.5 text-right leading-tight" style={{ color: "var(--warn, #F59E0B)" }} data-testid="hl-balance-breakdown">
+                Perp {hlBreak.perp.toFixed(2)} → transfer to Spot
               </div>
             )}
           </div>
