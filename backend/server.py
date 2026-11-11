@@ -1956,7 +1956,7 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     # Block bot start if no exchange is connected — no trading until the user
     # binds an exchange (Binance/KuCoin).
     if not await _has_connected_exchange(user["id"]):
-        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin or LBank) from Bind API before starting the bot.")
+        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin, LBank or Hyperliquid) from Bind API before starting the bot.")
     # Block bot start if Bot Wallet is not activated / has no balance
     w = await _get_or_create_bot_wallet(user["id"])
     if not w.get("activated"):
@@ -2110,7 +2110,7 @@ async def average_position(symbol: str, body: AverageIn, user: dict = Depends(ge
     Safety Call counter to C1 so the ladder restarts off the new average."""
     symbol = symbol.upper()
     if not await _has_connected_exchange(user["id"]):
-        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin or LBank) first.")
+        raise HTTPException(400, "Please connect an exchange (Binance, KuCoin, LBank or Hyperliquid) first.")
     bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     if not bot:
         raise HTTPException(404, "Bot not found")
@@ -3375,6 +3375,8 @@ async def _has_connected_exchange(user_id: str) -> bool:
     if await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
         return True
     if await db.lbank_keys.find_one({"user_id": user_id}, {"_id": 1}):
+        return True
+    if await db.hyperliquid_keys.find_one({"user_id": user_id}, {"_id": 1}):
         return True
     return False
 
