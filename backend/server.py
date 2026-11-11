@@ -31,7 +31,7 @@ import hashlib
 import base64
 import hmac
 import json as _json
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 import chain_wallet
 
 
@@ -2909,6 +2909,8 @@ from hyperliquid.utils import constants as _hl_const
 from eth_account import Account as _EthAccount
 
 _HL_URLS = {"real": _hl_const.MAINNET_API_URL, "testnet": _hl_const.TESTNET_API_URL}
+# Hyperliquid rejects any order whose notional value is below this (USDC).
+HL_MIN_ORDER_USDC = 10.0
 # App symbol (BTCUSDT) -> Hyperliquid spot BASE token name (bridged/native). Quote is USDC.
 _HL_SPOT_BASE = {
     "BTCUSDT": "UBTC", "ETHUSDT": "UETH", "SOLUSDT": "USOL",
@@ -3018,6 +3020,14 @@ async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity
             if amount <= 0:
                 raise _TradeError(400, "usdt_amount required for BUY")
             sz = _hl_round_size(amount / px, szd)
+            # Hyperliquid enforces a $10 minimum order value. Rounding the size
+            # DOWN to the lot step often drops the notional just under $10 (e.g.
+            # $10 of HYPE -> 0.13 -> ~$9.4), which the exchange rejects. If so,
+            # bump the size UP to the next lot so the order clears the minimum.
+            if sz * px < HL_MIN_ORDER_USDC:
+                step = Decimal(1).scaleb(-szd)
+                need = Decimal(str(HL_MIN_ORDER_USDC / px))
+                sz = float((need / step).to_integral_value(rounding=ROUND_UP) * step)
             if sz <= 0:
                 raise _TradeError(400, "Buy amount is below the Hyperliquid lot size")
             result = await run_in_threadpool(
