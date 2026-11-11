@@ -1072,8 +1072,22 @@ async def hyperliquid_account(user: dict = Depends(get_current_user)):
     try:
         state = await run_in_threadpool(info.spot_user_state, address)
         orders = await run_in_threadpool(info.open_orders, address)
-        return {"mode": mode, "address": address,
-                "balances": (state or {}).get("balances", []), "open_orders": orders}
+        balances = (state or {}).get("balances", [])
+        usdc_spot = 0.0
+        for b in balances:
+            if b.get("coin") == "USDC":
+                usdc_spot = float(b.get("total", 0) or 0)
+                break
+        # Perp / unified account USDC (where deposits usually land).
+        usdc_perp = 0.0
+        try:
+            perp = await run_in_threadpool(info.user_state, address)
+            usdc_perp = float(((perp or {}).get("marginSummary") or {}).get("accountValue", 0) or 0)
+        except Exception:
+            pass
+        return {"mode": mode, "address": address, "balances": balances, "open_orders": orders,
+                "usdc_spot": round(usdc_spot, 2), "usdc_perp": round(usdc_perp, 2),
+                "usdc_total": round(usdc_spot + usdc_perp, 2)}
     except Exception as e:
         raise HTTPException(400, f"Hyperliquid error: {e}")
 

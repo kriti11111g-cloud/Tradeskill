@@ -730,7 +730,7 @@ const EX_META = {
   binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
   kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
   lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528" },
-  hyperliquid: { id: "hyperliquid", name: "Hyperliquid", mono: "HL", color: "#072723", quote: "USDC", logo: "https://coin-images.coingecko.com/markets/images/1248/small/hyperliquid.jpg" },
+  hyperliquid: { id: "hyperliquid", name: "Hyperliquid", mono: "HL", color: "#0B3B36", quote: "USDC", logo: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/c48ff1bb886e9d5b_logo.png" },
 };
 
 export default function Trades() {
@@ -774,9 +774,10 @@ export default function Trades() {
         api.get(`/${connId}/account`).then(({ data }) => {
           let bal;
           if (connId === "hyperliquid") {
-            // Hyperliquid spot balances: [{coin, total, hold}], quote is USDC
-            const u = (data.balances || []).find((x) => x.coin === "USDC");
-            bal = u ? parseFloat(u.total) : 0;
+            // spot + perp USDC (deposits usually land in the perp/unified account)
+            bal = typeof data.usdc_total === "number"
+              ? data.usdc_total
+              : parseFloat((data.balances || []).find((x) => x.coin === "USDC")?.total || 0);
           } else {
             const u = (data.balances || []).find((x) => x.asset === "USDT");
             bal = u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0;

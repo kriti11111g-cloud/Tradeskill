@@ -286,3 +286,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Bug (user video): after connecting Hyperliquid, Trade screen still showed "Binance" and no balance.
 - Cause: Trades.jsx only fetched binance/kucoin/lbank bind; no hyperliquid. EX_META lacked hyperliquid.
 - Fix: added hyperliquid to EX_META (quote USDC), fetch /hyperliquid/bind, include in connected/connId detection, balance parse for HL (balances[].coin==USDC → total), dynamic quote label, connect-banner copy. Verified via screenshot: Trade now shows "Hyperliquid" (Demo). Live USDC balance shows when bound in real/testnet mode.
+
+## 2026-11-11 (cont): Hyperliquid logo + spot/perp balance fix
+- Logo: coingecko URL (markets/images/1248) returned 403 → only "HL" mono showed. Generated a hosted HL logo (emergent static URL) and used it in ExchangeList.jsx EXCHANGES + Trades.jsx EX_META. Verified logo 200 + screenshot shows it at #9.
+- Balance: user had ~$19.27 but Trade showed 0.00 USDC. Cause: funds are in Hyperliquid PERP/unified account; we only read SPOT (spot_user_state → 0). Fixed /hyperliquid/account to also read perp info.user_state marginSummary.accountValue and return usdc_spot / usdc_perp / usdc_total. Trades.jsx now shows usdc_total for HL.
+- IMPORTANT caveat for user: spot trading needs USDC in the SPOT wallet; the $19.27 is in the perp wallet. Card now shows total so funds are visible, but to actually spot-trade they must transfer USDC Perp→Spot inside Hyperliquid.

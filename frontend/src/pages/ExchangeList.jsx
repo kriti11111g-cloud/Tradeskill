@@ -15,7 +15,7 @@ const EXCHANGES = [
   { id: "bitget", name: "Bitget", tag: "Trade Better", color: "#00F0FF", mono: "BG", logo: `${IMG}/540/small/2023-07-25_21.47.43.jpg` },
   { id: "mexc", name: "MEXC", tag: "More Tokens, Lower Fees", color: "#1972E2", mono: "M", logo: `${IMG}/409/small/164286be-32a5-4b58-978c-d072eea00eb9.jpeg` },
   { id: "gate", name: "Gate", tag: "Your Gateway to Crypto", color: "#2354E6", mono: "G", logo: `${IMG}/60/small/Frame_1.png` },
-  { id: "hyperliquid", name: "Hyperliquid", tag: "No-KYC · Non-custodial Spot", color: "#072723", mono: "HL", logo: `${IMG}/1248/small/hyperliquid.jpg` },
+  { id: "hyperliquid", name: "Hyperliquid", tag: "No-KYC · Non-custodial Spot", color: "#0B3B36", mono: "HL", logo: "https://customer-assets-lxgj4vgw.emergentagent.net/job_tgx-api-gateway/artifacts/c48ff1bb886e9d5b_logo.png" },
   { id: "kucoin", name: "KuCoin", tag: "People's Exchange", color: "#24AE8F", mono: "K", logo: `${IMG}/61/small/kucoin.png` },
   { id: "kraken", name: "Kraken", tag: "Crypto Securely", color: "#5741D9", mono: "KR", logo: `${IMG}/29/small/kraken.jpg` },
   { id: "htx", name: "HTX", tag: "Global Crypto Exchange", color: "#2B3BD8", mono: "H", logo: `${IMG}/25/small/htx.png` },
