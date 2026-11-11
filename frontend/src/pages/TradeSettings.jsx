@@ -94,7 +94,8 @@ export default function TradeSettings() {
       api.get("/binance/bind").then((r) => r.data).catch(() => null),
       api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
       api.get("/lbank/bind").then((r) => r.data).catch(() => null),
-    ]).then(([bn, kc, lb]) => setConnected(!!(bn?.mode || kc?.mode || lb?.mode)));
+      api.get("/hyperliquid/bind").then((r) => r.data).catch(() => null),
+    ]).then(([bn, kc, lb, hl]) => setConnected(!!(bn?.mode || kc?.mode || lb?.mode || hl?.mode)));
   }, []);
 
   useEffect(() => {
@@ -214,7 +215,7 @@ export default function TradeSettings() {
             data-testid="ts-connect-banner">
             <Link2 size={18} style={{ color: "#B45309" }} className="shrink-0" />
             <div className="text-[11.5px] font-bold leading-snug" style={{ color: "#B45309" }}>
-              Connect an exchange (Binance/KuCoin/LBank) first to start the bot.
+              Connect an exchange (Binance/KuCoin/LBank/Hyperliquid) first to start the bot.
             </div>
           </div>
         )}

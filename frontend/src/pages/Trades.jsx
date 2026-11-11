@@ -739,7 +739,13 @@ export default function Trades() {
   const [connected, setConnected] = useState(null); // any exchange bound? null=loading
   const [exUsdt, setExUsdt] = useState(null);
   const [hlBreak, setHlBreak] = useState(null);
-  const [exMeta, setExMeta] = useState({ id: "binance", name: "Binance" });
+  const [exMeta, setExMeta] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("tgx_trade_cache") || "null");
+      if (c?.connId && EX_META[c.connId]) return EX_META[c.connId];
+    } catch {}
+    return { id: "binance", name: "Binance" };
+  });
   const reloadBots = () => {
     api.get("/bots").then(({ data }) => setBots(data)).catch(() => {});
   };
@@ -769,7 +775,7 @@ export default function Trades() {
       const bd = connId === "lbank" ? bLb : connId === "kucoin" ? bKc : connId === "hyperliquid" ? bHl : bBn;
       setBind(bd);
       setExMeta(EX_META[connId]);
-      try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
+      try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd, connId })); } catch {}
       // Exchange card par user ka live balance (jis exchange se bound hai)
       if (bd?.bound) {
         api.get(`/${connId}/account`).then(({ data }) => {
