@@ -281,3 +281,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Support income (10% of direct pot, activation) previously let the first/upper uplines absorb MULTIPLE skipped support-slots. Now each upline earns only ONE support-step (support_share); first upline still gets support_base (10% of base). Skipped support-slots → company_reserve (note "Support income skipped rank-steps → reserve").
 - VERIFIED e2e (script): chain U→A(L1 sponsor)→B(L4, first upline jumps). A direct=8.0, B bot-diff=2.04 (+ 4.08 skipped→company), B support=1.0295 (0.8 base + 0.2295 one step), support skipped=0.2295→company. PASS.
 - All three activation components (direct base to sponsor, bot-difference, support income) + trading-commission differential now consistently give an upline only their own single step; every skipped/unreached rank-step → company reserve.
+
+## 2026-11-11: Fix — Trade page didn't recognise Hyperliquid
+- Bug (user video): after connecting Hyperliquid, Trade screen still showed "Binance" and no balance.
+- Cause: Trades.jsx only fetched binance/kucoin/lbank bind; no hyperliquid. EX_META lacked hyperliquid.
+- Fix: added hyperliquid to EX_META (quote USDC), fetch /hyperliquid/bind, include in connected/connId detection, balance parse for HL (balances[].coin==USDC → total), dynamic quote label, connect-banner copy. Verified via screenshot: Trade now shows "Hyperliquid" (Demo). Live USDC balance shows when bound in real/testnet mode.

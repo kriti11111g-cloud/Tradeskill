@@ -727,9 +727,10 @@ function HistoryRow({ bot }) {
 }
 
 const EX_META = {
-  binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
-  kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
-  lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", logo: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528" },
+  binance: { id: "binance", name: "Binance", mono: "B", color: "#F3BA2F", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/52/small/binance.jpg" },
+  kucoin: { id: "kucoin", name: "KuCoin", mono: "K", color: "#24AE8F", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/61/small/kucoin.png" },
+  lbank: { id: "lbank", name: "LBank", mono: "L", color: "#1E88E5", quote: "USDT", logo: "https://coin-images.coingecko.com/markets/images/118/small/LBank_200_200.png?1757347528" },
+  hyperliquid: { id: "hyperliquid", name: "Hyperliquid", mono: "HL", color: "#072723", quote: "USDC", logo: "https://coin-images.coingecko.com/markets/images/1248/small/hyperliquid.jpg" },
 };
 
 export default function Trades() {
@@ -752,26 +753,35 @@ export default function Trades() {
       if (c?.bind !== undefined) setBind(c.bind);
     } catch {}
     const load = async () => {
-      const [b, bBn, bKc, bLb] = await Promise.all([
+      const [b, bBn, bKc, bLb, bHl] = await Promise.all([
         api.get("/bots").then((r) => (Array.isArray(r.data) ? r.data : r.data.bots || [])).catch(() => []),
         api.get("/binance/bind").then((r) => r.data).catch(() => null),
         api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
         api.get("/lbank/bind").then((r) => r.data).catch(() => null),
+        api.get("/hyperliquid/bind").then((r) => r.data).catch(() => null),
       ]);
       setBots(b);
       // Connected = any bind record exists (demo included) — matches backend trade gate.
-      setConnected(!!(bBn?.mode || bKc?.mode || bLb?.mode));
+      setConnected(!!(bBn?.mode || bKc?.mode || bLb?.mode || bHl?.mode));
       // Connected exchange: whichever is actually bound (one exchange per account)
-      const connId = bLb?.mode ? "lbank" : bKc?.mode ? "kucoin" : bBn?.mode ? "binance" : "binance";
-      const bd = connId === "lbank" ? bLb : connId === "kucoin" ? bKc : bBn;
+      const connId = bLb?.mode ? "lbank" : bKc?.mode ? "kucoin" : bHl?.mode ? "hyperliquid" : bBn?.mode ? "binance" : "binance";
+      const bd = connId === "lbank" ? bLb : connId === "kucoin" ? bKc : connId === "hyperliquid" ? bHl : bBn;
       setBind(bd);
       setExMeta(EX_META[connId]);
       try { localStorage.setItem("tgx_trade_cache", JSON.stringify({ bots: b, bind: bd })); } catch {}
-      // Exchange card par user ka live USDT balance (jis exchange se bound hai)
+      // Exchange card par user ka live balance (jis exchange se bound hai)
       if (bd?.bound) {
         api.get(`/${connId}/account`).then(({ data }) => {
-          const u = (data.balances || []).find((x) => x.asset === "USDT");
-          setExUsdt(u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0);
+          let bal;
+          if (connId === "hyperliquid") {
+            // Hyperliquid spot balances: [{coin, total, hold}], quote is USDC
+            const u = (data.balances || []).find((x) => x.coin === "USDC");
+            bal = u ? parseFloat(u.total) : 0;
+          } else {
+            const u = (data.balances || []).find((x) => x.asset === "USDT");
+            bal = u ? parseFloat(u.free) + parseFloat(u.locked || 0) : 0;
+          }
+          setExUsdt(bal);
         }).catch(() => setExUsdt(null));
       } else {
         setExUsdt(null);
@@ -883,7 +893,7 @@ export default function Trades() {
             </div>
             {bind?.bound && exUsdt !== null && (
               <div className="text-[12px] font-black tabular-nums mt-0.5" style={{ color: "var(--ink)" }} data-testid="exchange-usdt-balance">
-                {exUsdt.toFixed(2)} <span className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>USDT</span>
+                {exUsdt.toFixed(2)} <span className="text-[9px] font-bold" style={{ color: "var(--text-mute)" }}>{exMeta.quote || "USDT"}</span>
               </div>
             )}
           </div>
@@ -903,7 +913,7 @@ export default function Trades() {
             <div className="flex-1 min-w-0">
               <div className="text-[12.5px] font-black" style={{ color: "#B45309" }}>Connect an exchange to start trading</div>
               <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: "#B45309", opacity: 0.85 }}>
-                Bind Binance, KuCoin or LBank — no bot will trade until then. Tap to connect.
+                Bind Binance, KuCoin, LBank or Hyperliquid — no bot will trade until then. Tap to connect.
               </div>
             </div>
             <ChevronRight size={18} style={{ color: "#B45309" }} className="shrink-0" />
