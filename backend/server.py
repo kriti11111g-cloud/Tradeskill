@@ -1896,6 +1896,15 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
             "exchange": (urow or {}).get("active_exchange", "binance"),
             "created_at": iso(now_utc()),
         })
+    else:
+        # Editing a bot that is already in a position: recompute the next DCA
+        # trigger price from the NEW margin_config so the live bot + UI follow
+        # the updated drop % immediately (not the value stored at the last buy).
+        ex_avg = float(existing.get("avg_price", 0.0) or 0)
+        ex_mc = int(existing.get("margin_call_count", 0) or 0)
+        if ex_avg > 0:
+            next_rule = _get_margin_rule({"margin_config": mc_docs, "buy_in_callback": cfg.buy_in_callback}, ex_mc)
+            doc["next_buy_price"] = ex_avg * (1 - next_rule["drop"] / 100.0)
     await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": doc}, upsert=True)
     row = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     return row
@@ -3424,7 +3433,11 @@ async def _bot_tick(bot: dict):
     tp_ratio = float(bot.get("whole_take_profit_ratio", 1.5) or 1.5)
     tp_callback = float(bot.get("whole_take_profit_callback", 0.3) or 0.3)
     dca_callback = float(bot.get("buy_in_callback", 0.25) or 0.25)
-    next_buy = float(bot.get("next_buy_price", 0.0) or 0)
+    # DCA trigger price is recomputed FRESH from the current margin_config every
+    # tick (not read from the stored next_buy_price) so that editing a LIVE bot's
+    # margin drop % takes effect immediately on the next safety order.
+    _next_rule_now = _get_margin_rule(bot, int(bot.get("margin_call_count", 0) or 0))
+    next_buy = avg_price * (1 - _next_rule_now["drop"] / 100.0) if avg_price > 0 else 0.0
     peak = float(bot.get("peak_price", 0.0) or 0)
     trough = float(bot.get("dca_bottom_price", 0.0) or 0)
 

@@ -308,3 +308,11 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix (frontend only, Revenue.jsx): replaced the isKucoin/binance IIFE with a 4-exchange META map (binance/kucoin/lbank/hyperliquid) → correct label + logo (Hyperliquid uses official logo.png). Quote currency now dynamic: hyperliquid→USDC else USDT, applied in collapsed row pair label (line ~60), detail pair label (~94) and Deal Amount (~126). JSX parse verified.
 - Deploy: frontend-only → Save-to-Github + on VPS `git pull && cd frontend && yarn build && systemctl reload nginx` (no backend restart). Real confirmation pending on user's server.
 - Confirmed working earlier in same session: $10-min BUY fix is LIVE on prod — HL trade history showed bot BUY 0.14 HYPE (11:27) and a manual SELL 0.13 HYPE (11:29). Revenue correctly excludes loss/break-even sells (only profit>0 shown).
+
+## 2026-11-17: LIVE bot config edits ignored (stale DCA trigger) — FIXED
+- Bug (user video): editing a RUNNING bot's Margin Config (drop % / multiplier) didn't change behaviour — next DCA fired at the OLD drop. Cause: `_bot_tick` read the stored `next_buy_price` field (computed only at the last buy) instead of recomputing from the current margin_config. Multiplier WAS fresh (`_get_margin_rule` each tick); only the drop-derived trigger price was stale.
+- Fix (backend only, server.py):
+  1. `_bot_tick` (~3427): next_buy now recomputed every tick = avg_price*(1 - _get_margin_rule(bot, mc_count).drop/100); stored next_buy_price no longer read for the trigger.
+  2. `upsert_bot` (~1886): when editing an existing bot with avg_price>0, recompute & persist next_buy_price from the NEW margin_config so UI reflects it immediately.
+- Verified via API (mlm.newbie): position avg=100 drop=5% → next_buy_price 95.0; edit drop→20% → recomputed to 80.0 (was staying 95.0 before). Already-fired calls unchanged (by design); only the NEXT safety order uses new config.
+- Deploy: backend-only → Save-to-Github + on VPS `git pull && sudo systemctl restart tradeskill-backend` (no frontend rebuild).
