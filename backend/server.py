@@ -1966,6 +1966,19 @@ async def start_bot(symbol: str, user: dict = Depends(get_current_user)):
     # binds an exchange (Binance/KuCoin).
     if not await _has_connected_exchange(user["id"]):
         raise HTTPException(400, "Please connect an exchange (Binance, KuCoin, LBank or Hyperliquid) from Bind API before starting the bot.")
+    # Hyperliquid spot lists a specific set of coins (fetched live). Block start
+    # early with a clear message only if this exact coin isn't listed there.
+    urow = await db.users.find_one({"id": user["id"]}, {"_id": 0, "active_exchange": 1})
+    if (urow or {}).get("active_exchange") == "hyperliquid":
+        hrow = await db.hyperliquid_keys.find_one({"user_id": user["id"]}, {"_id": 0, "mode": 1})
+        net = "testnet" if (hrow or {}).get("mode") == "testnet" else "real"
+        try:
+            await run_in_threadpool(_hl_resolve_pair, _hl_public_info(net), symbol, net)
+        except _TradeError:
+            coin = symbol.replace("USDT", "").replace("USDC", "")
+            raise HTTPException(400, f"{coin} is not listed on Hyperliquid spot. Please pick a coin that Hyperliquid supports (open Trade → it shows the live Hyperliquid coin list).")
+        except Exception:
+            pass  # transient market-data issue → don't block start
     # Block bot start if Bot Wallet is not activated / has no balance
     w = await _get_or_create_bot_wallet(user["id"])
     if not w.get("activated"):
@@ -2929,6 +2942,7 @@ _HL_SPOT_BASE = {
 _HL_BASE_TO_SYMBOL = {v: k for k, v in _HL_SPOT_BASE.items()}
 _hl_info_cache: dict = {}        # network -> Info (keyless, public market data)
 _hl_pair_cache: dict = {}        # (network, symbol) -> {coin,index,sz_decimals,base}
+_hl_universe_cache: dict = {}    # net -> {"ts": float, "map": {BASE_UPPER: pairinfo}}
 
 
 def _hl_public_info(network: str) -> "_HLInfo":
@@ -2938,25 +2952,60 @@ def _hl_public_info(network: str) -> "_HLInfo":
     return _hl_info_cache[net]
 
 
+def _hl_spot_universe(info: "_HLInfo", network: str) -> dict:
+    """Build {BASE_TOKEN_NAME_UPPER: pair_info} for EVERY USDC-quoted spot pair
+    listed on Hyperliquid. Cached 5 min. This is the live source of truth for
+    which coins can be traded (no hardcoded coin list)."""
+    net = "testnet" if network == "testnet" else "real"
+    ent = _hl_universe_cache.get(net)
+    if ent and (time.time() - ent["ts"]) < 300:
+        return ent["map"]
+    meta = info.spot_meta()
+    tokens = {t["index"]: t for t in meta["tokens"]}
+    usdc_idx = next((t["index"] for t in meta["tokens"] if t["name"] == "USDC"), None)
+    m = {}
+    for p in meta["universe"]:
+        b, q = p["tokens"]
+        if q != usdc_idx:
+            continue
+        name = tokens[b]["name"]
+        m[name.upper()] = {"coin": f'@{p["index"]}', "index": p["index"],
+                           "sz_decimals": tokens[b]["szDecimals"], "base": name}
+    _hl_universe_cache[net] = {"ts": time.time(), "map": m}
+    return m
+
+
+def _hl_candidate_names(symbol: str) -> list:
+    """Possible Hyperliquid spot token names for an app symbol (e.g. BTCUSDT).
+    Tries an explicit override, the direct base, and the Unit-bridged 'U'+base
+    (majors like BTC/ETH/SOL are listed on HL as UBTC/UETH/USOL)."""
+    base = symbol.upper().replace("USDT", "").replace("USDC", "")
+    names = []
+    ov = _HL_SPOT_BASE.get(symbol.upper())
+    if ov:
+        names.append(ov.upper())
+    names += [base, "U" + base]
+    seen, out = set(), []
+    for n in names:
+        if n and n not in seen:
+            seen.add(n); out.append(n)
+    return out
+
+
 def _hl_resolve_pair(info: "_HLInfo", symbol: str, network: str) -> dict:
-    """Resolve an app symbol (BTCUSDT) to the HL spot pair {coin:'@idx', index, sz_decimals}."""
+    """Resolve an app symbol (BTCUSDT) to the HL spot pair {coin:'@idx', index, sz_decimals}.
+    Matches against the FULL live HL spot universe so any listed coin is tradeable."""
     net = "testnet" if network == "testnet" else "real"
     ck = (net, symbol)
     if ck in _hl_pair_cache:
         return _hl_pair_cache[ck]
-    base = _HL_SPOT_BASE.get(symbol.upper())
-    if not base:
-        raise _TradeError(400, f"{symbol} is not available on Hyperliquid spot")
-    meta = info.spot_meta()
-    tokens = {t["index"]: t for t in meta["tokens"]}
-    for p in meta["universe"]:
-        b, q = p["tokens"]
-        if tokens[b]["name"] == base and tokens[q]["name"] == "USDC":
-            out = {"coin": f'@{p["index"]}', "index": p["index"],
-                   "sz_decimals": tokens[b]["szDecimals"], "base": base}
-            _hl_pair_cache[ck] = out
-            return out
-    raise _TradeError(400, f"{base}/USDC spot pair not found on Hyperliquid")
+    uni = _hl_spot_universe(info, net)
+    base = symbol.upper().replace("USDT", "").replace("USDC", "")
+    for name in _hl_candidate_names(symbol):
+        if name in uni:
+            _hl_pair_cache[ck] = uni[name]
+            return uni[name]
+    raise _TradeError(400, f"{base} is not listed on Hyperliquid spot")
 
 
 def _hl_round_size(value: float, decimals: int) -> float:
@@ -3467,15 +3516,23 @@ async def _bot_tick(bot: dict):
                 "kind": "first_buy", "round": 1, "amount": first_buy, "price": price,
                 "created_at": iso(now_utc()),
             })
+            # Trade succeeded → clear any stale error banner from a previous attempt.
+            await db.bots.update_one(
+                {"user_id": user_id, "symbol": symbol},
+                {"$set": {"last_trade_error": "", "stop_reason": ""}})
             logger.info(f"bot {symbol}: first buy ${first_buy} at ~{price}")
         except _TradeError as e:
             logger.warning(f"bot {symbol}: first buy failed: {e.msg}")
-            # Auto-stop on insufficient balance to prevent tight loop
-            if e.status == 400 and "Insufficient" in e.msg:
-                await db.bots.update_one(
-                    {"user_id": user_id, "symbol": symbol},
-                    {"$set": {"status": "stopped", "stop_reason": e.msg}},
-                )
+            # Always surface the CURRENT error on the bot card (overwrites stale ones).
+            upd = {"last_trade_error": e.msg, "last_error_at": iso(now_utc())}
+            # Permanent errors (pair not available / unsupported on this exchange,
+            # or insufficient balance) → stop the bot so it doesn't retry every 10s.
+            perm = ("Insufficient" in e.msg or "not available" in e.msg
+                    or "not found" in e.msg or "nonsupport" in e.msg)
+            if e.status == 400 and perm:
+                upd.update({"status": "stopped", "stop_reason": e.msg})
+            await db.bots.update_one(
+                {"user_id": user_id, "symbol": symbol}, {"$set": upd})
         return
 
     # === SUB-POSITION TAKE PROFIT (calls 5+) ===

@@ -332,3 +332,15 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix (frontend only, context/AuthContext.jsx): added `clearUserCaches()` that removes all `tgx_cache_*` + `ts_avatar_*` prefixed keys and the exact data-cache keys; called on login, register AND logout. Keeps theme + global banners. Impersonation keys left to their own flow.
 - Verified via browser test on preview: seeded stale caches all removed after login (new user's fresh caches written instead); after logout only global tgx_banners_cache remained and token gone.
 - Deploy: frontend-only → Save-to-Github + `git pull && cd frontend && yarn build && systemctl reload nginx`.
+
+## 2026-11-20 (cont-3): Only 6 Hyperliquid coins tradeable — made DYNAMIC (all HL spot coins)
+- User ask: "Hyperliquid spot pe jitne bhi coin hain sabhi me trade hona chahiye." App had a hardcoded `_HL_SPOT_BASE` of only 6 coins (BTC/ETH/SOL/HYPE/FART/PUMP).
+- Fix (backend only, server.py):
+  - Added `_hl_spot_universe(info, net)` — builds {BASE_UPPER: pairinfo} for ALL USDC-quoted HL spot pairs from live `spot_meta()`, cached 5 min (HL currently lists ~337 USDC pairs).
+  - Added `_hl_candidate_names(symbol)` — tries explicit override (_HL_SPOT_BASE kept as overrides), direct base, and Unit-bridged "U"+base (majors listed as UBTC/UETH/USOL/UAVAX/UWLD/UBONK/UENA/UZEC…).
+  - Rewrote `_hl_resolve_pair` to match against the full live universe (no hardcoded list). Raises "{coin} is not listed on Hyperliquid spot" when truly absent.
+  - `start_bot` pre-check now resolves against the live universe (run_in_threadpool) and returns a clear message for unlisted coins; transient market errors don't block.
+  - `_bot_tick` first-buy: clears stale `last_trade_error`/`stop_reason` on success; stores current error and auto-stops on permanent errors (Insufficient / not listed / not found / nonsupport) so the red banner always reflects reality and the bot doesn't tight-loop.
+- Verified (real HL spotMeta + live endpoint): BTC→UBTC, ETH→UETH, SOL→USOL, AVAX→UAVAX, WLD→UWLD, BONK→UBONK, ENA→UENA, ZEC→UZEC, PUMP/FART/HYPE resolve. NEAR/XRP/DOGE/ADA/BNB return "not listed on Hyperliquid spot" (they exist only on HL PERP, not spot). Start endpoint: NEAR/XRP blocked with clear msg; BTC/AVAX pass HL check.
+- IMPORTANT reality: HL spot coin set ≠ Binance. Many Binance coins (NEAR, XRP, DOGE, ADA, BNB) are NOT on HL spot (only perps, which app excludes). New Bot still picks from /market (Binance) — a dedicated HL coin picker would be the proper long-term UX (backlog).
+- Deploy: backend-only → Save-to-Github + `git pull && systemctl restart tradeskill-backend`.
