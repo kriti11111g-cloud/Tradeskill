@@ -10,6 +10,7 @@ const USDT_LOGO = "https://coin-images.coingecko.com/coins/images/325/small/Teth
 const BLUE_HEADER = "linear-gradient(135deg,#2563EB 0%,#1D4ED8 52%,#1E3A8A 100%)";
 const GREEN_BADGE = "linear-gradient(135deg,#22C55E 0%,#16A34A 58%,#15803D 100%)";
 const LEVEL_HEADER = "linear-gradient(180deg,#3B74F2 0%,#1E40AF 100%)";
+const BLUE_BORDER = "1.5px solid rgba(37,99,235,0.32)";
 
 const fmt2 = (n) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -39,7 +40,7 @@ export default function Rewards() {
     <button
       type="button"
       className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-      style={{ background: "#FFFFFF", border: "1.5px solid #2563EB", color: "#1D4ED8" }}
+      style={{ background: "var(--surface-2)", border: "1.5px solid #3B74F2", color: "#3B74F2" }}
       data-testid="pool-info-btn"
     >
       <Info size={15} />
@@ -47,7 +48,7 @@ export default function Rewards() {
   );
 
   return (
-    <div className="pb-2" style={{ background: "#FFFFFF" }}>
+    <div className="pb-2">
       <PageHeader title="Pool" subtitle="Royalty Pools" right={infoBtn} />
 
       <div className="px-3 space-y-2.5">
@@ -55,7 +56,7 @@ export default function Rewards() {
           <div
             key={cat.key}
             className="rounded-2xl overflow-hidden"
-            style={{ background: "#FFFFFF", border: "1.5px solid #CBDDFA", boxShadow: "0 4px 12px rgba(37,99,235,0.07)" }}
+            style={{ background: "var(--surface-2)", border: BLUE_BORDER, boxShadow: "0 4px 12px rgba(37,99,235,0.10)" }}
             data-testid={`pool-card-${cat.key}`}
           >
             {/* Card header */}
@@ -92,7 +93,7 @@ export default function Rewards() {
                   type="button"
                   onClick={() => navigate(`/revenue?tab=global_${Math.min(l.level, 10)}`)}
                   className="rounded-lg overflow-hidden flex flex-col active:scale-[0.97] transition-transform"
-                  style={{ border: "1.5px solid #BBD3F5", touchAction: "manipulation" }}
+                  style={{ border: BLUE_BORDER, touchAction: "manipulation" }}
                   data-testid={`${cat.key}-level-${l.level}`}
                 >
                   <span
@@ -103,7 +104,7 @@ export default function Rewards() {
                   </span>
                   <span
                     className="flex items-center justify-center gap-1 py-1 font-display font-black text-[13px] tabular-nums"
-                    style={{ background: "#EAF8EF", color: "#0B1E3F" }}
+                    style={{ background: "var(--surface-3)", color: "var(--ink)" }}
                   >
                     <Usdt size={16} />
                     {fmt2(l.balance)}
@@ -117,11 +118,11 @@ export default function Rewards() {
         {/* Cutoff note */}
         <div
           className="rounded-xl px-2.5 py-1.5 flex items-start gap-1.5"
-          style={{ background: "#F4F8FF", border: "1.5px solid #CBDDFA" }}
+          style={{ background: "var(--surface-3)", border: BLUE_BORDER }}
           data-testid="pool-cutoff-note"
         >
-          <CalendarClock size={14} className="shrink-0 mt-0.5" style={{ color: "#1D4ED8" }} strokeWidth={2.2} />
-          <div className="text-[9px] font-semibold leading-snug" style={{ color: "#334155" }}>
+          <CalendarClock size={14} className="shrink-0 mt-0.5" style={{ color: "#3B74F2" }} strokeWidth={2.2} />
+          <div className="text-[9px] font-semibold leading-snug" style={{ color: "var(--text-mute)" }}>
             Daily cutoff is 00:00 UTC so everyone sees the same rule.
             {pool?.next_cutoff_at && (
               <>
