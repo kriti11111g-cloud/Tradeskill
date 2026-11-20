@@ -325,3 +325,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Note: if a pair (e.g. NEAR) isn't on Hyperliquid spot, bot now returns an accurate HL error instead of LBank's. Advised user to also Disconnect LBank to purge leftover keys.
 - Known related (NOT yet changed): frontend connection detection (Trades.jsx ~774, ExchangeList.jsx ~70, TradeSettings.jsx) uses the same hardcoded priority and may display the wrong active exchange if stale keys linger — fix if user reports UI showing wrong exchange.
 - Deploy: backend-only → Save-to-Github + `git pull && systemctl restart tradeskill-backend`.
+
+## 2026-11-20 (cont-2): Multi-account on one device showed previous user's data — FIXED
+- Bug (user): logging into a 2nd/3rd ID on the same phone briefly showed the PREVIOUS account's data (team/rank/dashboard), then refreshed to the new one; stale data persisted even after logout.
+- Cause: all data caches in localStorage (`tgx_cache_*` via useCachedState for Dashboard/Rank/Referral/Rewards/Market; plus `tgx_trade_cache`, `tgx_wallet_cache`, `tgx_revenue_cache`, `tgx_market_cache`, `hubx-rank-level`) are GLOBAL keys (not per-user) and were never cleared on auth transitions.
+- Fix (frontend only, context/AuthContext.jsx): added `clearUserCaches()` that removes all `tgx_cache_*` + `ts_avatar_*` prefixed keys and the exact data-cache keys; called on login, register AND logout. Keeps theme + global banners. Impersonation keys left to their own flow.
+- Verified via browser test on preview: seeded stale caches all removed after login (new user's fresh caches written instead); after logout only global tgx_banners_cache remained and token gone.
+- Deploy: frontend-only → Save-to-Github + `git pull && cd frontend && yarn build && systemctl reload nginx`.
