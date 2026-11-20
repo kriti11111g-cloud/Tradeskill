@@ -3138,17 +3138,29 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
 
     # Resolve the user's ACTUAL connected exchange at execution time (one exchange per
     # account). bot.exchange is frozen at creation and can be stale (e.g. bot made before
-    # the user bound LBank), so we trust the live bind records and self-heal the bot doc.
-    if await db.lbank_keys.find_one({"user_id": user_id}, {"_id": 1}):
-        conn_ex = "lbank"
-    elif await db.kucoin_keys.find_one({"user_id": user_id}, {"_id": 1}):
-        conn_ex = "kucoin"
-    elif await db.hyperliquid_keys.find_one({"user_id": user_id}, {"_id": 1}):
-        conn_ex = "hyperliquid"
-    elif await db.binance_keys.find_one({"user_id": user_id}, {"_id": 1}):
-        conn_ex = "binance"
+    # the user switched exchanges), so we trust the user's CURRENT active_exchange choice
+    # and self-heal the bot doc. Only if active_exchange has no bound keys do we fall back
+    # to whichever exchange still has keys. This prevents a leftover LBank/KuCoin key from
+    # hijacking trades after the user has switched to another exchange (e.g. Hyperliquid).
+    _KEY_COLL = {
+        "lbank": db.lbank_keys,
+        "kucoin": db.kucoin_keys,
+        "hyperliquid": db.hyperliquid_keys,
+        "binance": db.binance_keys,
+    }
+    async def _has_keys(ex):
+        coll = _KEY_COLL.get(ex)
+        return bool(coll is not None and await coll.find_one({"user_id": user_id}, {"_id": 1}))
+
+    active_ex = user.get("active_exchange")
+    conn_ex = None
+    if active_ex and await _has_keys(active_ex):
+        conn_ex = active_ex
     else:
-        conn_ex = None
+        for ex in ("lbank", "kucoin", "hyperliquid", "binance"):
+            if await _has_keys(ex):
+                conn_ex = ex
+                break
     if conn_ex and bot.get("exchange") != conn_ex:
         bot["exchange"] = conn_ex
         await db.bots.update_one({"user_id": user_id, "symbol": symbol}, {"$set": {"exchange": conn_ex}})

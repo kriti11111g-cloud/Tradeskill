@@ -316,3 +316,12 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
   2. `upsert_bot` (~1886): when editing an existing bot with avg_price>0, recompute & persist next_buy_price from the NEW margin_config so UI reflects it immediately.
 - Verified via API (mlm.newbie): position avg=100 drop=5% → next_buy_price 95.0; edit drop→20% → recomputed to 80.0 (was staying 95.0 before). Already-fired calls unchanged (by design); only the NEXT safety order uses new config.
 - Deploy: backend-only → Save-to-Github + on VPS `git pull && sudo systemctl restart tradeskill-backend` (no frontend rebuild).
+
+## 2026-11-20: Bots traded on wrong (old/disconnected) exchange — LBank hijack — FIXED
+- Bug (user video): Hyperliquid connected but a NEAR/USDT bot showed "Last order failed: LBank rejected order (10008): currency pair nonsupport". Orders were going to LBank even though user switched to Hyperliquid.
+- Cause: `_execute_trade` resolved the execution exchange by a HARDCODED priority over key collections (lbank → kucoin → hyperliquid → binance), ignoring the user's `active_exchange`. Leftover lbank_keys (not deleted) therefore hijacked every trade.
+- Fix (server.py ~3139): resolve conn_ex by the user's `active_exchange` first (if it has bound keys), else fall back to the key-collection scan. bot.exchange self-heals to conn_ex each trade.
+- Verified via standalone DB-state test: leftover lbank+hyperliquid keys with active=hyperliquid → conn_ex=hyperliquid (was lbank before); fallbacks intact. RESULT PASS.
+- Note: if a pair (e.g. NEAR) isn't on Hyperliquid spot, bot now returns an accurate HL error instead of LBank's. Advised user to also Disconnect LBank to purge leftover keys.
+- Known related (NOT yet changed): frontend connection detection (Trades.jsx ~774, ExchangeList.jsx ~70, TradeSettings.jsx) uses the same hardcoded priority and may display the wrong active exchange if stale keys linger — fix if user reports UI showing wrong exchange.
+- Deploy: backend-only → Save-to-Github + `git pull && systemctl restart tradeskill-backend`.
