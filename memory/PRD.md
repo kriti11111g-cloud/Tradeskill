@@ -344,3 +344,12 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Verified (real HL spotMeta + live endpoint): BTC→UBTC, ETH→UETH, SOL→USOL, AVAX→UAVAX, WLD→UWLD, BONK→UBONK, ENA→UENA, ZEC→UZEC, PUMP/FART/HYPE resolve. NEAR/XRP/DOGE/ADA/BNB return "not listed on Hyperliquid spot" (they exist only on HL PERP, not spot). Start endpoint: NEAR/XRP blocked with clear msg; BTC/AVAX pass HL check.
 - IMPORTANT reality: HL spot coin set ≠ Binance. Many Binance coins (NEAR, XRP, DOGE, ADA, BNB) are NOT on HL spot (only perps, which app excludes). New Bot still picks from /market (Binance) — a dedicated HL coin picker would be the proper long-term UX (backlog).
 - Deploy: backend-only → Save-to-Github + `git pull && systemctl restart tradeskill-backend`.
+
+
+## 2026-11-20 (cont-4): Pool (Royalty Pools) page UI redesign — DESIGN ONLY
+- User gave a reference image + exact spec; "sab code sahi, bass designing" (no data/logic change).
+- Redesigned frontend/src/pages/Rewards.jsx (route /rewards) to match reference: blue gradient card headers with icon + green "Total Pool" badge; 3-col grid V2-V10 each cell = blue level header strip + light-green amount box; official green Tether (USDT) logo (coingecko img 325) before every amount instead of "$"; white bg, thin light-blue borders (#CBDDFA), navy amount text, blue time badge in cutoff note; bottom nav preserved. Added Info icon in PageHeader right.
+- Kept ALL data bindings unchanged: /pool/summary -> activation_pool/trading_pool arrays (l.level, l.balance), activation_total/trading_total, next_cutoff_at. Only replaced fmtUSD ($) with fmt2 + USDT logo per spec.
+- Verified via screenshot (mobile 430px): layout matches reference; preview amounts 0.00 (no pool data for test user) - real values show on prod.
+- NOTE for user: reference Trading total $0.54 vs sum of listed amounts $0.55 - this is backend distribution data (left untouched per user instruction).
+- Deploy: frontend-only -> Save-to-Github + `git pull && cd frontend && yarn build && systemctl reload nginx`.
