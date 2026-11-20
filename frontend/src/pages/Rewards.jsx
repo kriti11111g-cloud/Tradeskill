@@ -66,26 +66,26 @@ export default function Rewards() {
               >
                 <cat.Icon size={19} className="text-white" strokeWidth={2.4} />
               </div>
-              <span className="font-display font-black text-white leading-[1.1] text-[14px] flex-1">
+              <span className="font-display font-black text-white leading-[1.12] text-[15.5px] flex-1">
                 {cat.name}
               </span>
-              <div className="w-px h-9 shrink-0" style={{ background: "rgba(255,255,255,0.28)" }} />
+              <div className="w-px h-10 shrink-0" style={{ background: "rgba(255,255,255,0.28)" }} />
               <div
                 className="rounded-xl px-3 py-1.5 flex flex-col items-center shrink-0"
                 style={{ background: GREEN_BADGE, boxShadow: "0 2px 8px rgba(22,163,74,0.35)" }}
               >
-                <span className="text-[8.5px] font-bold uppercase tracking-wide text-white/90 leading-none mb-1">
+                <span className="text-[9px] font-bold uppercase tracking-wide text-white/90 leading-none mb-1">
                   Total Pool
                 </span>
-                <span className="flex items-center gap-1 text-white font-display font-black text-[16px] tabular-nums leading-none">
-                  <Usdt size={15} />
+                <span className="flex items-center gap-1 text-white font-display font-black text-[18px] tabular-nums leading-none">
+                  <Usdt size={16} />
                   {fmt2(cat.total)}
                 </span>
               </div>
             </div>
 
             {/* Levels grid */}
-            <div className="grid grid-cols-3 gap-2 p-3">
+            <div className="grid grid-cols-3 gap-2.5 p-3.5">
               {(pool?.[cat.key] || []).map((l) => (
                 <button
                   key={l.level}
@@ -96,16 +96,16 @@ export default function Rewards() {
                   data-testid={`${cat.key}-level-${l.level}`}
                 >
                   <span
-                    className="text-white font-display font-black text-[13px] tracking-wide py-1 text-center"
+                    className="text-white font-display font-black text-[14px] tracking-wide py-2 text-center"
                     style={{ background: LEVEL_HEADER }}
                   >
                     V{l.level}
                   </span>
                   <span
-                    className="flex items-center justify-center gap-1 py-1.5 font-display font-black text-[14px] tabular-nums"
+                    className="flex items-center justify-center gap-1.5 py-3.5 font-display font-black text-[19px] tabular-nums"
                     style={{ background: "#EAF8EF", color: "#0B1E3F" }}
                   >
-                    <Usdt size={14} />
+                    <Usdt size={17} />
                     {fmt2(l.balance)}
                   </span>
                 </button>
