@@ -78,7 +78,7 @@ export default function Rewards() {
                   Total Pool
                 </span>
                 <span className="flex items-center gap-0.5 text-white font-display font-black text-[13px] tabular-nums leading-none">
-                  <Usdt size={12} />
+                  <Usdt size={14} />
                   {fmt2(cat.total)}
                 </span>
               </div>
@@ -105,7 +105,7 @@ export default function Rewards() {
                     className="flex items-center justify-center gap-1 py-1 font-display font-black text-[13px] tabular-nums"
                     style={{ background: "#EAF8EF", color: "#0B1E3F" }}
                   >
-                    <Usdt size={12} />
+                    <Usdt size={16} />
                     {fmt2(l.balance)}
                   </span>
                 </button>
@@ -134,7 +134,7 @@ export default function Rewards() {
                 </span>
               </>
             )}
-            {" "}· Pools auto-distribute level-wise and reset to <Usdt size={10} /> 0 — no manual action.
+            {" "}· Pools auto-distribute level-wise and reset to <Usdt size={12} /> 0 — no manual action.
           </div>
         </div>
       </div>
