@@ -353,3 +353,10 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Verified via screenshot (mobile 430px): layout matches reference; preview amounts 0.00 (no pool data for test user) - real values show on prod.
 - NOTE for user: reference Trading total $0.54 vs sum of listed amounts $0.55 - this is backend distribution data (left untouched per user instruction).
 - Deploy: frontend-only -> Save-to-Github + `git pull && cd frontend && yarn build && systemctl reload nginx`.
+
+## 2026-11-20 (cont-5): App slowness — Market endpoint cached
+- User: whole app feels slow across login/market/rank/pool/trade-settings/assets/referral.
+- Measured all endpoints: only /api/market/pairs was slow (~1.3s); it re-fetched Binance full 24hr ticker (2000+ symbols) on every request. Others were already fast (0.12-0.27s).
+- Fix (server.py pairs_summary ~1126): now uses existing _all_tickers_cached() (60s TTL) instead of a fresh fetch each call. Verified: cold 1.9s, warm 0.13-0.17s (~10x faster).
+- Remaining perceived lag = client network latency / one-time bundle load (infra, not code). Frontend already caches many pages via useCachedState.
+- Deploy: backend-only → Save-to-Github + git pull + systemctl restart tradeskill-backend.

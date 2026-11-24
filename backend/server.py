@@ -1125,21 +1125,14 @@ async def klines(symbol: str, interval: str = "1h", limit: int = 48):
 
 @api.get("/market/pairs")
 async def pairs_summary(limit: int = 50):
-    """Fetch 24hr stats for all allowed symbols in ONE Binance batch call, filter and sort by volume."""
+    """24hr stats for allowed symbols. Uses the shared 60s ticker cache so the
+    page loads instantly instead of re-fetching Binance's full ticker each time."""
     allow = set(ALLOWED_SYMBOLS)
-    async with httpx.AsyncClient(timeout=10) as c:
-        try:
-            r = await c.get(f"{BINANCE_PUBLIC}/api/v3/ticker/24hr")
-            r.raise_for_status()
-        except Exception as e:
-            logger.warning(f"pairs_summary batch failed: {e}")
-            return {"pairs": []}
-        data = r.json()
-
+    data = await _all_tickers_cached()
     out = []
-    for d in data:
-        sym = d.get("symbol")
-        if sym not in allow:
+    for sym in allow:
+        d = data.get(sym)
+        if not d:
             continue
         try:
             out.append({
