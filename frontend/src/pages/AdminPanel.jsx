@@ -50,10 +50,45 @@ export default function AdminPanel() {
   const [bonanzaBusy, setBonanzaBusy] = useState(false);
   const [edit, setEdit] = useState(null);
   const [confirmAct, setConfirmAct] = useState(false);
+  const [injectLeg, setInjectLeg] = useState("left");
+  const [injectCount, setInjectCount] = useState(109);
+  const [syntheticTeam, setSyntheticTeam] = useState(null);
 
-  const openUser = (u) => {
+  const openUser = async (u) => {
     setDetail(u);
     setEditWallets({ bep20: null, polygon: null });
+    setInjectLeg("left");
+    setInjectCount(109);
+    setSyntheticTeam(null);
+    try {
+      const { data } = await api.get(`/admin/users/${u.uid}/synthetic`, cfg);
+      setSyntheticTeam(data.synthetic_team);
+    } catch { /* ignore */ }
+  };
+
+  const injectTeam = async () => {
+    const n = parseInt(injectCount, 10);
+    if (!n || n < 1) { toast.error("Enter a valid member count"); return; }
+    setDetailBusy(true);
+    const t = toast.loading(`Adding ${n} active members under ${detail.uid}…`);
+    try {
+      const { data } = await api.post(`/admin/users/${detail.uid}/inject-team`,
+        { leg: injectLeg, count: n }, cfg);
+      setSyntheticTeam(data.synthetic_team);
+      toast.success(`${data.added} active members added in ${data.leg} leg (pool excluded) ✅`, { id: t });
+    } catch (e) { toast.error(formatApiError(e), { id: t }); guard(e); }
+    finally { setDetailBusy(false); }
+  };
+
+  const removeSynthetic = async () => {
+    setDetailBusy(true);
+    const t = toast.loading(`Removing synthetic members under ${detail.uid}…`);
+    try {
+      const { data } = await api.post(`/admin/users/${detail.uid}/remove-synthetic`, {}, cfg);
+      setSyntheticTeam(0);
+      toast.success(`${data.removed} synthetic members removed ✅`, { id: t });
+    } catch (e) { toast.error(formatApiError(e), { id: t }); guard(e); }
+    finally { setDetailBusy(false); }
   };
 
   const impersonate = async () => {
@@ -509,6 +544,45 @@ export default function AdminPanel() {
                   style={{ border: "1.5px solid #EA580C", color: "#EA580C", touchAction: "manipulation" }} data-testid="admin-set-txn-password">
                   <Lock size={16} /> Reset Transaction Password
                 </button>
+                <div className="rounded-xl px-3.5 py-3 mb-2" style={{ border: `1.5px solid ${BLUE}`, background: "var(--surface-3)" }} data-testid="admin-inject-team">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users size={16} style={{ color: BLUE }} />
+                    <span className="text-[13px] font-black" style={{ color: "var(--ink)" }}>Add Active Members (One Leg)</span>
+                  </div>
+                  <div className="text-[10.5px] font-bold mb-2" style={{ color: "var(--text-mute)" }}>
+                    Places active members in a single leg under {detail.uid}. They count for team &amp; rank but are <b>excluded from the pool</b> (no payout).
+                  </div>
+                  {syntheticTeam !== null && (
+                    <div className="text-[11px] font-black mb-2" style={{ color: BLUE }} data-testid="admin-synthetic-count">
+                      Current synthetic members: {syntheticTeam}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex rounded-lg overflow-hidden" style={{ border: `1.5px solid ${BLUE}` }}>
+                      {["left", "right"].map((lg) => (
+                        <button key={lg} onClick={() => setInjectLeg(lg)}
+                          className="px-3 py-2 text-[12px] font-black capitalize"
+                          style={{ background: injectLeg === lg ? BLUE : "transparent", color: injectLeg === lg ? "#fff" : BLUE, touchAction: "manipulation" }}
+                          data-testid={`admin-inject-leg-${lg}`}>{lg}</button>
+                      ))}
+                    </div>
+                    <input type="number" min={1} value={injectCount}
+                      onChange={(e) => setInjectCount(e.target.value)}
+                      className="w-24 rounded-lg px-2.5 py-2 text-[13px] font-black outline-none"
+                      style={{ background: "var(--surface)", border: `1.5px solid ${BLUE}`, color: "var(--ink)" }}
+                      data-testid="admin-inject-count" placeholder="109" />
+                  </div>
+                  <button onClick={injectTeam} disabled={detailBusy}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] text-white disabled:opacity-50 mb-2"
+                    style={{ background: BLUE_GRAD, touchAction: "manipulation" }} data-testid="admin-inject-submit">
+                    <Users size={16} /> Add {injectCount || 0} Active Members
+                  </button>
+                  <button onClick={removeSynthetic} disabled={detailBusy || syntheticTeam === 0}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-display font-black text-[13px] disabled:opacity-50"
+                    style={{ border: "1.5px solid #DC2626", color: "#DC2626", touchAction: "manipulation" }} data-testid="admin-remove-synthetic">
+                    <Ban size={15} /> Remove Synthetic Members
+                  </button>
+                </div>
                 <button onClick={impersonate} disabled={detailBusy}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-3 font-display font-black text-[14px] disabled:opacity-50 mb-2 text-white"
                   style={{ background: "linear-gradient(90deg,#B45309,#92400E)", touchAction: "manipulation" }} data-testid="admin-login-as-user">

@@ -4363,7 +4363,9 @@ async def _run_royalty_distribution(date_str: str):
             lvl, balance = row["level"], row["balance"]
             if balance < 0.0001:
                 continue
-            users = await db.users.find({"rank": f"Level {lvl}"}, {"_id": 0, "id": 1}).to_list(200000)
+            users = await db.users.find(
+                {"rank": f"Level {lvl}", "pool_excluded": {"$ne": True}, "synthetic": {"$ne": True}},
+                {"_id": 0, "id": 1}).to_list(200000)
             qualified = []
             for u in users:
                 w = await db.bot_wallets.find_one({"user_id": u["id"]}, {"activated": 1})
@@ -6213,6 +6215,92 @@ async def admin_activate_bot(uid: str, admin: dict = Depends(require_admin)):
     })
     logger.info(f"ADMIN ACTIVATE BOT (no payout): {uid}")
     return {"ok": True, "email": u["email"], "activated": True}
+
+
+class AdminInjectTeamIn(BaseModel):
+    leg: Literal["left", "right"] = "left"
+    count: int = Field(default=109, ge=1, le=5000)
+
+
+async def _synthetic_count(user_id: str) -> int:
+    return await db.users.count_documents({"injected_root": user_id, "synthetic": True})
+
+
+@api.get("/admin/users/{uid}/synthetic")
+async def admin_synthetic_count(uid: str, admin: dict = Depends(require_admin)):
+    u = await db.users.find_one({"uid": uid.upper()}, {"_id": 0, "id": 1})
+    if not u:
+        raise HTTPException(404, "User not found")
+    return {"uid": uid.upper(), "synthetic_team": await _synthetic_count(u["id"])}
+
+
+@api.post("/admin/users/{uid}/inject-team")
+async def admin_inject_team(uid: str, body: AdminInjectTeamIn, admin: dict = Depends(require_admin)):
+    """Admin-only: place N synthetic ACTIVE members in a single leg under the target
+    user (a vertical chain). They count towards the target's team/rank but are flagged
+    pool_excluded + synthetic so they NEVER receive any royalty/pool payout and never
+    qualify as pool recipients. No income is distributed anywhere."""
+    from pymongo import ReturnDocument
+    target = await db.users.find_one({"uid": uid.upper()}, {"_id": 0, "id": 1, "uid": 1})
+    if not target:
+        raise HTTPException(404, "User not found")
+    count = int(body.count)
+    leg = body.leg
+    batch_id = str(uuid.uuid4())
+    # Reserve a contiguous block of UIDs in a single counter bump.
+    c = await db.counters.find_one_and_update(
+        {"_id": "uid"}, {"$inc": {"seq": count}}, upsert=True,
+        return_document=ReturnDocument.AFTER)
+    end_seq = int(c["seq"])
+    start_seq = end_seq - count + 1
+    now = iso(now_utc())
+    parent = target["id"]
+    docs = []
+    for i in range(count):
+        seq = start_seq + i
+        new_uid = f"TSK{100000 + seq - 1}"
+        new_id = str(uuid.uuid4())
+        docs.append({
+            "id": new_id,
+            "uid": new_uid,
+            "email": f"filler.{new_uid.lower()}@tgx.local",
+            "password_hash": hash_password(uuid.uuid4().hex),
+            "name": f"Member {new_uid}",
+            "role": "user",
+            "referral_code": new_uid,
+            "referred_by": parent,
+            "rank": "Level 1",
+            "country_code": "+91",
+            "mobile": None,
+            "txn_password_hash": None,
+            "leg": leg,
+            "activated": True,            # counts as active member for team/rank
+            "synthetic": True,            # admin-created filler
+            "pool_excluded": True,        # NEVER enters any royalty/pool payout
+            "injected_root": target["id"],
+            "injected_batch": batch_id,
+            "injected_by_admin": admin["id"],
+            "wallet_usdt": 0.0,
+            "created_at": now,
+        })
+        parent = new_id   # chain: next member sits under this one (single leg)
+    if docs:
+        await db.users.insert_many(docs)
+    logger.info(f"ADMIN INJECT TEAM: {count} synthetic active members under {target['uid']} ({leg} leg)")
+    return {"ok": True, "uid": target["uid"], "added": count, "leg": leg,
+            "synthetic_team": await _synthetic_count(target["id"])}
+
+
+@api.post("/admin/users/{uid}/remove-synthetic")
+async def admin_remove_synthetic(uid: str, admin: dict = Depends(require_admin)):
+    """Admin-only: remove ALL synthetic (admin-injected) members placed under the
+    target user. Real users are never touched."""
+    target = await db.users.find_one({"uid": uid.upper()}, {"_id": 0, "id": 1, "uid": 1})
+    if not target:
+        raise HTTPException(404, "User not found")
+    r = await db.users.delete_many({"injected_root": target["id"], "synthetic": True})
+    logger.info(f"ADMIN REMOVE SYNTHETIC: {r.deleted_count} members under {target['uid']}")
+    return {"ok": True, "uid": target["uid"], "removed": r.deleted_count, "synthetic_team": 0}
 
 
 @api.get("/admin/finance-summary")

@@ -365,3 +365,15 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - User wanted all Hindi/Hinglish UI text in English (screenshot: Forgot Password).
 - Fixed: ForgotPassword.jsx (6 strings), BindAPI.jsx (Main-account-address warning), AdminPanel.jsx (tier validation toast). Full frontend scan (Hinglish tokens + Devanagari) now returns zero remaining strings. Verified Forgot Password page in English via screenshot.
 - Deploy: frontend-only -> Save-to-Github + git pull + yarn build + reload nginx.
+
+## 2026-06 (cont-6): Admin — inject synthetic ACTIVE members in one leg (pool-excluded)
+- User: under one ID (e.g. TSK100004), add 109 ACTIVE members in a single leg via admin; those 109 must NOT enter the pool.
+- Backend (server.py):
+  - AdminInjectTeamIn {leg: left|right, count:1..5000 (default 109)}.
+  - POST /admin/users/{uid}/inject-team — creates a vertical CHAIN of `count` synthetic users in ONE leg under target. Each: activated=True (counts for team/rank), synthetic=True, pool_excluded=True, injected_root=target_id, injected_batch, rank Level 1, NO bot_wallet (so never a pool recipient). UIDs reserved via single counter bump; insert_many.
+  - GET /admin/users/{uid}/synthetic — returns current synthetic_team count.
+  - POST /admin/users/{uid}/remove-synthetic — delete_many narrowly {injected_root, synthetic:True} (admin action only; never touches real users).
+  - _run_royalty_distribution pool query now filters pool_excluded!=True AND synthetic!=True (defensive; synthetic are Level1 + no activated wallet anyway).
+- Frontend (AdminPanel.jsx): in User Details modal -> "Add Active Members (One Leg)" card: left/right toggle, count input (default 109), Add button, Remove Synthetic button, live synthetic count. testids: admin-inject-team/-leg-left/-leg-right/-count/-submit/-remove-synthetic/admin-synthetic-count.
+- Verified (preview, minted admin token): inject 109 -> 1 direct child + chain, all leg=left, activated, pool_excluded, rank Level1, 0 activated wallets; TSK100004 total_active_team=109; remove -> 0; re-inject -> 109. Pool query excludes them.
+- Deploy: backend + frontend -> Save-to-Github + git pull + yarn build + reload nginx + systemctl restart tradeskill-backend.
