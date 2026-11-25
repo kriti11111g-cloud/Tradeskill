@@ -377,3 +377,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Frontend (AdminPanel.jsx): in User Details modal -> "Add Active Members (One Leg)" card: left/right toggle, count input (default 109), Add button, Remove Synthetic button, live synthetic count. testids: admin-inject-team/-leg-left/-leg-right/-count/-submit/-remove-synthetic/admin-synthetic-count.
 - Verified (preview, minted admin token): inject 109 -> 1 direct child + chain, all leg=left, activated, pool_excluded, rank Level1, 0 activated wallets; TSK100004 total_active_team=109; remove -> 0; re-inject -> 109. Pool query excludes them.
 - Deploy: backend + frontend -> Save-to-Github + git pull + yarn build + reload nginx + systemctl restart tradeskill-backend.
+
+## 2026-06 (cont-7): Production build fix — Node 18 `crypto is not defined`
+- User's server (Node v18.20.8) failed `yarn build`: ReferenceError crypto is not defined at serialize-javascript@7.0.5 index.js:54 (via css-minimizer-webpack-plugin). Pod uses Node 24 so preview built fine. This blocked deploy of the inject-team feature -> caused "not found".
+- Fix: frontend/package.json build script -> "NODE_OPTIONS=--experimental-global-webcrypto craco build". Flag exposes global webcrypto on Node 18; accepted (no error) on Node 24 too. Verified full build succeeds in pod (Done in 29.53s). START script unchanged.
+- Deploy: Save-to-Github + `cd /opt/tradeskill && git pull && cd frontend && yarn build && cd .. && sudo systemctl reload nginx && sudo systemctl restart tradeskill-backend`.
