@@ -377,7 +377,7 @@ export default function BindAPI() {
             </div>
             {cfg.walletStyle && (
               <p className="text-[10.5px] leading-snug mt-1.5" style={{ color: C.mute }} data-testid="hl-address-hint">
-                ⚠️ Yahan apna <b style={{ color: C.white }}>Main account address</b> daalein (Hyperliquid app me sabse upar dikhta hai, jaha aapka fund hai) — <b style={{ color: "#EF4444" }}>API/Agent wallet ka address NAHI</b> jo API page par dikhta hai.
+                ⚠️ Enter your <b style={{ color: C.white }}>Main account address</b> here (shown at the top of the Hyperliquid app, where your funds are) — <b style={{ color: "#EF4444" }}>NOT the API/Agent wallet address</b> shown on the API page.
               </p>
             )}
           </div>

@@ -27,7 +27,7 @@ export default function ForgotPassword() {
   }, [resendIn > 0]); // eslint-disable-line
 
   const sendOtp = async () => {
-    if (!email.trim()) return toast.error("Email daalo");
+    if (!email.trim()) return toast.error("Please enter your email");
     setLoading(true);
     try {
       const { data } = await api.post("/auth/forgot/send", { email: email.trim() });
@@ -42,8 +42,8 @@ export default function ForgotPassword() {
 
   const resetPw = async (e) => {
     e.preventDefault();
-    if (code.trim().length !== 6) return toast.error("6-digit OTP daalo");
-    if (pw.length < 6) return toast.error("Password kam se kam 6 characters ka ho");
+    if (code.trim().length !== 6) return toast.error("Enter the 6-digit OTP");
+    if (pw.length < 6) return toast.error("Password must be at least 6 characters");
     if (pw !== pw2) return toast.error("Both passwords do not match");
     setLoading(true);
     try {
@@ -71,8 +71,8 @@ export default function ForgotPassword() {
           <div className="font-display font-black text-[28px] mt-4 text-white">Forgot Password</div>
           <div className="text-[13px] font-semibold text-white/60 mt-1 text-center">
             {step === "email"
-              ? "Apna registered email daalo — hum OTP bhejenge"
-              : `OTP bheja gaya: ${masked}`}
+              ? "Enter your registered email — we'll send an OTP"
+              : `OTP sent to: ${masked}`}
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export default function ForgotPassword() {
         )}
 
         <div className="mt-8 text-center text-[15px] text-white/60">
-          Password yaad aa gaya?{" "}
+          Remember your password?{" "}
           <Link to="/login" className="font-bold" style={{ color: "#4ADE80" }} data-testid="forgot-login-link">Login</Link>
         </div>
       </div>

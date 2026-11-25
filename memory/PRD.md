@@ -360,3 +360,8 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix (server.py pairs_summary ~1126): now uses existing _all_tickers_cached() (60s TTL) instead of a fresh fetch each call. Verified: cold 1.9s, warm 0.13-0.17s (~10x faster).
 - Remaining perceived lag = client network latency / one-time bundle load (infra, not code). Frontend already caches many pages via useCachedState.
 - Deploy: backend-only → Save-to-Github + git pull + systemctl restart tradeskill-backend.
+
+## 2026-11-25: Hinglish -> English UI text
+- User wanted all Hindi/Hinglish UI text in English (screenshot: Forgot Password).
+- Fixed: ForgotPassword.jsx (6 strings), BindAPI.jsx (Main-account-address warning), AdminPanel.jsx (tier validation toast). Full frontend scan (Hinglish tokens + Devanagari) now returns zero remaining strings. Verified Forgot Password page in English via screenshot.
+- Deploy: frontend-only -> Save-to-Github + git pull + yarn build + reload nginx.

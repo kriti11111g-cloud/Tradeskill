@@ -256,7 +256,7 @@ export default function AdminPanel() {
     const tiers = bonanza.tiers
       .map((t) => ({ directs: parseInt(t.directs, 10), reward: parseFloat(t.reward) }))
       .filter((t) => t.directs > 0 && t.reward > 0);
-    if (!tiers.length) return toast.error("Kam se kam ek valid tier daalo (directs & reward > 0)");
+    if (!tiers.length) return toast.error("Add at least one valid tier (directs & reward > 0)");
     setBonanzaBusy(true);
     try {
       const { data } = await api.post("/admin/bonanza", {
