@@ -3605,25 +3605,31 @@ async def _bot_tick(bot: dict):
                     changed = True; acted = True
                     continue
 
-            # 2) HOLDING → scalp sell at entry + tp%
+            # 2) HOLDING → trailing scalp sell: arm at entry+tp%, ride the peak up,
+            #    sell only on a tp_callback% RED pullback from the peak (not instantly).
             if sp_state == "holding" and sp_qty > 0:
                 sp_tp = sp_entry * (1 + sp_pct / 100.0)
-                if price >= sp_tp and position_qty > 0 and can_sell:
-                    try:
-                        await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
-                                             quantity=min(sp_qty, position_qty), source="bot")
-                        position_qty = max(0.0, position_qty - sp_qty)
-                        sp["state"] = "flat"; sp["qty"] = 0.0; sp["reentry_low"] = 0.0
-                        sp["cycles"] = int(sp.get("cycles", 0)) + 1
-                        await db.bot_events.insert_one({
-                            "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
-                            "kind": "sub_position_tp", "call": sp_call, "qty": sp_qty,
-                            "buy_price": sp_entry, "tp_price": sp_tp, "price": price,
-                            "cycle": sp["cycles"], "created_at": iso(now_utc())})
-                        logger.info(f"bot {symbol}: SUB C{sp_call} scalp #{sp['cycles']} sold {sp_qty} at {price} (+{sp_pct}%)")
-                        changed = True; acted = True
-                    except _TradeError as e:
-                        logger.warning(f"bot {symbol}: sub C{sp_call} scalp sell failed: {e.msg}")
+                sp_peak = float(sp.get("peak", 0) or 0)
+                if price >= sp_tp and price > sp_peak:
+                    sp["peak"] = price; sp_peak = price; changed = True  # ride up
+                if sp_peak > 0 and position_qty > 0 and can_sell:
+                    pull = sp_peak * (1 - tp_callback / 100.0)
+                    if price <= pull and price > sp_entry:
+                        try:
+                            await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
+                                                 quantity=min(sp_qty, position_qty), source="bot")
+                            position_qty = max(0.0, position_qty - sp_qty)
+                            sp["state"] = "flat"; sp["qty"] = 0.0; sp["reentry_low"] = 0.0; sp["peak"] = 0.0
+                            sp["cycles"] = int(sp.get("cycles", 0)) + 1
+                            await db.bot_events.insert_one({
+                                "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                                "kind": "sub_position_tp", "call": sp_call, "qty": sp_qty,
+                                "buy_price": sp_entry, "tp_price": sp_tp, "peak": sp_peak, "price": price,
+                                "cycle": sp["cycles"], "created_at": iso(now_utc())})
+                            logger.info(f"bot {symbol}: SUB C{sp_call} scalp #{sp['cycles']} sold {sp_qty} at {price} (peak {sp_peak}, +{sp_pct}% armed)")
+                            changed = True; acted = True
+                        except _TradeError as e:
+                            logger.warning(f"bot {symbol}: sub C{sp_call} scalp sell failed: {e.msg}")
                 remaining.append(sp); continue
 
             # 3) FLAT → wait for green signal, then re-buy (recycle the band)
@@ -3640,7 +3646,7 @@ async def _bot_tick(bot: dict):
                         sp["state"] = "holding"
                         sp["buy_price"] = float(txn.get("price", price))
                         sp["qty"] = float(txn.get("quantity", 0))
-                        sp["reentry_low"] = 0.0
+                        sp["reentry_low"] = 0.0; sp["peak"] = 0.0
                         position_qty += sp["qty"]
                         await db.bot_events.insert_one({
                             "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
@@ -3769,7 +3775,7 @@ async def _bot_tick(bot: dict):
                             # TP target = this sub's OWN entry + set take-profit % (e.g. +1.25%)
                             "amount": amount, "tp_price": round(entry_px * (1 + sp_tp_pct / 100.0), 6),
                             "tp_pct": sp_tp_pct, "ceiling": round(ceiling, 6),
-                            "state": "holding", "reentry_low": 0.0, "cycles": 0,
+                            "state": "holding", "reentry_low": 0.0, "peak": 0.0, "cycles": 0,
                             "created_at": iso(now_utc()),
                         }
                         await db.bots.update_one(

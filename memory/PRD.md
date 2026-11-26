@@ -417,3 +417,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Sub creation: sets entry0, ceiling (= previous sub's entry0, or prev_avg for the first sub C5), state=holding, cycles=0. Old subs without ceiling fall back to stored tp_price (prev_avg).
 - Events: sub_position_tp (scalp, has cycle#), sub_position_rebuy, sub_position_closed (has cycles count).
 - Verified (demo sim): scalp→flat, green re-buy, 2nd scalp (recycle), ceiling retire (flat + holding), main mc_count protected. Deploy backend → Save-to-Github + git pull + restart tradeskill-backend.
+
+## 2026-06 (cont-13): Sub-bin scalp sell is now TRAILING (ride up, sell on red pullback)
+- User: sub-bin sell should mirror the main take-profit — after crossing +tp%, let price keep rising and sell only on a tp_callback% (0.25%) RED pullback from the peak, not instantly.
+- server.py _bot_tick SBM holding branch: added per-sub `peak`. Arms when price>=entry*(1+tp%), tracks peak up; sells when price<=peak*(1-tp_callback%) and price>entry. peak reset to 0 on sell and on re-buy; initialised 0 at creation.
+- Verified (demo sim): entry 90 armed at 91.125, rode to peak 92.5 (no sell), ignored -0.216% dip, sold at 92.2 on -0.324% red pullback = +2.44% (vs flat +1.25%). Recycling/ceiling/main-ladder-protection from cont-12 unchanged.
+- Deploy backend → Save-to-Github + git pull + restart tradeskill-backend.
