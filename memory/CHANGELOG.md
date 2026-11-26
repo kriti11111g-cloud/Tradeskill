@@ -109,3 +109,9 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — Sub-beam cards: top 3 buttons made non-interactive
 - On SUB-BEAM cards only, CYCLE/ONE SHOT/SELL NOW now do nothing on tap (onClick guarded by !beam). Look unchanged. Safety-order (C1-C4) cards keep CYCLE/ONE SHOT working. Needs deploy.
+
+## 2026-11-27 — FIX: TP update now reflects in SBM cards
+- Bug: changing TP in Trade Settings updated the main card (+5%) but SBM sub cards still showed old TP (+1.25%), because per-sub TPs and stored sub_positions[].tp_pct were not updated.
+- Frontend (TradeSettings): changing the main "Whole take profit ratio" now sets all sub_position_tps to the same value.
+- Backend (upsert_bot): on editing an existing bot, each existing sub_positions record's tp_pct + tp_price is re-synced to the new per-sub TP. So SBM cards AND the engine use the new TP immediately.
+- Verified e2e: TP 5% update -> all sub records tp_pct 1.25->5.0, breakdown shows 5% for all filled subs. Needs deploy (backend + frontend).

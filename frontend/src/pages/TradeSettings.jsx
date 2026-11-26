@@ -350,7 +350,7 @@ export default function TradeSettings() {
           right={<Stepper value={bot.margin_call_limit} onChange={setLimit} testid="ts-limit" />} />
 
         <Row Icon={Target} title="Whole position take profit ratio" sub="Take profit for total position"
-          right={<NumInput value={bot.whole_take_profit_ratio} unit="%" testid="ts-tp-ratio" onChange={(v) => setBot({ ...bot, whole_take_profit_ratio: v })} />} />
+          right={<NumInput value={bot.whole_take_profit_ratio} unit="%" testid="ts-tp-ratio" onChange={(v) => setBot((b) => ({ ...b, whole_take_profit_ratio: v, sub_position_tps: (b.sub_position_tps || []).map(() => parseFloat(v) || 0) }))} />} />
 
         <Row Icon={RotateCcw} title="Whole position take profit callback" sub="Callback from total take profit"
           right={<NumInput value={bot.whole_take_profit_callback} unit="%" testid="ts-tp-callback" onChange={(v) => setBot({ ...bot, whole_take_profit_callback: v })} />} />

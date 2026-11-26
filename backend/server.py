@@ -1924,6 +1924,20 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
         if ex_avg > 0:
             next_rule = _get_margin_rule({"margin_config": mc_docs, "buy_in_callback": cfg.buy_in_callback}, ex_mc)
             doc["next_buy_price"] = ex_avg * (1 - next_rule["drop"] / 100.0)
+        # Sync existing sub-position records' TP to the newly-saved per-sub TP so the
+        # SBM cards AND the engine reflect the updated take-profit immediately.
+        ex_subs = existing.get("sub_positions") or []
+        if ex_subs:
+            updated_subs = []
+            for sp in ex_subs:
+                call_n = int(sp.get("call", 0) or 0)
+                new_tp = float(tps[call_n - 1]) if 0 < call_n <= len(tps) else float(cfg.whole_take_profit_ratio or 1.25)
+                sp["tp_pct"] = round(new_tp, 2)
+                entry0 = float(sp.get("buy_price", 0.0) or 0.0)
+                if entry0 > 0:
+                    sp["tp_price"] = round(entry0 * (1 + new_tp / 100.0), 6)
+                updated_subs.append(sp)
+            doc["sub_positions"] = updated_subs
     await db.bots.update_one({"user_id": user["id"], "symbol": symbol}, {"$set": doc}, upsert=True)
     row = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
     return row
