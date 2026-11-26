@@ -94,3 +94,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — SBM cards show Live/Pending label
 - SBM card header now shows "Live" (filled/active) or "Pending" (unfilled) text like the main Trade card (data-testid sbm-live-<level>). Verified in preview. Frontend-only; needs deploy.
+
+## 2026-11-27 — SBM card header matches main card format
+- SBM card title now "SYM/USDT [ C<n> ]" and subtitle "CYCLE · RUNNING" (filled) / "CYCLE · PENDING" (unfilled), mirroring the main Trade card. SUB-BEAM + cycle badges retained. Verified in preview; needs deploy.
