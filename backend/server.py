@@ -3558,51 +3558,116 @@ async def _bot_tick(bot: dict):
                 {"user_id": user_id, "symbol": symbol}, {"$set": upd})
         return
 
-    # === SUB-POSITION TAKE PROFIT (calls 5+) ===
-    # Har sub-position apne tp_price (pichhle call ka average price) par
-    # principal + profit ke saath exit hoti hai.
-    if sub_positions and position_qty > 0 and can_sell:
-        remaining_subs = []
-        sold_any = False
+    # === SUB-BEAM MODE: autonomous recycling cycles (calls 5+) =========
+    # Har sub-bin apni BAND [entry0 .. ceiling] ke andar baar-baar buy-sell
+    # karta hai: entry se +tp% par sell (profit book) -> green signal (dip +
+    # buy_in_callback% bounce) par dobara buy -> phir +tp% par sell ... ye cycle
+    # tab tak chalta hai jab tak price us ke THEEK UPAR wali position (ceiling)
+    # tak na pahunch jaaye. Ceiling pe pahunchte hi us unit ka cycle KHATAM:
+    # holding ho to wahan sell karke profit lock, aur sub band ho jata hai.
+    if sub_positions:
         _sub_tps = bot.get("sub_position_tps") or []
+        _mc0, _nb0, _trough0 = mc_count, next_buy, trough  # snapshot main-ladder state
+        remaining = []
+        changed = False
+        acted = False
         for sp in sub_positions:
+            sp_call = int(sp.get("call", 0) or 0)
+            sp_pct = float(sp.get("tp_pct") or (_sub_tps[sp_call - 1] if 0 < sp_call <= len(_sub_tps) else tp_ratio))
+            sp_amount = float(sp.get("amount", first_buy) or first_buy)
+            sp_state = sp.get("state", "holding")
             sp_qty = float(sp.get("qty", 0) or 0)
             sp_entry = float(sp.get("buy_price", 0) or 0)
-            sp_call = int(sp.get("call", 0) or 0)
-            # TP target = this sub's OWN entry + the set take-profit % (e.g. 1.25%),
-            # NOT the previous average. Computed fresh so old/new subs behave the same.
-            sp_tp_pct = float(_sub_tps[sp_call - 1]) if 0 < sp_call <= len(_sub_tps) else tp_ratio
-            sp_tp = sp_entry * (1 + sp_tp_pct / 100.0) if sp_entry > 0 else float(sp.get("tp_price", 0) or 0)
-            if sp_tp > 0 and sp_qty > 0 and price >= sp_tp:
-                try:
-                    await _execute_trade(
-                        user_id=user_id, symbol=symbol, side="SELL",
-                        quantity=min(sp_qty, position_qty), source="bot",
-                    )
-                    position_qty = max(0.0, position_qty - sp_qty)
-                    sold_any = True
-                    await db.bot_events.insert_one({
-                        "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
-                        "kind": "sub_position_tp", "call": sp.get("call"),
-                        "qty": sp_qty, "buy_price": sp.get("buy_price"),
-                        "tp_price": sp_tp, "price": price,
-                        "created_at": iso(now_utc()),
-                    })
-                    logger.info(
-                        f"bot {symbol}: SUB-POSITION TP C{sp.get('call')} sold {sp_qty} "
-                        f"at {price} (target {sp_tp})")
-                except _TradeError as e:
-                    logger.warning(f"bot {symbol}: sub TP sell failed: {e.msg}")
-                    remaining_subs.append(sp)
-            else:
-                remaining_subs.append(sp)
-        if sold_any:
+            # ceiling = level of the position directly above (band top). Old subs
+            # (no ceiling field) fall back to their stored tp_price (= prev average).
+            sp_ceiling = float(sp.get("ceiling") or sp.get("tp_price") or 0)
+
+            # 1) CEILING reached → end this unit's cycle, lock profit
+            if sp_ceiling > 0 and price >= sp_ceiling:
+                if sp_state == "holding" and sp_qty > 0 and position_qty > 0 and can_sell:
+                    try:
+                        await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
+                                             quantity=min(sp_qty, position_qty), source="bot")
+                        position_qty = max(0.0, position_qty - sp_qty)
+                        await db.bot_events.insert_one({
+                            "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                            "kind": "sub_position_closed", "call": sp_call, "qty": sp_qty,
+                            "buy_price": sp_entry, "price": price, "ceiling": sp_ceiling,
+                            "cycles": int(sp.get("cycles", 0)), "created_at": iso(now_utc())})
+                        logger.info(f"bot {symbol}: SUB C{sp_call} CYCLE DONE — closed {sp_qty} at {price} (ceiling {sp_ceiling}, {sp.get('cycles',0)} scalps)")
+                        changed = True; acted = True
+                        continue  # removed from sub_positions (cycle finished)
+                    except _TradeError as e:
+                        logger.warning(f"bot {symbol}: sub C{sp_call} ceiling close failed: {e.msg}")
+                        remaining.append(sp); continue
+                else:
+                    # flat (already sold) → nothing to sell, just retire the unit
+                    changed = True; acted = True
+                    continue
+
+            # 2) HOLDING → scalp sell at entry + tp%
+            if sp_state == "holding" and sp_qty > 0:
+                sp_tp = sp_entry * (1 + sp_pct / 100.0)
+                if price >= sp_tp and position_qty > 0 and can_sell:
+                    try:
+                        await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
+                                             quantity=min(sp_qty, position_qty), source="bot")
+                        position_qty = max(0.0, position_qty - sp_qty)
+                        sp["state"] = "flat"; sp["qty"] = 0.0; sp["reentry_low"] = 0.0
+                        sp["cycles"] = int(sp.get("cycles", 0)) + 1
+                        await db.bot_events.insert_one({
+                            "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                            "kind": "sub_position_tp", "call": sp_call, "qty": sp_qty,
+                            "buy_price": sp_entry, "tp_price": sp_tp, "price": price,
+                            "cycle": sp["cycles"], "created_at": iso(now_utc())})
+                        logger.info(f"bot {symbol}: SUB C{sp_call} scalp #{sp['cycles']} sold {sp_qty} at {price} (+{sp_pct}%)")
+                        changed = True; acted = True
+                    except _TradeError as e:
+                        logger.warning(f"bot {symbol}: sub C{sp_call} scalp sell failed: {e.msg}")
+                remaining.append(sp); continue
+
+            # 3) FLAT → wait for green signal, then re-buy (recycle the band)
+            if sp_state == "flat":
+                r_low = float(sp.get("reentry_low", 0) or 0)
+                new_low = min(r_low, price) if r_low > 0 else price
+                if new_low != r_low:
+                    sp["reentry_low"] = new_low; r_low = new_low; changed = True
+                rebound = r_low * (1 + dca_callback / 100.0)
+                if r_low > 0 and price >= rebound and (sp_ceiling <= 0 or price < sp_ceiling):
+                    try:
+                        txn = await _execute_trade(user_id=user_id, symbol=symbol, side="BUY",
+                                                   usdt_amount=sp_amount, source="bot")
+                        sp["state"] = "holding"
+                        sp["buy_price"] = float(txn.get("price", price))
+                        sp["qty"] = float(txn.get("quantity", 0))
+                        sp["reentry_low"] = 0.0
+                        position_qty += sp["qty"]
+                        await db.bot_events.insert_one({
+                            "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
+                            "kind": "sub_position_rebuy", "call": sp_call, "qty": sp["qty"],
+                            "buy_price": sp["buy_price"], "price": price, "created_at": iso(now_utc())})
+                        logger.info(f"bot {symbol}: SUB C{sp_call} re-buy {sp['qty']} at {sp['buy_price']} (green signal)")
+                        changed = True; acted = True
+                    except _TradeError as e:
+                        logger.warning(f"bot {symbol}: sub C{sp_call} re-buy failed: {e.msg}")
+                remaining.append(sp); continue
+
+            remaining.append(sp)
+
+        if changed:
+            _restore = {"sub_positions": remaining}
+            if acted:
+                # A sub buy/sell ran through _execute_trade which bumps the main
+                # margin_call_count / next_buy / trough — restore them so the main
+                # DCA ladder is NOT affected by sub-bin recycling.
+                _restore.update({"margin_call_count": _mc0, "next_buy_price": _nb0,
+                                 "dca_bottom_price": _trough0})
             await db.bots.update_one(
-                {"user_id": user_id, "symbol": symbol},
-                {"$set": {"sub_positions": remaining_subs}})
-            sub_positions = remaining_subs
-            if position_qty <= 0:
-                return
+                {"user_id": user_id, "symbol": symbol}, {"$set": _restore})
+            sub_positions = remaining
+        # One sub action per tick → let next tick re-evaluate with fresh state
+        if acted:
+            return
 
     # === TAKE PROFIT (trailing) ===
     # Peak arms once price crosses the TP target. After arming, the trailing
@@ -3690,21 +3755,29 @@ async def _bot_tick(bot: dict):
                         entry_px = float(txn.get("price", price))
                         _sub_tps = bot.get("sub_position_tps") or []
                         sp_tp_pct = float(_sub_tps[call_num - 1]) if 0 < call_num <= len(_sub_tps) else tp_ratio
+                        # Band ceiling = level of the position directly ABOVE this sub:
+                        # the previous sub's entry, or (for the first sub) the previous average.
+                        _prev_subs = bot.get("sub_positions") or []
+                        if _prev_subs:
+                            ceiling = float(_prev_subs[-1].get("entry0") or _prev_subs[-1].get("buy_price") or prev_avg)
+                        else:
+                            ceiling = prev_avg
                         sub = {
                             "id": str(uuid.uuid4()), "call": call_num,
                             "qty": float(txn.get("quantity", 0)),
-                            "buy_price": entry_px,
+                            "buy_price": entry_px, "entry0": entry_px,
                             # TP target = this sub's OWN entry + set take-profit % (e.g. +1.25%)
                             "amount": amount, "tp_price": round(entry_px * (1 + sp_tp_pct / 100.0), 6),
-                            "tp_pct": sp_tp_pct,
+                            "tp_pct": sp_tp_pct, "ceiling": round(ceiling, 6),
+                            "state": "holding", "reentry_low": 0.0, "cycles": 0,
                             "created_at": iso(now_utc()),
                         }
                         await db.bots.update_one(
                             {"user_id": user_id, "symbol": symbol},
                             {"$push": {"sub_positions": sub}})
                         logger.info(
-                            f"bot {symbol}: SUB-POSITION C{call_num} opened "
-                            f"qty={sub['qty']} entry={entry_px} tp={sub['tp_price']} (+{sp_tp_pct}%)")
+                            f"bot {symbol}: SUB-BEAM C{call_num} opened qty={sub['qty']} "
+                            f"entry={entry_px} tp=+{sp_tp_pct}% band=[{entry_px}..{sub['ceiling']}]")
                     await db.bot_events.insert_one({
                         "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
                         "kind": "margin_call", "round": mc_count + 2,

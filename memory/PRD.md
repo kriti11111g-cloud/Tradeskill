@@ -406,3 +406,14 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - Fix (server.py): sub-position TP now = sub's OWN entry × (1 + take-profit%). (1) sub SELL loop computes sp_tp = buy_price*(1+tp%) fresh (works for old+new subs), tp% from sub_position_tps[call-1] else whole_take_profit_ratio. (2) sub creation stores tp_price = entry*(1+tp%) + tp_pct. (3) _sub_position_breakdown always computes tp_price = entry*(1+tp_pct%) so card price matches the "+X%" label.
 - Verified (demo sim): C5 entry 87.607 → TP 88.702 = exactly +1.25% from entry; sub sold alone at that target; display label & price consistent (1.25%).
 - Behavior note: each sub-bin now books the set % quickly from its own entry (instead of recovering to the previous average). Deploy backend → Save-to-Github + git pull + restart tradeskill-backend (+ frontend build for the card).
+
+## 2026-06 (cont-12): SBM autonomous recycling cycles (user-approved)
+- User approval (ask_human): (1) sub-bins recycle +1.25% repeatedly, (2) re-buy waits for green signal (dip + buy_in_callback% bounce), (3) cycle ends when price reaches the level of the position directly above (ceiling) → lock profit.
+- server.py _bot_tick sub block rewritten as a per-sub state machine: each sub has entry0, buy_price, qty, tp_pct, ceiling, state(holding/flat), reentry_low, cycles.
+  - holding → scalp SELL at buy_price*(1+tp%); state=flat, cycles+=1.
+  - flat → track reentry_low; re-BUY `amount` on +buy_in_callback% bounce (only if price < ceiling); state=holding, new buy_price.
+  - ceiling reached (price>=ceiling): holding→SELL & retire (sub_position_closed), flat→retire. 
+  - One action per tick (returns after acting). After any sub trade, restores margin_call_count/next_buy_price/dca_bottom_price to pre-tick snapshot so sub recycling does NOT corrupt the main DCA ladder (since _execute_trade BUY bumps mc_count).
+- Sub creation: sets entry0, ceiling (= previous sub's entry0, or prev_avg for the first sub C5), state=holding, cycles=0. Old subs without ceiling fall back to stored tp_price (prev_avg).
+- Events: sub_position_tp (scalp, has cycle#), sub_position_rebuy, sub_position_closed (has cycles count).
+- Verified (demo sim): scalp→flat, green re-buy, 2nd scalp (recycle), ceiling retire (flat + holding), main mc_count protected. Deploy backend → Save-to-Github + git pull + restart tradeskill-backend.
