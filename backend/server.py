@@ -1658,10 +1658,12 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
             entry = float(rec.get("buy_price", entry) or entry)
             qty = float(rec.get("qty", 0) or 0)
             amt = float(rec.get("amount", amt) or amt)
-            tp_price = float(rec.get("tp_price", 0) or 0) or (entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0)
+            tp_pct = float(rec.get("tp_pct", tp_pct) or tp_pct)
         else:
             qty = (amt / entry) if entry > 0 else 0.0
-            tp_price = entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0
+        # TP target is ALWAYS entry + take-profit% (never the previous average),
+        # so the displayed price matches the "+X%" label.
+        tp_price = entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0
         out.append({
             "level": i,
             "filled": i <= mc_count,
@@ -3562,9 +3564,15 @@ async def _bot_tick(bot: dict):
     if sub_positions and position_qty > 0 and can_sell:
         remaining_subs = []
         sold_any = False
+        _sub_tps = bot.get("sub_position_tps") or []
         for sp in sub_positions:
-            sp_tp = float(sp.get("tp_price", 0) or 0)
             sp_qty = float(sp.get("qty", 0) or 0)
+            sp_entry = float(sp.get("buy_price", 0) or 0)
+            sp_call = int(sp.get("call", 0) or 0)
+            # TP target = this sub's OWN entry + the set take-profit % (e.g. 1.25%),
+            # NOT the previous average. Computed fresh so old/new subs behave the same.
+            sp_tp_pct = float(_sub_tps[sp_call - 1]) if 0 < sp_call <= len(_sub_tps) else tp_ratio
+            sp_tp = sp_entry * (1 + sp_tp_pct / 100.0) if sp_entry > 0 else float(sp.get("tp_price", 0) or 0)
             if sp_tp > 0 and sp_qty > 0 and price >= sp_tp:
                 try:
                     await _execute_trade(
@@ -3679,11 +3687,16 @@ async def _bot_tick(bot: dict):
                     # SUB-POSITION MODE: Call 5 se aage har buy alag sub-position
                     # hai jiska TP = pichhle call ka average price.
                     if call_num >= SUB_POSITION_START and prev_avg > 0:
+                        entry_px = float(txn.get("price", price))
+                        _sub_tps = bot.get("sub_position_tps") or []
+                        sp_tp_pct = float(_sub_tps[call_num - 1]) if 0 < call_num <= len(_sub_tps) else tp_ratio
                         sub = {
                             "id": str(uuid.uuid4()), "call": call_num,
                             "qty": float(txn.get("quantity", 0)),
-                            "buy_price": float(txn.get("price", price)),
-                            "amount": amount, "tp_price": round(prev_avg, 6),
+                            "buy_price": entry_px,
+                            # TP target = this sub's OWN entry + set take-profit % (e.g. +1.25%)
+                            "amount": amount, "tp_price": round(entry_px * (1 + sp_tp_pct / 100.0), 6),
+                            "tp_pct": sp_tp_pct,
                             "created_at": iso(now_utc()),
                         }
                         await db.bots.update_one(
@@ -3691,7 +3704,7 @@ async def _bot_tick(bot: dict):
                             {"$push": {"sub_positions": sub}})
                         logger.info(
                             f"bot {symbol}: SUB-POSITION C{call_num} opened "
-                            f"qty={sub['qty']} tp={sub['tp_price']} (prev avg)")
+                            f"qty={sub['qty']} entry={entry_px} tp={sub['tp_price']} (+{sp_tp_pct}%)")
                     await db.bot_events.insert_one({
                         "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
                         "kind": "margin_call", "round": mc_count + 2,
