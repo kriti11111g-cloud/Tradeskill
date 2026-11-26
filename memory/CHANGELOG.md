@@ -136,3 +136,9 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Backend: `sub_position_start` ab per-bot config (default 5, clamp 2..limit). `_sub_position_breakdown.is_subbeam`, `_bot_tick` sub-creation, aur `/bots/{symbol}` detail sab per-bot value use karte hain.
 - Distribution view ka text aur TP-input filter dynamic (start value ke hisaab se).
 - Verified via curl (C4/C5 persist, is_subbeam shifts) + screenshot. Default restored to C5.
+
+## 2026-11-27 — SBM modal: Initial Safety Orders combined view
+- Initial Safety Orders cards (non-SBM) par per-card scary minus "Live P&L" hata diya.
+- Ab in cards par: "Order Entry" (individual) + "Average (All)" (sab initial orders ka qty-weighted blended avg, har card same) + "Sells @" (= initAvg × (1+whole_tp%), jahan averaged block bikega).
+- Sub-Beam (SBM) cards unchanged: individual Live P&L + TP Target (sell price) banaa rahe.
+- Frontend only (Trades.jsx SBMModal/LevelCard). Verified via demo ZEC bot screenshot: Avg $917.90, Sells @ $927.08 (+1%).

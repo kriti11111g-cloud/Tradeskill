@@ -274,6 +274,14 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const curPx = livePrice > 0 ? livePrice : (data?.current_price || 0);
   const initialLevels = levels.filter((l) => !l.is_subbeam);
   const beamLevels = levels.filter((l) => l.is_subbeam);
+  // Initial Safety Orders average + where the averaged block sells (whole-position TP).
+  // These orders don't sell individually — they average together, so show ONE combined
+  // average + sell price instead of scary per-order loss numbers.
+  const initFilled = initialLevels.filter((l) => l.filled && l.qty > 0 && l.entry_price > 0);
+  const initQty = initFilled.reduce((s, l) => s + l.qty, 0);
+  const initAvg = initQty > 0 ? initFilled.reduce((s, l) => s + l.entry_price * l.qty, 0) / initQty : 0;
+  const wtp = data?.whole_take_profit_ratio || 0;
+  const initSell = initAvg > 0 ? initAvg * (1 + wtp / 100) : 0;
   // Sub-Beam positions only start from `subStart` (5th order). Calls 1..4 only average.
   const beamFilled = Math.max(0, mcCount - (subStart - 1));
   const beamTotal = Math.max(0, mcLimit - (subStart - 1));
@@ -388,10 +396,11 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           );
         })()}
 
-        {/* stats row — Avg Entry | Live P&L | TP Target (mirrors trade card) */}
+        {/* stats row — Initial Safety Orders show ONE combined Average + Sell price
+            (they average together); Sub-Beam cards keep their own Live P&L + TP. */}
         <div className="flex items-end justify-between mt-2.5">
           <div>
-            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Avg Entry</div>
+            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>{beam ? "Avg Entry" : "Order Entry"}</div>
             <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
               {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
             </div>
@@ -399,24 +408,45 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
               {lv.qty > 0 ? `${fmtNum(lv.qty, lv.qty >= 1 ? 3 : 6)} ${sym}` : "—"} · ${fmtNum(lv.amount_usdt, 2)}
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live P&amp;L</div>
-            <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: hasPnl ? (up ? "var(--good)" : "var(--bad)") : "var(--text-mute)" }} data-testid={`sbm-pnl-${lv.level}`}>
-              {hasPnl ? `${up ? "+" : "-"}$${fmtNum(Math.abs(pnl), 2)}` : "—"}
-            </div>
-            {hasPnl && (
-              <div className="text-[9px] font-bold" style={{ color: up ? "var(--good)" : "var(--bad)" }}>
-                ({up ? "+" : ""}{fmtNum(pnlPct, 2)}%)
+          {beam ? (
+            <>
+              <div className="text-center">
+                <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live P&amp;L</div>
+                <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: hasPnl ? (up ? "var(--good)" : "var(--bad)") : "var(--text-mute)" }} data-testid={`sbm-pnl-${lv.level}`}>
+                  {hasPnl ? `${up ? "+" : "-"}$${fmtNum(Math.abs(pnl), 2)}` : "—"}
+                </div>
+                {hasPnl && (
+                  <div className="text-[9px] font-bold" style={{ color: up ? "var(--good)" : "var(--bad)" }}>
+                    ({up ? "+" : ""}{fmtNum(pnlPct, 2)}%)
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-semibold" style={{ color: accent }}>TP Target</div>
-            <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
-              {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
-            </div>
-            <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
-          </div>
+              <div className="text-right">
+                <div className="text-[10px] font-semibold" style={{ color: accent }}>TP Target</div>
+                <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
+                  {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
+                </div>
+                <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center">
+                <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Average (All)</div>
+                <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }} data-testid={`sbm-initavg-${lv.level}`}>
+                  {initAvg > 0 ? fmtPrice(initAvg) : "—"}
+                </div>
+                <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>{initFilled.length} orders</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-semibold" style={{ color: accent }}>Sells @</div>
+                <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-initsell-${lv.level}`}>
+                  {initSell > 0 ? fmtPrice(initSell) : "—"}
+                </div>
+                <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(wtp, 2)}%</div>
+              </div>
+            </>
+          )}
         </div>
         {/* AVERAGE · SBM · TP — bottom row, same size/look as the main trade card */}
         <div className="grid grid-cols-3 gap-1.5 mt-2.5">
