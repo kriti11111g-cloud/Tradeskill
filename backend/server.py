@@ -1645,6 +1645,27 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
         base = avg_price if avg_price > 0 else (last_buy if last_buy > 0 else float(current_price or 0))
 
     out = []
+    # Base / first entry — the very first buy is NOT a margin call (it doesn't
+    # increment margin_call_count), but it IS part of the averaged position, so
+    # show it as the first Initial Safety Order card and include it in the average.
+    base_qty = (first_buy / base) if base > 0 else 0.0
+    out.append({
+        "level": 0,
+        "filled": avg_price > 0,
+        "is_subbeam": False,
+        "disabled": False,
+        "entry_price": round(base, 8) if base > 0 else 0,
+        "qty": round(base_qty, 6),
+        "amount_usdt": round(first_buy, 2),
+        "tp_pct": round(wtp, 2),
+        "tp_price": round(base * (1 + wtp / 100.0), 8) if base > 0 else 0,
+        "drop_pct": 0,
+        "cycles": 0,
+        "sub_state": "",
+        "peak": 0,
+        "trailing": False,
+        "trail_sell_price": 0,
+    })
     price = base
     for i in range(1, mc_limit + 1):
         d = drop_at(i)

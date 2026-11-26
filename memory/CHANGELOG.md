@@ -142,3 +142,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Ab in cards par: "Order Entry" (individual) + "Average (All)" (sab initial orders ka qty-weighted blended avg, har card same) + "Sells @" (= initAvg × (1+whole_tp%), jahan averaged block bikega).
 - Sub-Beam (SBM) cards unchanged: individual Live P&L + TP Target (sell price) banaa rahe.
 - Frontend only (Trades.jsx SBMModal/LevelCard). Verified via demo ZEC bot screenshot: Avg $917.90, Sells @ $927.08 (+1%).
+
+## 2026-11-27 — SBM: base/first entry added to Initial Safety Orders
+- `_sub_position_breakdown` ab level 0 "base entry" (pehla buy, jo margin_call_count increment nahi karta) emit karta hai — is_subbeam=False, header "[ Entry ]".
+- Initial Safety Orders me ab Entry + C1 + C2 + C3 (4 orders); "Average (All)" aur count dono me first buy shaamil.
+- Verified demo ZEC: Entry $962.55, Average(All) $924.02, "4 orders", Sells @ $933.26.

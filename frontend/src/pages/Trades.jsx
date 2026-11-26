@@ -332,7 +332,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           <CoinIcon symbol={sym} size={34} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-[14px] font-black leading-tight min-w-0" style={{ color: "var(--ink)" }}>
-              <span className="truncate">{sym}/USDT <span style={{ color: "var(--good)" }}>[ C{lv.level} ]</span></span>
+              <span className="truncate">{sym}/USDT <span style={{ color: "var(--good)" }}>[ {lv.level === 0 ? "Entry" : `C${lv.level}`} ]</span></span>
               {beam && lv.cycles > 0 && (
                 <span className="shrink-0 whitespace-nowrap flex items-center gap-0.5 text-[11px] font-black px-2 py-0.5 rounded-md" style={{ background: "rgba(124,58,237,0.12)", color: VIOLET }} data-testid={`sbm-cycles-${lv.level}`}>
                   <RefreshCw size={11} strokeWidth={3} /> {lv.cycles}x
