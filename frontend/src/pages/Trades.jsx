@@ -418,6 +418,34 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
             <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
           </div>
         </div>
+        {/* AVERAGE · SBM · TP — bottom row, same size/look as the main trade card */}
+        <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+          <div
+            className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)", opacity: lv.filled ? 1 : 0.45 }}
+            data-testid={`sbm-average-btn-${lv.level}`}
+          >
+            <TrendingUp size={12} className="shrink-0" />
+            <span className="text-[10px] font-black tracking-wide">AVERAGE</span>
+          </div>
+          <div
+            className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+            style={beam ? { background: GRAD, color: "#fff" } : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+            data-testid={`sbm-sbm-btn-${lv.level}`}
+          >
+            <Layers size={12} className="shrink-0" />
+            <span className="text-[10px] font-black tracking-wide">SBM</span>
+          </div>
+          <div
+            className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--good)" }}
+            data-testid={`sbm-tp-btn-${lv.level}`}
+          >
+            <Database size={12} className="shrink-0" />
+            <span className="text-[10px] font-black tracking-wide">TP +{fmtNum(lv.tp_pct, 2)}%</span>
+          </div>
+        </div>
+
         {lv.trailing && lv.trail_sell_price > 0 && (
           <div className="mt-2 rounded-lg px-2 py-1.5 flex items-center gap-1.5 text-[9.5px] font-semibold leading-snug" style={{ background: "rgba(16,185,129,0.09)", border: "1px solid rgba(16,185,129,0.3)" }} data-testid={`sbm-trailing-${lv.level}`}>
             <TrendingUp size={12} className="shrink-0" style={{ color: "var(--good)" }} />

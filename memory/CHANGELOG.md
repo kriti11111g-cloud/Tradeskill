@@ -87,3 +87,7 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Each SBM sub/safety card got the same 3-button row as the main bot card (same size/style), so SBM cards match the main card look.
 - CYCLE/ONE SHOT switch the parent bot's mode (reuses /bots/{symbol}/mode); SELL NOW sells that specific sub-position via NEW endpoint POST /bots/{symbol}/sub/{call}/sell-now (uses cost_basis=sub_entry for correct profit, then removes the sub). SELL NOW enabled only for filled+holding beam subs.
 - Verified e2e: sold Sub-Position 7 → correct profit vs sub entry, sub removed. Frontend+backend compile clean. Needs deploy.
+
+## 2026-11-27 — SBM cards full parity: added AVERAGE/SBM/TP bottom row
+- Each SBM card now has BOTH button rows exactly like the main Trade card: (top) CYCLE/ONE SHOT/SELL NOW and (bottom) AVERAGE/SBM/TP +X%. Bottom row is display-styled (AVERAGE dim when not filled, SBM gradient-active for beam, TP green with sub tp_pct).
+- Verified visually in preview (admin ZEC demo). Frontend compile clean. Needs deploy.
