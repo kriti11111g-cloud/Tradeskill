@@ -115,3 +115,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Frontend (TradeSettings): changing the main "Whole take profit ratio" now sets all sub_position_tps to the same value.
 - Backend (upsert_bot): on editing an existing bot, each existing sub_positions record's tp_pct + tp_price is re-synced to the new per-sub TP. So SBM cards AND the engine use the new TP immediately.
 - Verified e2e: TP 5% update -> all sub records tp_pct 1.25->5.0, breakdown shows 5% for all filled subs. Needs deploy (backend + frontend).
+
+## 2026-11-27 — All SBM modal cards: CYCLE/ONE SHOT/SELL NOW non-interactive
+- Made the top 3 buttons no-op on ALL SBM modal cards (Initial Safety Orders C1-C4 AND Sub-Beam C5+). Buttons kept for look/size parity but do nothing on tap. Frontend-only; needs deploy.
