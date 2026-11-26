@@ -324,7 +324,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           <CoinIcon symbol={sym} size={34} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-[14px] font-black leading-tight min-w-0" style={{ color: "var(--ink)" }}>
-              <span className="truncate">{sym}/USDT [ C{lv.level} ]</span>
+              <span className="truncate">{sym}/USDT <span style={{ color: "var(--good)" }}>[ C{lv.level} ]</span></span>
               {beam && (
                 <span className="shrink-0 whitespace-nowrap text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
               )}

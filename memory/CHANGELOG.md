@@ -100,3 +100,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — SBM "Live" indicator now green on all cards
 - Live text + dot + check icon are green for all filled cards (previously violet on sub-beam). Pending stays grey. Verified in preview; needs deploy.
+
+## 2026-11-27 — SBM card [ Cn ] call label now green
+- The [ Cn ] call-number part of the SBM card title is now green (matches the green Live indicator); "SYM/USDT" stays in ink. Verified in preview; needs deploy.
