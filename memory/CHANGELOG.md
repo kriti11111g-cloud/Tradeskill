@@ -106,3 +106,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — Removed SUB-BEAM title badge (redundant)
 - Removed the violet SUB-BEAM badge from the SBM card title (the bottom-row SBM button already indicates it). Cycle (⟳ Nx) badge kept. Verified in preview; needs deploy.
+
+## 2026-11-27 — Sub-beam cards: top 3 buttons made non-interactive
+- On SUB-BEAM cards only, CYCLE/ONE SHOT/SELL NOW now do nothing on tap (onClick guarded by !beam). Look unchanged. Safety-order (C1-C4) cards keep CYCLE/ONE SHOT working. Needs deploy.

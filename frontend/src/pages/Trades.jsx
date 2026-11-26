@@ -355,7 +355,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           return (
             <div className="grid grid-cols-3 gap-1.5 mt-2.5">
               <button
-                onClick={() => switchMode("cycle")}
+                onClick={() => { if (!beam) switchMode("cycle"); }}
                 disabled={busy}
                 className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
                 style={botMode === "cycle" ? { background: GRAD, color: "#fff" } : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
@@ -365,7 +365,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                 <span className="text-[10px] font-black tracking-wide">CYCLE</span>
               </button>
               <button
-                onClick={() => switchMode("oneshot")}
+                onClick={() => { if (!beam) switchMode("oneshot"); }}
                 disabled={busy}
                 className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
                 style={botMode === "oneshot" ? { background: GRAD, color: "#fff" } : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
@@ -375,7 +375,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                 <span className="text-[10px] font-black tracking-wide">ONE SHOT</span>
               </button>
               <button
-                onClick={() => canSell && sellSub(lv.level)}
+                onClick={() => { if (!beam && canSell) sellSub(lv.level); }}
                 disabled={busy || !canSell}
                 className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
                 style={{ background: "var(--surface)", border: "1px solid var(--ink)", color: "var(--ink)", opacity: canSell ? 1 : 0.45 }}
