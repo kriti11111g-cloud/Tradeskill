@@ -423,3 +423,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - server.py _bot_tick SBM holding branch: added per-sub `peak`. Arms when price>=entry*(1+tp%), tracks peak up; sells when price<=peak*(1-tp_callback%) and price>entry. peak reset to 0 on sell and on re-buy; initialised 0 at creation.
 - Verified (demo sim): entry 90 armed at 91.125, rode to peak 92.5 (no sell), ignored -0.216% dip, sold at 92.2 on -0.324% red pullback = +2.44% (vs flat +1.25%). Recycling/ceiling/main-ladder-protection from cont-12 unchanged.
 - Deploy backend → Save-to-Github + git pull + restart tradeskill-backend.
+
+## 2026-06 (cont-14): SBM card — C5/C6 same avg + C7 price÷10 bug fixed
+- Bug (user video, ZEC): C5 & C6 showed same Avg Entry ($705.72) and C7 showed $70.57 (=705.72/10). Cause in _sub_position_breakdown: (a) drop_at clamped drop to 90% so a 100% "OFF" call became f=0.1 → entry=prev/10; (b) that broke the chained ladder so pending levels collapsed onto the one above.
+- Fix (server.py _sub_position_breakdown): drop_at returns raw %; levels with drop>=100 are marked disabled → entry_price/tp_price=0 (card shows "—") and they do NOT move the ladder; base reconstruction skips disabled rungs. Each pending level now = previous rung × (1 - its own drop%). Added "disabled" flag to each row.
+- Verified (repro): C5=705.72(2%), C6=684.55(3%) now differ; C7/C8(100%)=0. Engine fill price (txn price) was already correct, so this was display-only; frontend already shows "—" when entry_price<=0.
+- Deploy backend → Save-to-Github + git pull + restart tradeskill-backend (+ frontend build harmless).

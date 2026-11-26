@@ -1619,13 +1619,9 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
     wtp = float(bot.get("whole_take_profit_ratio", 1.25) or 1.25)
     real_subs = {int(sp.get("call", 0) or 0): sp for sp in (bot.get("sub_positions") or [])}
 
-    def drop_at(i):   # i = 1-indexed safety order -> margin_config[i-1]
+    def drop_at(i):   # i = 1-indexed safety order -> margin_config[i-1] (raw %, not clamped)
         r = cfg[min(i - 1, len(cfg) - 1)]
-        d = float(r.get("drop", 0) or 0)
-        # Clamp to a sane band so chained prices always stay positive & descending.
-        # (Some legacy configs store drop >= 100% which would make trigger price
-        # go to zero/negative and break the per-level display.)
-        return min(max(d, 0.0), 90.0)
+        return max(float(r.get("drop", 0) or 0), 0.0)
 
     def mult_at(i):
         r = cfg[min(i - 1, len(cfg) - 1)]
@@ -1634,14 +1630,13 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
     # Reconstruct base (first-buy) price: last_buy == entry of the most recent filled order.
     base = 0.0
     if last_buy > 0 and mc_count > 0:
-        factor, ok = 1.0, True
+        factor = 1.0
         for k in range(1, mc_count + 1):
             f = 1 - drop_at(k) / 100.0
             if f <= 0:
-                ok = False
-                break
+                continue  # disabled rung — does not move the ladder
             factor *= f
-        if ok and factor > 0:
+        if factor > 0:
             base = last_buy / factor
     if base <= 0:
         base = avg_price if avg_price > 0 else (last_buy if last_buy > 0 else float(current_price or 0))
@@ -1649,8 +1644,10 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
     out = []
     price = base
     for i in range(1, mc_limit + 1):
-        f = 1 - drop_at(i) / 100.0
-        entry = price * f if (price > 0 and f > 0) else 0.0
+        d = drop_at(i)
+        disabled = d >= 100.0          # 100% drop = call is OFF (not a real $0 level)
+        f = 1 - d / 100.0
+        entry = price * f if (price > 0 and not disabled and f > 0) else 0.0
         amt = first_buy * (mult_at(i) if mult_at(i) > 0 else 1.0)
         tp_pct = float(tps[i - 1]) if i - 1 < len(tps) else wtp
         rec = real_subs.get(i)
@@ -1661,22 +1658,22 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
             tp_pct = float(rec.get("tp_pct", tp_pct) or tp_pct)
         else:
             qty = (amt / entry) if entry > 0 else 0.0
-        # TP target is ALWAYS entry + take-profit% (never the previous average),
-        # so the displayed price matches the "+X%" label.
+        # TP target is ALWAYS entry + take-profit% so the price matches the "+X%" label.
         tp_price = entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0
         out.append({
             "level": i,
             "filled": i <= mc_count,
             "is_subbeam": i >= SUB_POSITION_START,
+            "disabled": disabled,
             "entry_price": round(entry, 8) if entry > 0 else 0,
             "qty": round(qty, 6),
             "amount_usdt": round(amt, 2),
             "tp_pct": round(tp_pct, 2),
             "tp_price": round(tp_price, 8) if tp_price > 0 else 0,
-            "drop_pct": round(drop_at(i), 2),
+            "drop_pct": round(d, 2),
         })
-        if entry > 0:
-            price = entry
+        if entry > 0 and not disabled:
+            price = entry   # only real rungs move the ladder down
     return out
 
 
