@@ -430,6 +430,7 @@ class BotConfigIn(BaseModel):
     whole_take_profit_callback: float = 0.25
     buy_in_callback: float = 0.25
     trade_method: Literal["Cycle", "One-Shot"] = "One-Shot"
+    sub_position_start: int = 5
     sub_take_profit_callback: float = 0.25
     margin_config: Optional[List[MarginRule]] = None
     sub_position_tps: Optional[List[float]] = None
@@ -1509,6 +1510,7 @@ DEFAULT_BOT_CFG = {
     "buy_in_callback": 0.25,
     "trade_method": "One-Shot",
     "trade_mode": "oneshot",
+    "sub_position_start": 5,
     "sub_take_profit_callback": 0.25,
     "margin_config": DEFAULT_MARGIN_CONFIG,
     "status": "stopped",
@@ -1617,6 +1619,7 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
     last_buy = float(bot.get("last_buy_price", 0) or 0)
     tps = bot.get("sub_position_tps") or []
     wtp = float(bot.get("whole_take_profit_ratio", 1.25) or 1.25)
+    sbm_start = int(bot.get("sub_position_start") or SUB_POSITION_START)
     real_subs = {int(sp.get("call", 0) or 0): sp for sp in (bot.get("sub_positions") or [])}
 
     def drop_at(i):   # i = 1-indexed safety order -> margin_config[i-1] (raw %, not clamped)
@@ -1674,7 +1677,7 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
         out.append({
             "level": i,
             "filled": i <= mc_count,
-            "is_subbeam": i >= SUB_POSITION_START,
+            "is_subbeam": i >= sbm_start,
             "disabled": disabled,
             "entry_price": round(entry, 8) if entry > 0 else 0,
             "qty": round(qty, 6),
@@ -1865,7 +1868,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     merged["current_price"] = round(live_px, 6) if live_px else 0
     merged["dca_ladder"] = _compute_dca_ladder(merged, current_price=live_px)
     merged["sub_positions_detail"] = _sub_position_breakdown(merged, current_price=live_px)
-    merged["sub_position_start"] = SUB_POSITION_START
+    merged["sub_position_start"] = int(merged.get("sub_position_start") or SUB_POSITION_START)
     return merged
 
 
@@ -1886,6 +1889,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
     tps = [float(x) for x in (cfg.sub_position_tps or [])][:limit]
     while len(tps) < limit:
         tps.append(float(cfg.whole_take_profit_ratio or 1.5))
+    sbm_start = max(2, min(limit, int(cfg.sub_position_start or 5)))
     doc = {
         "user_id": user["id"],
         "symbol": symbol,
@@ -1897,6 +1901,7 @@ async def upsert_bot(symbol: str, cfg: BotConfigIn, user: dict = Depends(get_cur
         "buy_in_callback": cfg.buy_in_callback,
         "trade_method": cfg.trade_method,
         "trade_mode": "oneshot" if cfg.trade_method == "One-Shot" else "cycle",
+        "sub_position_start": sbm_start,
         "sub_take_profit_callback": cfg.sub_take_profit_callback,
         "margin_config": mc_docs,
         "sub_position_tps": tps,
@@ -3822,7 +3827,7 @@ async def _bot_tick(bot: dict):
                     )
                     # SUB-POSITION MODE: Call 5 se aage har buy alag sub-position
                     # hai jiska TP = pichhle call ka average price.
-                    if call_num >= SUB_POSITION_START and prev_avg > 0:
+                    if call_num >= int(bot.get("sub_position_start") or SUB_POSITION_START) and prev_avg > 0:
                         entry_px = float(txn.get("price", price))
                         _sub_tps = bot.get("sub_position_tps") or []
                         sp_tp_pct = float(_sub_tps[call_num - 1]) if 0 < call_num <= len(_sub_tps) else tp_ratio

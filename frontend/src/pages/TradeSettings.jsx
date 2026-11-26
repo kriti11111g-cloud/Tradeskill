@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, ChevronDown, HelpCircle, Database, Copy, ArrowUpDown,
   Target, RotateCcw, ArrowUpCircle, Settings, PieChart, BarChart3, Repeat,
-  Save, Minus, Plus, Play, Square, Clock, Link2,
+  Save, Minus, Plus, Play, Square, Clock, Link2, Layers,
 } from "lucide-react";
 import CoinIcon from "@/components/CoinIcon";
 import api, { formatApiError } from "@/lib/api";
@@ -152,6 +152,7 @@ export default function TradeSettings() {
         sub_take_profit_callback: parseFloat(bot.sub_take_profit_callback) || 0.25,
         margin_config: bot.margin_config.map((r) => ({ drop: parseFloat(r.drop) || 0, multiplier: parseFloat(r.multiplier) || 1 })),
         sub_position_tps: bot.sub_position_tps.map((v) => parseFloat(v) || 0),
+        sub_position_start: parseInt(bot.sub_position_start, 10) || 5,
       };
       const { data } = await api.post(`/bots/${sym}`, payload);
       setBot((b) => ({ ...b, ...data,
@@ -271,12 +272,12 @@ export default function TradeSettings() {
           <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "var(--card-soft-grad)", border: "1px solid var(--border)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: GRAD }}><PieChart size={20} /></div>
             <div className="text-[11.5px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
-              <span className="font-black" style={{ color: "var(--ink)" }}>Sub-position mode starts from Call 5.</span><br />
-              Calls 1–4 follow normal margin config. From Call 5, each buy is a separate sub-position — its take profit is auto-set at the previous call's average price, and principal + profit exit together on target.
+              <span className="font-black" style={{ color: "var(--ink)" }}>Sub-position mode starts from Call {parseInt(bot.sub_position_start, 10) || 5}.</span><br />
+              Calls 1–{(parseInt(bot.sub_position_start, 10) || 5) - 1} follow normal margin config. From Call {parseInt(bot.sub_position_start, 10) || 5}, each buy is a separate sub-position — its take profit is auto-set at the previous call's average price, and principal + profit exit together on target.
             </div>
           </div>
           {bot.sub_position_tps.map((v, i) => (
-            i < 4 ? null : (
+            i < ((parseInt(bot.sub_position_start, 10) || 5) - 1) ? null : (
             <div key={i} className="flex items-center gap-2.5 px-3 py-2.5" style={ROW} data-testid={`tp-row-${i + 1}`}>
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-black shrink-0" style={{ background: GRAD }}>C{i + 1}</div>
               <div className="flex-1 min-w-0">
@@ -360,6 +361,20 @@ export default function TradeSettings() {
 
         <Row Icon={BarChart3} title="Sub position take profit callback" sub="Callback from each sub position"
           right={<NumInput value={bot.sub_take_profit_callback} unit="%" testid="ts-sub-callback" onChange={(v) => setBot({ ...bot, sub_take_profit_callback: v })} />} />
+
+        <Row Icon={Layers} title="Sub-position mode start" sub="Which call activates Sub-Bin mode (SBM)"
+          right={
+            <div className="flex gap-1.5 shrink-0">
+              {[4, 5].filter((n) => n <= (parseInt(bot.margin_call_limit, 10) || 5)).map((n) => (
+                <button key={n} onClick={() => setBot({ ...bot, sub_position_start: n })}
+                  className="px-4 py-2 rounded-xl text-[12.5px] font-black select-none"
+                  style={(parseInt(bot.sub_position_start, 10) || 5) === n ? { background: GRAD, color: "#fff" } : { background: "var(--surface-3)", color: "var(--ink)", border: "1px solid var(--border)" }}
+                  data-testid={`ts-sbm-start-${n}`}>
+                  C{n}
+                </button>
+              ))}
+            </div>
+          } />
 
         <Row Icon={Settings} title="Margin configuration" sub={`Leverage, max positions and mode · ${bot.margin_call_limit} calls`}
           onClick={() => setView("margin")} testid="ts-margin-config"
