@@ -343,6 +343,9 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
+            <span className="text-[12px] font-black" style={{ color: lv.filled ? (beam ? VIOLET : "var(--good)") : "var(--text-mute)" }} data-testid={`sbm-live-${lv.level}`}>
+              {lv.filled ? "Live" : "Pending"}
+            </span>
             {lv.filled
               ? <CheckCircle2 size={15} style={{ color: beam ? VIOLET : "var(--good)" }} />
               : <Clock size={15} style={{ color: "var(--text-mute)" }} />}

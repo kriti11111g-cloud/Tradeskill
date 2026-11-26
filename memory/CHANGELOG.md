@@ -91,3 +91,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 ## 2026-11-27 — SBM cards full parity: added AVERAGE/SBM/TP bottom row
 - Each SBM card now has BOTH button rows exactly like the main Trade card: (top) CYCLE/ONE SHOT/SELL NOW and (bottom) AVERAGE/SBM/TP +X%. Bottom row is display-styled (AVERAGE dim when not filled, SBM gradient-active for beam, TP green with sub tp_pct).
 - Verified visually in preview (admin ZEC demo). Frontend compile clean. Needs deploy.
+
+## 2026-11-27 — SBM cards show Live/Pending label
+- SBM card header now shows "Live" (filled/active) or "Pending" (unfilled) text like the main Trade card (data-testid sbm-live-<level>). Verified in preview. Frontend-only; needs deploy.
