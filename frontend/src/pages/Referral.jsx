@@ -33,12 +33,16 @@ export default function Referral() {
   const PAGE = 20;
 
   useEffect(() => {
-    api.get("/referral").then(({ data }) => setData(data));
+    api.get("/referral").then(({ data }) => setData(data)).catch(() => {});
+    // Prefetch team-by-rank on load so the Team tab opens instantly (no wait on tap).
+    api.get("/referral/team-by-rank").then(({ data }) => setTeamData(data)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openTeam = () => {
     setTab("team");
     setViewRank(null);
+    // Background refresh; cached/prefetched data already shows instantly.
     api.get("/referral/team-by-rank").then(({ data }) => setTeamData(data)).catch(() => {});
   };
 

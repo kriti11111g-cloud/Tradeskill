@@ -122,3 +122,7 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 ## 2026-11-27 — PERF: Rank page opens instantly from cache
 - Bug: Rank.jsx viewLevel started null and was only set after /ranks/me resolved, so the page showed "Loading…" even when ranks/me were cached.
 - Fix: initialize viewLevel from cached me.current_level → instant render on repeat visits; API still refreshes in background. Backend endpoints already fast (~0.13-0.18s). Frontend-only; needs deploy.
+
+## 2026-11-27 — PERF: Referral team opens instantly (prefetch)
+- Bug: team-by-rank was only fetched on Team-tab tap, so the team list appeared after a round-trip wait.
+- Fix: prefetch /referral/team-by-rank on page mount (parallel with /referral) so the Team tab shows instantly; useCachedState keeps it instant on repeat visits. Backend endpoints already fast (~0.12-0.15s). Frontend-only; needs deploy.
