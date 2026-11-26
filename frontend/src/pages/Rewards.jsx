@@ -7,10 +7,7 @@ import { useCachedState } from "@/lib/useCachedState";
 
 const USDT_LOGO = "https://coin-images.coingecko.com/coins/images/325/small/Tether.png";
 
-const BLUE_HEADER = "linear-gradient(135deg,#2563EB 0%,#1D4ED8 52%,#1E3A8A 100%)";
-const GREEN_BADGE = "linear-gradient(135deg,#22C55E 0%,#16A34A 58%,#15803D 100%)";
-const LEVEL_HEADER = "linear-gradient(180deg,#3B74F2 0%,#1E40AF 100%)";
-const BLUE_BORDER = "1.5px solid rgba(37,99,235,0.32)";
+const CARD_BORDER = "1px solid var(--border)";
 
 const fmt2 = (n) =>
   Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -40,7 +37,7 @@ export default function Rewards() {
     <button
       type="button"
       className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-      style={{ background: "var(--surface-2)", border: "1.5px solid #3B74F2", color: "#3B74F2" }}
+      style={{ background: "var(--surface-2)", border: CARD_BORDER, color: "var(--good)" }}
       data-testid="pool-info-btn"
     >
       <Info size={15} />
@@ -55,30 +52,30 @@ export default function Rewards() {
         {cards.map((cat) => (
           <div
             key={cat.key}
-            className="rounded-2xl overflow-hidden"
-            style={{ background: "var(--surface-2)", border: BLUE_BORDER, boxShadow: "0 4px 12px rgba(37,99,235,0.10)" }}
+            className="rounded-2xl overflow-hidden app-card"
+            style={{ background: "var(--surface)", border: CARD_BORDER }}
             data-testid={`pool-card-${cat.key}`}
           >
             {/* Card header */}
-            <div className="flex items-center gap-2 px-2.5 py-2" style={{ background: BLUE_HEADER }}>
+            <div
+              className="flex items-center gap-2 px-2.5 py-2"
+              style={{ background: "var(--surface-2)", borderBottom: CARD_BORDER }}
+            >
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.3)" }}
+                style={{ background: "var(--surface-3)", border: CARD_BORDER }}
               >
-                <cat.Icon size={15} className="text-white" strokeWidth={2.4} />
+                <cat.Icon size={15} style={{ color: "var(--gold)" }} strokeWidth={2.4} />
               </div>
-              <span className="font-display font-black text-white leading-[1.1] text-[12px] flex-1">
+              <span className="font-display font-black leading-[1.1] text-[12px] flex-1" style={{ color: "var(--ink)" }}>
                 {cat.name}
               </span>
-              <div className="w-px h-7 shrink-0" style={{ background: "rgba(255,255,255,0.28)" }} />
-              <div
-                className="rounded-lg px-2 py-1 flex flex-col items-center shrink-0"
-                style={{ background: GREEN_BADGE, boxShadow: "0 2px 6px rgba(22,163,74,0.32)" }}
-              >
-                <span className="text-[7.5px] font-bold uppercase tracking-wide text-white/90 leading-none mb-0.5">
+              <div className="w-px h-7 shrink-0" style={{ background: "var(--border)" }} />
+              <div className="flex flex-col items-center shrink-0 px-1">
+                <span className="text-[7.5px] font-bold uppercase tracking-wide leading-none mb-0.5" style={{ color: "var(--text-mute)" }}>
                   Total Pool
                 </span>
-                <span className="flex items-center gap-0.5 text-white font-display font-black text-[13px] tabular-nums leading-none">
+                <span className="flex items-center gap-0.5 font-display font-black text-[13px] tabular-nums leading-none" style={{ color: "var(--good)" }}>
                   <Usdt size={14} />
                   {fmt2(cat.total)}
                 </span>
@@ -93,18 +90,18 @@ export default function Rewards() {
                   type="button"
                   onClick={() => navigate(`/revenue?tab=global_${Math.min(l.level, 10)}`)}
                   className="rounded-lg overflow-hidden flex flex-col active:scale-[0.97] transition-transform"
-                  style={{ border: BLUE_BORDER, touchAction: "manipulation" }}
+                  style={{ border: CARD_BORDER, touchAction: "manipulation" }}
                   data-testid={`${cat.key}-level-${l.level}`}
                 >
                   <span
-                    className="text-white font-display font-black text-[11px] tracking-wide py-0.5 text-center"
-                    style={{ background: LEVEL_HEADER }}
+                    className="font-display font-black text-[11px] tracking-wide py-0.5 text-center"
+                    style={{ background: "var(--surface-3)", color: "var(--text-mute)" }}
                   >
                     V{l.level}
                   </span>
                   <span
                     className="flex items-center justify-center gap-1 py-1 font-display font-black text-[13px] tabular-nums"
-                    style={{ background: "var(--surface-3)", color: "var(--ink)" }}
+                    style={{ background: "var(--surface)", color: "var(--ink)" }}
                   >
                     <Usdt size={16} />
                     {fmt2(l.balance)}
@@ -118,10 +115,10 @@ export default function Rewards() {
         {/* Cutoff note */}
         <div
           className="rounded-xl px-2.5 py-1.5 flex items-start gap-1.5"
-          style={{ background: "var(--surface-3)", border: BLUE_BORDER }}
+          style={{ background: "var(--surface-3)", border: CARD_BORDER }}
           data-testid="pool-cutoff-note"
         >
-          <CalendarClock size={14} className="shrink-0 mt-0.5" style={{ color: "#3B74F2" }} strokeWidth={2.2} />
+          <CalendarClock size={14} className="shrink-0 mt-0.5" style={{ color: "var(--gold)" }} strokeWidth={2.2} />
           <div className="text-[9px] font-semibold leading-snug" style={{ color: "var(--text-mute)" }}>
             Daily cutoff is 00:00 UTC so everyone sees the same rule.
             {pool?.next_cutoff_at && (
@@ -129,7 +126,7 @@ export default function Rewards() {
                 {" "}Your local time:{" "}
                 <span
                   className="inline-flex items-center font-black px-1 py-0.5 rounded text-white text-[9px] tabular-nums"
-                  style={{ background: "#1D4ED8" }}
+                  style={{ background: "var(--good)" }}
                 >
                   {new Date(pool.next_cutoff_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>

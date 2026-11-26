@@ -126,3 +126,7 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 ## 2026-11-27 — PERF: Referral team opens instantly (prefetch)
 - Bug: team-by-rank was only fetched on Team-tab tap, so the team list appeared after a round-trip wait.
 - Fix: prefetch /referral/team-by-rank on page mount (parallel with /referral) so the Team tab shows instantly; useCachedState keeps it instant on repeat visits. Backend endpoints already fast (~0.12-0.15s). Frontend-only; needs deploy.
+
+## 2026-11-27 — Pool (Rewards) page colors reverted to neutral + instant
+- Reverted the blue/green gradient headers (BLUE_HEADER/GREEN_BADGE/LEVEL_HEADER) to the earlier neutral theme: plain white cards, var(--border), gold icon, green Total text, neutral V-level headers. USDT logo kept on every amount.
+- Page already uses useCachedState with no blocking loader → opens instantly from cache. Frontend-only; needs deploy.
