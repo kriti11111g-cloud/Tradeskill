@@ -97,3 +97,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — SBM card header matches main card format
 - SBM card title now "SYM/USDT [ C<n> ]" and subtitle "CYCLE · RUNNING" (filled) / "CYCLE · PENDING" (unfilled), mirroring the main Trade card. SUB-BEAM + cycle badges retained. Verified in preview; needs deploy.
+
+## 2026-11-27 — SBM "Live" indicator now green on all cards
+- Live text + dot + check icon are green for all filled cards (previously violet on sub-beam). Pending stays grey. Verified in preview; needs deploy.

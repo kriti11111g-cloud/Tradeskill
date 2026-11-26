@@ -312,7 +312,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const LevelCard = ({ lv, beam }) => {
     const accent = beam ? VIOLET : "#2563EB";
     const borderCol = lv.filled ? (beam ? "rgba(124,58,237,0.6)" : "#2563EB") : "var(--border)";
-    const dot = lv.filled ? (beam ? VIOLET : "var(--good)") : "#9CA3AF";
+    const dot = lv.filled ? "var(--good)" : "#9CA3AF";
     const hasPnl = lv.filled && lv.qty > 0 && lv.entry_price > 0 && curPx > 0;
     const pnl = hasPnl ? (curPx - lv.entry_price) * lv.qty : 0;
     const pnlPct = hasPnl ? (curPx / lv.entry_price - 1) * 100 : 0;
@@ -343,11 +343,11 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
-            <span className="text-[12px] font-black" style={{ color: lv.filled ? (beam ? VIOLET : "var(--good)") : "var(--text-mute)" }} data-testid={`sbm-live-${lv.level}`}>
+            <span className="text-[12px] font-black" style={{ color: lv.filled ? "var(--good)" : "var(--text-mute)" }} data-testid={`sbm-live-${lv.level}`}>
               {lv.filled ? "Live" : "Pending"}
             </span>
             {lv.filled
-              ? <CheckCircle2 size={15} style={{ color: beam ? VIOLET : "var(--good)" }} />
+              ? <CheckCircle2 size={15} style={{ color: "var(--good)" }} />
               : <Clock size={15} style={{ color: "var(--text-mute)" }} />}
           </div>
         </div>
