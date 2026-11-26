@@ -361,7 +361,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-3" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
       <div className="w-full max-w-md rounded-2xl px-4 pt-5 pb-4 max-h-[88vh] overflow-y-auto" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,0.12)" }}>
