@@ -1794,13 +1794,13 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     # === Trailing trigger states =====================================
     # tp_armed  → price crossed take-profit target, bot is chasing the peak
     # dca_armed → price crossed DCA target, bot is chasing the bottom
-    # reentry_armed → cycle finished (position flat), waiting for a buy_in_callback%
-    #                 green-candle bounce off the local low before re-buying.
+    # reentry_armed → bot is flat and running, waiting for a buy_in_callback%
+    #                 green-candle bounce before the (first OR re-entry) buy.
     tp_armed = position_qty > 0 and peak > 0
     dca_armed = position_qty > 0 and trough > 0 and mc_count < mc_limit
     last_sell = float(merged.get("last_sell_price", 0) or 0)
     reentry_low = float(merged.get("reentry_low", 0) or 0)
-    reentry_armed = position_qty == 0 and last_sell > 0 and merged.get("status") == "running" and buy_cb > 0
+    reentry_armed = position_qty == 0 and merged.get("status") == "running" and buy_cb > 0
 
     # Locked-in profit % if a peak has been recorded
     locked_profit_pct = 0.0
@@ -3507,16 +3507,14 @@ async def _bot_tick(bot: dict):
     peak = float(bot.get("peak_price", 0.0) or 0)
     trough = float(bot.get("dca_bottom_price", 0.0) or 0)
 
-    # === FIRST BUY / CYCLE RE-ENTRY ===================================
-    # Fresh start → buy immediately. But after a COMPLETED cycle (we just sold
-    # the whole position), do NOT re-buy at the same level we exited. Instead
-    # wait for the price to make a local low and then bounce back up by
-    # buy_in_callback% (a confirmed "green-candle" rebound). This way a new cycle
-    # enters LOWER when the market keeps falling, instead of repeating our exit
-    # price and causing a loss. buy_in_callback is user-customisable (default 0.25%).
+    # === FIRST ENTRY / CYCLE RE-ENTRY (buy-in callback) ================
+    # Never enter blindly. From the moment the bot is armed (fresh Start OR right
+    # after a cycle SELL), track the LOCAL LOW and only place the first buy once
+    # price bounces back up by buy_in_callback% off that low — a confirmed
+    # "green-candle" signal. If the market keeps falling, we buy NOTHING and keep
+    # waiting. buy_in_callback is user-customisable (0.25% default; 0.3/0.35/0.5…).
     if position_qty == 0:
-        last_sell = float(bot.get("last_sell_price", 0.0) or 0)
-        if last_sell > 0 and dca_callback > 0:
+        if dca_callback > 0:
             r_low = float(bot.get("reentry_low", 0.0) or 0)
             new_low = min(r_low, price) if r_low > 0 else price
             if new_low != r_low:
@@ -3526,8 +3524,8 @@ async def _bot_tick(bot: dict):
                 r_low = new_low
             rebound_trigger = r_low * (1 + dca_callback / 100.0)
             if price < rebound_trigger:
-                return  # still dropping / not bounced yet — keep waiting for green candle
-            # price has rebounded buy_in_callback% off the tracked low → re-enter now
+                return  # market still dropping / not bounced yet — wait for green signal
+            # price has rebounded buy_in_callback% off the tracked low → enter now
         try:
             await _execute_trade(
                 user_id=user_id, symbol=symbol, side="BUY",
@@ -3538,7 +3536,7 @@ async def _bot_tick(bot: dict):
                 "kind": "first_buy", "round": 1, "amount": first_buy, "price": price,
                 "created_at": iso(now_utc()),
             })
-            # Trade succeeded → clear any stale error banner + reset re-entry tracking.
+            # Trade succeeded → clear any stale error banner + reset entry tracking.
             await db.bots.update_one(
                 {"user_id": user_id, "symbol": symbol},
                 {"$set": {"last_trade_error": "", "stop_reason": "",

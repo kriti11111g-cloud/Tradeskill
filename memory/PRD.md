@@ -389,3 +389,9 @@ cd /opt/tradeskill && git pull && cd frontend && PATH="/usr/bin:$PATH" yarn buil
 - get_bot now exposes reentry_armed + reentry_trigger_price + trigger_state "reentry_armed" (frontend doesn't render trigger states yet → no UI break).
 - Verified via demo simulation (_test_reentry.py, since removed): (1) fresh start buys @100 instantly; (2) after sell@100, waits through 100→98→97, does NOT buy at +0.206% bounce, BUYS at +0.309% bounce (97.30, lower than exit); re-entry state cleared; (3) market-only-up after sell → re-enters on +0.30% confirmed bounce (not stuck). TP/DCA/sub-position logic untouched.
 - Deploy: backend-only → Save-to-Github + git pull + yarn build + reload nginx + restart tradeskill-backend.
+
+## 2026-06 (cont-9): Buy-in callback now applies to FIRST ENTRY too (not only re-entry)
+- User: even the very first entry (on Start) must wait for the green signal — if market is falling at Start, buy NOTHING until price bounces buy_in_callback% off the tracked low. Must respect custom cb (0.3/0.35/0.5%).
+- Change (server.py _bot_tick position_qty==0 block): removed the `last_sell>0` gate — now the buy-in-callback green-bounce wait applies to BOTH fresh Start AND cycle re-entry whenever buy_in_callback>0. Tracks reentry_low from the moment bot is armed; buys only on +cb% rebound. (cb==0 → immediate buy fallback.) get_bot reentry_armed now = position flat + running + buy_cb>0.
+- Verified (demo sim, removed): (1) fresh start while falling 100→93 = no buy, bought @93.25 on +0.269% bounce; (2) fresh start rising = buy on +0.30%; (3) cb=0.5% ignored +0.30%, bought @+0.55%; (4) cb=0.35% ignored +0.30%, bought @+0.375%; (5) re-entry-after-sell regression still waits. Safety-order trailing DCA (C1/C2) already works the same way (verified cont-8 era).
+- Deploy: backend-only → Save-to-Github + git pull + yarn build + reload nginx + restart tradeskill-backend.
