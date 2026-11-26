@@ -634,6 +634,36 @@ function BotRow({ bot, onDone }) {
         </div>
       </div>
 
+      {isRunning && !hasPos && !(bot.last_trade_error || bot.stop_reason) && (() => {
+        const cb = bot.buy_in_callback || 0.25;
+        const rlow = bot.reentry_low || 0;
+        const ref = rlow > 0 ? rlow : live;
+        const buyTrigger = ref > 0 ? ref * (1 + cb / 100) : 0;
+        const reEntry = (bot.last_sell_price || 0) > 0 || (bot.cycles_completed || 0) > 0;
+        return (
+          <div
+            className="mt-2 rounded-lg px-2.5 py-2 flex items-start gap-2 text-[10.5px] font-semibold leading-snug"
+            style={{ background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.28)", color: "var(--ink)" }}
+            data-testid={`bot-waiting-entry-${bot.symbol}`}
+          >
+            <Clock size={14} className="shrink-0 mt-0.5" style={{ color: "#2563EB" }} />
+            <div>
+              <div className="font-black" style={{ color: "#2563EB" }}>
+                Smart entry active — waiting for buy signal
+              </div>
+              <div style={{ color: "var(--text-mute)" }}>
+                {reEntry
+                  ? "Cycle sold — the bot will NOT re-buy while the price keeps falling. "
+                  : "The bot will NOT buy while the price keeps falling. "}
+                It buys only after a <span className="font-black" style={{ color: "var(--good)" }}>+{fmtNum(cb, 2)}% green bounce</span>
+                {rlow > 0 ? <> off the low (${fmtPrice(rlow)})</> : null}
+                {buyTrigger > 0 ? <> — around <span className="font-black" style={{ color: "var(--ink)" }}>${fmtPrice(buyTrigger)}</span></> : null}.
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {(bot.last_trade_error || bot.stop_reason) && !hasPos && (
         <div
           className="mt-2 rounded-lg px-2.5 py-2 text-[10.5px] font-semibold leading-snug"
