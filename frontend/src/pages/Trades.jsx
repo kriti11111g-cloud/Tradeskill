@@ -514,6 +514,12 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                   {beamFilled} <span className="text-[13px]" style={{ color: "var(--text-mute)" }}>/ {beamTotal}</span>
                 </div>
               </div>
+              <div className="text-center">
+                <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Live Price</div>
+                <div className="text-[16px] font-black tabular-nums leading-tight mt-0.5" style={{ color: "#16A34A" }} data-testid="sbm-live-price">
+                  {curPx > 0 ? fmtPrice(curPx) : "—"}
+                </div>
+              </div>
               <div className="text-right">
                 <div className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-mute)" }}>Status</div>
                 <div className="text-[13px] font-black" style={{ color: beamActive ? VIOLET : "var(--text-mute)" }}>

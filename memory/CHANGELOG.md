@@ -147,3 +147,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - `_sub_position_breakdown` ab level 0 "base entry" (pehla buy, jo margin_call_count increment nahi karta) emit karta hai — is_subbeam=False, header "[ Entry ]".
 - Initial Safety Orders me ab Entry + C1 + C2 + C3 (4 orders); "Average (All)" aur count dono me first buy shaamil.
 - Verified demo ZEC: Entry $962.55, Average(All) $924.02, "4 orders", Sells @ $933.26.
+
+## 2026-11-27 — SBM modal: live price in header card
+- Sub-Beam Mode ke top card (Active Sub-Positions / Status) me center me "Live Price" add kiya (us coin ka curPx, live-updating). testid sbm-live-price.
