@@ -247,13 +247,17 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
 function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (!open) { setData(null); return; }
+  const [busy, setBusy] = useState(false);
+  const load = () => {
     setLoading(true);
     api.get(`/bots/${symbol}`)
       .then(({ data }) => setData(data))
       .catch((e) => { toast.error(e?.response?.data?.detail || "Could not load Sub-Beam data"); onClose(); })
       .finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    if (!open) { setData(null); return; }
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, symbol]);
   if (!open) return null;
@@ -275,6 +279,33 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const beamTotal = Math.max(0, mcLimit - (subStart - 1));
   const beamActive = hasPos && beamFilled > 0;
   const VIOLET = "#7C3AED";
+
+  const botMode = data?.trade_mode || "cycle";
+  const switchMode = async (m) => {
+    if (busy || botMode === m) return;
+    setBusy(true);
+    const tid = toast.loading(m === "oneshot" ? "Switching to One Shot..." : "Switching to Cycle...");
+    try {
+      await api.post(`/bots/${symbol}/mode`, { mode: m });
+      toast.success(m === "oneshot" ? "One Shot mode ON" : "Cycle mode ON", { id: tid });
+      load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not switch mode", { id: tid });
+    } finally { setBusy(false); }
+  };
+  const sellSub = async (callNum) => {
+    if (busy) return;
+    setBusy(true);
+    const tid = toast.loading(`Selling Sub-Position ${callNum}...`);
+    try {
+      const { data: r } = await api.post(`/bots/${symbol}/sub/${callNum}/sell-now`);
+      const p = r.profit || 0;
+      toast.success(`Sub-Position ${callNum} sold · P&L ${p >= 0 ? "+" : ""}$${fmtNum(p, 2)}`, { id: tid });
+      load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Sell failed", { id: tid });
+    } finally { setBusy(false); }
+  };
 
   // One sub-position card. `beam` = true -> violet Sub-Beam styling, else slate safety-order styling.
   // Each sub-position rendered like a Trade-screen coin card (same size/style).
@@ -317,6 +348,45 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
               : <Clock size={15} style={{ color: "var(--text-mute)" }} />}
           </div>
         </div>
+
+        {/* CYCLE / ONE SHOT / SELL NOW — mirrors the main trade card */}
+        {(() => {
+          const canSell = beam && lv.filled && lv.qty > 0 && lv.sub_state !== "flat";
+          return (
+            <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+              <button
+                onClick={() => switchMode("cycle")}
+                disabled={busy}
+                className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+                style={botMode === "cycle" ? { background: GRAD, color: "#fff" } : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+                data-testid={`sbm-cycle-btn-${lv.level}`}
+              >
+                <RefreshCw size={12} className="shrink-0" />
+                <span className="text-[10px] font-black tracking-wide">CYCLE</span>
+              </button>
+              <button
+                onClick={() => switchMode("oneshot")}
+                disabled={busy}
+                className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+                style={botMode === "oneshot" ? { background: GRAD, color: "#fff" } : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--ink)" }}
+                data-testid={`sbm-oneshot-btn-${lv.level}`}
+              >
+                <span className="w-[13px] h-[13px] rounded-full flex items-center justify-center text-[8.5px] font-black shrink-0" style={botMode === "oneshot" ? { border: "1.5px solid #fff" } : { border: "1.5px solid var(--ink)" }}>1</span>
+                <span className="text-[10px] font-black tracking-wide">ONE SHOT</span>
+              </button>
+              <button
+                onClick={() => canSell && sellSub(lv.level)}
+                disabled={busy || !canSell}
+                className="rounded-lg py-1.5 px-1 flex items-center justify-center gap-1 select-none"
+                style={{ background: "var(--surface)", border: "1px solid var(--ink)", color: "var(--ink)", opacity: canSell ? 1 : 0.45 }}
+                data-testid={`sbm-sellnow-btn-${lv.level}`}
+              >
+                <Send size={11} className="shrink-0" />
+                <span className="text-[10px] font-black tracking-wide">SELL NOW</span>
+              </button>
+            </div>
+          );
+        })()}
 
         {/* stats row — Avg Entry | Live P&L | TP Target (mirrors trade card) */}
         <div className="flex items-end justify-between mt-2.5">

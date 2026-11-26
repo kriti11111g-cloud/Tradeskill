@@ -82,3 +82,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Root cause: _execute_trade SELL computed profit = proceeds − qty×bot.avg_price (MAIN blended average) for ALL sells. SBM sub-positions buy at a dip (lower than blended avg), so their TP scalp sells were booked against the higher main avg → profit came out ~0/negative, so Revenue showed no Trading Profit even though Binance booked a real gain.
 - Fix: added optional cost_basis param to _execute_trade + all 3 real-engine helpers (binance/kucoin/lbank/hyperliquid) and the demo path. Sub sells (ceiling close + trailing scalp) now pass cost_basis=sp_entry so profit = proceeds − qty×sub_entry (matches exchange realized PnL). Main-position sells pass nothing → unchanged (use avg_price).
 - Backend-only; syntax OK, backend healthy. Needs deploy + backend restart. NOTE: already-recorded (pre-fix) sub-sell transactions keep their wrong profit; only new sells are correct. A fresh cycle will show correct Trading Profit.
+
+## 2026-11-27 — SBM cards now mirror the main Trade card (CYCLE/ONE SHOT/SELL NOW)
+- Each SBM sub/safety card got the same 3-button row as the main bot card (same size/style), so SBM cards match the main card look.
+- CYCLE/ONE SHOT switch the parent bot's mode (reuses /bots/{symbol}/mode); SELL NOW sells that specific sub-position via NEW endpoint POST /bots/{symbol}/sub/{call}/sell-now (uses cost_basis=sub_entry for correct profit, then removes the sub). SELL NOW enabled only for filled+holding beam subs.
+- Verified e2e: sold Sub-Position 7 → correct profit vs sub entry, sub removed. Frontend+backend compile clean. Needs deploy.

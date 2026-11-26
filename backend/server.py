@@ -2096,6 +2096,42 @@ async def sell_now(symbol: str, user: dict = Depends(get_current_user)):
             "price": txn.get("price"), "profit": txn.get("profit")}
 
 
+@api.post("/bots/{symbol}/sub/{call}/sell-now")
+async def sub_sell_now(symbol: str, call: int, user: dict = Depends(get_current_user)):
+    """Sell ONE Sub-Position (call N) at market. Uses the sub's own entry as the
+    cost basis so the booked profit matches the exchange. Removes the sub after."""
+    symbol = symbol.upper()
+    bot = await db.bots.find_one({"user_id": user["id"], "symbol": symbol}, {"_id": 0})
+    if not bot:
+        raise HTTPException(404, "Bot not found")
+    subs = bot.get("sub_positions") or []
+    sp = next((s for s in subs if int(s.get("call", 0) or 0) == int(call)), None)
+    if not sp:
+        raise HTTPException(404, f"Sub-Position C{call} not found")
+    sp_qty = float(sp.get("qty", 0.0) or 0.0)
+    sp_entry = float(sp.get("buy_price", 0.0) or 0.0)
+    pos_qty = float(bot.get("position_qty", 0.0) or 0.0)
+    if sp_qty <= 0 or sp.get("state") == "flat":
+        raise HTTPException(400, f"Sub-Position C{call} has nothing to sell")
+    try:
+        txn = await _execute_trade(user_id=user["id"], symbol=symbol, side="SELL",
+                                   quantity=min(sp_qty, pos_qty), source="manual_sell",
+                                   cost_basis=sp_entry)
+    except _TradeError as e:
+        raise HTTPException(e.status_code, e.msg)
+    # Remove this sub-position after a successful sell
+    await db.bots.update_one(
+        {"user_id": user["id"], "symbol": symbol},
+        {"$pull": {"sub_positions": {"call": int(call)}}})
+    await db.bot_events.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user["id"], "symbol": symbol,
+        "kind": "sub_manual_sell", "call": int(call), "price": txn.get("price"),
+        "qty": txn.get("quantity"), "profit": txn.get("profit"), "created_at": iso(now_utc())})
+    return {"ok": True, "symbol": symbol, "call": int(call),
+            "price": txn.get("price"), "profit": txn.get("profit")}
+
+
+
 @api.get("/bots/{symbol}/average-preview")
 async def average_preview(symbol: str, amount: float = 0.0, user: dict = Depends(get_current_user)):
     """Manual DCA ('Average') preview: current avg, floating loss, suggested buy
