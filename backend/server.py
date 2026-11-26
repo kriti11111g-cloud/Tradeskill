@@ -2737,7 +2737,7 @@ class _TradeError(Exception):
         super().__init__(msg)
 
 
-async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode):
+async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode, cost_basis=None):
     """KuCoin live spot execution — mirrors the Binance real path, reads fills for avg price/qty."""
     ksym = _kucoin_symbol(symbol)
     base_asset = symbol.upper()[:-4]
@@ -2838,7 +2838,7 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
     return txn
 
 
-async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode):
+async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, client, mode, cost_basis=None):
     """LBank live spot execution — mirrors the KuCoin real path, reads fills for avg price/qty."""
     lsym = _lbank_symbol(symbol)
     base_asset = symbol.upper()[:-4]
@@ -3083,7 +3083,7 @@ async def get_user_hyperliquid(user_id: str):
     return info, exchange, mode, address
 
 
-async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, info, exchange, mode, address):
+async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, info, exchange, mode, address, cost_basis=None):
     """Hyperliquid live SPOT execution via agent wallet. Mirrors the LBank real path."""
     net = "testnet" if mode == "testnet" else "real"
     pair = _hl_resolve_pair(info, symbol, net)
@@ -3191,7 +3191,7 @@ async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity
     return txn
 
 
-async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual"):
+async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=None, source="manual", cost_basis=None):
     """Shared trade executor used by both the /trade/order endpoint and the bot engine.
     Returns the transaction dict. Raises _TradeError on failure."""
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
@@ -3238,21 +3238,21 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
     if bot.get("exchange") == "kucoin":
         kc, kmode = await get_user_kucoin(user_id)
         if kc and kmode == "real":
-            return await _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, kc, kmode)
+            return await _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, kc, kmode, cost_basis=cost_basis)
         client, mode = None, "demo"  # KuCoin demo -> shared simulation below
 
     # Route to Hyperliquid live SPOT engine when this bot is a Hyperliquid bot with real keys.
     if bot.get("exchange") == "hyperliquid":
         hinfo, hex_, hmode, haddr = await get_user_hyperliquid(user_id)
         if hinfo and hmode in ("real", "testnet"):
-            return await _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, hinfo, hex_, hmode, haddr)
+            return await _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, hinfo, hex_, hmode, haddr, cost_basis=cost_basis)
         client, mode = None, "demo"  # Hyperliquid demo -> shared simulation below
 
     # Route to LBank live engine when this bot is an LBank bot with real keys.
     if bot.get("exchange") == "lbank":
         lb, lmode = await get_user_lbank(user_id)
         if lb and lmode == "real":
-            return await _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, lb, lmode)
+            return await _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, source, bot, wallet, lb, lmode, cost_basis=cost_basis)
         client, mode = None, "demo"  # LBank demo -> shared simulation below
 
     # ----- LIVE (real / testnet) -----
@@ -3324,7 +3324,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
             await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
             profit = 0.0
         else:
-            cost = filled_qty * bot.get("avg_price", 0.0)
+            cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
             profit = quote_spent - cost
             remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
             # Dust (fee/lot-step ka bacha tracked amount) ko 0 mano — warna cycle reset nahi hota
@@ -3420,7 +3420,7 @@ async def _execute_trade(*, user_id, symbol, side, usdt_amount=None, quantity=No
         if avg <= 0:
             raise _TradeError(400, "Bot has no valid average price — refresh or restart the bot")
         proceeds = qty * price
-        cost = qty * avg
+        cost = qty * (cost_basis if (cost_basis and cost_basis > 0) else avg)
         profit = proceeds - cost
         remaining_qty = bot.get("position_qty", 0.0) - qty
         remaining_amt = remaining_qty * avg
@@ -3600,7 +3600,8 @@ async def _bot_tick(bot: dict):
                 if sp_state == "holding" and sp_qty > 0 and position_qty > 0 and can_sell:
                     try:
                         await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
-                                             quantity=min(sp_qty, position_qty), source="bot")
+                                             quantity=min(sp_qty, position_qty), source="bot",
+                                             cost_basis=sp_entry)
                         position_qty = max(0.0, position_qty - sp_qty)
                         await db.bot_events.insert_one({
                             "id": str(uuid.uuid4()), "user_id": user_id, "symbol": symbol,
@@ -3630,7 +3631,8 @@ async def _bot_tick(bot: dict):
                     if price <= pull and price > sp_entry:
                         try:
                             await _execute_trade(user_id=user_id, symbol=symbol, side="SELL",
-                                                 quantity=min(sp_qty, position_qty), source="bot")
+                                                 quantity=min(sp_qty, position_qty), source="bot",
+                                                 cost_basis=sp_entry)
                             position_qty = max(0.0, position_qty - sp_qty)
                             sp["state"] = "flat"; sp["qty"] = 0.0; sp["reentry_low"] = 0.0; sp["peak"] = 0.0
                             sp["cycles"] = int(sp.get("cycles", 0)) + 1

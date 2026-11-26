@@ -77,3 +77,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Backend _sub_position_breakdown now returns per sub: `peak`, `trailing` (state==holding & peak>0), `trail_sell_price` = peak×(1−whole_take_profit_callback%).
 - Frontend LevelCard: when a Sub-Position is riding a peak, shows a green strip "Riding peak $X ↑ — sells on a C% dip, ≈ $Y" (data-testid sbm-trailing-<level>).
 - Verified: C5 holding peak 760 → trail_sell 758.1; C6 flat → no strip. Compile clean. Needs deploy (backend + frontend).
+
+## 2026-11-27 — FIX: SBM sub-position sells recorded wrong (near-zero/negative) profit
+- Root cause: _execute_trade SELL computed profit = proceeds − qty×bot.avg_price (MAIN blended average) for ALL sells. SBM sub-positions buy at a dip (lower than blended avg), so their TP scalp sells were booked against the higher main avg → profit came out ~0/negative, so Revenue showed no Trading Profit even though Binance booked a real gain.
+- Fix: added optional cost_basis param to _execute_trade + all 3 real-engine helpers (binance/kucoin/lbank/hyperliquid) and the demo path. Sub sells (ceiling close + trailing scalp) now pass cost_basis=sp_entry so profit = proceeds − qty×sub_entry (matches exchange realized PnL). Main-position sells pass nothing → unchanged (use avg_price).
+- Backend-only; syntax OK, backend healthy. Needs deploy + backend restart. NOTE: already-recorded (pre-fix) sub-sell transactions keep their wrong profit; only new sells are correct. A fresh cycle will show correct Trading Profit.
