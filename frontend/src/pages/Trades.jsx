@@ -669,6 +669,30 @@ function BotRow({ bot, onDone }) {
         );
       })()}
 
+      {isRunning && hasPos && effPeak > 0 && (() => {
+        const peakNow = effPeak;
+        const sellTrigger = peakNow * (1 - tpCb / 100);
+        const lockedPct = avg > 0 ? ((sellTrigger - avg) / avg) * 100 : 0;
+        return (
+          <div
+            className="mt-2 rounded-lg px-2.5 py-2 flex items-start gap-2 text-[10.5px] font-semibold leading-snug"
+            style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", color: "var(--ink)" }}
+            data-testid={`bot-tp-trailing-${bot.symbol}`}
+          >
+            <TrendingUp size={14} className="shrink-0 mt-0.5" style={{ color: "var(--good)" }} />
+            <div>
+              <div className="font-black" style={{ color: "var(--good)" }}>
+                Smart profit lock active — riding the peak ↑
+              </div>
+              <div style={{ color: "var(--text-mute)" }}>
+                The bot will NOT sell while the price keeps rising. Peak <span className="font-black" style={{ color: "var(--ink)" }}>${fmtPrice(peakNow)}</span> — it sells only on a <span className="font-black" style={{ color: "var(--bad)" }}>{fmtNum(tpCb, 2)}% red pullback</span>, around <span className="font-black tabular-nums" style={{ color: "var(--good)" }}>${fmtPrice(sellTrigger)}</span> (locking <span className="font-black">{lockedPct >= 0 ? "+" : ""}{fmtNum(lockedPct, 2)}%</span>).
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+
       {(bot.last_trade_error || bot.stop_reason) && !hasPos && (
         <div
           className="mt-2 rounded-lg px-2.5 py-2 text-[10.5px] font-semibold leading-snug"

@@ -67,3 +67,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Backend _sub_position_breakdown now returns `cycles` and `sub_state` per level (read from bot.sub_positions records).
 - Frontend: each Sub-Position card header shows a small violet "⟳ Nx" badge when cycles>0 (data-testid sbm-cycles-<level>). Safety-order cards unaffected.
 - Verified via isolated call: C5 cycles=3, C6 cycles=1. Frontend+backend compile clean. Needs deploy.
+
+## 2026-11-26 — TP trailing (profit-lock) strip on bot card
+- BotRow: when position open AND TP armed (effPeak>0), shows a green "Smart profit lock active — riding the peak ↑" strip (data-testid bot-tp-trailing-<symbol>).
+- Strip shows live peak, the climbing sell trigger = peak×(1-tp_callback%), and the locked profit %. Makes trailing/smart-hold visible (sell only on red pullback). Uses existing peak_price from /bots list + live stream; no backend change needed.
+- Frontend-only, compiled clean; needs deploy.
