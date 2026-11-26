@@ -103,3 +103,6 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — SBM card [ Cn ] call label now green
 - The [ Cn ] call-number part of the SBM card title is now green (matches the green Live indicator); "SYM/USDT" stays in ink. Verified in preview; needs deploy.
+
+## 2026-11-27 — Removed SUB-BEAM title badge (redundant)
+- Removed the violet SUB-BEAM badge from the SBM card title (the bottom-row SBM button already indicates it). Cycle (⟳ Nx) badge kept. Verified in preview; needs deploy.
