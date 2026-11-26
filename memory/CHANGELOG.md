@@ -150,3 +150,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — SBM modal: live price in header card
 - Sub-Beam Mode ke top card (Active Sub-Positions / Status) me center me "Live Price" add kiya (us coin ka curPx, live-updating). testid sbm-live-price.
+
+## 2026-11-27 — SBM modal instant open
+- Backend get_bot ab fetch_price_cached (10s TTL) use karta hai (blocking 8s fetch_price hataya) — detail response fast.
+- Frontend SBMModal: module-level sbmCache + background refresh; BotRow mount par prefetch (hasPos bots). Modal cache se instant khulta hai.
+- Note: Entry(level-0) card + ye changes production par tabhi dikhenge jab backend restart ho (systemctl restart tradeskill-backend). Preview timing: 1st 0.8s, cached 0.19s.

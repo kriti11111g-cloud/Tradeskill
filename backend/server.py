@@ -1883,7 +1883,7 @@ async def get_bot(symbol: str, user: dict = Depends(get_current_user)):
     # even when the bot has no open position yet.
     live_px = 0.0
     try:
-        live_px = float(await fetch_price(symbol.upper()))
+        live_px = float(await fetch_price_cached(symbol.upper()))
     except Exception:
         live_px = 0.0
     merged["current_price"] = round(live_px, 6) if live_px else 0

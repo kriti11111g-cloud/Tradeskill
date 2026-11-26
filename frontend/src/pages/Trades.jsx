@@ -244,20 +244,25 @@ function AverageModal({ open, symbol, sym, onConfirm, onCancel }) {
 }
 
 /* Sub-Beam Mode (SBM) — detailed view of active sub-positions + targets */
+// Module-level cache for SBM detail so reopening/prefetched cards render instantly.
+const sbmCache = {};
+
 function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const load = () => {
-    setLoading(true);
+  const load = (bg = false) => {
+    if (!bg) setLoading(true);
     api.get(`/bots/${symbol}`)
-      .then(({ data }) => setData(data))
-      .catch((e) => { toast.error(e?.response?.data?.detail || "Could not load Sub-Beam data"); onClose(); })
+      .then(({ data }) => { sbmCache[symbol] = data; setData(data); })
+      .catch((e) => { if (!bg) { toast.error(e?.response?.data?.detail || "Could not load Sub-Beam data"); onClose(); } })
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    if (!open) { setData(null); return; }
-    load();
+    if (!open) return;
+    const cached = sbmCache[symbol];
+    if (cached) { setData(cached); setLoading(false); load(true); }  // instant from cache, refresh in bg
+    else { setData(null); load(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, symbol]);
   if (!open) return null;
@@ -594,6 +599,13 @@ function BotRow({ bot, onDone }) {
   const sbmLimit = bot.margin_call_limit || 0;
   const sbmBeamCount = Math.max(0, sbmCount - (SBM_START - 1));
   const sbmActive = hasPos && sbmBeamCount > 0;
+
+  // Prefetch SBM detail into cache on mount so the modal opens instantly.
+  useEffect(() => {
+    if (!hasPos || sbmCache[bot.symbol]) return;
+    api.get(`/bots/${bot.symbol}`).then(({ data }) => { sbmCache[bot.symbol] = data; }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bot.symbol, hasPos]);
 
   // Take Profit badge: % at which auto-sell fires.
   // Base = TP ratio; once armed (price crossed TP), trailing % follows the
