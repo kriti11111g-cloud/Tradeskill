@@ -1651,11 +1651,15 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
         amt = first_buy * (mult_at(i) if mult_at(i) > 0 else 1.0)
         tp_pct = float(tps[i - 1]) if i - 1 < len(tps) else wtp
         rec = real_subs.get(i)
+        cycles = 0
+        sub_state = ""
         if rec:
             entry = float(rec.get("buy_price", entry) or entry)
             qty = float(rec.get("qty", 0) or 0)
             amt = float(rec.get("amount", amt) or amt)
             tp_pct = float(rec.get("tp_pct", tp_pct) or tp_pct)
+            cycles = int(rec.get("cycles", 0) or 0)
+            sub_state = str(rec.get("state", "") or "")
         else:
             qty = (amt / entry) if entry > 0 else 0.0
         # TP target is ALWAYS entry + take-profit% so the price matches the "+X%" label.
@@ -1671,6 +1675,8 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
             "tp_pct": round(tp_pct, 2),
             "tp_price": round(tp_price, 8) if tp_price > 0 else 0,
             "drop_pct": round(d, 2),
+            "cycles": cycles,
+            "sub_state": sub_state,
         })
         if entry > 0 and not disabled:
             price = entry   # only real rungs move the ladder down

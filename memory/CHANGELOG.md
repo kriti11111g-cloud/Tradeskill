@@ -62,3 +62,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - LevelCard (used by BOTH Initial Safety Orders and Sub-Position sections) now matches the main BotRow card: CoinIcon 32→34, title 13.5→14px, all stat values 14→15px; card gaps space-y-1.5→space-y-2.
 - Header locked to a single line (title truncate + SUB-BEAM badge shrink-0/whitespace-nowrap) so Safety Order and Sub-Position cards always have identical height.
 - Frontend-only; compiled clean (pre-existing html5-qrcode warnings only); needs deploy (git pull + yarn build + reload nginx).
+
+## 2026-11-26 — Sub-Position cycle-count badge (SBM)
+- Backend _sub_position_breakdown now returns `cycles` and `sub_state` per level (read from bot.sub_positions records).
+- Frontend: each Sub-Position card header shows a small violet "⟳ Nx" badge when cycles>0 (data-testid sbm-cycles-<level>). Safety-order cards unaffected.
+- Verified via isolated call: C5 cycles=3, C6 cycles=1. Frontend+backend compile clean. Needs deploy.

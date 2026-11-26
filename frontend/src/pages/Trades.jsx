@@ -297,6 +297,11 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
               {beam && (
                 <span className="shrink-0 whitespace-nowrap text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
               )}
+              {beam && lv.cycles > 0 && (
+                <span className="shrink-0 whitespace-nowrap flex items-center gap-0.5 text-[8px] font-black px-1.5 py-0.5 rounded-md" style={{ background: "rgba(124,58,237,0.12)", color: VIOLET }} data-testid={`sbm-cycles-${lv.level}`}>
+                  <RefreshCw size={8} strokeWidth={3} /> {lv.cycles}x
+                </span>
+              )}
             </div>
             <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
               {sym}/USDT ·{" "}
