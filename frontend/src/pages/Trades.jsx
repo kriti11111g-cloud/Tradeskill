@@ -292,10 +292,10 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
         <div className="flex items-center gap-2.5">
           <CoinIcon symbol={sym} size={32} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[13.5px] font-black leading-tight" style={{ color: "var(--ink)" }}>
-              {beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}
+            <div className="flex items-center gap-1.5 text-[13.5px] font-black leading-tight min-w-0" style={{ color: "var(--ink)" }}>
+              <span className="truncate">{beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}</span>
               {beam && (
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
+                <span className="shrink-0 whitespace-nowrap text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
               )}
             </div>
             <div className="text-[10px] font-bold uppercase tracking-wide mt-0.5" style={{ color: "var(--text-mute)" }}>
