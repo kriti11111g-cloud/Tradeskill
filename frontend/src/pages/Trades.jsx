@@ -348,6 +348,14 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
             <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
           </div>
         </div>
+        {lv.trailing && lv.trail_sell_price > 0 && (
+          <div className="mt-2 rounded-lg px-2 py-1.5 flex items-center gap-1.5 text-[9.5px] font-semibold leading-snug" style={{ background: "rgba(16,185,129,0.09)", border: "1px solid rgba(16,185,129,0.3)" }} data-testid={`sbm-trailing-${lv.level}`}>
+            <TrendingUp size={12} className="shrink-0" style={{ color: "var(--good)" }} />
+            <span style={{ color: "var(--text-mute)" }}>
+              Riding peak <span className="font-black" style={{ color: "var(--ink)" }}>${fmtPrice(lv.peak)}</span> ↑ — sells on a {fmtNum(data?.whole_take_profit_callback || 0, 2)}% dip, ≈ <span className="font-black tabular-nums" style={{ color: "var(--good)" }}>${fmtPrice(lv.trail_sell_price)}</span>
+            </span>
+          </div>
+        )}
       </div>
     );
   };

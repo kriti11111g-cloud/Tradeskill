@@ -1653,6 +1653,7 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
         rec = real_subs.get(i)
         cycles = 0
         sub_state = ""
+        sub_peak = 0.0
         if rec:
             entry = float(rec.get("buy_price", entry) or entry)
             qty = float(rec.get("qty", 0) or 0)
@@ -1660,10 +1661,16 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
             tp_pct = float(rec.get("tp_pct", tp_pct) or tp_pct)
             cycles = int(rec.get("cycles", 0) or 0)
             sub_state = str(rec.get("state", "") or "")
+            sub_peak = float(rec.get("peak", 0) or 0)
         else:
             qty = (amt / entry) if entry > 0 else 0.0
         # TP target is ALWAYS entry + take-profit% so the price matches the "+X%" label.
         tp_price = entry * (1 + tp_pct / 100.0) if entry > 0 else 0.0
+        # Trailing sell: once this sub rides a peak above its TP target, the engine
+        # sells only on a tp_callback% red pullback from that peak (not instantly).
+        _sub_cb = float(bot.get("whole_take_profit_callback", 0) or 0)
+        trailing = sub_state == "holding" and sub_peak > 0
+        trail_sell_price = round(sub_peak * (1 - _sub_cb / 100.0), 8) if trailing else 0
         out.append({
             "level": i,
             "filled": i <= mc_count,
@@ -1677,6 +1684,9 @@ def _sub_position_breakdown(bot: dict, current_price: float = 0.0) -> list:
             "drop_pct": round(d, 2),
             "cycles": cycles,
             "sub_state": sub_state,
+            "peak": round(sub_peak, 8) if sub_peak > 0 else 0,
+            "trailing": trailing,
+            "trail_sell_price": trail_sell_price,
         })
         if entry > 0 and not disabled:
             price = entry   # only real rungs move the ladder down

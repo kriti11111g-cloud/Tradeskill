@@ -72,3 +72,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - BotRow: when position open AND TP armed (effPeak>0), shows a green "Smart profit lock active — riding the peak ↑" strip (data-testid bot-tp-trailing-<symbol>).
 - Strip shows live peak, the climbing sell trigger = peak×(1-tp_callback%), and the locked profit %. Makes trailing/smart-hold visible (sell only on red pullback). Uses existing peak_price from /bots list + live stream; no backend change needed.
 - Frontend-only, compiled clean; needs deploy.
+
+## 2026-11-26 — SBM Sub-Position trailing sell indicator
+- Backend _sub_position_breakdown now returns per sub: `peak`, `trailing` (state==holding & peak>0), `trail_sell_price` = peak×(1−whole_take_profit_callback%).
+- Frontend LevelCard: when a Sub-Position is riding a peak, shows a green strip "Riding peak $X ↑ — sells on a C% dip, ≈ $Y" (data-testid sbm-trailing-<level>).
+- Verified: C5 holding peak 760 → trail_sell 758.1; C6 flat → no strip. Compile clean. Needs deploy (backend + frontend).
