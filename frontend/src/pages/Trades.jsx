@@ -290,9 +290,9 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
       <div className="rounded-xl px-3 py-2.5" style={{ ...CARD, border: `1.5px solid ${borderCol}` }} data-testid={`sbm-level-${lv.level}`}>
         {/* header — coin icon + title + status (mirrors trade card) */}
         <div className="flex items-center gap-2.5">
-          <CoinIcon symbol={sym} size={32} />
+          <CoinIcon symbol={sym} size={34} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[13.5px] font-black leading-tight min-w-0" style={{ color: "var(--ink)" }}>
+            <div className="flex items-center gap-1.5 text-[14px] font-black leading-tight min-w-0" style={{ color: "var(--ink)" }}>
               <span className="truncate">{beam ? `Sub-Position ${lv.level}` : `Safety Order ${lv.level}`}</span>
               {beam && (
                 <span className="shrink-0 whitespace-nowrap text-[8px] font-black px-1.5 py-0.5 rounded-md text-white" style={{ background: VIOLET }}>SUB-BEAM</span>
@@ -317,7 +317,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
         <div className="flex items-end justify-between mt-2.5">
           <div>
             <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Avg Entry</div>
-            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
+            <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: "var(--ink)" }} data-testid={`sbm-entry-${lv.level}`}>
               {lv.entry_price > 0 ? fmtPrice(lv.entry_price) : "—"}
             </div>
             <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }} data-testid={`sbm-size-${lv.level}`}>
@@ -326,7 +326,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           </div>
           <div className="text-center">
             <div className="text-[10px] font-semibold" style={{ color: "var(--text-mute)" }}>Live P&amp;L</div>
-            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: hasPnl ? (up ? "var(--good)" : "var(--bad)") : "var(--text-mute)" }} data-testid={`sbm-pnl-${lv.level}`}>
+            <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: hasPnl ? (up ? "var(--good)" : "var(--bad)") : "var(--text-mute)" }} data-testid={`sbm-pnl-${lv.level}`}>
               {hasPnl ? `${up ? "+" : "-"}$${fmtNum(Math.abs(pnl), 2)}` : "—"}
             </div>
             {hasPnl && (
@@ -337,7 +337,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
           </div>
           <div className="text-right">
             <div className="text-[10px] font-semibold" style={{ color: accent }}>TP Target</div>
-            <div className="text-[14px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
+            <div className="text-[15px] font-black tabular-nums leading-tight" style={{ color: accent }} data-testid={`sbm-tp-${lv.level}`}>
               {lv.tp_price > 0 ? fmtPrice(lv.tp_price) : "—"}
             </div>
             <div className="text-[9px] font-semibold tabular-nums" style={{ color: "var(--text-mute)" }}>+{fmtNum(lv.tp_pct, 2)}%</div>
@@ -348,8 +348,8 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-5" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
-      <div className="w-full max-w-sm rounded-2xl p-5 max-h-[88vh] overflow-y-auto" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-3" style={{ background: "rgba(0,0,0,0.5)", touchAction: "manipulation" }} onClick={onClose} data-testid="sbm-modal">
+      <div className="w-full max-w-md rounded-2xl px-4 pt-5 pb-4 max-h-[88vh] overflow-y-auto" style={{ background: "var(--surface)", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,0.12)" }}>
             <Layers size={19} style={{ color: "#2563EB" }} />
@@ -388,7 +388,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                   <Target size={14} style={{ color: "#2563EB" }} />
                   <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: "var(--ink)" }}>Initial Safety Orders</span>
                 </div>
-                <div className="space-y-1.5" data-testid="sbm-initial-levels">
+                <div className="space-y-2" data-testid="sbm-initial-levels">
                   {initialLevels.map((lv) => <LevelCard key={lv.level} lv={lv} beam={false} />)}
                 </div>
               </div>
@@ -402,7 +402,7 @@ function SBMModal({ open, symbol, sym, livePrice = 0, onClose }) {
                   <span className="text-[12px] font-black uppercase tracking-wide" style={{ color: VIOLET }}>Sub-Beam Mode</span>
                   <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(124,58,237,0.12)", color: VIOLET }}>managed separately</span>
                 </div>
-                <div className="space-y-1.5" data-testid="sbm-levels">
+                <div className="space-y-2" data-testid="sbm-levels">
                   {beamLevels.map((lv) => <LevelCard key={lv.level} lv={lv} beam={true} />)}
                 </div>
               </div>

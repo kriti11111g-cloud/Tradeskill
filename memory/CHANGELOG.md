@@ -56,3 +56,9 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Verified the live/demo engine ALREADY triggers each DCA from the last FILL price: every _execute_trade BUY path (KuCoin/LBank/Binance/demo) stores last_buy_price = this order's fill and next_buy_price = fill × (1 - drop%); monitor loop uses the stored next_buy_price. So triggers compound from the previous buy, not the initial entry.
 - Fixed _compute_dca_ladder preview anchor: now chains from last_buy_price (was avg_price for open positions) so the Settings preview matches the engine. Numeric check: $100,10% → 90, 81, 72.9, 65.61.
 - Backend-only; needs deploy.
+
+## 2026-11-26 — SBM modal cards sized/laid out like the main Trade card (frontend)
+- Widened SBM (Sub-Beam Mode) modal: max-w-sm→max-w-md, outer px-5→px-3, inner p-5→px-4 pt-5 pb-4 so cards get the same width as the main Trade bot cards.
+- LevelCard (used by BOTH Initial Safety Orders and Sub-Position sections) now matches the main BotRow card: CoinIcon 32→34, title 13.5→14px, all stat values 14→15px; card gaps space-y-1.5→space-y-2.
+- Header locked to a single line (title truncate + SUB-BEAM badge shrink-0/whitespace-nowrap) so Safety Order and Sub-Position cards always have identical height.
+- Frontend-only; compiled clean (pre-existing html5-qrcode warnings only); needs deploy (git pull + yarn build + reload nginx).
