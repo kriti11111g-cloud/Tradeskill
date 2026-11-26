@@ -13,7 +13,7 @@ const vName = (lvl) => `V${lvl}`;
 export default function Rank() {
   const [ranks, setRanks] = useCachedState("rank_config", []);
   const [me, setMe] = useCachedState("rank_me", null);
-  const [viewLevel, setViewLevel] = useState(null);
+  const [viewLevel, setViewLevel] = useState(me?.current_level ?? null);
   const [incomeOpen, setIncomeOpen] = useState(false);
 
   useEffect(() => {

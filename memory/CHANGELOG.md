@@ -118,3 +118,7 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 
 ## 2026-11-27 — All SBM modal cards: CYCLE/ONE SHOT/SELL NOW non-interactive
 - Made the top 3 buttons no-op on ALL SBM modal cards (Initial Safety Orders C1-C4 AND Sub-Beam C5+). Buttons kept for look/size parity but do nothing on tap. Frontend-only; needs deploy.
+
+## 2026-11-27 — PERF: Rank page opens instantly from cache
+- Bug: Rank.jsx viewLevel started null and was only set after /ranks/me resolved, so the page showed "Loading…" even when ranks/me were cached.
+- Fix: initialize viewLevel from cached me.current_level → instant render on repeat visits; API still refreshes in background. Backend endpoints already fast (~0.13-0.18s). Frontend-only; needs deploy.
