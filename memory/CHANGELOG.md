@@ -177,3 +177,12 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - /referral and /referral/team-by-rank both run a whole-downline BFS; the Referral page calls BOTH on load + bg refresh, and the referral link was gated behind the BFS.
 - Added per-user server-side cache _TEAM_CACHE (60s TTL, opportunistic cleanup >500 entries) for both endpoints → repeat/background calls instant; heavy BFS runs at most once/min even on large production teams. Referral code returns fast.
 - Frontend already caches (useCachedState) + prefetches team-by-rank. Verified preview: referral 0.14-0.2s, team-by-rank 0.12-0.17s, code+team intact.
+
+## 2026-11-27 — Referral/team SCALE to lakhs (materialized upline path)
+- Problem: /referral & /referral/team-by-rank did full-downline BFS, loading EVERY member into app memory + returning huge JSON — breaks at 50k, impossible at 5 lakh.
+- Added `upline` (ancestor id array, cap 300) on each user: set at registration ([referred_by]+ref.upline); idempotent startup backfill migration (upline_v1) for existing users; indexes: users.upline and (upline, created_at).
+- /referral: team_total/activated via indexed count_documents({upline:uid}); per-direct subtree via gathered counts. No BFS.
+- /referral/team-by-rank: rank COUNTS via aggregation group over {upline:uid} (server-side). members_by_level returned empty.
+- NEW /referral/team-members?level&skip&limit: paginated member list per rank (20/page) + per-member team_size.
+- Frontend Referral.jsx: rank member list now server-paginated (fetch on rank tap / page change) instead of client-side slicing of full list.
+- Verified preview (217 users backfilled): counts match old BFS exactly (team_total 30, ranks 29+1); all endpoints 0.12-0.18s.

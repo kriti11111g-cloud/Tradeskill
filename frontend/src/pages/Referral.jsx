@@ -30,14 +30,27 @@ export default function Referral() {
   const [teamData, setTeamData] = useCachedState("referral_team_by_rank", null);
   const [viewRank, setViewRank] = useState(null);
   const [rankPage, setRankPage] = useState(0);
+  const [rankMembers, setRankMembers] = useState({ members: [], total: 0 });
+  const [rankLoading, setRankLoading] = useState(false);
   const PAGE = 20;
 
   useEffect(() => {
     api.get("/referral").then(({ data }) => setData(data)).catch(() => {});
-    // Prefetch team-by-rank on load so the Team tab opens instantly (no wait on tap).
+    // Prefetch team-by-rank COUNTS on load so the Team tab opens instantly.
     api.get("/referral/team-by-rank").then(({ data }) => setTeamData(data)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Members for the opened rank are loaded server-side & paginated (scales to lakhs).
+  useEffect(() => {
+    if (viewRank == null) return;
+    setRankLoading(true);
+    api.get(`/referral/team-members?level=${viewRank}&skip=${rankPage * PAGE}&limit=${PAGE}`)
+      .then(({ data }) => setRankMembers({ members: data.members || [], total: data.total || 0 }))
+      .catch(() => setRankMembers({ members: [], total: 0 }))
+      .finally(() => setRankLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewRank, rankPage]);
 
   const openTeam = () => {
     setTab("team");
@@ -256,21 +269,23 @@ export default function Referral() {
                   <div className="font-display font-bold text-lg" style={{ color: "var(--ink)" }}>Rank V{viewRank} Members</div>
                 </div>
                 {(() => {
-                  const list = teamData?.members_by_level?.[String(viewRank)] || [];
-                  if (list.length === 0) {
+                  const list = rankMembers.members;
+                  const total = rankMembers.total;
+                  if (rankLoading && list.length === 0) {
+                    return <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="rank-loading">Loading members…</div>;
+                  }
+                  if (total === 0) {
                     return <div className="text-center text-sm py-6" style={{ color: "var(--text-mute)" }} data-testid="empty-rank">No members at this rank yet.</div>;
                   }
-                  const total = list.length;
                   const totalPages = Math.ceil(total / PAGE);
                   const start = rankPage * PAGE;
-                  const slice = list.slice(start, start + PAGE);
                   return (
                     <>
                       <div className="text-[11px] font-semibold mb-2" style={{ color: "var(--text-mute)" }} data-testid="rank-range">
                         Showing {start + 1}–{Math.min(start + PAGE, total)} of {total}
                       </div>
                       <div className="space-y-2.5" data-testid="rank-members-list">
-                        {slice.map((t, i) => <MemberRow key={t.email + (start + i)} t={t} i={start + i} prefix="rank" />)}
+                        {list.map((t, i) => <MemberRow key={t.email + (start + i)} t={t} i={start + i} prefix="rank" />)}
                       </div>
                       {totalPages > 1 && (
                         <div className="flex items-center justify-between gap-3 mt-4" data-testid="rank-pager">

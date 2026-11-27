@@ -549,11 +549,13 @@ async def register(body: RegisterIn, response: Response):
     ref_code = uid  # referral code = UID (TSK100000 style)
 
     referred_by = None
+    _ref_upline = []
     if body.referral_code:
         code = body.referral_code.strip().upper()
         ref = await db.users.find_one({"$or": [{"referral_code": code}, {"uid": code}]})
         if ref:
             referred_by = ref["id"]
+            _ref_upline = (ref.get("upline") or [])
 
     # Leg auto-assigned (UI no longer asks). Alternate legs for each sponsor's directs.
     if body.leg in ("left", "right"):
@@ -579,6 +581,7 @@ async def register(body: RegisterIn, response: Response):
         "txn_password_hash": hash_password(body.transaction_password) if body.transaction_password else None,
         "leg": assigned_leg,
         "activated": False,
+        "upline": ([referred_by] + _ref_upline)[:300] if referred_by else [],
         "wallet_usdt": 1000.0,  # demo starter balance
         "created_at": iso(now_utc()),
     }
@@ -4328,33 +4331,16 @@ async def referral(user: dict = Depends(get_current_user)):
         {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1, "created_at": 1, "activated": 1},
     ).to_list(500)
 
-    # BFS whole team (UNLIMITED levels; 100k-user safety cap), attributing each member to their root direct
-    root_of = {d["id"]: d["id"] for d in directs}
-    seen = {user["id"], *root_of.keys()}
-    frontier = list(root_of.keys())
-    team_total = len(directs)
-    team_activated = sum(1 for d in directs if d.get("activated"))
-    subtree = {d["id"]: 0 for d in directs}
-    while frontier and len(seen) <= 100000:
-        rows = await db.users.find(
-            {"referred_by": {"$in": frontier}},
-            {"_id": 0, "id": 1, "referred_by": 1, "activated": 1},
-        ).to_list(5000)
-        nxt = []
-        for r in rows:
-            if r["id"] in seen:
-                continue
-            seen.add(r["id"])
-            nxt.append(r["id"])
-            root = root_of.get(r["referred_by"])
-            if root:
-                root_of[r["id"]] = root
-                subtree[root] += 1
-            team_total += 1
-            if r.get("activated"):
-                team_activated += 1
-        frontier = nxt
+    # Whole-team counts via the materialized `upline` path — O(1)-style indexed
+    # counts instead of a full-tree BFS, so this scales to lakhs of members.
+    uid = user["id"]
+    team_total = await db.users.count_documents({"upline": uid})
+    team_activated = await db.users.count_documents({"upline": uid, "activated": True})
 
+    async def _sub(d):
+        return await db.users.count_documents({"upline": d["id"]})
+    sub_counts = await asyncio.gather(*[_sub(d) for d in directs]) if directs else []
+    subtree = {d["id"]: c for d, c in zip(directs, sub_counts)}
     earnings = await db.rewards.find({"user_id": user["id"], "type": "referral"}, {"_id": 0}).sort("created_at", -1).to_list(500)
     total_earned = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimed")
     pending = sum(e.get("amount", 0) for e in earnings if e.get("status") == "claimable")
@@ -4394,71 +4380,68 @@ async def referral(user: dict = Depends(get_current_user)):
     return _result
 
 
+def _rank_title_to_level(title) -> int:
+    t = (title or "LEVEL 1").strip().upper()
+    for r in RANKS:
+        if r["title"].upper() == t:
+            return int(r["level"])
+    import re as _re
+    m = _re.search(r"(\d+)", t)
+    return min(10, max(1, int(m.group(1)))) if m else 1
+
+
 @api.get("/referral/team-by-rank")
 async def referral_team_by_rank(user: dict = Depends(get_current_user)):
-    """Whole downline (unlimited levels) grouped by rank V1..V10. Each member
-    carries name, activation, rank, joining date and their own total team size."""
+    """Whole-downline COUNTS grouped by rank V1..V10 (via the materialized `upline`
+    path). Member lists are loaded on demand through /referral/team-members so this
+    stays fast even for lakhs of members."""
     _ck = f"trbr:{user['id']}"
     _cached = _team_cache_get(_ck)
     if _cached is not None:
         return _cached
-    members: dict = {}   # id -> user doc
-    parent: dict = {}    # id -> referred_by
-    depth_of: dict = {}  # id -> genealogy depth below the logged-in user (direct = 1)
-    seen = {user["id"]}
-    frontier = [user["id"]]
-    CAP = 50000
-    depth = 0
-    while frontier and len(seen) <= CAP:
-        depth += 1
-        rows = await db.users.find(
-            {"referred_by": {"$in": frontier}},
-            {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1,
-             "created_at": 1, "activated": 1, "referred_by": 1},
-        ).to_list(5000)
-        nxt = []
-        for r in rows:
-            if r["id"] in seen:
-                continue
-            seen.add(r["id"])
-            nxt.append(r["id"])
-            members[r["id"]] = r
-            parent[r["id"]] = r.get("referred_by")
-            depth_of[r["id"]] = depth
-        frontier = nxt
-
-    # Each member's own subtree size: walk ancestors, +1 for every upline in team
-    subtree = {mid: 0 for mid in members}
-    for mid in members:
-        p = parent.get(mid)
-        hops = 0
-        while p and p != user["id"] and p in subtree and hops <= CAP:
-            subtree[p] += 1
-            p = parent.get(p)
-            hops += 1
-
-    by_level: dict = {i: [] for i in range(1, 11)}
-    for mid, d in members.items():
-        lvl = _rank_level_of(d)
-        by_level.setdefault(lvl, []).append({
-            "email": d.get("email", ""),
-            "name": d.get("name"),
-            "rank": d.get("rank", "LEVEL 1"),
-            "activated": bool(d.get("activated")),
-            "created_at": d.get("created_at"),
-            "team_size": subtree.get(mid, 0),
-            "depth": depth_of.get(mid, 0),
-        })
-    for i in by_level:
-        by_level[i].sort(key=lambda m: m.get("created_at") or "", reverse=True)
-
-    ranks = [{"level": i, "count": len(by_level.get(i, []))} for i in range(1, 11)]
+    uid = user["id"]
+    level_counts = {i: 0 for i in range(1, 11)}
+    async for a in db.users.aggregate([
+        {"$match": {"upline": uid}},
+        {"$group": {"_id": "$rank", "count": {"$sum": 1}}},
+    ]):
+        lvl = _rank_title_to_level(a["_id"])
+        level_counts[lvl] = level_counts.get(lvl, 0) + a["count"]
+    ranks = [{"level": i, "count": level_counts.get(i, 0)} for i in range(1, 11)]
     _result = {
         "ranks": ranks,
-        "members_by_level": {str(i): by_level.get(i, []) for i in range(1, 11)},
+        "members_by_level": {str(i): [] for i in range(1, 11)},  # loaded on demand
     }
     _team_cache_set(_ck, _result)
     return _result
+
+
+@api.get("/referral/team-members")
+async def referral_team_members(level: int, skip: int = 0, limit: int = 30,
+                                user: dict = Depends(get_current_user)):
+    """Paginated downline members for a given rank level (V1..V10)."""
+    uid = user["id"]
+    level = max(1, min(10, int(level)))
+    skip = max(0, int(skip))
+    limit = max(1, min(100, int(limit)))
+    q = {"upline": uid, "rank": {"$regex": rf"^level\s*{level}$", "$options": "i"}}
+    total = await db.users.count_documents(q)
+    rows = await db.users.find(
+        q, {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1, "created_at": 1, "activated": 1},
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    async def _sub(r):
+        return await db.users.count_documents({"upline": r["id"]})
+    subs = await asyncio.gather(*[_sub(r) for r in rows]) if rows else []
+    members = [{
+        "email": r.get("email", ""),
+        "name": r.get("name"),
+        "rank": r.get("rank", "LEVEL 1"),
+        "activated": bool(r.get("activated")),
+        "created_at": r.get("created_at"),
+        "team_size": c,
+    } for r, c in zip(rows, subs)]
+    return {"level": level, "total": total, "skip": skip, "limit": limit, "members": members}
 
 
 # ==== Rewards ====
@@ -7235,6 +7218,48 @@ async def startup():
     await db.bot_wallets.create_index("user_id", unique=True)
     await db.bot_transactions.create_index([("user_id", 1), ("created_at", -1)])
     await db.bonanza_claims.create_index([("user_id", 1), ("offer_id", 1)], unique=True)
+    # upline (materialized ancestor path) — powers O(1)-style team counts & paginated
+    # member lists so Referral/team scales to lakhs of users without full-tree BFS.
+    await db.users.create_index("upline")
+    await db.users.create_index([("upline", 1), ("created_at", -1)])
+
+    # One-time backfill: build each user's `upline` ancestor list from referred_by.
+    if not await db.migrations.find_one({"_id": "upline_v1"}):
+        parent = {}
+        async for u in db.users.find({}, {"_id": 0, "id": 1, "referred_by": 1}):
+            parent[u["id"]] = u.get("referred_by")
+        _cache = {}
+
+        def _build(uid):
+            if uid in _cache:
+                return _cache[uid]
+            chain = []
+            cur = parent.get(uid)
+            guard = 0
+            while cur and guard < 300:
+                chain.append(cur)
+                nxt = _cache.get(cur)
+                if nxt is not None:
+                    chain.extend(nxt)
+                    break
+                cur = parent.get(cur)
+                guard += 1
+            _cache[uid] = chain
+            return chain
+
+        from pymongo import UpdateOne
+        ops, done = [], 0
+        for uid in parent:
+            ops.append(UpdateOne({"id": uid}, {"$set": {"upline": _build(uid)[:300]}}))
+            if len(ops) >= 2000:
+                await db.users.bulk_write(ops, ordered=False)
+                done += len(ops)
+                ops = []
+        if ops:
+            await db.users.bulk_write(ops, ordered=False)
+            done += len(ops)
+        await db.migrations.insert_one({"_id": "upline_v1"})
+        logger.info(f"upline backfill done for {done} users")
 
     # One-time migration: make One-Shot the permanent default and turn Open-position-double OFF
     # for all existing bots (runs once, tracked via migrations flag).
