@@ -172,3 +172,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - fetch_price_cached now reads from that warm all-tickers map (TTL 30s) instead of a per-symbol Binance round-trip → wallet/summary, get_bot, etc. never pay cold-fetch cost.
 - Result: wallet/summary 1.0s→0.18s, market/pairs 1.27s→0.13s, bots/{sym} 0.11s — stable even after TTL cycles. No more 1s stalls anywhere.
 - Other minor pages (Profile, TradingPair, News, etc.) already fast (<0.35s); left as-is.
+
+## 2026-11-27 — Referral page speed (server-side team cache)
+- /referral and /referral/team-by-rank both run a whole-downline BFS; the Referral page calls BOTH on load + bg refresh, and the referral link was gated behind the BFS.
+- Added per-user server-side cache _TEAM_CACHE (60s TTL, opportunistic cleanup >500 entries) for both endpoints → repeat/background calls instant; heavy BFS runs at most once/min even on large production teams. Referral code returns fast.
+- Frontend already caches (useCachedState) + prefetches team-by-rank. Verified preview: referral 0.14-0.2s, team-by-rank 0.12-0.17s, code+team intact.

@@ -4298,8 +4298,31 @@ async def wallet_spot(user: dict = Depends(get_current_user)):
 
 
 # ==== Referral ====
+_TEAM_CACHE: dict = {}  # key -> (result, ts); short TTL to avoid re-running the
+# heavy whole-downline BFS on every Referral page load / background refresh.
+
+
+def _team_cache_get(key: str, ttl: float = 60.0):
+    hit = _TEAM_CACHE.get(key)
+    if hit and (time.time() - hit[1] < ttl):
+        return hit[0]
+    return None
+
+
+def _team_cache_set(key: str, result):
+    now = time.time()
+    if len(_TEAM_CACHE) > 500:
+        for k in [k for k, (_, ts) in _TEAM_CACHE.items() if now - ts > 60.0]:
+            _TEAM_CACHE.pop(k, None)
+    _TEAM_CACHE[key] = (result, now)
+
+
 @api.get("/referral")
 async def referral(user: dict = Depends(get_current_user)):
+    _ck = f"ref:{user['id']}"
+    _cached = _team_cache_get(_ck)
+    if _cached is not None:
+        return _cached
     directs = await db.users.find(
         {"referred_by": user["id"]},
         {"_id": 0, "id": 1, "email": 1, "name": 1, "rank": 1, "created_at": 1, "activated": 1},
@@ -4351,7 +4374,7 @@ async def referral(user: dict = Depends(get_current_user)):
         }
         for d in directs
     ]
-    return {
+    _result = {
         "referral_code": user.get("referral_code"),
         "team_size": len(directs),
         "team": team,
@@ -4367,12 +4390,18 @@ async def referral(user: dict = Depends(get_current_user)):
             "not_activated": team_total - team_activated,
         },
     }
+    _team_cache_set(_ck, _result)
+    return _result
 
 
 @api.get("/referral/team-by-rank")
 async def referral_team_by_rank(user: dict = Depends(get_current_user)):
     """Whole downline (unlimited levels) grouped by rank V1..V10. Each member
     carries name, activation, rank, joining date and their own total team size."""
+    _ck = f"trbr:{user['id']}"
+    _cached = _team_cache_get(_ck)
+    if _cached is not None:
+        return _cached
     members: dict = {}   # id -> user doc
     parent: dict = {}    # id -> referred_by
     depth_of: dict = {}  # id -> genealogy depth below the logged-in user (direct = 1)
@@ -4424,10 +4453,12 @@ async def referral_team_by_rank(user: dict = Depends(get_current_user)):
         by_level[i].sort(key=lambda m: m.get("created_at") or "", reverse=True)
 
     ranks = [{"level": i, "count": len(by_level.get(i, []))} for i in range(1, 11)]
-    return {
+    _result = {
         "ranks": ranks,
         "members_by_level": {str(i): by_level.get(i, []) for i in range(1, 11)},
     }
+    _team_cache_set(_ck, _result)
+    return _result
 
 
 # ==== Rewards ====
