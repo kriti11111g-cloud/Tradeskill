@@ -161,3 +161,7 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Added caching to remaining pages: Transactions (tgx_txns_cache, unfiltered) + BotHub status (tgx_botwallet_status) → instant open.
 - Backend: bot_engine_loop ab _TICK_SEM semaphore (env BOT_TICK_CONCURRENCY, default 20) se concurrency cap karta hai — bade bot fleet par thread-pool/event-loop saturation se API stall nahi hoga (login/pages responsive).
 - Verified: PY OK, login x3 ~0.3s, frontend compiled (24 pre-existing warnings), app renders.
+
+## 2026-11-27 — Trade Settings instant open
+- TradeSettings.jsx: bot config + connected-exchange flag ab localStorage cache (tgx_botcfg_<sym>, tgx_connected) se seed hote hain → page turant paint hota hai (pehle `if(!bot) return blank` tak blank rehta tha). Background refresh fresh data laata hai; symbol-change par us symbol ka cache instantly seed hota hai.
+- Pattern Wallet/Trades jaisa (proven). Clean compile; direct screenshot post-login rank-celebration redirect (automation) ki wajah se nahi liya.

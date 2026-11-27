@@ -84,10 +84,14 @@ export default function TradeSettings() {
   const stream = useBinanceStream(sym);
   const [view, setView] = useState("main"); // main | margin | dist
   const [stats, setStats] = useState(null);
-  const [bot, setBot] = useState(null);
+  const [bot, setBot] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`tgx_botcfg_${sym}`) || "null"); } catch { return null; }
+  });
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
-  const [connected, setConnected] = useState(null); // exchange bound? null=loading
+  const [connected, setConnected] = useState(() => {
+    try { const v = localStorage.getItem("tgx_connected"); return v === null ? null : v === "true"; } catch { return null; }
+  }); // exchange bound? null=loading
 
   useEffect(() => {
     Promise.all([
@@ -95,17 +99,27 @@ export default function TradeSettings() {
       api.get("/kucoin/bind").then((r) => r.data).catch(() => null),
       api.get("/lbank/bind").then((r) => r.data).catch(() => null),
       api.get("/hyperliquid/bind").then((r) => r.data).catch(() => null),
-    ]).then(([bn, kc, lb, hl]) => setConnected(!!(bn?.mode || kc?.mode || lb?.mode || hl?.mode)));
+    ]).then(([bn, kc, lb, hl]) => {
+      const c = !!(bn?.mode || kc?.mode || lb?.mode || hl?.mode);
+      setConnected(c);
+      try { localStorage.setItem("tgx_connected", String(c)); } catch {}
+    });
   }, []);
 
   useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(`tgx_botcfg_${sym}`) || "null");
+      if (c) setBot(c);
+    } catch {}
     api.get(`/bots/${sym}`).then(({ data }) => {
       const limit = Math.max(1, parseInt(data.margin_call_limit || 5, 10));
-      setBot({
+      const processed = {
         ...data,
         margin_config: syncRows(data.margin_config || [], limit),
         sub_position_tps: syncTps(data.sub_position_tps || [], limit, data.whole_take_profit_ratio || 1.25),
-      });
+      };
+      setBot(processed);
+      try { localStorage.setItem(`tgx_botcfg_${sym}`, JSON.stringify(processed)); } catch {}
     }).catch(() => {});
     api.get(`/market/stats/${sym}`).then(({ data }) => setStats(data)).catch(() => {});
   }, [sym]);
