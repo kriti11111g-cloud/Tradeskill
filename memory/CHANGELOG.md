@@ -165,3 +165,10 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 ## 2026-11-27 — Trade Settings instant open
 - TradeSettings.jsx: bot config + connected-exchange flag ab localStorage cache (tgx_botcfg_<sym>, tgx_connected) se seed hote hain → page turant paint hota hai (pehle `if(!bot) return blank` tak blank rehta tha). Background refresh fresh data laata hai; symbol-change par us symbol ka cache instantly seed hota hai.
 - Pattern Wallet/Trades jaisa (proven). Clean compile; direct screenshot post-login rank-celebration redirect (automation) ki wajah se nahi liya.
+
+## 2026-11-27 — Full-app perf pass (price warmer)
+- Audit: only 2 slow endpoints found — wallet/summary (1.0s) & market/pairs (1.27s), both ONLY on cold cache-miss (~once/min). All other endpoints 0.1-0.2s.
+- Added price_warmer_loop (background, every 25s) that force-refreshes the shared Binance all-tickers cache; started in startup alongside bot engine.
+- fetch_price_cached now reads from that warm all-tickers map (TTL 30s) instead of a per-symbol Binance round-trip → wallet/summary, get_bot, etc. never pay cold-fetch cost.
+- Result: wallet/summary 1.0s→0.18s, market/pairs 1.27s→0.13s, bots/{sym} 0.11s — stable even after TTL cycles. No more 1s stalls anywhere.
+- Other minor pages (Profile, TradingPair, News, etc.) already fast (<0.35s); left as-is.

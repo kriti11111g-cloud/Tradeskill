@@ -2303,14 +2303,38 @@ async def fetch_price(symbol: str) -> float:
 _PRICE_CACHE: dict = {}
 
 
-async def fetch_price_cached(symbol: str, ttl: float = 10.0) -> float:
+async def fetch_price_cached(symbol: str, ttl: float = 30.0) -> float:
     now = time.time()
     hit = _PRICE_CACHE.get(symbol)
     if hit and now - hit[1] < ttl:
         return hit[0]
+    # Prefer the shared all-tickers cache (kept warm by price_warmer_loop) so we
+    # avoid a per-symbol Binance round-trip on the request path.
+    tmap = _TICKER_ALL.get("data") or {}
+    row = tmap.get(symbol)
+    if row and (now - _TICKER_ALL.get("ts", 0) < 90.0):
+        try:
+            p = float(row.get("lastPrice", 0) or 0)
+            if p > 0:
+                _PRICE_CACHE[symbol] = (p, now)
+                return p
+        except Exception:
+            pass
     p = await fetch_price(symbol)
     _PRICE_CACHE[symbol] = (p, now)
     return p
+
+
+async def price_warmer_loop():
+    """Keep the shared Binance ticker cache warm so market/wallet/bot endpoints
+    never pay the ~1s cold-fetch cost on the request path."""
+    logger.info("price warmer started")
+    while True:
+        try:
+            await _all_tickers_cached(ttl=0.0)  # force refresh
+        except Exception as e:
+            logger.warning(f"price warmer error: {e}")
+        await asyncio.sleep(25)
 
 
 async def get_user_binance(user_id: str):
@@ -3903,6 +3927,7 @@ async def _bot_tick(bot: dict):
 
 _engine_task = None
 _royalty_task = None
+_warmer_task = None
 
 # Cap how many bot ticks run at once so a large fleet of bots can't saturate the
 # thread pool / event loop and stall API requests (login, pages). Tunable via env.
@@ -7408,9 +7433,11 @@ async def startup():
         logger.warning(f"Could not load Binance exchangeInfo at startup: {e}. Using fallback list.")
 
     # Launch the background bot engine
-    global _engine_task, _watcher_task, _royalty_task, _event_task
+    global _engine_task, _watcher_task, _royalty_task, _event_task, _warmer_task
     if _engine_task is None or _engine_task.done():
         _engine_task = asyncio.create_task(bot_engine_loop())
+    if _warmer_task is None or _warmer_task.done():
+        _warmer_task = asyncio.create_task(price_warmer_loop())
     if _event_task is None or _event_task.done():
         _event_task = asyncio.create_task(deposit_event_loop())
     if _watcher_task is None or _watcher_task.done():
