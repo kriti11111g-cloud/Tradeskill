@@ -2884,7 +2884,7 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
         await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
         profit = 0.0
     else:
-        cost = filled_qty * bot.get("avg_price", 0.0)
+        cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
         if remaining_qty < 1e-9:
@@ -2987,7 +2987,7 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
         await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
         profit = 0.0
     else:
-        cost = filled_qty * bot.get("avg_price", 0.0)
+        cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
         if remaining_qty < 1e-9:
@@ -3237,7 +3237,7 @@ async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity
         await db.users.update_one({"id": user_id}, {"$set": {"wallet_usdt": new_wallet}})
         profit = 0.0
     else:
-        cost = filled_qty * bot.get("avg_price", 0.0)
+        cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
         if remaining_qty < 1e-9:
