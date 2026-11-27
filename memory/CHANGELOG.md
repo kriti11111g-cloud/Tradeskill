@@ -155,3 +155,9 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Backend get_bot ab fetch_price_cached (10s TTL) use karta hai (blocking 8s fetch_price hataya) — detail response fast.
 - Frontend SBMModal: module-level sbmCache + background refresh; BotRow mount par prefetch (hasPos bots). Modal cache se instant khulta hai.
 - Note: Entry(level-0) card + ye changes production par tabhi dikhenge jab backend restart ho (systemctl restart tradeskill-backend). Preview timing: 1st 0.8s, cached 0.19s.
+
+## 2026-11-27 — App-wide performance pass
+- Diagnosed: preview backend endpoints fast (0.1-0.2s); login 0.3s (20s spike was a transient cold-start/event-loop stall, not persistent). Major pages (Wallet, Trades, Dashboard, Market, Rank, Referral, Rewards, Revenue) already do stale-while-revalidate localStorage caching.
+- Added caching to remaining pages: Transactions (tgx_txns_cache, unfiltered) + BotHub status (tgx_botwallet_status) → instant open.
+- Backend: bot_engine_loop ab _TICK_SEM semaphore (env BOT_TICK_CONCURRENCY, default 20) se concurrency cap karta hai — bade bot fleet par thread-pool/event-loop saturation se API stall nahi hoga (login/pages responsive).
+- Verified: PY OK, login x3 ~0.3s, frontend compiled (24 pre-existing warnings), app renders.

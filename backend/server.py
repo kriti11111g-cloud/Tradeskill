@@ -3904,6 +3904,15 @@ async def _bot_tick(bot: dict):
 _engine_task = None
 _royalty_task = None
 
+# Cap how many bot ticks run at once so a large fleet of bots can't saturate the
+# thread pool / event loop and stall API requests (login, pages). Tunable via env.
+_TICK_SEM = asyncio.Semaphore(int(os.environ.get("BOT_TICK_CONCURRENCY", "20")))
+
+
+async def _tick_guarded(b):
+    async with _TICK_SEM:
+        await _bot_tick(b)
+
 
 async def bot_engine_loop():
     logger.info("bot engine started")
@@ -3911,7 +3920,7 @@ async def bot_engine_loop():
         try:
             running = await db.bots.find({"status": "running"}, {"_id": 0}).to_list(500)
             if running:
-                await asyncio.gather(*[_bot_tick(b) for b in running], return_exceptions=True)
+                await asyncio.gather(*[_tick_guarded(b) for b in running], return_exceptions=True)
         except Exception as e:
             logger.error(f"engine loop error: {e}")
         await asyncio.sleep(10)

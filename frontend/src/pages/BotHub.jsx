@@ -53,7 +53,9 @@ export default function BotHub() {
   const { refresh } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tgx_botwallet_status") || "null"); } catch { return null; }
+  });
   const [modal, setModal] = useState(null); // 'activate' | 'deposit' | 'withdraw' | 'p2p' | 'info' | null
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
@@ -76,6 +78,7 @@ export default function BotHub() {
     try {
       const { data } = await api.get("/bot-wallet/status");
       setStatus(data);
+      try { localStorage.setItem("tgx_botwallet_status", JSON.stringify(data)); } catch {}
     } catch (e) {
       toast.error(formatApiError(e));
     }

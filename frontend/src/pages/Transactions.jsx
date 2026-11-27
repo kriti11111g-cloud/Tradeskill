@@ -92,7 +92,13 @@ function WalletBar({ wallet }) {
 }
 
 export default function Transactions() {
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("symbol") || p.get("date")) return [];
+      return JSON.parse(localStorage.getItem("tgx_txns_cache") || "[]");
+    } catch { return []; }
+  });
   const [wallet, setWallet] = useState(null);
   const [f, setF] = useState("ALL");
   const [openId, setOpenId] = useState(null);
@@ -108,7 +114,12 @@ export default function Transactions() {
     if (dateFilter) params.set("date", dateFilter);
     const qs = params.toString();
     const url = qs ? `/transactions?${qs}` : "/transactions";
-    api.get(url).then(({ data }) => setRows(data));
+    api.get(url).then(({ data }) => {
+      setRows(data);
+      if (!symbolFilter && !dateFilter) {
+        try { localStorage.setItem("tgx_txns_cache", JSON.stringify((data || []).slice(0, 200))); } catch {}
+      }
+    });
     api.get("/wallet/spot").then(({ data }) => setWallet(data)).catch(() => {});
     setOpenId(null);
   }, [symbolFilter, dateFilter]);
