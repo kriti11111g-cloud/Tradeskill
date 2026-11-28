@@ -2914,7 +2914,11 @@ async def _execute_kucoin_real(user_id, symbol, side, usdt_amount, quantity, sou
         cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
-        if remaining_qty < 1e-9:
+        # A market sell rounds size DOWN to the exchange lot step, leaving a tiny
+        # sub-lot remainder. Anything worth under ~$1 is unsellable dust (below the
+        # exchange min order), so treat it as fully closed — otherwise the bot gets
+        # stuck tracking the dust (and showing % on it) and never re-enters.
+        if remaining_qty * avg_price < 1.0:
             remaining_qty = 0.0
         remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
         new_wallet = wallet + quote_spent
@@ -3017,7 +3021,11 @@ async def _execute_lbank_real(user_id, symbol, side, usdt_amount, quantity, sour
         cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
-        if remaining_qty < 1e-9:
+        # A market sell rounds size DOWN to the exchange lot step, leaving a tiny
+        # sub-lot remainder. Anything worth under ~$1 is unsellable dust (below the
+        # exchange min order), so treat it as fully closed — otherwise the bot gets
+        # stuck tracking the dust (and showing % on it) and never re-enters.
+        if remaining_qty * avg_price < 1.0:
             remaining_qty = 0.0
         remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
         new_wallet = wallet + quote_spent
@@ -3267,7 +3275,11 @@ async def _execute_hyperliquid_real(user_id, symbol, side, usdt_amount, quantity
         cost = filled_qty * (cost_basis if (cost_basis and cost_basis > 0) else bot.get("avg_price", 0.0))
         profit = quote_spent - cost
         remaining_qty = max(0.0, bot.get("position_qty", 0.0) - filled_qty)
-        if remaining_qty < 1e-9:
+        # A market sell rounds size DOWN to the exchange lot step, leaving a tiny
+        # sub-lot remainder. Anything worth under ~$1 is unsellable dust (below the
+        # exchange min order), so treat it as fully closed — otherwise the bot gets
+        # stuck tracking the dust (and showing % on it) and never re-enters.
+        if remaining_qty * avg_price < 1.0:
             remaining_qty = 0.0
         remaining_amt = remaining_qty * bot.get("avg_price", 0.0)
         new_wallet = wallet + quote_spent
