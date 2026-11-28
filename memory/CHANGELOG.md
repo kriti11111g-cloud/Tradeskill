@@ -191,3 +191,8 @@ RULE: Direct referral, trading commission & support income only to ACTIVE upline
 - Bug: market sells round size DOWN to the lot step (szd), leaving a sub-lot remainder. The `remaining_qty < 1e-9` check missed it, so the bot kept the dust as an open position (showed % on it) and never re-entered a fresh first_buy_amount. User saw this on ZEC/Hyperliquid after the first TP.
 - Fix: treat remainder worth < ~$1 (unsellable, below exchange min) as fully closed → resets cycle, arms re-entry. Applied to all 3 real paths (KuCoin/LBank/Hyperliquid) via shared pattern.
 - Note: code-correct per RCA; not runtime-tested on a live Hyperliquid fill (no real keys). User to confirm after deploy.
+
+## 2026-11-28 — Fix: Global V{n} showed Commission Difference instead of Pool
+- Bug: Revenue "Global-:V{n}" tabs (meant for Global Royalty/POOL income) also included team_commission (differential), whose level came from genealogy DEPTH (· L{n}). A high-rank (V10) user's deep-downline differential landed in the V10 bucket as "Commission Difference".
+- Fix: Global V{n} tabs + backend global_{level} summary now count ONLY royalty_income (pool) for that level. Differential commissions remain under the "Trading Commission" tab.
+- Files: Revenue.jsx (rows filter), server.py /revenue/income (bucket). Verified preview: global buckets now pool-only (global_2 royalty).

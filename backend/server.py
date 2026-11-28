@@ -4059,7 +4059,7 @@ async def revenue_income(user: dict = Depends(get_current_user)):
         if is_today:
             all_today += h["amount"]
         buckets = [h["category"]]
-        if h.get("level"):
+        if h.get("level") and h["category"] == "royalty_income":
             buckets.append(f"global_{h['level']}")
         for b in buckets:
             cc = cats.setdefault(b, {"today": 0.0, "total": 0.0})
